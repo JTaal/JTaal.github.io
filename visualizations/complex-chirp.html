@@ -129,11 +129,11 @@
             return sprite;
         }
 
-        const realLabel = createAxisLabel('Real', new THREE.Vector3(5.5, 0, 0), '#e5e7eb', 20);
+        const realLabel = createAxisLabel('x', new THREE.Vector3(5.5, 0, 0), '#e5e7eb', 30);
         scene.add(realLabel);
-        const imaginaryLabel = createAxisLabel('Imaginary', new THREE.Vector3(0, 5.5, 0), '#e5e7eb', 20);
+        const imaginaryLabel = createAxisLabel('i', new THREE.Vector3(0, 5.5, 0), '#e5e7eb', 30);
         scene.add(imaginaryLabel);
-        const frequencyLabel = createAxisLabel('Frequency', new THREE.Vector3(0, 0, 5.5), '#e5e7eb', 20);
+        const frequencyLabel = createAxisLabel('Hz', new THREE.Vector3(0, 0, 5.5), '#e5e7eb', 30);
         scene.add(frequencyLabel);
 
         // === Interactive Chirp Spiral ===
