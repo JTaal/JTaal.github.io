@@ -3,6 +3,7 @@ layout: post
 title: "Explaining the 4D Complex Chirp Visualization"
 date: 2025-08-27
 visualization_url: /visualizations/complex-chirp.html
+permalink: /blog/:year/:month/:day/:title/
 ---
 
 The visualization you see is an attempt to represent a four-dimensional concept in a 3D space. The signal is a complex exponential:
