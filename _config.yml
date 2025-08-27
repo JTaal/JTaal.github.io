@@ -2,12 +2,19 @@ title: Jasper Taal | Visualizations & Code
 description: A minimal portfolio to showcase creative coding projects and blog about the process.
 author: Jasper Taal
 
+
+
+relative_links:
+  enabled: true
+  collections: true
+
+
 theme: minima
 collections:
+  assets:
+    output: true
   visualizations:
     output: true
-
-
 
 # Minimal theme settings for a clean look without a gem-based theme
 # You will control the styling entirely with your own SCSS.
