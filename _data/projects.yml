@@ -2,3 +2,4 @@
 
 - title: 4D Complex Chirp
   url: /assets/visualizations/complex-chirp.html # <-- CHECK THIS LINE
+  description: An interactive visualization that represents a four-dimensional concept in a 3D space.
