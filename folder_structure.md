@@ -1,21 +1,18 @@
 JTAAL.GITHUB.IO/
-├── .gitignore
 ├── _config.yml
+├── _data/
+│   └── projects.yml        <-- NEW: Manages your project list
 ├── _layouts/
 │   ├── default.html
 │   └── post.html
-├── _includes/
-│   ├── header.html
-│   └── footer.html
 ├── _posts/
 │   └── 2025-08-27-complex-chirp-explained.md
-├── _sass/
-│   ├── _base.scss
-│   └── _layout.scss
 ├── assets/
 │   ├── css/
 │   │   └── main.scss
-│   ├── js/
+│   ├── images/             <-- NEW: For thumbnails & background images
+│   │   ├── background.jpg
+│   │   └── complex-chirp-thumbnail.png
 │   └── visualizations/
-│       └── complex-chirp.html  <-- Place your visualization file here
+│       └── complex-chirp.html
 └── index.md
