@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4D Complex Chirp Visualization</title>
+    <link rel="stylesheet" href="/style.css">
     <style>
 
         body { margin: 0; background-color: #111827; color: #e5e7eb; font-family: 'Inter', sans-serif; overflow: hidden; }
@@ -109,15 +110,14 @@
         }
 
         // === NEW: Create and add labels to the scene ===
-        const realLabel = createAxisLabel('Real', new THREE.Vector3(5.5, 0, 0));
+        const realLabel = createAxisLabel('Real', new THREE.Vector3(5.5, 0, 0), '#e5e7eb', 20);
         scene.add(realLabel);
 
-        const imaginaryLabel = createAxisLabel('Imaginary', new THREE.Vector3(0, 5.5, 0));
+        const imaginaryLabel = createAxisLabel('i', new THREE.Vector3(0, 5.5, 0), '#e5e7eb', 20);
         scene.add(imaginaryLabel);
         
-        const frequencyLabel = createAxisLabel('Frequency', new THREE.Vector3(0, 0, 5.5));
+        const frequencyLabel = createAxisLabel('Frequency', new THREE.Vector3(0, 0, 5.5), '#e5e7eb', 20);
         scene.add(frequencyLabel);
-
 
         // === Chirp Spiral (Variable Frequency Helix) ===
         class ChirpCurve extends THREE.Curve {
