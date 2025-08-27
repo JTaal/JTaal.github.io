@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4D Complex Chirp Visualization</title>
+    <style>
+        body { margin: 0; background-color: #111827; color: #e5e7eb; font-family: 'Inter', sans-serif; overflow: hidden; }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            padding: 1rem;
+            pointer-events: none; /* Allows clicking through the text */
+        }
+        #info h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
+        #info p {
+            margin: 0 auto;
+            max-width: 600px;
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="info">
+        <h1>Complex Plane with Increasing Frequency</h1>
+        <p>A 4D concept in 3D. The Z-axis represents frequency, which increases from back (blue) to front (red), causing the spiral to get tighter.</p>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // === Basic Scene Setup ===
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(8, 6, 8);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // === Controls ===
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // === Lighting ===
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        directionalLight.position.set(5, 10, 7.5);
+        scene.add(directionalLight);
+
+        // === Axes Helpers ===
+        const axesHelper = new THREE.AxesHelper(5);
+        scene.add(axesHelper);
+
+        // === NEW: Function to create axis labels ===
+        function createAxisLabel(text, position, color = '#e5e7eb', size = 48) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = `Bold ${size}px Inter, sans-serif`;
+            
+            const textMetrics = context.measureText(text);
+            const canvasWidth = textMetrics.width;
+            const canvasHeight = size * 1.5;
+            
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // Redraw text on resized canvas
+            context.font = `Bold ${size}px Inter, sans-serif`;
+            context.fillStyle = color;
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, canvasWidth / 2, canvasHeight / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            
+            // Scale sprite to a reasonable size in the scene
+            sprite.scale.set(canvasWidth / 100, canvasHeight / 100, 1.0);
+            
+            sprite.position.copy(position);
+            return sprite;
+        }
+
+        // === NEW: Create and add labels to the scene ===
+        const realLabel = createAxisLabel('Real', new THREE.Vector3(5.5, 0, 0));
+        scene.add(realLabel);
+
+        const imaginaryLabel = createAxisLabel('Imaginary', new THREE.Vector3(0, 5.5, 0));
+        scene.add(imaginaryLabel);
+        
+        const frequencyLabel = createAxisLabel('Frequency', new THREE.Vector3(0, 0, 5.5));
+        scene.add(frequencyLabel);
+
+
+        // === Chirp Spiral (Variable Frequency Helix) ===
+        class ChirpCurve extends THREE.Curve {
+            constructor(scale = 1, startTurns = 0.5, endTurns = 10) {
+                super();
+                this.scale = scale;
+                this.startTurns = startTurns;
+                this.endTurns = endTurns;
+            }
+
+            getPoint(t) {
+                const totalTurns = this.startTurns * t + (this.endTurns - this.startTurns) * t * t;
+                const angle = 2 * Math.PI * totalTurns;
+                const x = Math.cos(angle);
+                const y = Math.sin(angle);
+                const z = this.scale * t;
+                return new THREE.Vector3(x, y, z);
+            }
+        }
+
+        const path = new ChirpCurve(10, 0.5, 10);
+        const tubeSegments = 500;
+        const geometry = new THREE.TubeGeometry(path, tubeSegments, 0.1, 8, false);
+
+        const colors = [];
+        const colorA = new THREE.Color(0x3b82f6); // Blue
+        const colorB = new THREE.Color(0xef4444); // Red
+
+        for (let i = 0; i < geometry.attributes.position.count; i++) {
+            const t = i / geometry.attributes.position.count;
+            const color = colorA.clone().lerp(colorB, t);
+            colors.push(color.r, color.g, color.b);
+        }
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+        const material = new THREE.MeshPhongMaterial({
+            side: THREE.DoubleSide,
+            vertexColors: true,
+            shininess: 50
+        });
+
+        const chirpHelix = new THREE.Mesh(geometry, material);
+        chirpHelix.position.z = -5; // Center the helix
+        scene.add(chirpHelix);
+
+        // === Animation Loop ===
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // === Window Resize Handler ===
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+---
+layout: default
+title: "Home"
+---
+
+<h1>My Visualizations</h1>
+<p>Random experiments with a bit of context.</p>
+
+<div class="grid">
+  {% for viz in site.visualizations %}
+  <div class="card">
+    <a href="{{ viz.url }}">
+      <img src="{{ viz.thumbnail }}" alt="{{ viz.title }}">
+      <h2>{{ viz.title }}</h2>
+      <p>{{ viz.description }}</p>
+      <p class="tags">
+        {% for cat in viz.categories %}
+          <span class="tag">{{ cat }}</span>
+        {% endfor %}
+      </p>
+    </a>
+  </div>
+  {% endfor %}
+</div>

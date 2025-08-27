@@ -1,0 +1,25 @@
+title: Jasper Taal | Visualizations & Code
+description: A minimal portfolio to showcase creative coding projects and blog about the process.
+author: Jasper Taal
+
+theme: minima
+collections:
+  visualizations:
+    output: true
+
+
+
+# Minimal theme settings for a clean look without a gem-based theme
+# You will control the styling entirely with your own SCSS.
+sass:
+  sass_dir: _sass
+  style: compressed
+
+# exclude:
+#   - Gemfile
+#   - Gemfile.lock
+#   - node_modules
+#   - vendor/bundle/
+#   - vendor/cache/
+#   - vendor/gems/
+#   - vendor/ruby/
