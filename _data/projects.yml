@@ -1,0 +1,5 @@
+# _data/projects.yml
+
+- title: 4D Complex Chirp
+  url: /assets/visualizations/complex-chirp.html # <-- CHECK THIS LINE
+  ...
