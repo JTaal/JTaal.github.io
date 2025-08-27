@@ -28,8 +28,8 @@ title: Home
   <div class="row row-cols-1 row-cols-lg-2 align-items-stretch g-4 py-5">
     {% for project in site.data.projects %}
       <div class="col">
-        {% if project.url %}
-          <a href="{{ project.url | relative_url }}" class="text-decoration-none">
+        {% if project.post_url %}
+          <a href="{{ project.post_url | relative_url }}" class="text-decoration-none">
             <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg" style="background-image: url('{{ project.thumbnail | relative_url }}'); background-size: cover; background-position: center;">
               <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1" style="background-color: rgba(0, 0, 0, 0.5);">
                 <h3 class="pt-5 mt-5 mb-4 display-6 lh-1 fw-bold">{{ project.title }}</h3>
