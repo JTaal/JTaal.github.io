@@ -21,6 +21,15 @@ sass:
   sass_dir: _sass
   style: compressed
 
+defaults:
+  -
+    scope:
+      path: "visualizations"
+      ext: "html"
+    values:
+      layout: "default"
+      permalink: "/visualizations/:basename/"
+
 # exclude:
 #   - Gemfile
 #   - Gemfile.lock
