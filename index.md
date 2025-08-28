@@ -45,9 +45,9 @@ title: Home
   </div>
     <ul>
       {% for page in site.pages %}
-        {% if page.path contains 'visualizations/' and page.extname == '.html' %}
+        <!--{% if page.path contains 'visualizations/' and page.extname == '.html' %}-->
           <li><a href="{{ page.url }}">{{ page.name }}</a></li>
-        {% endif %}
+        <!--{% endif %}-->
       {% endfor %}
     </ul>
   <!-- How to Cite Section -->
