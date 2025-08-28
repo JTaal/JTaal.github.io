@@ -4,7 +4,7 @@ title: Home
 ---
 <style>
   .hero-section {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("{{ '/assets/images/background.jpg' | relative_url }}");
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("{{ '/assets/images/background.png' | relative_url }}");
     background-size: cover;
     background-position: center;
   }
