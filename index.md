@@ -43,7 +43,13 @@ title: Home
       </div>
     {% endfor %}
   </div>
-
+    <ul>
+      {% for page in site.pages %}
+        {% if page.path contains 'visualizations/' and page.extname == '.html' %}
+          <li><a href="{{ page.url }}">{{ page.name }}</a></li>
+        {% endif %}
+      {% endfor %}
+    </ul>
   <!-- How to Cite Section -->
   <h2 class="pt-4 mt-4 pb-2 border-bottom">How to Cite</h2>
   <p>If you find the content on this website useful for your research or work, please consider citing it. You can use the following BibTeX entry:</p>
