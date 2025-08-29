@@ -68,7 +68,8 @@ date: 2025-08-29
         }
         #main-container {
             display: flex;
-            flex-grow: 1;
+            flex: 1; /* MODIFIED: More robust than flex-grow */
+            overflow: hidden; /* ADDED: Prevents content spill */
             width: 100vw;
             padding-top: var(--header-height);
         }
@@ -101,6 +102,7 @@ date: 2025-08-29
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0; /* ADDED: Prevents the footer from shrinking */
         }
         .controls-grid {
             display: flex;
@@ -433,195 +435,4 @@ date: 2025-08-29
                 for (let x = -gridSize; x <= gridSize; x += step) for (let y = -gridSize; y <= gridSize; y += step) for (let z = -gridSize; z <= gridSize; z += step) {
                     const pos = new THREE.Vector3(x, y, z);
                     if (pos.length() < effectiveRadius + 1) continue;
-                    const arrow = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), pos, 1, 0x2dd4bf, 1, 0.5);
-                    arrows.push(arrow); scene2.add(arrow);
-                }
-            }
-            if (typeof updateAllVisuals === 'function') updateAllVisuals();
-        }
-        
-        function getNearestPointOnManifold(point) {
-            const p = point.clone();
-            const params = shapeParams[currentShape];
-            switch(currentShape) {
-                case 'box':
-                    const s = params.size / 2;
-                    return p.clamp(new THREE.Vector3(-s,-s,-s), new THREE.Vector3(s,s,s));
-                case 'torus':
-                    const R = params.radius;
-                    const p_xy = new THREE.Vector3(p.x, p.y, 0);
-                    const nearest_on_ring = p_xy.normalize().multiplyScalar(R);
-                    const from_ring_to_p = new THREE.Vector3().subVectors(p, nearest_on_ring);
-                    const nearest_on_tube = from_ring_to_p.normalize().multiplyScalar(params.tube);
-                    return nearest_on_ring.add(nearest_on_tube);
-                case 'sphere':
-                default:
-                    const effectiveRadius = params.radius || params.size || 10;
-                    return p.normalize().multiplyScalar(effectiveRadius);
-            }
-        }
-        
-        function updateScoreField(variance) {
-            arrows.forEach(arrow => {
-                const p = arrow.position;
-                const nearest = getNearestPointOnManifold(p);
-                const dir = new THREE.Vector3().subVectors(nearest, p);
-                const len = dir.length() / (1 + variance * 0.4);
-                arrow.setDirection(dir.normalize());
-                arrow.setLength(Math.max(0.1, len), 0.8, 0.4);
-            });
-        }
-
-        function resetWalkers() {
-            if (!walkers || walkers.length === 0) return;
-            const t = parseFloat(document.getElementById('timeStep').value);
-            const variance = t * MAX_VARIANCE;
-            walkers.forEach(walker => {
-                const originalPoint = getNearestPointOnManifold(new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(100));
-                const noise = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(variance * (0.8 + Math.random() * 0.4));
-                walker.position.copy(originalPoint.add(noise));
-            });
-        }
-
-        function animateGeneration() {
-            if (!walkers || walkers.length === 0) return;
-            walkers.forEach((walker) => {
-                const p = walker.position;
-                const nearest = getNearestPointOnManifold(p);
-                const dist = p.distanceTo(nearest);
-
-                if (dist < 0.1) return;
-
-                const score = new THREE.Vector3().subVectors(nearest, p);
-                const drift = score.clone().multiplyScalar(0.01);
-                const noise = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(dist * 0.05);
-                
-                p.add(drift).add(noise);
-            });
-        }
-
-        function updateAllVisuals() {
-            const t = parseFloat(document.getElementById('timeStep').value);
-            const variance = t * MAX_VARIANCE;
-            const varianceDisplay = document.getElementById('varianceDisplay');
-            varianceDisplay.innerHTML = `$\\sigma^2=${variance.toFixed(2)}$`;
-            if(window.MathJax) {
-                MathJax.typesetPromise([varianceDisplay]).catch(() => {});
-            }
-            updateDiffusion(variance);
-            updateScoreField(variance);
-            resetWalkers();
-        }
-
-        // --- Event Listeners ---
-        document.getElementById('timeStep').addEventListener('input', updateAllVisuals);
-        document.querySelectorAll('.shape-btn').forEach(btn => btn.addEventListener('click', () => switchShape(btn.dataset.shape)));
-        
-        const modeBtn = document.getElementById('modeToggle'), zSlider = document.getElementById('zSlider');
-        modeBtn.addEventListener('click', () => {
-            scoreFieldMode = (scoreFieldMode === 'slice') ? 'grid' : 'slice';
-            modeBtn.textContent = scoreFieldMode === 'slice' ? 'Slice' : '3D Grid';
-            modeBtn.classList.toggle('active', scoreFieldMode === 'slice');
-            zSlider.style.display = scoreFieldMode === 'slice' ? 'block' : 'none';
-            regenerateScoreFieldArrows();
-        });
-
-        zSlider.addEventListener('input', (e) => {
-            zSlicePosition = parseFloat(e.target.value);
-            regenerateScoreFieldArrows();
-        });
-
-        const returnBtn = document.getElementById('return-btn');
-        document.querySelectorAll('.fullscreen-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.currentTarget.dataset.id;
-                document.querySelector(`.viz-container[data-id="${id}"]`).classList.add('fullscreen');
-                returnBtn.classList.remove('hidden');
-                onWindowResize();
-            });
-        });
-
-        returnBtn.addEventListener('click', () => {
-            document.querySelector('.fullscreen')?.classList.remove('fullscreen');
-            returnBtn.classList.add('hidden');
-            setTimeout(onWindowResize, 50);
-        });
-        
-        function getLogVariance(sliderValue) {
-            const maxSliderValue = 100;
-            return MIN_LOG_VARIANCE * Math.pow(MAX_LOG_VARIANCE / MIN_LOG_VARIANCE, sliderValue / maxSliderValue);
-        }
-
-        const maxVarianceSlider = document.getElementById('maxVarianceSlider');
-        maxVarianceSlider.addEventListener('input', (e) => {
-            const sliderVal = parseInt(e.target.value);
-            MAX_VARIANCE = getLogVariance(sliderVal);
-            const displayVal = MAX_VARIANCE > 1000 ? `${(MAX_VARIANCE/1000).toFixed(1)}k` : Math.round(MAX_VARIANCE);
-            document.getElementById('maxVarianceDisplay').textContent = displayVal;
-            updateAllVisuals();
-        });
-
-        const particleDensitySlider = document.getElementById('particleDensitySlider');
-        particleDensitySlider.addEventListener('input', (e) => {
-            particleDensity = parseInt(e.target.value);
-            switchShape(currentShape); 
-        });
-
-
-        function onWindowResize() {
-            const allContainers = document.querySelectorAll('.viz-container');
-            const renderers = [renderer1, renderer2, renderer3];
-            const cameras = [camera1, camera2, camera3];
-
-            allContainers.forEach(c => {
-                const id = c.dataset.id;
-                let width, height;
-
-                if (c.classList.contains('fullscreen')) {
-                    width = window.innerWidth;
-                    height = window.innerHeight - document.querySelector('.ui-footer').offsetHeight;
-                } else {
-                    width = originalSizes[id] ? originalSizes[id].width : c.clientWidth;
-                    height = originalSizes[id] ? originalSizes[id].height : c.clientHeight;
-                }
-                
-                const renderer = renderers[id - 1];
-                const camera = cameras[id - 1];
-
-                if (renderer && camera && width > 0 && height > 0) {
-                    camera.aspect = width / height;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(width, height);
-                }
-            });
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            animateGeneration();
-            controls1.update(); renderer1.render(scene1, camera1);
-            controls2.update(); renderer2.render(scene2, camera2);
-            controls3.update(); renderer3.render(scene3, camera3);
-        }
-        
-        // --- Initialization ---
-        window.addEventListener('resize', onWindowResize, false);
-        init1();
-        init2();
-        init3();
-        
-        document.querySelectorAll('.viz-container').forEach(c => {
-            originalSizes[c.dataset.id] = { width: c.clientWidth, height: c.clientHeight };
-        });
-        
-        // Initial setup for contextual sliders
-        const initialSliderVal = parseInt(maxVarianceSlider.value);
-        MAX_VARIANCE = getLogVariance(initialSliderVal);
-        const initialDisplayVal = MAX_VARIANCE > 1000 ? `${(MAX_VARIANCE/1000).toFixed(1)}k` : Math.round(MAX_VARIANCE);
-        document.getElementById('maxVarianceDisplay').textContent = initialDisplayVal;
-
-        switchShape('sphere');
-        animate();
-    </script>
-</body>
-</html>
+                    const arrow = new 
