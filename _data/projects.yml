@@ -1,15 +1,15 @@
-- title: 3D Ball Template
-  author: Jasper Taal
-  thumbnail: /assets/images/3D-ball-template.png
-  post_url: null
-  visualization_url: /visualizations/3D-ball-template.html
-  description: A short description goes here.
-
 - title: Chaos Relativity
   author: Jasper Taal
   thumbnail: /assets/images/chaos-relativity.png
   post_url: null
   visualization_url: /visualizations/chaos-relativity.html
+  description: A short description goes here.
+
+- title: Chirp Up And Down
+  author: Jasper Taal
+  thumbnail: /assets/images/chirp-up-and-down.png
+  post_url: null
+  visualization_url: /visualizations/chirp-up-and-down.html
   description: A short description goes here.
 
 - title: Complex Chirp
@@ -19,25 +19,18 @@
   visualization_url: /visualizations/complex-chirp.html
   description: A short description goes here.
 
-- title: Complex Combined Pi Frequency
+- title: Complex Waves Combined_High
   author: Jasper Taal
-  thumbnail: /assets/images/complex-combined-pi-frequency.png
+  thumbnail: /assets/images/complex-waves-combined_high.png
   post_url: null
-  visualization_url: /visualizations/complex-combined-pi-frequency.html
+  visualization_url: /visualizations/complex-waves-combined_high.html
   description: A short description goes here.
 
-- title: Complex Sin Cos Combined
+- title: Complex Waves Combined_Low
   author: Jasper Taal
-  thumbnail: /assets/images/complex-sin-cos-combined.png
+  thumbnail: /assets/images/complex-waves-combined_low.png
   post_url: null
-  visualization_url: /visualizations/complex-sin-cos-combined.html
-  description: A short description goes here.
-
-- title: Complex Waves Combined
-  author: Jasper Taal
-  thumbnail: /assets/images/complex-waves-combined.png
-  post_url: null
-  visualization_url: /visualizations/complex-waves-combined.html
+  visualization_url: /visualizations/complex-waves-combined_low.html
   description: A short description goes here.
 
 - title: Diffusion Modeling
