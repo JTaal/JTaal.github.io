@@ -36,6 +36,7 @@ date: 2025-08-29
             display: flex;
             flex-direction: column;
             height: 100vh;
+            margin: 0;
         }
         #top-header {
             position: absolute;
@@ -68,13 +69,14 @@ date: 2025-08-29
         }
         #main-container {
             display: flex;
-            flex-grow: 1;
+            flex: 1;
+            overflow: hidden;
             width: 100vw;
             padding-top: var(--header-height);
         }
         .viz-container {
             position: relative;
-            width: 33.33%;
+            width: 33.3333%;
             height: 100%;
             border-left: 1px solid #1e293b;
         }
@@ -101,6 +103,7 @@ date: 2025-08-29
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
         .controls-grid {
             display: flex;
@@ -179,6 +182,28 @@ date: 2025-08-29
             backdrop-filter: blur(5px);
         }
         .hidden { display: none !important; }
+
+        /* --- ADDED: Mobile Responsiveness --- */
+        @media (max-width: 768px) {
+            :root {
+                --header-height: 120px; /* More compact header */
+                --footer-height: 70px; /* More compact footer */
+            }
+            #top-header h1 { font-size: 1.75rem; }
+            #top-header p { font-size: 0.875rem; }
+            #main-container {
+                flex-direction: column; /* Stack views vertically */
+            }
+            .viz-container {
+                width: 100%;
+                height: 33.3333%;
+                border-left: none;
+                border-top: 1px solid #1e293b;
+            }
+            .viz-container.fullscreen {
+                 height: calc(100vh - var(--footer-height)) !important;
+            }
+        }
     </style>
 
     <script type="importmap">
@@ -424,17 +449,4 @@ date: 2025-08-29
             if (scoreFieldMode === 'slice') {
                 const gridSize = 20, gridDivs = 15, step = (gridSize*2)/gridDivs;
                 for (let x = -gridSize; x <= gridSize; x += step) for (let y = -gridSize; y <= gridSize; y += step) {
-                    const pos = new THREE.Vector3(x, y, zSlicePosition);
-                    const arrow = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), pos, 1, 0x2dd4bf, 1, 0.5);
-                    arrows.push(arrow); scene2.add(arrow);
-                }
-            } else {
-                const gridSize = 15, gridDivs = 8, step = (gridSize*2)/gridDivs;
-                for (let x = -gridSize; x <= gridSize; x += step) for (let y = -gridSize; y <= gridSize; y += step) for (let z = -gridSize; z <= gridSize; z += step) {
-                    const pos = new THREE.Vector3(x, y, z);
-                    if (pos.length() < effectiveRadius + 1) continue;
-                    const arrow = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), pos, 1, 0x2dd4bf, 1, 0.5);
-                    arrows.push(arrow); scene2.add(arrow);
-                }
-            }
-            if (ty
+       
