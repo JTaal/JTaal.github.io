@@ -31,5 +31,3 @@ jobs:
           git add _data/projects.yml
           git commit -m "Regenerate _data/projects.yml from _visualizations" || echo "No changes to commit"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref }}
-
-
