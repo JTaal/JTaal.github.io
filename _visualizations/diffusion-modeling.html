@@ -8,7 +8,6 @@ date: 2025-08-29
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diffusion Model</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- ADDED: MathJax for LaTeX rendering -->
     <script>
         MathJax = {
           tex: {
@@ -115,7 +114,10 @@ date: 2025-08-29
             gap: 0.5rem;
         }
         .control-group label {
-            font-size: 0.8rem; font-weight: 500; color: #cbd5e1;
+            font-size: 0.8rem; 
+            font-weight: 500; 
+            color: #cbd5e1;
+            white-space: nowrap;
         }
         .slider {
             -webkit-appearance: none; width: 220px; height: 6px;
@@ -139,7 +141,7 @@ date: 2025-08-29
             z-index: 5; color: rgba(255, 255, 255, 0.4);
             font-size: 0.8rem; pointer-events: none;
         }
-        .variance-display {
+        .display-value {
             font-family: monospace; font-size: 0.8rem; color: #a78bfa;
             min-width: 50px; text-align: left;
         }
@@ -159,10 +161,10 @@ date: 2025-08-29
             font-size: 0.8rem; font-weight: 500;
             cursor: pointer;
         }
-        .score-controls {
+        .contextual-controls {
             display: none;
         }
-        .viz-container.fullscreen .score-controls {
+        .viz-container.fullscreen .contextual-controls {
             display: flex;
             position: absolute;
             top: 3.5rem;
@@ -171,6 +173,10 @@ date: 2025-08-29
             z-index: 55;
             gap: 1rem;
             align-items: center;
+            background-color: rgba(30, 41, 59, 0.7);
+            padding: 0.5rem 1rem;
+            border-radius: 99px;
+            backdrop-filter: blur(5px);
         }
         .hidden { display: none !important; }
     </style>
@@ -199,30 +205,48 @@ date: 2025-08-29
 
     <main id="main-container">
         <div id="container1" class="viz-container" data-id="1">
-             <div class="viz-title">1. Forward Process</div>
-             <div class="fullscreen-btn" data-id="1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-white" viewBox="0 0 16 16"><path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/></svg></div>
+            <div class="viz-title">1. Forward Process</div>
+            <div class="contextual-controls">
+                <div class="control-group">
+                    <label for="maxVarianceSlider">Max Variance (Log)</label>
+                    <div class="flex items-center gap-2">
+                        <input id="maxVarianceSlider" type="range" min="0" max="100" value="50" step="1" class="slider">
+                        <span id="maxVarianceDisplay" class="display-value">~158</span>
+                    </div>
+                </div>
+            </div>
+            <div class="fullscreen-btn" data-id="1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-white" viewBox="0 0 16 16"><path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/></svg></div>
         </div>
         <div id="container2" class="viz-container" data-id="2">
-             <div class="viz-title">2. Score Field</div>
-             <div class="score-controls">
+            <div class="viz-title">2. Score Field</div>
+            <div class="contextual-controls">
                 <button id="modeToggle" class="toggle-button active">Slice</button>
                 <input id="zSlider" type="range" min="-20" max="20" value="0" step="0.1" class="slider w-[150px]">
-             </div>
-             <div class="fullscreen-btn" data-id="2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-white" viewBox="0 0 16 16"><path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/></svg></div>
+            </div>
+            <div class="fullscreen-btn" data-id="2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-white" viewBox="0 0 16 16"><path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/></svg></div>
         </div>
         <div id="container3" class="viz-container" data-id="3">
-             <div class="viz-title">3. Reverse Process</div>
-             <div class="fullscreen-btn" data-id="3"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-white" viewBox="0 0 16 16"><path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/></svg></div>
+            <div class="viz-title">3. Reverse Process</div>
+            <div class="contextual-controls">
+                 <div class="control-group">
+                    <label for="particleDensitySlider">Particle Density</label>
+                    <div class="flex items-center gap-2">
+                        <input id="particleDensitySlider" type="range" min="16" max="128" value="48" step="1" class="slider">
+                        <span id="particleDensityDisplay" class="display-value">~2.5k</span>
+                    </div>
+                </div>
+            </div>
+            <div class="fullscreen-btn" data-id="3"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-white" viewBox="0 0 16 16"><path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/></svg></div>
         </div>
     </main>
 
     <footer class="ui-footer">
         <div class="controls-grid">
             <div class="control-group">
-                <label for="timeStep">Time Step (t)</label>
+                <label for="timeStep">$\text{Time Step }(t)$</label>
                 <div class="flex items-center gap-2">
                     <input id="timeStep" type="range" min="0" max="1" value="0.75" step="0.001" class="slider">
-                    <span id="varianceDisplay" class="variance-display">$\sigma^2=0.00$</span>
+                    <span id="varianceDisplay" class="display-value">$\sigma^2=0.00$</span>
                 </div>
             </div>
         </div>
@@ -238,7 +262,8 @@ date: 2025-08-29
         let scoreFieldMode = 'slice';
         let zSlicePosition = 0;
         let NUM_WALKERS = 0;
-        const MAX_VARIANCE = 25;
+        let MAX_VARIANCE = 25;
+        let particleDensity = 48;
         let currentShape = 'sphere';
         const shapeParams = {
             sphere: { radius: 10 },
@@ -246,6 +271,9 @@ date: 2025-08-29
             torus: { radius: 8, tube: 3 }
         };
         const originalSizes = {};
+        const MIN_LOG_VARIANCE = 5;
+        const MAX_LOG_VARIANCE = 5000;
+
 
         // --- Viz Objects ---
         let scene1, camera1, renderer1, controls1, particles1, originalPositions1;
@@ -266,6 +294,14 @@ date: 2025-08-29
 
             createShapeParticles(newShape);
             
+            const particleCount = NUM_WALKERS;
+            const densityDisplay = document.getElementById('particleDensityDisplay');
+            if (particleCount > 1000) {
+                densityDisplay.textContent = `~${(particleCount/1000).toFixed(1)}k`;
+            } else {
+                densityDisplay.textContent = particleCount;
+            }
+
             if(wireframe2) scene2.remove(wireframe2);
             const wireframeGeom2 = createShapeGeometry(newShape);
             const wireframeMat2 = new THREE.MeshBasicMaterial({ color: 0x2dd4bf, wireframe: true, transparent: true, opacity: 0.2 });
@@ -284,11 +320,15 @@ date: 2025-08-29
 
         function createShapeGeometry(shapeName) {
             const p = shapeParams[shapeName];
+            const density = Math.floor(particleDensity);
+            const boxDensity = Math.floor(density / 4);
+            const torusDensity = Math.floor(density * 1.5);
+
             switch(shapeName) {
-                case 'box': return new THREE.BoxGeometry(p.size, p.size, p.size, 15, 15, 15);
-                case 'torus': return new THREE.TorusGeometry(p.radius, p.tube, 32, 100);
+                case 'box': return new THREE.BoxGeometry(p.size, p.size, p.size, boxDensity, boxDensity, boxDensity);
+                case 'torus': return new THREE.TorusGeometry(p.radius, p.tube, 32, torusDensity);
                 case 'sphere':
-                default: return new THREE.SphereGeometry(p.radius, 48, 48);
+                default: return new THREE.SphereGeometry(p.radius, density, density);
             }
         }
 
@@ -463,9 +503,10 @@ date: 2025-08-29
         function updateAllVisuals() {
             const t = parseFloat(document.getElementById('timeStep').value);
             const variance = t * MAX_VARIANCE;
-            document.getElementById('varianceDisplay').innerHTML = `$\\sigma^2=${variance.toFixed(2)}$`;
+            const varianceDisplay = document.getElementById('varianceDisplay');
+            varianceDisplay.innerHTML = `$\\sigma^2=${variance.toFixed(2)}$`;
             if(window.MathJax) {
-                MathJax.typesetPromise([document.getElementById('varianceDisplay')]);
+                MathJax.typesetPromise([varianceDisplay]).catch(() => {});
             }
             updateDiffusion(variance);
             updateScoreField(variance);
@@ -503,8 +544,29 @@ date: 2025-08-29
         returnBtn.addEventListener('click', () => {
             document.querySelector('.fullscreen')?.classList.remove('fullscreen');
             returnBtn.classList.add('hidden');
-            onWindowResize();
+            setTimeout(onWindowResize, 50);
         });
+        
+        function getLogVariance(sliderValue) {
+            const maxSliderValue = 100;
+            return MIN_LOG_VARIANCE * Math.pow(MAX_LOG_VARIANCE / MIN_LOG_VARIANCE, sliderValue / maxSliderValue);
+        }
+
+        const maxVarianceSlider = document.getElementById('maxVarianceSlider');
+        maxVarianceSlider.addEventListener('input', (e) => {
+            const sliderVal = parseInt(e.target.value);
+            MAX_VARIANCE = getLogVariance(sliderVal);
+            const displayVal = MAX_VARIANCE > 1000 ? `${(MAX_VARIANCE/1000).toFixed(1)}k` : Math.round(MAX_VARIANCE);
+            document.getElementById('maxVarianceDisplay').textContent = displayVal;
+            updateAllVisuals();
+        });
+
+        const particleDensitySlider = document.getElementById('particleDensitySlider');
+        particleDensitySlider.addEventListener('input', (e) => {
+            particleDensity = parseInt(e.target.value);
+            switchShape(currentShape); 
+        });
+
 
         function onWindowResize() {
             const allContainers = document.querySelectorAll('.viz-container');
@@ -547,13 +609,18 @@ date: 2025-08-29
         init1();
         init2();
         init3();
-        switchShape('sphere');
         
         document.querySelectorAll('.viz-container').forEach(c => {
             originalSizes[c.dataset.id] = { width: c.clientWidth, height: c.clientHeight };
         });
+        
+        // Initial setup for contextual sliders
+        const initialSliderVal = parseInt(maxVarianceSlider.value);
+        MAX_VARIANCE = getLogVariance(initialSliderVal);
+        const initialDisplayVal = MAX_VARIANCE > 1000 ? `${(MAX_VARIANCE/1000).toFixed(1)}k` : Math.round(MAX_VARIANCE);
+        document.getElementById('maxVarianceDisplay').textContent = initialDisplayVal;
 
-        updateAllVisuals();
+        switchShape('sphere');
         animate();
     </script>
 </body>
