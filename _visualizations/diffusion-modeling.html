@@ -8,10 +8,25 @@ date: 2025-08-29
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diffusion Model</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ADDED: MathJax for LaTeX rendering -->
+    <script>
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+          },
+          svg: {
+            fontCache: 'global'
+          }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&display=swap');
         :root { 
-            --header-height: 140px; /* Increased to fit buttons */
+            --header-height: 140px;
             --footer-height: 80px; 
         }
         body {
@@ -28,7 +43,7 @@ date: 2025-08-29
             top: 0; left: 0; width: 100%;
             height: var(--header-height);
             display: flex;
-            flex-direction: column; /* Stack title and buttons */
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
@@ -150,7 +165,7 @@ date: 2025-08-29
         .viz-container.fullscreen .score-controls {
             display: flex;
             position: absolute;
-            top: 1rem; /* Repositioned relative to its own container */
+            top: 3.5rem;
             left: 50%;
             transform: translateX(-50%);
             z-index: 55;
@@ -159,6 +174,15 @@ date: 2025-08-29
         }
         .hidden { display: none !important; }
     </style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
     <div id="top-header">
@@ -168,8 +192,8 @@ date: 2025-08-29
         </div>
         <div id="shape-controls">
             <button class="shape-btn active" data-shape="sphere">Sphere</button>
+            <button class="shape-btn" data-shape="box">Cube</button>
             <button class="shape-btn" data-shape="torus">Torus</button>
-            <button class="shape-btn" data-shape="box">Box</button>
         </div>
     </div>
 
@@ -195,10 +219,10 @@ date: 2025-08-29
     <footer class="ui-footer">
         <div class="controls-grid">
             <div class="control-group">
-                <label for="timeStep">Time Step ($t$)</label>
+                <label for="timeStep">Time Step (t)</label>
                 <div class="flex items-center gap-2">
                     <input id="timeStep" type="range" min="0" max="1" value="0.75" step="0.001" class="slider">
-                    <span id="varianceDisplay" class="variance-display">σ²=0.00</span>
+                    <span id="varianceDisplay" class="variance-display">$\sigma^2=0.00$</span>
                 </div>
             </div>
         </div>
@@ -206,10 +230,10 @@ date: 2025-08-29
 
     <button id="return-btn" class="hidden">Return</button>
 
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    <script>
         // --- Config & State ---
         let scoreFieldMode = 'slice';
         let zSlicePosition = 0;
@@ -218,8 +242,8 @@ date: 2025-08-29
         let currentShape = 'sphere';
         const shapeParams = {
             sphere: { radius: 10 },
-            torus: { radius: 8, tube: 3 },
-            box: { size: 15 }
+            box: { size: 15 },
+            torus: { radius: 8, tube: 3 }
         };
         const originalSizes = {};
 
@@ -259,11 +283,12 @@ date: 2025-08-29
         }
 
         function createShapeGeometry(shapeName) {
+            const p = shapeParams[shapeName];
             switch(shapeName) {
-                case 'torus': return new THREE.TorusGeometry(shapeParams.torus.radius, shapeParams.torus.tube, 32, 100);
-                case 'box': return new THREE.BoxGeometry(shapeParams.box.size, shapeParams.box.size, shapeParams.box.size, 15, 15, 15);
+                case 'box': return new THREE.BoxGeometry(p.size, p.size, p.size, 15, 15, 15);
+                case 'torus': return new THREE.TorusGeometry(p.radius, p.tube, 32, 100);
                 case 'sphere':
-                default: return new THREE.SphereGeometry(shapeParams.sphere.radius, 48, 48);
+                default: return new THREE.SphereGeometry(p.radius, 48, 48);
             }
         }
 
@@ -276,7 +301,7 @@ date: 2025-08-29
             renderer1.setSize(container1.clientWidth, container1.clientHeight);
             renderer1.setPixelRatio(window.devicePixelRatio);
             container1.appendChild(renderer1.domElement);
-            controls1 = new THREE.OrbitControls(camera1, renderer1.domElement);
+            controls1 = new OrbitControls(camera1, renderer1.domElement);
             controls1.enableDamping = true;
         }
 
@@ -288,7 +313,7 @@ date: 2025-08-29
             renderer2.setSize(container2.clientWidth, container2.clientHeight);
             renderer2.setPixelRatio(window.devicePixelRatio);
             container2.appendChild(renderer2.domElement);
-            controls2 = new THREE.OrbitControls(camera2, renderer2.domElement);
+            controls2 = new OrbitControls(camera2, renderer2.domElement);
             controls2.enableDamping = true;
         }
 
@@ -300,7 +325,7 @@ date: 2025-08-29
             renderer3.setSize(container3.clientWidth, container3.clientHeight);
             renderer3.setPixelRatio(window.devicePixelRatio);
             container3.appendChild(renderer3.domElement);
-            controls3 = new THREE.OrbitControls(camera3, renderer3.domElement);
+            controls3 = new OrbitControls(camera3, renderer3.domElement);
             controls3.enableDamping = true;
         }
         
@@ -354,7 +379,8 @@ date: 2025-08-29
         function regenerateScoreFieldArrows() {
             arrows.forEach(arrow => scene2.remove(arrow));
             arrows = [];
-            const radius = shapeParams[currentShape]?.radius || shapeParams.box.size;
+            const p = shapeParams[currentShape];
+            const effectiveRadius = p.radius || p.size || 10;
             if (scoreFieldMode === 'slice') {
                 const gridSize = 20, gridDivs = 15, step = (gridSize*2)/gridDivs;
                 for (let x = -gridSize; x <= gridSize; x += step) for (let y = -gridSize; y <= gridSize; y += step) {
@@ -366,7 +392,7 @@ date: 2025-08-29
                 const gridSize = 15, gridDivs = 8, step = (gridSize*2)/gridDivs;
                 for (let x = -gridSize; x <= gridSize; x += step) for (let y = -gridSize; y <= gridSize; y += step) for (let z = -gridSize; z <= gridSize; z += step) {
                     const pos = new THREE.Vector3(x, y, z);
-                    if (pos.length() < radius + 1) continue;
+                    if (pos.length() < effectiveRadius + 1) continue;
                     const arrow = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), pos, 1, 0x2dd4bf, 1, 0.5);
                     arrows.push(arrow); scene2.add(arrow);
                 }
@@ -376,20 +402,22 @@ date: 2025-08-29
         
         function getNearestPointOnManifold(point) {
             const p = point.clone();
+            const params = shapeParams[currentShape];
             switch(currentShape) {
                 case 'box':
-                    const s = shapeParams.box.size / 2;
+                    const s = params.size / 2;
                     return p.clamp(new THREE.Vector3(-s,-s,-s), new THREE.Vector3(s,s,s));
                 case 'torus':
-                    const R = shapeParams.torus.radius;
+                    const R = params.radius;
                     const p_xy = new THREE.Vector3(p.x, p.y, 0);
                     const nearest_on_ring = p_xy.normalize().multiplyScalar(R);
                     const from_ring_to_p = new THREE.Vector3().subVectors(p, nearest_on_ring);
-                    const nearest_on_tube = from_ring_to_p.normalize().multiplyScalar(shapeParams.torus.tube);
+                    const nearest_on_tube = from_ring_to_p.normalize().multiplyScalar(params.tube);
                     return nearest_on_ring.add(nearest_on_tube);
                 case 'sphere':
                 default:
-                    return p.normalize().multiplyScalar(shapeParams.sphere.radius);
+                    const effectiveRadius = params.radius || params.size || 10;
+                    return p.normalize().multiplyScalar(effectiveRadius);
             }
         }
         
@@ -419,4 +447,114 @@ date: 2025-08-29
             if (!walkers || walkers.length === 0) return;
             walkers.forEach((walker) => {
                 const p = walker.position;
-                const nearest 
+                const nearest = getNearestPointOnManifold(p);
+                const dist = p.distanceTo(nearest);
+
+                if (dist < 0.1) return;
+
+                const score = new THREE.Vector3().subVectors(nearest, p);
+                const drift = score.clone().multiplyScalar(0.01);
+                const noise = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(dist * 0.05);
+                
+                p.add(drift).add(noise);
+            });
+        }
+
+        function updateAllVisuals() {
+            const t = parseFloat(document.getElementById('timeStep').value);
+            const variance = t * MAX_VARIANCE;
+            document.getElementById('varianceDisplay').innerHTML = `$\\sigma^2=${variance.toFixed(2)}$`;
+            if(window.MathJax) {
+                MathJax.typesetPromise([document.getElementById('varianceDisplay')]);
+            }
+            updateDiffusion(variance);
+            updateScoreField(variance);
+            resetWalkers();
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('timeStep').addEventListener('input', updateAllVisuals);
+        document.querySelectorAll('.shape-btn').forEach(btn => btn.addEventListener('click', () => switchShape(btn.dataset.shape)));
+        
+        const modeBtn = document.getElementById('modeToggle'), zSlider = document.getElementById('zSlider');
+        modeBtn.addEventListener('click', () => {
+            scoreFieldMode = (scoreFieldMode === 'slice') ? 'grid' : 'slice';
+            modeBtn.textContent = scoreFieldMode === 'slice' ? 'Slice' : '3D Grid';
+            modeBtn.classList.toggle('active', scoreFieldMode === 'slice');
+            zSlider.style.display = scoreFieldMode === 'slice' ? 'block' : 'none';
+            regenerateScoreFieldArrows();
+        });
+
+        zSlider.addEventListener('input', (e) => {
+            zSlicePosition = parseFloat(e.target.value);
+            regenerateScoreFieldArrows();
+        });
+
+        const returnBtn = document.getElementById('return-btn');
+        document.querySelectorAll('.fullscreen-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+                document.querySelector(`.viz-container[data-id="${id}"]`).classList.add('fullscreen');
+                returnBtn.classList.remove('hidden');
+                onWindowResize();
+            });
+        });
+
+        returnBtn.addEventListener('click', () => {
+            document.querySelector('.fullscreen')?.classList.remove('fullscreen');
+            returnBtn.classList.add('hidden');
+            onWindowResize();
+        });
+
+        function onWindowResize() {
+            const allContainers = document.querySelectorAll('.viz-container');
+            const renderers = [renderer1, renderer2, renderer3];
+            const cameras = [camera1, camera2, camera3];
+
+            allContainers.forEach(c => {
+                const id = c.dataset.id;
+                let width, height;
+
+                if (c.classList.contains('fullscreen')) {
+                    width = window.innerWidth;
+                    height = window.innerHeight - document.querySelector('.ui-footer').offsetHeight;
+                } else {
+                    width = originalSizes[id] ? originalSizes[id].width : c.clientWidth;
+                    height = originalSizes[id] ? originalSizes[id].height : c.clientHeight;
+                }
+                
+                const renderer = renderers[id - 1];
+                const camera = cameras[id - 1];
+
+                if (renderer && camera && width > 0 && height > 0) {
+                    camera.aspect = width / height;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(width, height);
+                }
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            animateGeneration();
+            controls1.update(); renderer1.render(scene1, camera1);
+            controls2.update(); renderer2.render(scene2, camera2);
+            controls3.update(); renderer3.render(scene3, camera3);
+        }
+        
+        // --- Initialization ---
+        window.addEventListener('resize', onWindowResize, false);
+        init1();
+        init2();
+        init3();
+        switchShape('sphere');
+        
+        document.querySelectorAll('.viz-container').forEach(c => {
+            originalSizes[c.dataset.id] = { width: c.clientWidth, height: c.clientHeight };
+        });
+
+        updateAllVisuals();
+        animate();
+    </script>
+</body>
+</html>
