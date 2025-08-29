@@ -13,8 +13,8 @@ for f in visualizations_dir.glob("*.html"):
     # Create the half-baked entry
     project = {
         "title": title,
-        "author": "Your Name",
-        "thumbnail": "/assets/images/placeholder-thumbnail.png",
+        "author": "Jasper Taal",
+        "thumbnail": f"/assets/images/{f.stem}.png",
         "post_url": None,
         "visualization_url": f"/visualizations/{f.name}",
         "description": "A short description goes here."

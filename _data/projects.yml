@@ -1,62 +1,62 @@
 - title: 3D Ball Template
-  author: Your Name
-  thumbnail: /assets/images/placeholder-thumbnail.png
+  author: Jasper Taal
+  thumbnail: /assets/images/3D-ball-template.png
   post_url: null
   visualization_url: /visualizations/3D-ball-template.html
   description: A short description goes here.
 
 - title: Chaos Relativity
-  author: Your Name
-  thumbnail: /assets/images/placeholder-thumbnail.png
+  author: Jasper Taal
+  thumbnail: /assets/images/chaos-relativity.png
   post_url: null
   visualization_url: /visualizations/chaos-relativity.html
   description: A short description goes here.
 
 - title: Complex Chirp
-  author: Your Name
-  thumbnail: /assets/images/placeholder-thumbnail.png
+  author: Jasper Taal
+  thumbnail: /assets/images/complex-chirp.png
   post_url: null
   visualization_url: /visualizations/complex-chirp.html
   description: A short description goes here.
 
 - title: Complex Combined Pi Frequency
-  author: Your Name
-  thumbnail: /assets/images/placeholder-thumbnail.png
+  author: Jasper Taal
+  thumbnail: /assets/images/complex-combined-pi-frequency.png
   post_url: null
   visualization_url: /visualizations/complex-combined-pi-frequency.html
   description: A short description goes here.
 
 - title: Complex Sin Cos Combined
-  author: Your Name
-  thumbnail: /assets/images/placeholder-thumbnail.png
+  author: Jasper Taal
+  thumbnail: /assets/images/complex-sin-cos-combined.png
   post_url: null
   visualization_url: /visualizations/complex-sin-cos-combined.html
   description: A short description goes here.
 
 - title: Complex Waves Combined
-  author: Your Name
-  thumbnail: /assets/images/placeholder-thumbnail.png
+  author: Jasper Taal
+  thumbnail: /assets/images/complex-waves-combined.png
   post_url: null
   visualization_url: /visualizations/complex-waves-combined.html
   description: A short description goes here.
 
 - title: Diffusion Modeling
-  author: Your Name
-  thumbnail: /assets/images/placeholder-thumbnail.png
+  author: Jasper Taal
+  thumbnail: /assets/images/diffusion-modeling.png
   post_url: null
   visualization_url: /visualizations/diffusion-modeling.html
   description: A short description goes here.
 
 - title: Mandlebrot Julia Analysis
-  author: Your Name
-  thumbnail: /assets/images/placeholder-thumbnail.png
+  author: Jasper Taal
+  thumbnail: /assets/images/mandlebrot-julia-analysis.png
   post_url: null
   visualization_url: /visualizations/mandlebrot-julia-analysis.html
   description: A short description goes here.
 
 - title: Rotary Positional Embedding
-  author: Your Name
-  thumbnail: /assets/images/placeholder-thumbnail.png
+  author: Jasper Taal
+  thumbnail: /assets/images/rotary-positional-embedding.png
   post_url: null
   visualization_url: /visualizations/rotary-positional-embedding.html
   description: A short description goes here.
