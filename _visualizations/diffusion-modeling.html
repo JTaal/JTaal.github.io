@@ -68,8 +68,7 @@ date: 2025-08-29
         }
         #main-container {
             display: flex;
-            flex: 1; /* MODIFIED: More robust than flex-grow */
-            overflow: hidden; /* ADDED: Prevents content spill */
+            flex-grow: 1;
             width: 100vw;
             padding-top: var(--header-height);
         }
@@ -102,7 +101,6 @@ date: 2025-08-29
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0; /* ADDED: Prevents the footer from shrinking */
         }
         .controls-grid {
             display: flex;
@@ -435,4 +433,8 @@ date: 2025-08-29
                 for (let x = -gridSize; x <= gridSize; x += step) for (let y = -gridSize; y <= gridSize; y += step) for (let z = -gridSize; z <= gridSize; z += step) {
                     const pos = new THREE.Vector3(x, y, z);
                     if (pos.length() < effectiveRadius + 1) continue;
-                    const arrow = new 
+                    const arrow = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), pos, 1, 0x2dd4bf, 1, 0.5);
+                    arrows.push(arrow); scene2.add(arrow);
+                }
+            }
+            if (ty
