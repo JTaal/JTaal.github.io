@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - '_visualizations/**'
-      - '_data/projects.yml'
+      - 'python/data_entries.py'
 
 jobs:
   update-visualizations:
@@ -21,39 +21,13 @@ jobs:
       - name: Install PyYAML
         run: pip install pyyaml
 
-      - name: Update visualization URLs
-        run: |
-          python3 <<'EOF'
-          import yaml
-          from pathlib import Path
+      - name: Generate project entries
+        run: python python/data_entries.py
 
-          # Path to the projects YAML file
-          projects_file = Path("_data/projects.yml")
-          visualizations_dir = Path("_visualizations")
-
-          # Load existing projects
-          with open(projects_file, "r") as f:
-              projects = yaml.safe_load(f)
-
-          # Map visualization filenames to their URLs
-          viz_files = {f.stem: f"/visualizations/{f.name}" for f in visualizations_dir.glob("*.html")}
-
-          # Update projects
-          for project in projects:
-              title_slug = project['title'].lower().replace(' ', '-')
-              if title_slug in viz_files:
-                  project['visualization_url'] = viz_files[title_slug]
-
-          # Save updated projects
-          with open(projects_file, "w") as f:
-              yaml.dump(projects, f, sort_keys=False)
-
-          EOF
-
-      - name: Commit changes
+      - name: Commit updated projects.yml
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add _data/projects.yml
-          git commit -m "Update visualization URLs from _visualizations folder" || echo "No changes to commit"
+          git commit -m "Regenerate _data/projects.yml from _visualizations" || echo "No changes to commit"
           git push
