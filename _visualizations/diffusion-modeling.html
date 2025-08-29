@@ -28,19 +28,21 @@ date: 2025-08-29
             --header-height: 140px;
             --footer-height: 80px; 
         }
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
         body {
             font-family: 'Inter', sans-serif;
             background-color: #000000;
             color: #e2e8f0;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            margin: 0;
         }
         #top-header {
-            position: absolute;
-            top: 0; left: 0; width: 100%;
+            /* REMOVED: position: absolute. Now part of the flex flow. */
+            flex-shrink: 0; /* Ensures header doesn't shrink */
             height: var(--header-height);
             display: flex;
             flex-direction: column;
@@ -69,10 +71,10 @@ date: 2025-08-29
         }
         #main-container {
             display: flex;
-            flex: 1;
+            flex: 1; /* Takes up all remaining space */
             overflow: hidden;
             width: 100vw;
-            padding-top: var(--header-height);
+            /* REMOVED: padding-top. No longer needed. */
         }
         .viz-container {
             position: relative;
@@ -183,16 +185,15 @@ date: 2025-08-29
         }
         .hidden { display: none !important; }
 
-        /* --- ADDED: Mobile Responsiveness --- */
         @media (max-width: 768px) {
             :root {
-                --header-height: 120px; /* More compact header */
-                --footer-height: 70px; /* More compact footer */
+                --header-height: 120px;
+                --footer-height: 70px;
             }
             #top-header h1 { font-size: 1.75rem; }
             #top-header p { font-size: 0.875rem; }
             #main-container {
-                flex-direction: column; /* Stack views vertically */
+                flex-direction: column;
             }
             .viz-container {
                 width: 100%;
@@ -639,6 +640,7 @@ date: 2025-08-29
             originalSizes[c.dataset.id] = { width: c.clientWidth, height: c.clientHeight };
         });
         
+        // Initial setup for contextual sliders
         const initialSliderVal = parseInt(maxVarianceSlider.value);
         MAX_VARIANCE = getLogVariance(initialSliderVal);
         const initialDisplayVal = MAX_VARIANCE > 1000 ? `${(MAX_VARIANCE/1000).toFixed(1)}k` : Math.round(MAX_VARIANCE);
@@ -649,4 +651,3 @@ date: 2025-08-29
     </script>
 </body>
 </html>
-
