@@ -57,8 +57,8 @@ title: Home
   <!-- How to Cite Section -->
   <h2 class="pt-4 mt-4 pb-2 border-bottom">How to Cite</h2>
   <p>If you find the content on this website useful for your research or work, please consider citing it. You can use the following BibTeX entry:</p>
-  <pre class="bg-dark text-white p-3 rounded-3"><code>@misc{YourLastNameWebsite{{ "now" | date: "%Y" }},
-  author = {Your Name},
+  <pre class="bg-dark text-white p-3 rounded-3"><code>@misc{TaalPages{{ "now" | date: "%Y" }},
+  author = {Taal, Jasper},
   title  = {Visualizations & Projects},
   year   = {2025},
   url    = {https://jtaal.github.io/}
