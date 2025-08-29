@@ -19,18 +19,18 @@
   visualization_url: /visualizations/complex-chirp.html
   description: A short description goes here.
 
-- title: Complex Waves Combined_High
+- title: Complex Waves Combined High
   author: Jasper Taal
-  thumbnail: /assets/images/complex-waves-combined_high.png
+  thumbnail: /assets/images/complex-waves-combined-high.png
   post_url: null
-  visualization_url: /visualizations/complex-waves-combined_high.html
+  visualization_url: /visualizations/complex-waves-combined-high.html
   description: A short description goes here.
 
-- title: Complex Waves Combined_Low
+- title: Complex Waves Combined Low
   author: Jasper Taal
-  thumbnail: /assets/images/complex-waves-combined_low.png
+  thumbnail: /assets/images/complex-waves-combined-low.png
   post_url: null
-  visualization_url: /visualizations/complex-waves-combined_low.html
+  visualization_url: /visualizations/complex-waves-combined-low.html
   description: A short description goes here.
 
 - title: Diffusion Modeling
