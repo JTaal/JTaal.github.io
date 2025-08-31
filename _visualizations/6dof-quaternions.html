@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Interactive 6-DoF Quaternion Visualizer</title>
+    <title>Interactive 6-DoF Quaternion</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <!-- Jekyll-style front matter -->
@@ -70,15 +70,18 @@
             transform: translateX(-50%);
             z-index: 100;
             display: flex;
-            align-items: center; /* Vertically align items */
-            gap: 0.5rem; /* Reduced gap */
+            flex-direction: column; /* Changed for horizontal divider */
+            align-items: center;
+            gap: 0.5rem;
             background-color: rgba(26, 26, 26, 0.8);
-            padding: 0.75rem; /* Reduced padding */
+            padding: 0.75rem;
             border-radius: 12px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            flex-wrap: wrap;
-            justify-content: center;
+        }
+        .button-group-wrapper {
+            display: flex;
+            gap: 0.5rem;
         }
         .control-group {
             position: relative; /* For slider positioning */
@@ -152,10 +155,26 @@
             border-radius: 2px;
         }
         .divider {
-            width: 2px;
+            width: 90%;
+            height: 1px;
             background-color: rgba(255, 255, 255, 0.2);
-            align-self: stretch;
-            margin: 0.25rem 0.5rem;
+            margin: 0.5rem 0;
+        }
+        #reset-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 101;
+            padding: 0.5rem 1rem;
+            background-color: rgba(40, 40, 40, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #reset-btn:hover {
+            background-color: rgba(60, 60, 60, 0.9);
         }
     </style>
 </head>
@@ -168,36 +187,42 @@
     <div id="container"></div>
 
     <div id="ui-controls">
-        <!-- Rotation Controls -->
-        <div class="control-group">
-            <button id="i-btn">i</button>
-            <div id="i-slider-container" class="slider-container"><label for="i-slider">i: <span id="i-value">0.00</span></label><input id="i-slider" type="range" min="-1" max="1" value="0" step="0.01"></div>
-        </div>
-        <div class="control-group">
-            <button id="j-btn">j</button>
-            <div id="j-slider-container" class="slider-container"><label for="j-slider">j: <span id="j-value">0.00</span></label><input id="j-slider" type="range" min="-1" max="1" value="0" step="0.01"></div>
-        </div>
-        <div class="control-group">
-            <button id="k-btn">k</button>
-            <div id="k-slider-container" class="slider-container"><label for="k-slider">k: <span id="k-value">0.00</span></label><input id="k-slider" type="range" min="-1" max="1" value="0" step="0.01"></div>
+        <div class="button-group-wrapper">
+            <!-- Rotation Controls -->
+            <div class="control-group">
+                <button id="i-btn">i</button>
+                <div id="i-slider-container" class="slider-container"><label for="i-slider">i: <span id="i-value">0.00</span></label><input id="i-slider" type="range" min="-1" max="1" value="0" step="0.01"></div>
+            </div>
+            <div class="control-group">
+                <button id="j-btn">j</button>
+                <div id="j-slider-container" class="slider-container"><label for="j-slider">j: <span id="j-value">0.00</span></label><input id="j-slider" type="range" min="-1" max="1" value="0" step="0.01"></div>
+            </div>
+            <div class="control-group">
+                <button id="k-btn">k</button>
+                <div id="k-slider-container" class="slider-container"><label for="k-slider">k: <span id="k-value">0.00</span></label><input id="k-slider" type="range" min="-1" max="1" value="0" step="0.01"></div>
+            </div>
         </div>
         
         <div class="divider"></div>
 
-        <!-- Position Controls -->
-        <div class="control-group">
-            <button id="x-btn">x</button>
-            <div id="x-slider-container" class="slider-container"><label for="x-slider">x: <span id="x-value">0.00</span></label><input id="x-slider" type="range" min="-5" max="5" value="0" step="0.1"></div>
-        </div>
-        <div class="control-group">
-            <button id="y-btn">y</button>
-            <div id="y-slider-container" class="slider-container"><label for="y-slider">y: <span id="y-value">0.00</span></label><input id="y-slider" type="range" min="-5" max="5" value="0" step="0.1"></div>
-        </div>
-        <div class="control-group">
-            <button id="z-btn">z</button>
-            <div id="z-slider-container" class="slider-container"><label for="z-slider">z: <span id="z-value">0.00</span></label><input id="z-slider" type="range" min="-5" max="5" value="0" step="0.1"></div>
+        <div class="button-group-wrapper">
+            <!-- Position Controls -->
+            <div class="control-group">
+                <button id="x-btn">x</button>
+                <div id="x-slider-container" class="slider-container"><label for="x-slider">x: <span id="x-value">0.00</span></label><input id="x-slider" type="range" min="-5" max="5" value="0" step="0.1"></div>
+            </div>
+            <div class="control-group">
+                <button id="y-btn">y</button>
+                <div id="y-slider-container" class="slider-container"><label for="y-slider">y: <span id="y-value">0.00</span></label><input id="y-slider" type="range" min="-5" max="5" value="0" step="0.1"></div>
+            </div>
+            <div class="control-group">
+                <button id="z-btn">z</button>
+                <div id="z-slider-container" class="slider-container"><label for="z-slider">z: <span id="z-value">0.00</span></label><input id="z-slider" type="range" min="-5" max="5" value="0" step="0.1"></div>
+            </div>
         </div>
     </div>
+
+    <button id="reset-btn">Reset</button>
 
     <script type="importmap">
         {
@@ -213,7 +238,7 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         let camera, scene, renderer;
-        let sphere, controls;
+        let sphere, controls, rotationAxisHelper;
         let quaternion = new THREE.Quaternion();
 
         // Sliders
@@ -271,7 +296,7 @@
             const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
             scene.add(ambientLight);
 
-            const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+            const gridHelper = new THREE.GridHelper(12, 12, 0x444444, 0x222222);
             scene.add(gridHelper);
 
             const axisLength = 4;
@@ -279,6 +304,11 @@
             scene.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 0, 0), axisLength, iColor));
             scene.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), axisLength, jColor));
             scene.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, 0), axisLength, kColor));
+
+            // Add the rotation axis helper
+            rotationAxisHelper = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), axisLength * 1.2, 0xffffff, 0.4, 0.2);
+            rotationAxisHelper.visible = false;
+            scene.add(rotationAxisHelper);
             
             const iLabel = createTextSprite('i', { color: `#${iColor.toString(16)}` });
             iLabel.position.set(axisLength + 0.5, 0, 0); scene.add(iLabel);
@@ -298,12 +328,13 @@
             sphere.add(wireframeSphere);
             sphere.add(northPole);
             sphere.add(southPole);
-            sphere.scale.set(0.8, 0.8, 0.8); // Set fixed scale
+            sphere.scale.set(0.40, 0.40, 0.40); // Changed scale to 40%
             scene.add(sphere);
 
             // Event Listeners
             Object.values(sliders).forEach(slider => slider.addEventListener('input', updateTransforms));
             Object.keys(buttons).forEach(key => buttons[key].addEventListener('click', () => toggleSlider(key)));
+            document.getElementById('reset-btn').addEventListener('click', resetControls);
             window.addEventListener('resize', onWindowResize);
             
             updateTransforms();
@@ -337,6 +368,13 @@
             });
         }
         
+        function resetControls() {
+            Object.values(sliders).forEach(slider => slider.value = 0);
+            Object.values(sliderContainers).forEach(container => container.classList.remove('active'));
+            Object.values(buttons).forEach(button => button.classList.remove('active'));
+            updateTransforms();
+        }
+
         function updateTransforms() {
             // Update rotation
             const x_rot = parseFloat(sliders.i.value);
@@ -345,6 +383,29 @@
             valueSpans.i.textContent = x_rot.toFixed(2);
             valueSpans.j.textContent = y_rot.toFixed(2);
             valueSpans.k.textContent = z_rot.toFixed(2);
+            
+            const rotationAxisVector = new THREE.Vector3(x_rot, y_rot, z_rot);
+            const magnitudeSq = rotationAxisVector.lengthSq();
+
+            if (magnitudeSq < 0.0001) {
+                rotationAxisHelper.visible = false;
+            } else {
+                // Calculate the length (norm) of the vector as requested
+                const vectorLength = Math.sqrt(magnitudeSq);
+                
+                // Use a clone for setting direction to avoid modifying the original vector
+                const direction = rotationAxisVector.clone().normalize();
+                rotationAxisHelper.setDirection(direction);
+
+                // Set the arrow's length to the calculated norm
+                // We also make the arrowhead proportional for better visuals
+                const headLength = vectorLength * 0.2; // Head is 20% of the length
+                const headWidth = headLength * 0.5;   // Head width is 50% of head length
+                rotationAxisHelper.setLength(vectorLength, headLength, headWidth);
+                
+                rotationAxisHelper.visible = true;
+            }
+
             const L = x_rot*x_rot + y_rot*y_rot + z_rot*z_rot;
             let w = (L < 1.0) ? Math.sqrt(1.0 - L) : 0;
             quaternion.set(x_rot, y_rot, z_rot, w).normalize();
@@ -359,6 +420,7 @@
             valueSpans.y.textContent = y_pos.toFixed(2);
             valueSpans.z.textContent = z_pos.toFixed(2);
             sphere.position.set(x_pos, y_pos, z_pos);
+            rotationAxisHelper.position.copy(sphere.position);
         }
 
         function updateFormula(w, x, y, z) {
@@ -371,9 +433,9 @@
             const jColorHex = `#${jColor.toString(16).padStart(6, '0')}`;
             const kColorHex = `#${kColor.toString(16).padStart(6, '0')}`;
 
-            const xPart = `\\textcolor{${iColorHex}}{${Math.abs(x).toFixed(3)}i}`;
-            const yPart = `\\textcolor{${jColorHex}}{${Math.abs(y).toFixed(3)}j}`;
-            const zPart = `\\textcolor{${kColorHex}}{${Math.abs(z).toFixed(3)}k}`;
+            const xPart = `{\\color{${iColorHex}} ${Math.abs(x).toFixed(3)}i}`;
+            const yPart = `{\\color{${jColorHex}} ${Math.abs(y).toFixed(3)}j}`;
+            const zPart = `{\\color{${kColorHex}} ${Math.abs(z).toFixed(3)}k}`;
 
             formulaElement.innerHTML = `$q = ${w.toFixed(3)} ${signX} ${xPart} ${signY} ${yPart} ${signZ} ${zPart}$`;
             
@@ -397,6 +459,9 @@
     </script>
 </body>
 </html>
+
+
+
 
 
 
