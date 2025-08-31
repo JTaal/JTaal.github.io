@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Basis Vector Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" xintegrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3NU" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" xintegrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUbKyIyuh" crossorigin="anonymous"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent body scroll */
+        }
+        #katex-output {
+            font-size: 1.5rem;
+        }
+        #container {
+            flex-grow: 1; /* Make the 3D viewer fill available space */
+            min-height: 0; /* Necessary for flex-grow to work in a flex column */
+            position: relative; /* For positioning the label */
+        }
+        canvas {
+            display: block; /* Remove any default margins */
+        }
+        .slider-label-x { color: #ef4444; }
+        .slider-label-y { color: #22c55e; }
+        .slider-label-z { color: #3b82f6; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type=range].slider-x::-webkit-slider-thumb { background-color: #ef4444; }
+        input[type=range].slider-y::-webkit-slider-thumb { background-color: #22c55e; }
+        input[type=range].slider-z::-webkit-slider-thumb { background-color: #3b82f6; }
+
+        /* Label for vector norm */
+        #norm-label {
+            position: absolute;
+            background-color: rgba(30, 41, 59, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+            font-size: 1rem;
+            white-space: nowrap;
+            transition: opacity 0.2s ease-in-out;
+            pointer-events: none; /* So it doesn't interfere with other mouse events */
+            transform: translate(-50%, -120%); /* Position above and centered on the point */
+            opacity: 0;
+            visibility: hidden;
+        }
+        #norm-label.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        #norm-label::after { /* Creates the connecting line */
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(to bottom, #4b5563, transparent);
+        }
+
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <!-- Top Section: Title and Result -->
+    <header class="bg-gray-800 p-4 shadow-lg z-10">
+        <h1 class="text-2xl md:text-3xl font-bold text-center">3D Basis Vectors</h1>
+        <div id="katex-output" class="text-center mt-2 p-2 bg-gray-900/50 rounded-lg"></div>
+    </header>
+
+    <!-- Middle Section: 3D Viewer -->
+    <main id="container">
+        <!-- The label for norm calculation will be placed here -->
+        <div id="norm-label"></div>
+    </main>
+
+    <!-- Bottom Section: Sliders -->
+    <footer class="bg-gray-800 p-4 shadow-lg z-10">
+        <div class="max-w-4xl mx-auto">
+             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <!-- X Slider -->
+                <div class="flex items-center space-x-3">
+                    <label for="x-slider" class="font-bold slider-label-x w-12 text-center">i (x)</label>
+                    <input id="x-slider" type="range" min="-5" max="5" value="1" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-x">
+                    <span id="x-value" class="px-2 py-1 text-sm rounded-md bg-red-500/20 w-16 text-center">1.00</span>
+                </div>
+                <!-- Y Slider -->
+                <div class="flex items-center space-x-3">
+                    <label for="y-slider" class="font-bold slider-label-y w-12 text-center">j (y)</label>
+                    <input id="y-slider" type="range" min="-5" max="5" value="1" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-y">
+                    <span id="y-value" class="px-2 py-1 text-sm rounded-md bg-green-500/20 w-16 text-center">1.00</span>
+                </div>
+                <!-- Z Slider -->
+                <div class="flex items-center space-x-3">
+                    <label for="z-slider" class="font-bold slider-label-z w-12 text-center">k (z)</label>
+                    <input id="z-slider" type="range" min="-5" max="5" value="1" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-z">
+                    <span id="z-value" class="px-2 py-1 text-sm rounded-md bg-blue-500/20 w-16 text-center">1.00</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const container = document.getElementById('container');
+        
+        if (container) {
+            // --- Basic Scene Setup ---
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111827);
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(4, 5, 6);
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            // --- Scene Content ---
+            const gridHelper = new THREE.GridHelper(10, 10, 0x4a5568, 0x2d3748);
+            scene.add(gridHelper);
+            
+            const axisMaterial = new THREE.LineBasicMaterial({ color: 0x888888 });
+            const pointsX = [new THREE.Vector3(-5, 0, 0), new THREE.Vector3(5, 0, 0)];
+            const geometryX = new THREE.BufferGeometry().setFromPoints(pointsX);
+            scene.add(new THREE.Line(geometryX, axisMaterial));
+            const pointsY = [new THREE.Vector3(0, -5, 0), new THREE.Vector3(0, 5, 0)];
+            const geometryY = new THREE.BufferGeometry().setFromPoints(pointsY);
+            scene.add(new THREE.Line(geometryY, axisMaterial));
+            const pointsZ = [new THREE.Vector3(0, 0, -5), new THREE.Vector3(0, 0, 5)];
+            const geometryZ = new THREE.BufferGeometry().setFromPoints(pointsZ);
+            scene.add(new THREE.Line(geometryZ, axisMaterial));
+
+            const origin = new THREE.Vector3(0, 0, 0);
+            const dirX = new THREE.Vector3(1, 0, 0);
+            const dirY = new THREE.Vector3(0, 1, 0);
+            const dirZ = new THREE.Vector3(0, 0, 1);
+            
+            // Increased head width and length for basis vectors for better visibility
+            const basisHeadWidth = 0.25;
+            const basisHeadLength = 0.12;
+            const arrowI = new THREE.ArrowHelper(dirX, origin, 1, 0xef4444, basisHeadWidth, basisHeadLength);
+            const arrowJ = new THREE.ArrowHelper(dirY, origin, 1, 0x22c55e, basisHeadWidth, basisHeadLength);
+            const arrowK = new THREE.ArrowHelper(dirZ, origin, 1, 0x3b82f6, basisHeadWidth, basisHeadLength);
+            scene.add(arrowI, arrowJ, arrowK);
+            
+            const resultantVector = new THREE.Vector3(1, 1, 1);
+            const arrowResultant = new THREE.ArrowHelper(resultantVector.clone().normalize(), origin, resultantVector.length(), 0xffffff, 0.25, 0.15);
+            scene.add(arrowResultant);
+            
+            // --- UI and Interaction ---
+            const xSlider = document.getElementById('x-slider'), ySlider = document.getElementById('y-slider'), zSlider = document.getElementById('z-slider');
+            const xValueSpan = document.getElementById('x-value'), yValueSpan = document.getElementById('y-value'), zValueSpan = document.getElementById('z-value');
+            const latexOutputDiv = document.getElementById('katex-output');
+            const normLabel = document.getElementById('norm-label');
+
+            let selectedObject = null;
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+
+            function updateVectors() {
+                const x = parseFloat(xSlider.value);
+                const y = parseFloat(ySlider.value);
+                const z = parseFloat(zSlider.value);
+
+                xValueSpan.textContent = x.toFixed(2);
+                yValueSpan.textContent = y.toFixed(2);
+                zValueSpan.textContent = z.toFixed(2);
+                
+                arrowI.setLength(Math.abs(x), basisHeadWidth, basisHeadLength);
+                arrowI.setDirection(x < 0 ? dirX.clone().negate() : dirX);
+                arrowJ.setLength(Math.abs(y), basisHeadWidth, basisHeadLength);
+                arrowJ.setDirection(y < 0 ? dirY.clone().negate() : dirY);
+                arrowK.setLength(Math.abs(z), basisHeadWidth, basisHeadLength);
+                arrowK.setDirection(z < 0 ? dirZ.clone().negate() : dirZ);
+
+                resultantVector.set(x, y, z);
+                const length = resultantVector.length();
+                
+                arrowResultant.visible = length > 0.001;
+                if (arrowResultant.visible) {
+                    arrowResultant.setDirection(resultantVector.clone().normalize());
+                    arrowResultant.setLength(length, 0.25, 0.15);
+                }
+
+                const xStr = x.toFixed(2);
+                const yStr = y >= 0 ? `+ ${y.toFixed(2)}` : `- ${Math.abs(y).toFixed(2)}`;
+                const zStr = z >= 0 ? `+ ${Math.abs(z).toFixed(2)}` : `- ${Math.abs(z).toFixed(2)}`;
+                katex.render(`\\vec{v} = \\textcolor{#ef4444}{${xStr}\\hat{i}} \\textcolor{#22c55e}{${yStr}\\hat{j}} \\textcolor{#3b82f6}{${zStr}\\hat{k}}`, latexOutputDiv, { throwOnError: false });
+            
+                // If an object is selected, update its label content too
+                if (selectedObject) updateNormLabelContent();
+            }
+
+            function updateNormLabelContent() {
+                if (!selectedObject) return;
+                const x = parseFloat(xSlider.value);
+                const y = parseFloat(ySlider.value);
+                const z = parseFloat(zSlider.value);
+                let latexString = '';
+
+                if (selectedObject === arrowI) {
+                    latexString = `||${x.toFixed(2)}\\hat{i}|| = \\sqrt{(${x.toFixed(2)})^2} = ${Math.abs(x).toFixed(2)}`;
+                } else if (selectedObject === arrowJ) {
+                    latexString = `||${y.toFixed(2)}\\hat{j}|| = \\sqrt{(${y.toFixed(2)})^2} = ${Math.abs(y).toFixed(2)}`;
+                } else if (selectedObject === arrowK) {
+                    latexString = `||${z.toFixed(2)}\\hat{k}|| = \\sqrt{(${z.toFixed(2)})^2} = ${Math.abs(z).toFixed(2)}`;
+                } else if (selectedObject === arrowResultant) {
+                    latexString = `||\\vec{v}|| = \\sqrt{(${x.toFixed(2)})^2 + (${y.toFixed(2)})^2 + (${z.toFixed(2)})^2} = ${resultantVector.length().toFixed(2)}`;
+                }
+                katex.render(latexString, normLabel, { throwOnError: false });
+            }
+
+            function onContainerClick(event) {
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects([arrowI, arrowJ, arrowK, arrowResultant], true);
+
+                if (intersects.length > 0) {
+                    let parent = intersects[0].object;
+                    while (parent && !(parent instanceof THREE.ArrowHelper)) {
+                        parent = parent.parent;
+                    }
+                    if (parent) {
+                        selectedObject = parent;
+                        updateNormLabelContent();
+                        normLabel.classList.add('visible');
+                    }
+                } else {
+                    selectedObject = null;
+                    normLabel.classList.remove('visible');
+                }
+            }
+            
+            xSlider.addEventListener('input', updateVectors);
+            ySlider.addEventListener('input', updateVectors);
+            zSlider.addEventListener('input', updateVectors);
+            container.addEventListener('click', onContainerClick);
+
+            // --- Animation and Resize ---
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                
+                if (selectedObject && normLabel.classList.contains('visible')) {
+                    const tipPosition = selectedObject.cone.position.clone();
+                    selectedObject.localToWorld(tipPosition);
+                    tipPosition.project(camera);
+                    
+                    const x = (tipPosition.x * .5 + .5) * container.clientWidth;
+                    const y = (tipPosition.y * -.5 + .5) * container.clientHeight;
+                    
+                    normLabel.style.left = `${x}px`;
+                    normLabel.style.top = `${y}px`;
+                }
+                
+                renderer.render(scene, camera);
+            }
+
+            function onResize() {
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+            const resizeObserver = new ResizeObserver(onResize);
+            resizeObserver.observe(container);
+
+            updateVectors();
+            animate();
+        } else {
+            console.error("Container element not found.");
+        }
+    </script>
+</body>
+</html>
+
