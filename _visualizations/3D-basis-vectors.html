@@ -134,15 +134,12 @@
                 const headHeight = 0.25;
                 const material = new THREE.MeshBasicMaterial({ color });
 
-                // Shaft
                 const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, 1, 16);
                 shaftGeo.translate(0, 0.5, 0); 
                 const shaft = new THREE.Mesh(shaftGeo, material);
                 group.add(shaft);
 
-                // Head
                 const headGeo = new THREE.ConeGeometry(headRadius, headHeight, 16);
-                // The cone's origin is at its center. Move it so its base is at y=0.
                 headGeo.translate(0, headHeight / 2, 0);
                 const head = new THREE.Mesh(headGeo, material);
                 group.add(head);
@@ -210,29 +207,23 @@
                 yValueSpan.textContent = y.toFixed(2);
                 zValueSpan.textContent = z.toFixed(2);
                 
-                // Update thick arrows
                 [axisI, axisJ, axisK].forEach(axis => {
                     const val = axis === axisI ? x : (axis === axisJ ? y : z);
                     const shaft = axis.children[0];
                     const head = axis.children[1];
                     
-                    const headHeight = 0.25; // Same as in createThickArrow
+                    const headHeight = 0.25;
                     const totalLength = Math.abs(val);
-                    
-                    // The shaft length is the total length minus the head height.
                     const shaftLength = Math.max(0, totalLength - headHeight);
                     
                     shaft.scale.y = shaftLength;
-                    // Position the base of the head at the end of the shaft.
                     head.position.y = shaftLength;
                     
                     axis.visible = totalLength > 0.001;
                     
-                    // Flip direction for negative values
-                    const scale = val < 0 ? -1 : 1;
-                    if (axis === axisI) axis.scale.x = scale;
-                    if (axis === axisJ) axis.scale.y = scale;
-                    if (axis === axisK) axis.scale.z = scale;
+                    // FIX: Always scale on the local Y-axis, which is the axis of the arrow's construction.
+                    // This correctly flips the arrow's direction regardless of the parent group's rotation.
+                    axis.scale.y = (val < 0) ? -1 : 1;
                 });
                 
                 resultantVector.set(x, y, z);
@@ -290,10 +281,8 @@
                 requestAnimationFrame(animate);
                 controls.update();
                 if (selectedObject && normLabel.classList.contains('visible')) {
-                    // For the resultant vector, get the cone. For thick arrows, get the head (cone).
                     const targetObject = selectedObject.name === 'resultant' ? selectedObject.cone : selectedObject.children[1];
                     targetObject.getWorldPosition(tipPosition);
-                    // The tip of the cone is headHeight above its base (origin)
                     if (selectedObject.name !== 'resultant') {
                         const direction = new THREE.Vector3();
                         targetObject.getWorldDirection(direction);
