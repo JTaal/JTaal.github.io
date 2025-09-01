@@ -69,6 +69,20 @@
   visualization_url: /visualizations/diffusion-modeling.html
   description: A short description goes here.
 
+- title: Linear Regression
+  author: Jasper Taal
+  thumbnail: /assets/images/linear-regression.png
+  post_url: null
+  visualization_url: /visualizations/linear-regression.html
+  description: A short description goes here.
+
+- title: Machine Learning Optimizers
+  author: Jasper Taal
+  thumbnail: /assets/images/machine-learning-optimizers.png
+  post_url: null
+  visualization_url: /visualizations/machine-learning-optimizers.html
+  description: A short description goes here.
+
 - title: Mandlebrot Julia Analysis
   author: Jasper Taal
   thumbnail: /assets/images/mandlebrot-julia-analysis.png
@@ -95,5 +109,12 @@
   thumbnail: /assets/images/rotary-positional-embedding.png
   post_url: null
   visualization_url: /visualizations/rotary-positional-embedding.html
+  description: A short description goes here.
+
+- title: Svm
+  author: Jasper Taal
+  thumbnail: /assets/images/svm.png
+  post_url: null
+  visualization_url: /visualizations/svm.html
   description: A short description goes here.
 
