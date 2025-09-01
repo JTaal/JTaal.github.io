@@ -930,11 +930,8 @@
             revealPhase = 'sweeping';
             convolveStartTime = clock.getElapsedTime();
 
-
-
             visualizationGroup.visible = false;
-
-
+            
             const stdX = parseFloat(stdDevXSlider2D.value);
             const stdZ = parseFloat(stdDevZSlider2D.value);
             const rho = parseFloat(correlationSlider2D.value);
@@ -958,88 +955,125 @@
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            //scene.remove(convolveSurface);
             const elapsedTime = clock.getElapsedTime();
             
             if (revealPhase === 'sweeping') {
 
-                // Hide the PDF (ellipse) during sweep
-                
-                // Make visualization group visible, but hide its points initially
+
+
+
+
+
+
+
+                // Hide all objects
+                //sweepGroupX.visible = false;
+                //sweepGroupZ.visible = false;
+
+
+                //convolveSurface.visible = false;
+                //visualizationGroup.visible = false;
+                //pointsToReveal.visible = false;
+                pdfGroup.visible = false;
+
                 visualizationGroup.visible = true;
 
 
-                pointsToReveal = visualizationGroup.children.find(c => c.type === 'Points');
-                if (pointsToReveal) pointsToReveal.visible = false;
-                
-                // Animate the sweep
+                // If it's the last child added:
+                visualizationGroup.children[visualizationGroup.children.length - 1].visible = false;
+
+                // Or hide all Points objects in the group:
+                visualizationGroup.children.forEach(child => {
+                    if (child.type === 'Points') child.visible = false;
+                });
+
+
+
+                // Hide all children of visualizationGroup
+                //visualizationGroup.children[0].visible = false;
+                //visualizationGroup.children[1].visible = false;
+                //visualizationGroup.children[2].visible = false;
+                //visualizationGroup.children[3].visible = false;
+                //visualizationGroup.children[4].visible = false;
+                //visualizationGroup.children[5].visible = false;
+
+                //visualizationGroup.children[0].visible = true;
+                //visualizationGroup.children[1].visible = true;
+                //visualizationGroup.children[2].visible = true;
+                //visualizationGroup.children[3].visible = true;
+                //visualizationGroup.children[4].visible = true;
+                //visualizationGroup.children[5].visible = true;
+
+                // If you have nested groups, hide their children manually
+                //visualizationGroup.children[0].children.forEach(c => c.visible = false);
+                //visualizationGroup.children[2].children.forEach(c => c.visible = false);
+                //visualizationGroup.children[4].children.forEach(c => c.visible = false);
+
+                // If the shader mesh is accessible
+                //surfaceMaterialToAnimate.mesh.visible = false;
+
+
+
+
+
+
+
+
+
                 const animElapsed = elapsedTime - convolveStartTime;
                 const progress = Math.min(animElapsed / 4.0, 1.0); // 4 second sweep
                 const halfSize = PLANE_SIZE / 2;
                 const currentPos = -halfSize + progress * PLANE_SIZE;
+                
+                
 
-                // Move sweep groups
-                if (sweepGroupX) sweepGroupX.position.z = currentPos;
-                if (sweepGroupZ) sweepGroupZ.position.x = currentPos;
+                if(sweepGroupX) sweepGroupX.position.z = currentPos;
+                if(sweepGroupZ) sweepGroupZ.position.x = currentPos;
 
-                // Update shader reveal uniforms
                 if (surfaceMaterialToAnimate) {
                     surfaceMaterialToAnimate.uniforms.u_revealX.value = currentPos;
                     surfaceMaterialToAnimate.uniforms.u_revealZ.value = currentPos;
                 }
-
-                // Sweep finished
+                // if done
                 if (progress >= 1.0) {
                     scene.remove(sweepGroupX);
                     scene.remove(sweepGroupZ);
-                    scene.remove(convolveSurface);
-
-                    surfaceMaterialToAnimate.visible = false;
-
-                    // Cleanup sweep groups
-                    while (sweepGroupX.children.length > 0) sweepGroupX.remove(sweepGroupX.children[0]);
-                    while (sweepGroupZ.children.length > 0) sweepGroupZ.remove(sweepGroupZ.children[0]);
-                    if (convolveSurface) {
+                    scene.remove(convolveSurface); // Remove temporary surface
+                    
+                    // Cleanup
+                    while(sweepGroupX.children.length > 0) sweepGroupX.remove(sweepGroupX.children[0]);
+                    while(sweepGroupZ.children.length > 0) sweepGroupZ.remove(sweepGroupZ.children[0]);
+                    if(convolveSurface) {
                         convolveSurface.children.forEach(c => {
-                            if (c.geometry) c.geometry.dispose();
-                            if (c.material) c.material.dispose();
+                            if(c.geometry) c.geometry.dispose();
+                            if(c.material) c.material.dispose();
                         });
                     }
 
-                    // Prepare points reveal
+                    visualizationGroup.visible = true;
                     revealPhase = 'points';
                     revealStartTime = clock.getElapsedTime();
-                    if (pointsToReveal) {
-                        pointsToReveal.visible = true;
-                        pointsToReveal.geometry.setDrawRange(0, 0);
-                    }
+                    pointsToReveal = visualizationGroup.children.find(c => c.type === 'Points');
+                    if(pointsToReveal) pointsToReveal.geometry.setDrawRange(0, 0);
                 }
-
             } else if (revealPhase === 'points') {
-
                 const animElapsed = elapsedTime - revealStartTime;
-                const progress = Math.min(animElapsed / 2.0, 1.0); // 2 second point reveal
-
-                if (pointsToReveal) {
-                    pointsToReveal.visible = true;
+                const progress = Math.min(animElapsed / 2.0, 1.0); // 1 second point reveal
+                if(pointsToReveal) {
                     const count = Math.floor(progress * NUM_POINTS);
                     pointsToReveal.geometry.setDrawRange(0, count);
                 }
-
-                // After points fully revealed
+                // after points spawn in
                 if (progress >= 1.0) {
-                    revealPhase = 'none'; // stop animation
+                    revealPhase = 'none'; // stop after points
                     pdfGroup.visible = true; // show ellipse instantly
-                    
                 }
             }
 
-            // Always update formula position and render
             updateFormulaPosition();
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         }
-
 
 
         init();
