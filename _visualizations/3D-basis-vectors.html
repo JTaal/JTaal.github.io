@@ -176,14 +176,29 @@
             axisK.rotation.x = Math.PI / 2;
             scene.add(axisI, axisJ, axisK);
 
-            const labelI = createAxisLabel('î', '#ef4444');
+            const labelI = createAxisLabel('î', '#ef4444', 5000);
+            const labelJ = createAxisLabel('ĵ', '#22c55e', 5000);
+            const labelK = createAxisLabel('k̂', '#3b82f6', 5000);
+
             labelI.position.set(5.8, 0, 0);
-            const labelJ = createAxisLabel('ĵ', '#22c55e');
             labelJ.position.set(0, 5.8, 0);
-            const labelK = createAxisLabel('k̂', '#3b82f6');
             labelK.position.set(0, 0, 5.8);
+
+            const scale = 0.5;
+  
+
+            // scale down to make smaller
+            labelI.scale.set(0.45*scale, 1*scale, 0);
+            labelJ.scale.set(0.45*scale, 1*scale, 0);
+            labelK.scale.set(0.45*scale, 1*scale, 0);
+
             scene.add(labelI, labelJ, labelK);
+
+
             
+
+
+
             const resultantVector = new THREE.Vector3(1, 1, 1);
             const arrowResultant = new THREE.ArrowHelper(resultantVector.clone().normalize(), new THREE.Vector3(0,0,0), resultantVector.length(), 0xffffff, 0.25, 0.15);
             arrowResultant.name = 'resultant';
