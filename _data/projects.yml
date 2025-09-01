@@ -76,6 +76,13 @@
   visualization_url: /visualizations/multivariate-gaussian.html
   description: A short description goes here.
 
+- title: Pipe Harmonics
+  author: Jasper Taal
+  thumbnail: /assets/images/pipe-harmonics.png
+  post_url: null
+  visualization_url: /visualizations/pipe-harmonics.html
+  description: A short description goes here.
+
 - title: Quaternions
   author: Jasper Taal
   thumbnail: /assets/images/quaternions.png
