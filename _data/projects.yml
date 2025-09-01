@@ -13,6 +13,13 @@
   visualization_url: /visualizations/3D-basis-vectors.html
   description: A short description goes here.
 
+- title: 3Dof Quaternions Fast
+  author: Jasper Taal
+  thumbnail: /assets/images/3dof-quaternions-fast.png
+  post_url: null
+  visualization_url: /visualizations/3dof-quaternions-fast.html
+  description: A short description goes here.
+
 - title: 6Dof Quaternions
   author: Jasper Taal
   thumbnail: /assets/images/6dof-quaternions.png
@@ -81,13 +88,6 @@
   thumbnail: /assets/images/pipe-harmonics.png
   post_url: null
   visualization_url: /visualizations/pipe-harmonics.html
-  description: A short description goes here.
-
-- title: Quaternions
-  author: Jasper Taal
-  thumbnail: /assets/images/quaternions.png
-  post_url: null
-  visualization_url: /visualizations/quaternions.html
   description: A short description goes here.
 
 - title: Rotary Positional Embedding
