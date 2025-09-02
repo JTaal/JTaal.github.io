@@ -62,7 +62,7 @@
             text-shadow: 0 0 15px var(--theme-title-shadow);
             white-space: nowrap;
         }
-        #winner-label {
+        #winner-popup {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -70,12 +70,26 @@
             z-index: 20;
             background: rgba(0,0,0,0.8);
             color: #fff;
-            padding: 2rem 3rem;
+            padding: 1.5rem 2rem;
             border-radius: 15px;
-            font-size: 3rem;
+            font-size: 2rem;
             font-weight: bold;
             display: none;
             text-align: center;
+            white-space: nowrap;
+        }
+        #winner-close-btn {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 1.5rem;
+            line-height: 1;
+            cursor: pointer;
+            color: #aaa;
+            transition: color 0.2s;
+        }
+        #winner-close-btn:hover {
+            color: #fff;
         }
         .lil-gui.root { z-index: 10 !important; }
 
@@ -89,7 +103,10 @@
     <h1 id="title">Machine Learning Optimisers</h1>
     <div id="render-container"></div>
     <div id="label-container"></div>
-    <div id="winner-label"></div>
+    <div id="winner-popup">
+        <div id="winner-text"></div>
+        <div id="winner-close-btn">&times;</div>
+    </div>
 
     <script type="module">
         import * as THREE from 'https://cdn.skypack.dev/three@0.128.0';
@@ -103,6 +120,10 @@
         let raceActive = false;
         
         const container = document.getElementById('render-container');
+        const winnerPopup = document.getElementById('winner-popup');
+        const winnerText = document.getElementById('winner-text');
+        const winnerCloseBtn = document.getElementById('winner-close-btn');
+
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
         camera.position.set(20, 20, 20);
@@ -187,7 +208,7 @@
             }
         };
 
-        let raceCompetitors = [];
+        const raceCompetitors = [];
         const persistentTraces = [];
         const optimizerColors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0x00ffff, 0xff00ff];
         
@@ -208,15 +229,6 @@
         gui.add(params, 'reset').name('Reset');
         const startStopController = gui.add(params, 'startStop').name('Start');
 
-        const formulaFolder = gui.addFolder('📜 Formula');
-        const formulaContainer = document.createElement('div');
-        formulaContainer.style.padding = '10px';
-        formulaContainer.id = 'gui-formula-container';
-        formulaFolder.domElement.querySelector('.children').appendChild(formulaContainer);
-        formulaFolder.open();
-
-        const landscapeParamsFolder = gui.addFolder('🔬 Landscape Parameters');
-        
         const vizFolder = gui.addFolder('⚙️ Visualisation Options');
         vizFolder.add(params, 'keepTraces').name('Keep Traces');
         vizFolder.add(params, 'followBall').name('Follow Ball');
@@ -226,6 +238,15 @@
         const customThemeFolder = vizFolder.addFolder('🎨 Custom Theme');
         customThemeFolder.addColor(params, 'customWireframe').name('Wireframe Color').onChange(applyCustomTheme);
         customThemeFolder.addColor(params, 'customUiBase').name('UI Base Color').onChange(applyCustomTheme);
+        
+        const landscapeParamsFolder = gui.addFolder('🔬 Landscape Parameters');
+        
+        const formulaFolder = gui.addFolder('📜 Formula');
+        const formulaContainer = document.createElement('div');
+        formulaContainer.style.padding = '10px';
+        formulaContainer.id = 'gui-formula-container';
+        formulaFolder.domElement.querySelector('.children').appendChild(formulaContainer);
+        formulaFolder.open();
         
         function populateLandscapeParamsUI() {
             [...landscapeParamsFolder.controllers].forEach(c => c.destroy());
@@ -248,7 +269,17 @@
         }
 
         function applyCustomTheme() { /* ... unchanged ... */ }
-        function applyColorScheme(schemeName) { /* ... unchanged ... */ }
+        function applyColorScheme(schemeName) {
+             customThemeFolder.domElement.style.display = schemeName === '🎨 Custom Theme' ? 'block' : 'none';
+            if (schemeName === '🎨 Custom Theme') {
+                applyCustomTheme();
+                return;
+            }
+            const scheme = colorSchemes[schemeName];
+            if (!scheme) return;
+            for (const [key, value] of Object.entries(scheme.css)) { document.documentElement.style.setProperty(key, value); }
+            if (surfaceMesh) { surfaceMesh.material.color.set(scheme.wireframe); }
+        }
         
         function cleanupScene() {
             raceCompetitors.forEach(c => {
@@ -265,7 +296,7 @@
                 persistentTraces.forEach(trace => scene.remove(trace));
                 persistentTraces.length = 0;
             }
-            document.getElementById('winner-label').style.display = 'none';
+            winnerPopup.style.display = 'none';
         }
 
         function updateKatex() {
@@ -287,7 +318,6 @@
                     katexEl.style.transformOrigin = 'left top';
                 }
 
-                // Adjust container height to fit content
                 const katexHeight = katexEl.scrollHeight * (katexWidth > containerWidth ? (containerWidth/katexWidth) : 1);
                 container.style.height = `${katexHeight + 10}px`;
             }
@@ -392,8 +422,8 @@
                         if (!winnerExists) {
                             c.finished = true;
                             raceActive = false;
-                            document.getElementById('winner-label').innerHTML = `🏆 ${c.name} Wins! 🏆`;
-                            document.getElementById('winner-label').style.display = 'block';
+                            winnerText.innerHTML = `🏆 ${c.name} Wins!`;
+                            winnerPopup.style.display = 'block';
                             params.running = false;
                             startStopController.name('Start Race');
                         }
@@ -444,6 +474,10 @@
             }
         }
         
+        winnerCloseBtn.addEventListener('click', () => {
+            winnerPopup.style.display = 'none';
+        });
+
         window.addEventListener('resize', onWindowResize);
         container.addEventListener('mousedown', onCanvasClick);
 
