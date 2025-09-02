@@ -111,10 +111,10 @@
   visualization_url: /visualizations/rotary-positional-embedding.html
   description: A short description goes here.
 
-- title: Svm
+- title: Support Vector Machine
   author: Jasper Taal
-  thumbnail: /assets/images/svm.png
+  thumbnail: /assets/images/support-vector-machine.png
   post_url: null
-  visualization_url: /visualizations/svm.html
+  visualization_url: /visualizations/support-vector-machine.html
   description: A short description goes here.
 
