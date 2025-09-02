@@ -3,15 +3,15 @@ import yaml
 
 visualizations_dir = Path("_visualizations")
 output_file = Path("_data/projects.yml")
-posts_file = Path("_data/posts.yml")
+# posts_file = Path("_data/posts.yml")
 
 projects = []
 
-# Step 1: Load existing posts from posts.yml
-if posts_file.exists():
-    with open(posts_file, "r") as f:
-        loaded_posts = yaml.safe_load(f) or []
-        projects.extend(loaded_posts)
+# # Step 1: Load existing posts from posts.yml
+# if posts_file.exists():
+#     with open(posts_file, "r") as f:
+#         loaded_posts = yaml.safe_load(f) or []
+#         projects.extend(loaded_posts)
 
 # Step 2: Generate entries from visualizations
 for f in visualizations_dir.glob("*.html"):
@@ -20,7 +20,7 @@ for f in visualizations_dir.glob("*.html"):
         "title": title,
         "author": "Jasper Taal",
         "thumbnail": f"/assets/images/{f.stem}.png",
-        "post_url": None,
+        # "post_url": None,
         "visualization_url": f"/visualizations/{f.name}",
         "description": "A short description goes here."
     }
