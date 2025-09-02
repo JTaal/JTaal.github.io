@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Interactive 3D SVM Explorer</title>
+    <title>Support Vector Machine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,14 +32,14 @@
         input[type="range"]:hover { opacity: 1; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: #a0aec0; cursor: pointer; border-radius: 50%; }
         .support-vector-label { position: absolute; background: rgba(255, 255, 0, 0.8); color: black; padding: 2px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; pointer-events: none; transform: translate(-50%, -150%); user-select: none; }
-        .perf-btn.active { @apply ring-2 ring-indigo-400 bg-indigo-700; }
+        .perf-btn.active, #settings-btn.active { @apply ring-2 ring-indigo-400 bg-indigo-700; }
         #plane-info { transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; }
         #settings-menu { transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out; overflow: hidden; }
     </style>
 </head>
 <body class="text-gray-200">
     <div id="container"></div>
-    <h1 class="absolute top-4 left-1/2 -translate-x-1/2 text-2xl md:text-4xl font-bold text-white pointer-events-none" style="text-shadow: 0 0 25px rgba(0,0,0,0.9);">3D SVM Explorer</h1>
+    <h1 class="absolute top-4 left-1/2 -translate-x-1/2 text-2xl md:text-4xl font-bold text-white pointer-events-none" style="text-shadow: 0 0 25px rgba(0,0,0,0.9);">Support Vector Machine</h1>
     <div id="plane-info" class="hidden absolute top-20 left-1/2 -translate-x-1/2 p-3 rounded-lg text-white control-panel text-base md:text-lg flex flex-col gap-2 text-center">
         <span id="plane-equation"></span>
         <span id="margin-metric" class="text-sm md:text-base font-semibold text-yellow-300"></span>
@@ -52,9 +52,9 @@
              <div class="max-w-7xl mx-auto p-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div class="flex flex-col gap-3">
                      <div class="text-center text-sm font-semibold">Data Scaling</div>
-                     <div class="flex items-center gap-4 text-sm"><span>X-Scale</span> <input type="range" id="x-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
-                     <div class="flex items-center gap-4 text-sm"><span>Y-Scale</span> <input type="range" id="y-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
-                     <div class="flex items-center gap-4 text-sm"><span>Z-Scale</span> <input type="range" id="z-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
+                     <div class="flex items-center gap-4 text-sm"><span>X</span> <input type="range" id="x-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
+                     <div class="flex items-center gap-4 text-sm"><span>Y</span> <input type="range" id="y-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
+                     <div class="flex items-center gap-4 text-sm"><span>Z</span> <input type="range" id="z-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
                  </div>
                  <div class="flex flex-col gap-3">
                      <div class="text-center text-sm font-semibold">Visual Settings</div>
@@ -88,7 +88,7 @@
                      <button id="calculate-btn" class="btn bg-green-600/80 hover:bg-green-700/80 focus:ring-green-400">Calculate SVM</button>
                      <button id="classify-btn" class="btn bg-purple-600/80 hover:bg-purple-700/80 focus:ring-purple-400" disabled>Classify New Data</button>
                 </div>
-                <div id="metrics-container" class="flex-col gap-1 justify-center hidden md:flex">
+                <div id="metrics-container" class="flex-col gap-1 justify-center hidden">
                     <div class="text-center text-sm font-semibold">Model Performance</div>
                     <div class="text-center">
                         <span class="text-xs">Training Accuracy</span>
@@ -263,4 +263,145 @@
             const mainPlaneGeom = new THREE.PlaneGeometry(planeSize, planeSize, 10, 10);
             const planeMat = new THREE.MeshStandardMaterial({ color: 0x2ecc40, side: THREE.DoubleSide, transparent: true, opacity: 0.2, metalness: 0.1, roughness: 0.8 });
             const mainPlane = new THREE.Mesh(mainPlaneGeom, planeMat);
-            mainPlane.position.copy(m
+            mainPlane.position.copy(midpoint); mainPlane.lookAt(midpoint.clone().add(normal));
+            planeGroup.add(mainPlane);
+            const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(mainPlane.geometry), { color: 0x2ecc40, opacity: 0.25, transparent: true });
+            mainPlane.add(wireframe);
+            const marginMat = new THREE.MeshStandardMaterial({ color: 0x888888, side: THREE.DoubleSide, transparent: true, opacity: 0.1, metalness: 0.1, roughness: 0.8 });
+            [p1, p2].forEach(pos => {
+                const marginPlane = new THREE.Mesh(planeGeom, marginMat.clone());
+                marginPlane.position.copy(pos); marginPlane.quaternion.copy(mainPlane.quaternion);
+                planeGroup.add(marginPlane);
+                const edges = new THREE.LineSegments(new THREE.EdgesGeometry(planeGeom), new THREE.LineBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.3 }));
+                edges.position.copy(pos); edges.quaternion.copy(mainPlane.quaternion);
+                planeGroup.add(edges);
+            });
+            const lineMat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.2, gapSize: 0.1, linewidth: 2 });
+            supportVectors.forEach(sv => {
+                const projectedPoint = new THREE.Vector3();
+                svmPlane.projectPoint(sv.position, projectedPoint);
+                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([sv.position, projectedPoint]), lineMat);
+                line.computeLineDistances(); planeGroup.add(line);
+            });
+            updatePlaneInfo(normal, midpoint, minDistance);
+            calculateTrainingAccuracy();
+            btn.textContent = 'Calculate SVM'; document.getElementById('classify-btn').disabled = false;
+        }
+
+        function classifyNewData() {
+            if (!svmPlane) return;
+            const spawnArea = WORLD_SIZE * 0.8;
+            for(let i = 0; i < 50; i++) {
+                const x = THREE.MathUtils.randFloatSpread(spawnArea);
+                const z = THREE.MathUtils.randFloatSpread(spawnArea);
+                const y = Math.random() * 10 - 5;
+                const finalPos = new THREE.Vector3(x, y, z);
+                const startPos = new THREE.Vector3(x, y + 20, z);
+                const point = addPoint(startPos, 0, true);
+                pointsGroup.add(point);
+                animatingPoints.push({ point, finalPos, lerp: 0 });
+            }
+        }
+
+        function calculateTrainingAccuracy() {
+            if (!svmPlane) return;
+            let tp = 0, tn = 0, fp = 0, fn = 0;
+            const allPoints = [...classAPoints, ...classBPoints];
+            allPoints.forEach(p => { const dist = svmPlane.distanceToPoint(p.position); const predictedClass = dist < 0 ? 1 : -1; const trueClass = p.userData.class; if(predictedClass === 1 && trueClass === 1) tp++; else if(predictedClass === -1 && trueClass === -1) tn++; else if(predictedClass === 1 && trueClass === -1) fp++; else if(predictedClass === -1 && trueClass === 1) fn++; });
+            
+            const accuracy = (tp + tn) / allPoints.length;
+            const precision = tp / (tp + fp);
+            const recall = tp / (tp + fn);
+
+            document.getElementById('accuracy-display').textContent = `${(accuracy * 100).toFixed(1)}%`;
+            document.getElementById('precision-display').textContent = isNaN(precision) ? 'N/A' : precision.toFixed(2);
+            document.getElementById('recall-display').textContent = isNaN(recall) ? 'N/A' : recall.toFixed(2);
+            document.getElementById('metrics-container').classList.remove('hidden');
+        }
+
+        function applyDataScaling() {
+            const [x, y, z] = ['x', 'y', 'z'].map(id => parseFloat(document.getElementById(`${id}-scale`).value));
+            pointsGroup.children.forEach(sphere => { if(sphere.userData.originalPosition) { const op = sphere.userData.originalPosition; sphere.position.set( Math.sign(op.x) * Math.pow(Math.abs(op.x), x), Math.sign(op.y) * Math.pow(Math.abs(op.y), y), Math.sign(op.z) * Math.pow(Math.abs(op.z), z) ); } });
+            if (svmPlane) calculateAndDrawSVM();
+        }
+        function highlightSupportVectors(enable) { supportVectors.forEach(sv => sv.material.emissive.set(enable ? 0xffff00 : 0x0)); }
+        function showSupportVectorLabel(vector) { clearLabels(); const labelDiv = document.createElement('div'); labelDiv.className = 'support-vector-label'; labelDiv.textContent = 'Support Vector'; document.body.appendChild(labelDiv); const placeholder = new THREE.Object3D(); placeholder.userData = { element: labelDiv, object: vector }; labelGroup.add(placeholder); setTimeout(clearLabels, 2000); }
+        function clearLabels() { labelGroup.children.forEach(l => l.userData.element.remove()); while(labelGroup.children.length > 0) labelGroup.remove(labelGroup.children[0]); }
+        function updateLabels() { labelGroup.children.forEach(l => { const {element, object} = l.userData; const screenPos = object.position.clone().project(camera); element.style.left = `${(screenPos.x + 1) / 2 * window.innerWidth}px`; element.style.top = `${(-screenPos.y + 1) / 2 * window.innerHeight}px`; }); }
+        function updatePlaneInfo(n, m, margin) { const b = -n.dot(m); katex.render(`\\mathbf{w} \\cdot \\mathbf{x} ${b>=0?'+':''} ${b.toFixed(2)} = 0`, document.getElementById('plane-equation')); document.getElementById('margin-metric').textContent = `Margin Width: ${margin.toFixed(3)}`; }
+        function setCurrentClass(classId) { currentClass = classId; ['a', 'b'].forEach(c => document.getElementById(`add-class-${c}`).classList.toggle('ring-4', classId === (c === 'a' ? 1 : -1))); }
+        
+        function setPerformanceMode(mode) {
+            let scale;
+            if (mode === 'low') scale = 0.5;
+            else if (mode === 'high') scale = 2.0;
+            else scale = 1.0;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width * scale, height * scale, false); 
+            composer.setSize(width * scale, height * scale);
+            
+            document.querySelectorAll('.perf-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`perf-${mode}`).classList.add('active');
+            document.getElementById('resolution-label').textContent = `Resolution: ${scale*100}%`;
+        }
+        
+        function toggleSettingsMenu() {
+            const menu = document.getElementById('settings-menu');
+            const btn = document.getElementById('settings-btn');
+            btn.classList.toggle('active');
+            if (menu.style.maxHeight && menu.style.maxHeight !== '0px') {
+                menu.style.maxHeight = '0px';
+                menu.style.paddingTop = '0';
+                menu.style.paddingBottom = '0';
+            } else {
+                menu.style.maxHeight = menu.scrollHeight + "px";
+                menu.style.paddingTop = '0.75rem';
+                menu.style.paddingBottom = '0.75rem';
+            }
+        }
+
+        function resetScene() { classAPoints.length = 0; classBPoints.length = 0; while (pointsGroup.children.length > 0) pointsGroup.remove(pointsGroup.children[0]); document.querySelectorAll('.scaler').forEach(s => s.value = 1.0); applyDataScaling(); clearPlanesAndHighlights(); document.getElementById('classify-btn').disabled = true; document.getElementById('metrics-container').classList.add('hidden');}
+        function clearPlanesAndHighlights() { svmPlane = null; highlightSupportVectors(false); supportVectors = []; while (planeGroup.children.length > 0) planeGroup.remove(planeGroup.children[0]); document.getElementById('plane-info').classList.add('hidden'); clearLabels(); }
+        function loadPreset(dataset) { resetScene(); dataset.points.forEach(item => addPoint(new THREE.Vector3(...item.p), item.c)); calculateAndDrawSVM(); }
+        
+        function renderFormulas() {
+            katex.render('\\mathbf{w} \\cdot \\mathbf{x} + b = 0', document.getElementById('formula-hyperplane'), { displayMode: true, throwOnError: false });
+            katex.render('\\frac{2}{\\|\\mathbf{w}\\|}', document.getElementById('formula-margin'), { displayMode: true, throwOnError: false });
+            katex.render('y_i(\\mathbf{w} \\cdot \\mathbf{x}_i + b) \\ge 1', document.getElementById('formula-constraint'), { displayMode: true, throwOnError: false });
+        }
+        
+        function onWindowResize() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.domElement.style.width = '100%';
+            renderer.domElement.style.height = '100%';
+            const activePerf = document.querySelector('.perf-btn.active').id.split('-')[1];
+            setPerformanceMode(activePerf);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            for(let i = animatingPoints.length - 1; i >= 0; i--) {
+                const item = animatingPoints[i];
+                item.lerp += 0.05;
+                item.point.position.lerp(item.finalPos, item.lerp);
+                if(item.lerp >= 1) {
+                    const dist = svmPlane.distanceToPoint(item.point.position);
+                    const newClass = dist < 0 ? 1 : -1;
+                    item.point.material.color.set(newClass === 1 ? 0xff4136 : 0x0074d9);
+                    animatingPoints.splice(i, 1);
+                }
+            }
+            controls.update();
+            updateLabels();
+            composer.render();
+        }
+        const presets = { separable: { points: [...Array(60)].map(() => ({p: [-8 - Math.random()*8, Math.random()*8-4, -5 - Math.random()*8], c: 1})).concat([...Array(60)].map(() => ({p: [8 + Math.random()*8, Math.random()*8-4, 5 + Math.random()*8], c: -1}))) }, nonlinear: { points: [...Array(80)].map(() => { const a = Math.random()*Math.PI*2; const r = 6 + Math.random()*4; return { p: [Math.cos(a)*r, Math.random()*10-5, Math.sin(a)*r], c: 1 }; }).concat([...Array(40)].map(() => ({ p: [Math.random()*6-3, Math.random()*10-5, Math.random()*6-3], c: -1 }))) }, noisy: { points: [...Array(60)].map(() => ({ p: [-7 - Math.random() * 8, Math.random() * 10 - 5, Math.random() * 12 - 6], c: 1 })).concat([...Array(60)].map(() => ({ p: [7 + Math.random() * 8, Math.random() * 10 - 5, Math.random() * 12 - 6], c: -1 }))).concat([{ p: [4, 0, 0], c: 1 }, { p: [-4, 0, 0], c: -1 }]) } };
+        init();
+    </script>
+</body>
+</html>
+
