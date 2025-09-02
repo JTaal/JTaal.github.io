@@ -28,13 +28,14 @@
             @apply px-3 py-2 text-white font-semibold rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2;
             background-image: linear-gradient(to right top, rgba(255,255,255,0.05), rgba(255,255,255,0));
         }
+        .icon-btn.active { @apply ring-2 ring-indigo-400 bg-indigo-700; }
         input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: #4a5568; border-radius: 5px; outline: none; opacity: 0.7; transition: opacity .2s; }
         input[type="range"]:hover { opacity: 1; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: #a0aec0; cursor: pointer; border-radius: 50%; }
         .support-vector-label { position: absolute; background: rgba(255, 255, 0, 0.8); color: black; padding: 2px 8px; border-radius: 5px; font-size: 12px; font-weight: bold; pointer-events: none; transform: translate(-50%, -150%); user-select: none; }
-        .perf-btn.active, #settings-btn.active { @apply ring-2 ring-indigo-400 bg-indigo-700; }
+        .perf-btn.active { @apply ring-2 ring-indigo-400 bg-indigo-700; }
         #plane-info { transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; }
-        #settings-menu { transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out; overflow: hidden; }
+        .collapsible-menu { transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out; overflow: hidden; }
     </style>
 </head>
 <body class="text-gray-200">
@@ -47,27 +48,33 @@
 
     <!-- UI Container -->
     <div class="absolute bottom-0 left-0 right-0">
-        <!-- Collapsible Settings Menu -->
-        <div id="settings-menu" class="max-h-0 p-0 control-panel">
-             <div class="max-w-7xl mx-auto p-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div class="flex flex-col gap-3">
-                     <div class="text-center text-sm font-semibold">Data Scaling</div>
-                     <div class="flex items-center gap-4 text-sm"><span>X</span> <input type="range" id="x-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
-                     <div class="flex items-center gap-4 text-sm"><span>Y</span> <input type="range" id="y-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
-                     <div class="flex items-center gap-4 text-sm"><span>Z</span> <input type="range" id="z-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
+        <!-- Collapsible Menus -->
+        <div id="settings-menu" class="collapsible-menu max-h-0 p-0 control-panel">
+             <div class="max-w-7xl mx-auto p-3">
+                 <div class="text-center text-sm font-semibold mb-3">Visual Settings</div>
+                 <div class="flex items-center gap-4 text-sm mb-3"><span id="resolution-label" class="w-28">Resolution: 100%</span>
+                     <div class="grid grid-cols-3 gap-2 flex-grow">
+                        <button id="perf-low" class="btn perf-btn text-xs py-1 bg-gray-700/80 hover:bg-gray-600/80">Low</button>
+                        <button id="perf-med" class="btn perf-btn text-xs py-1 bg-gray-700/80 hover:bg-gray-600/80 active">Med</button>
+                        <button id="perf-high" class="btn perf-btn text-xs py-1 bg-gray-700/80 hover:bg-gray-600/80">High</button>
+                    </div>
                  </div>
-                 <div class="flex flex-col gap-3">
-                     <div class="text-center text-sm font-semibold">Visual Settings</div>
-                     <div class="flex items-center gap-4 text-sm"><span>Plane Size: <strong id="plane-size-label">60</strong></span> <input type="range" id="plane-size" min="10" max="120" step="5" value="60" class="w-full"></div>
-                     <div class="flex items-center gap-4 text-sm"><span id="resolution-label">Resolution: 100%</span>
-                         <div class="grid grid-cols-3 gap-2 flex-grow">
-                            <button id="perf-low" class="btn perf-btn text-xs py-1 bg-gray-700/80 hover:bg-gray-600/80">Low</button>
-                            <button id="perf-med" class="btn perf-btn text-xs py-1 bg-gray-700/80 hover:bg-gray-600/80 active">Med</button>
-                            <button id="perf-high" class="btn perf-btn text-xs py-1 bg-gray-700/80 hover:bg-gray-600/80">High</button>
-                        </div>
-                     </div>
-                 </div>
+                  <div class="flex items-center gap-4 text-sm"><span>Plane Size: <strong id="plane-size-label">60</strong></span> <input type="range" id="plane-size" min="10" max="120" step="5" value="60" class="w-full"></div>
              </div>
+        </div>
+
+        <div id="scaling-menu" class="collapsible-menu max-h-0 p-0 control-panel">
+            <div class="max-w-7xl mx-auto p-3">
+                <div class="text-center text-sm font-semibold mb-3">Data Scaling</div>
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <button id="scale-linear" class="btn text-xs py-1 bg-gray-600/80 hover:bg-gray-500/80">Linear</button>
+                    <button id="scale-log" class="btn text-xs py-1 bg-gray-600/80 hover:bg-gray-500/80">Logarithmic</button>
+                    <button id="scale-exp" class="btn text-xs py-1 bg-gray-600/80 hover:bg-gray-500/80">Exponential</button>
+                </div>
+                <div class="flex items-center gap-4 text-sm mb-2"><span>X</span> <input type="range" id="x-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
+                <div class="flex items-center gap-4 text-sm mb-2"><span>Y</span> <input type="range" id="y-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
+                <div class="flex items-center gap-4 text-sm"><span>Z</span> <input type="range" id="z-scale" min="0" max="2" step="0.1" value="1" class="w-full scaler"></div>
+            </div>
         </div>
         
         <!-- Main Control Panel -->
@@ -88,7 +95,7 @@
                      <button id="calculate-btn" class="btn bg-green-600/80 hover:bg-green-700/80 focus:ring-green-400">Calculate SVM</button>
                      <button id="classify-btn" class="btn bg-purple-600/80 hover:bg-purple-700/80 focus:ring-purple-400" disabled>Classify New Data</button>
                 </div>
-                <div id="metrics-container" class="flex-col gap-1 justify-center hidden">
+                <div id="metrics-container" class="flex-col gap-1 justify-center hidden md:flex">
                     <div class="text-center text-sm font-semibold">Model Performance</div>
                     <div class="text-center">
                         <span class="text-xs">Training Accuracy</span>
@@ -106,6 +113,10 @@
                     </div>
                 </div>
                 <div class="flex flex-col justify-center items-center gap-2">
+                    <button id="scaling-btn" class="btn text-sm w-full bg-gray-600/80 hover:bg-gray-700/80 focus:ring-gray-400 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6h9m-9 6h9m-9 6h9M4 6h1v1H4zm0 6h1v1H4zm0 6h1v1H4z"></path></svg>
+                        Data Scaling
+                    </button>
                     <button id="settings-btn" class="btn text-sm w-full bg-gray-600/80 hover:bg-gray-700/80 focus:ring-gray-400 flex items-center justify-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Settings
@@ -187,7 +198,8 @@
             document.getElementById('reset-btn').addEventListener('click', resetScene);
             document.getElementById('classify-btn').addEventListener('click', classifyNewData);
             document.getElementById('formulas-btn').addEventListener('click', () => document.getElementById('formula-modal').classList.remove('hidden'));
-            document.getElementById('settings-btn').addEventListener('click', toggleSettingsMenu);
+            document.getElementById('settings-btn').addEventListener('click', () => toggleMenu('settings'));
+            document.getElementById('scaling-btn').addEventListener('click', () => toggleMenu('scaling'));
             const closeModal = () => document.getElementById('formula-modal').classList.add('hidden');
             document.getElementById('close-modal-btn-x').addEventListener('click', closeModal);
             document.getElementById('close-modal-btn-return').addEventListener('click', closeModal);
@@ -200,6 +212,9 @@
                 document.getElementById('plane-size-label').textContent = e.target.value;
                 if(svmPlane) calculateAndDrawSVM();
             });
+            document.getElementById('scale-linear').addEventListener('click', () => setScalingPreset(1.0));
+            document.getElementById('scale-log').addEventListener('click', () => setScalingPreset(0.5));
+            document.getElementById('scale-exp').addEventListener('click', () => setScalingPreset(2.0));
         }
         
         function onPointerDown(event) {
@@ -318,6 +333,11 @@
             document.getElementById('recall-display').textContent = isNaN(recall) ? 'N/A' : recall.toFixed(2);
             document.getElementById('metrics-container').classList.remove('hidden');
         }
+        
+        function setScalingPreset(value) {
+            document.querySelectorAll('.scaler').forEach(s => s.value = value);
+            applyDataScaling();
+        }
 
         function applyDataScaling() {
             const [x, y, z] = ['x', 'y', 'z'].map(id => parseFloat(document.getElementById(`${id}-scale`).value));
@@ -344,6 +364,31 @@
             document.querySelectorAll('.perf-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`perf-${mode}`).classList.add('active');
             document.getElementById('resolution-label').textContent = `Resolution: ${scale*100}%`;
+        }
+
+        function toggleMenu(menuNameToToggle) {
+            const allMenus = ['settings', 'scaling'];
+            allMenus.forEach(menuName => {
+                const menuEl = document.getElementById(`${menuName}-menu`);
+                const btnEl = document.getElementById(`${menuName}-btn`);
+
+                if (menuName === menuNameToToggle) {
+                    const isOpening = menuEl.style.maxHeight === '0px' || !menuEl.style.maxHeight;
+                    if (isOpening) {
+                        menuEl.style.maxHeight = menuEl.scrollHeight + "px";
+                        menuEl.style.padding = '0.75rem';
+                        btnEl.classList.add('active');
+                    } else {
+                        menuEl.style.maxHeight = '0px';
+                        menuEl.style.padding = '0';
+                        btnEl.classList.remove('active');
+                    }
+                } else {
+                    menuEl.style.maxHeight = '0px';
+                    menuEl.style.padding = '0';
+                    btnEl.classList.remove('active');
+                }
+            });
         }
         
         function toggleSettingsMenu() {
