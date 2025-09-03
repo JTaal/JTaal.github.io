@@ -72,10 +72,10 @@
              background-color: rgba(17, 24, 39, 0.8);
              backdrop-filter: blur(10px);
              border: 1px solid rgba(55, 65, 81, 0.5);
-        }
+         }
          #mode-selector .mode-btn.bg-blue-600 {
              border-color: rgba(59, 130, 246, 0.5);
-        }
+         }
         .cov-matrix {
             font-family: 'Fira Code', monospace;
             border-left: 2px solid #6b7280;
@@ -119,28 +119,6 @@
         <button id="convolve-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 text-sm">Convolve</button>
     </div>
     
-    <!-- <div id="covariance-button-container" class="absolute bottom-24 right-4 z-10">
-        <div id="cov-btn-2d" class="relative hidden">
-            <button id="toggle-cov-matrix-2d" class="font-mono text-xl p-2 rounded-md transition-colors bg-pink-600 hover:bg-pink-700 text-white">&Sigma;</button>
-            <div id="cov-matrix-popup-2d" class="hidden cov-matrix-popup absolute bottom-full right-0 mb-2 p-2 rounded-md">
-                 <div class="cov-matrix grid grid-cols-2 gap-x-4 text-center text-green-400">
-                    <span id="cov-2d-00">1.00</span><span id="cov-2d-01">0.00</span>
-                    <span id="cov-2d-10">0.00</span><span id="cov-2d-11">1.00</span>
-                 </div>
-            </div>
-        </div>
-         <div id="cov-btn-3d" class="relative hidden">
-            <button id="toggle-cov-matrix-3d" class="font-mono text-xl p-2 rounded-md transition-colors bg-pink-600 hover:bg-pink-700 text-white">&Sigma;</button>
-            <div id="cov-matrix-popup-3d" class="hidden cov-matrix-popup absolute bottom-full right-0 mb-2 p-2 rounded-md">
-                <div class="cov-matrix grid grid-cols-3 gap-x-3 text-center text-green-400 text-sm">
-                    <span id="cov-3d-00">1.00</span><span id="cov-3d-01">0.00</span><span id="cov-3d-02">0.00</span>
-                    <span id="cov-3d-10">0.00</span><span id="cov-3d-11">1.00</span><span id="cov-3d-12">0.00</span>
-                    <span id="cov-3d-20">0.00</span><span id="cov-3d-21">0.00</span><span id="cov-3d-22">1.00</span>
-                </div>
-            </div>
-        </div>
-    </div> -->
-
     <div id="ui-panel" class="absolute bottom-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-2xl max-w-5xl w-full">
         <!-- 1D Controls -->
         <div id="controls-1d" class="hidden">
@@ -182,8 +160,8 @@
                         <button id="toggle-cov-matrix-2d" class="font-mono text-xl p-2 rounded-md transition-colors bg-pink-600 hover:bg-pink-700 text-white">&Sigma;</button>
                         <div id="cov-matrix-popup-2d" class="hidden cov-matrix-popup absolute bottom-full right-0 mb-2 p-2 rounded-md">
                              <div class="cov-matrix grid grid-cols-2 gap-x-4 text-center text-green-400">
-                                <span id="cov-2d-00">1.00</span><span id="cov-2d-01">0.00</span>
-                                <span id="cov-2d-10">0.00</span><span id="cov-2d-11">1.00</span>
+                                 <span id="cov-2d-00">1.00</span><span id="cov-2d-01">0.00</span>
+                                 <span id="cov-2d-10">0.00</span><span id="cov-2d-11">1.00</span>
                              </div>
                         </div>
                     </div>
@@ -223,17 +201,17 @@
                      <div id="error-message-3d" class="text-red-500 text-xs text-center hidden col-span-3 pt-1">Invalid correlation matrix. The combination of &rho; values is not possible.</div>
                  </div>
                  <div class="flex items-center gap-4 self-center">
-                    <div id="cov-btn-3d" class="relative">
-                        <button id="toggle-cov-matrix-3d" class="font-mono text-xl p-2 rounded-md transition-colors bg-pink-600 hover:bg-pink-700 text-white">&Sigma;</button>
-                        <div id="cov-matrix-popup-3d" class="hidden cov-matrix-popup absolute bottom-full right-0 mb-2 p-2 rounded-md">
-                            <div class="cov-matrix grid grid-cols-3 gap-x-3 text-center text-green-400 text-sm">
-                                <span id="cov-3d-00">1.00</span><span id="cov-3d-01">0.00</span><span id="cov-3d-02">0.00</span>
-                                <span id="cov-3d-10">0.00</span><span id="cov-3d-11">1.00</span><span id="cov-3d-12">0.00</span>
-                                <span id="cov-3d-20">0.00</span><span id="cov-3d-21">0.00</span><span id="cov-3d-22">1.00</span>
-                            </div>
-                        </div>
-                    </div>
-                    <button id="generateData3D" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-5 rounded-lg transition duration-300 text-base">Generate</button>
+                     <div id="cov-btn-3d" class="relative">
+                         <button id="toggle-cov-matrix-3d" class="font-mono text-xl p-2 rounded-md transition-colors bg-pink-600 hover:bg-pink-700 text-white">&Sigma;</button>
+                         <div id="cov-matrix-popup-3d" class="hidden cov-matrix-popup absolute bottom-full right-0 mb-2 p-2 rounded-md">
+                             <div class="cov-matrix grid grid-cols-3 gap-x-3 text-center text-green-400 text-sm">
+                                 <span id="cov-3d-00">1.00</span><span id="cov-3d-01">0.00</span><span id="cov-3d-02">0.00</span>
+                                 <span id="cov-3d-10">0.00</span><span id="cov-3d-11">1.00</span><span id="cov-3d-12">0.00</span>
+                                 <span id="cov-3d-20">0.00</span><span id="cov-3d-21">0.00</span><span id="cov-3d-22">1.00</span>
+                             </div>
+                         </div>
+                     </div>
+                     <button id="generateData3D" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-5 rounded-lg transition duration-300 text-base">Generate</button>
                  </div>
              </div>
         </div>
@@ -267,18 +245,19 @@
         let peakPosition = new THREE.Vector3();
         let maxHistHeight = 5;
         let surfaceMaterialToAnimate = null;
-        let animationStartTime = 0;
         let covarianceMatrixObject = null;
-        let isConvolving = false;
         let convolveStartTime = 0;
+        
+        let sweepMasterGroup = null;
         let sweepGroupX = null;
         let sweepGroupZ = null;
+        let sweepAngle = 0;
+
         let convolveSurface = null;
-        let revealPhase = 'none'; // 'sweeping', 'surface', 'points', 'ellipse'
+        let revealPhase = 'none'; // 'sweeping', 'points'
         let revealStartTime = 0;
         let pointsToReveal = null;
-        let ellipseToReveal = null;
-
+        
         // --- UI Elements ---
         const modeButtons = document.querySelectorAll('.mode-btn');
         const formulaContainer = document.getElementById('formula-container');
@@ -380,15 +359,10 @@
             convolveBtn.addEventListener('click', startConvolveAnimation);
 
             window.addEventListener('resize', onWindowResize);
-
-            // remove lateron
-            window.visualizationGroup = visualizationGroup;
-
             renderer.domElement.addEventListener('pointerdown', onCanvasClick);
         }
 
         function toggleCovarianceMatrix(mode) {
-            const isMobile = window.innerWidth < 768;
             const popup = document.getElementById(`cov-matrix-popup-${mode}`);
             
             if (covarianceMatrixObject) {
@@ -396,9 +370,6 @@
                 covarianceMatrixObject = null;
                  return; // If object exists, just remove it and stop
             }
-
-            const otherMode = mode === '2d' ? '3d' : '2d';
-            document.getElementById(`cov-matrix-popup-${otherMode}`).classList.add('hidden');
 
             const matrixContainer = document.createElement('div');
             matrixContainer.innerHTML = popup.innerHTML;
@@ -439,8 +410,6 @@
                 guidesGroup.remove(covarianceMatrixObject);
                 covarianceMatrixObject = null;
             }
-            popupCov2D.classList.add('hidden');
-            popupCov3D.classList.add('hidden');
 
             setupSceneForMode(newMode);
 
@@ -559,9 +528,9 @@
             const material = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
             const points = [];
             const segments = 200;
-            const range = PLANE_SIZE / 2;
-            const minX = -range;
-            const maxX = range;
+            const range = PLANE_SIZE; // Use full plane size for the curve length
+            const minX = -range/2;
+            const maxX = range/2;
             const pdf = (x, mu, sigma) => (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
             const maxPdfVal = pdf(mean, mean, stdDev);
             if (maxPdfVal <= 0 || !isFinite(maxPdfVal)) return new THREE.Group();
@@ -634,7 +603,6 @@
         }
 
         function create2DPdfSurface(stdX, stdZ, rho, maxHeight) {
-            // const geometry = new THREE.PlaneGeometry(PLANE_SIZE, PLANE_SIZE, 50, 50);
             const geometry = new THREE.PlaneGeometry(PLANE_SIZE, PLANE_SIZE, 150, 150);
             geometry.rotateX(-Math.PI / 2);
             const pdf = (x, z, sx, sz, r) => {
@@ -653,24 +621,29 @@
             positions.needsUpdate = true;
             geometry.computeVertexNormals();
             
-
             const shader_colour = 0x8f00ff;
-            //const shader_colour = 0x34d399;
             const material = new THREE.MeshLambertMaterial({ color: shader_colour, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
             
             material.onBeforeCompile = (shader) => {
-                shader.uniforms.u_revealX = { value: -PLANE_SIZE / 2 };
-                shader.uniforms.u_revealZ = { value: -PLANE_SIZE / 2 };
+                shader.uniforms.u_revealPos = { value: -PLANE_SIZE/2 };
+                shader.uniforms.u_sweepAngle = { value: 0.0 };
+
                 shader.vertexShader = 'varying vec2 v_WorldPosXZ;\n' + shader.vertexShader;
                 shader.vertexShader = shader.vertexShader.replace(
                     '#include <begin_vertex>',
                     '#include <begin_vertex>\nv_WorldPosXZ = position.xz;'
                 );
-                shader.fragmentShader = 'uniform float u_revealX;\nuniform float u_revealZ;\nvarying vec2 v_WorldPosXZ;\n' + shader.fragmentShader;
+                shader.fragmentShader = 'uniform float u_revealPos;\nuniform float u_sweepAngle;\nvarying vec2 v_WorldPosXZ;\n' + shader.fragmentShader;
                 shader.fragmentShader = shader.fragmentShader.replace(
                     'void main() {',
                     `void main() {
-                        if (v_WorldPosXZ.x > u_revealX || v_WorldPosXZ.y > u_revealZ) {
+                        float c = cos(-u_sweepAngle);
+                        float s = sin(-u_sweepAngle);
+                        mat2 rot = mat2(c, -s, s, c);
+                        vec2 rotatedPos = rot * v_WorldPosXZ;
+
+                        // Reveal based on both axes of the rotated coordinate system
+                        if (rotatedPos.x > u_revealPos || rotatedPos.y > u_revealPos) {
                             discard;
                         }
                     `
@@ -679,18 +652,10 @@
             };
 
             const surfaceMesh = new THREE.Mesh(geometry, material);
-
             const wireframe_colour = 0x34d399;
-            // purple
-            // const wireframe_colour = 0x8f00ff;
-            // white
-            // const wireframe_colour = 0xffffff;
-
             const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(geometry), new THREE.LineBasicMaterial({ color: wireframe_colour, transparent: true, opacity: 0.2 }));
             const group = new THREE.Group();
             group.add(surfaceMesh, wireframe);
-            
-            animationStartTime = clock.getElapsedTime();
             return group;
         }
 
@@ -920,8 +885,6 @@
                 guidesGroup.remove(covarianceMatrixObject);
                 covarianceMatrixObject = null;
             }
-            popupCov2D.classList.add('hidden');
-            popupCov3D.classList.add('hidden');
         }
 
         function startConvolveAnimation() {
@@ -929,26 +892,42 @@
             
             revealPhase = 'sweeping';
             convolveStartTime = clock.getElapsedTime();
-
-
-
             visualizationGroup.visible = false;
-
 
             const stdX = parseFloat(stdDevXSlider2D.value);
             const stdZ = parseFloat(stdDevZSlider2D.value);
             const rho = parseFloat(correlationSlider2D.value);
 
+            sweepAngle = 0.5 * Math.atan2(2 * rho * stdX * stdZ, stdX**2 - stdZ**2);
+
+            sweepMasterGroup = new THREE.Group();
+            sweepMasterGroup.rotation.y = sweepAngle;
+            scene.add(sweepMasterGroup);
+
+            // X-distribution curve (red). TRAVELS along X-axis. ORIENTED along Z-axis.
             sweepGroupX = new THREE.Group();
-            sweepGroupX.add(create1DPdfCurve(0, stdX, maxHistHeight));
-            sweepGroupX.position.z = -PLANE_SIZE/2;
-            scene.add(sweepGroupX);
+            const xCurve = create1DPdfCurve(0, stdX, maxHistHeight);
+            if (xCurve.material) {
+                xCurve.material.color.set(0xef4444);
+            }
+            sweepGroupX.add(xCurve);
+            sweepGroupX.rotation.y = Math.PI / 2; // Orient along Z
+            sweepMasterGroup.add(sweepGroupX);
             
+            // Z-distribution curve (blue). TRAVELS along Z-axis. ORIENTED along X-axis.
             sweepGroupZ = new THREE.Group();
-            sweepGroupZ.add(create1DPdfCurve(0, stdZ, maxHistHeight));
-            sweepGroupZ.rotation.y = -Math.PI / 2;
-            sweepGroupZ.position.x = -PLANE_SIZE/2;
-            scene.add(sweepGroupZ);
+            const zCurve = create1DPdfCurve(0, stdZ, maxHistHeight);
+            if (zCurve.material) {
+                zCurve.material.color.set(0x3b82f6);
+            }
+            sweepGroupZ.add(zCurve);
+            // No rotation needed, create1DPdfCurve is already oriented along X
+            sweepMasterGroup.add(sweepGroupZ);
+            
+            const startPos = -PLANE_SIZE / 2 * 1.25;
+            // Set initial positions for the sweep start
+            sweepGroupX.position.x = startPos;
+            sweepGroupZ.position.z = startPos;
             
             convolveSurface = create2DPdfSurface(stdX, stdZ, rho, maxHistHeight);
             convolveSurface.visible = true;
@@ -958,55 +937,40 @@
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            //scene.remove(convolveSurface);
             const elapsedTime = clock.getElapsedTime();
             
             if (revealPhase === 'sweeping') {
-
-                // Hide the PDF (ellipse) during sweep
-                
-                // Make visualization group visible, but hide its points initially
                 visualizationGroup.visible = true;
-
-
                 pointsToReveal = visualizationGroup.children.find(c => c.type === 'Points');
                 if (pointsToReveal) pointsToReveal.visible = false;
                 
-                // Animate the sweep
                 const animElapsed = elapsedTime - convolveStartTime;
-                const progress = Math.min(animElapsed / 4.0, 1.0); // 4 second sweep
+                const progress = Math.min(animElapsed / 4.0, 1.0);
                 const halfSize = PLANE_SIZE / 2;
-                const currentPos = -halfSize + progress * PLANE_SIZE;
+                const sweepRange = PLANE_SIZE * 1.5;
+                const startPos = -halfSize * 1.25;
+                const currentPos = startPos + progress * sweepRange;
+                const sweepLimit = halfSize * 1.25;
 
-                // Move sweep groups
-                if (sweepGroupX) sweepGroupX.position.z = currentPos;
-                if (sweepGroupZ) sweepGroupZ.position.x = currentPos;
+                // Move each curve along its designated trajectory
+                if (sweepGroupX) sweepGroupX.position.x = Math.min(currentPos, sweepLimit);
+                if (sweepGroupZ) sweepGroupZ.position.z = Math.min(currentPos, sweepLimit);
 
-                // Update shader reveal uniforms
                 if (surfaceMaterialToAnimate) {
-                    surfaceMaterialToAnimate.uniforms.u_revealX.value = currentPos;
-                    surfaceMaterialToAnimate.uniforms.u_revealZ.value = currentPos;
+                    surfaceMaterialToAnimate.uniforms.u_revealPos.value = Math.min(currentPos, sweepLimit);
+                    surfaceMaterialToAnimate.uniforms.u_sweepAngle.value = sweepAngle;
                 }
 
-                // Sweep finished
                 if (progress >= 1.0) {
-                    scene.remove(sweepGroupX);
-                    scene.remove(sweepGroupZ);
-                    scene.remove(convolveSurface);
+                    if (sweepMasterGroup) scene.remove(sweepMasterGroup);
+                    if (convolveSurface) scene.remove(convolveSurface);
+                    
+                    sweepMasterGroup = null;
+                    sweepGroupX = null;
+                    sweepGroupZ = null;
+                    convolveSurface = null;
+                    surfaceMaterialToAnimate = null;
 
-                    surfaceMaterialToAnimate.visible = false;
-
-                    // Cleanup sweep groups
-                    while (sweepGroupX.children.length > 0) sweepGroupX.remove(sweepGroupX.children[0]);
-                    while (sweepGroupZ.children.length > 0) sweepGroupZ.remove(sweepGroupZ.children[0]);
-                    if (convolveSurface) {
-                        convolveSurface.children.forEach(c => {
-                            if (c.geometry) c.geometry.dispose();
-                            if (c.material) c.material.dispose();
-                        });
-                    }
-
-                    // Prepare points reveal
                     revealPhase = 'points';
                     revealStartTime = clock.getElapsedTime();
                     if (pointsToReveal) {
@@ -1016,31 +980,24 @@
                 }
 
             } else if (revealPhase === 'points') {
-
                 const animElapsed = elapsedTime - revealStartTime;
-                const progress = Math.min(animElapsed / 2.0, 1.0); // 2 second point reveal
+                const progress = Math.min(animElapsed / 2.0, 1.0);
 
                 if (pointsToReveal) {
-                    pointsToReveal.visible = true;
                     const count = Math.floor(progress * NUM_POINTS);
                     pointsToReveal.geometry.setDrawRange(0, count);
                 }
 
-                // After points fully revealed
                 if (progress >= 1.0) {
-                    revealPhase = 'none'; // stop animation
-                    pdfGroup.visible = true; // show ellipse instantly
-                    
+                    revealPhase = 'none'; 
+                    pdfGroup.visible = true;
                 }
             }
 
-            // Always update formula position and render
             updateFormulaPosition();
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         }
-
-
 
         init();
     </script>
