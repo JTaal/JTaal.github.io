@@ -152,6 +152,9 @@
         }
         .hidden { display: none !important; }
         canvas { display: block; }
+        .surprisal-gradient {
+            background-image: linear-gradient( to right, hsl(240, 90%, 60%), hsl(180, 90%, 60%), hsl(120, 90%, 60%), hsl(60, 90%, 60%), hsl(0, 90%, 60%) );
+        }
     </style>
 </head>
 <body>
@@ -410,6 +413,14 @@
                     <label class="text-sm font-medium">Visualization</label>
                     <button id="surprisal-toggle" class="toggle-button">Surprisal</button>
                 </div>
+                <div id="surprisal-legend" class="control-group hidden w-full">
+                    <label class="text-sm font-medium">Surprisal Color Range</label>
+                    <div class="w-48 h-4 rounded-full surprisal-gradient"></div>
+                    <div class="flex justify-between w-48 text-xs text-gray-400">
+                        <span>Low</span>
+                        <span>High</span>
+                    </div>
+                </div>
             `;
             entropyText = document.getElementById('entropy-value');
             const statesInput = document.getElementById('states-input');
@@ -434,6 +445,7 @@
             document.getElementById('surprisal-toggle').addEventListener('click', (e) => {
                 surprisalMode = !surprisalMode;
                 e.target.classList.toggle('active', surprisalMode);
+                document.getElementById('surprisal-legend').classList.toggle('hidden', !surprisalMode);
             });
             createDistributionControls(numStates);
         }
@@ -823,7 +835,6 @@
                         v1.sub(v1_proj).add(v2_proj);
                         v2.sub(v2_proj).add(v1_proj);
                         
-                        // Prevent sticking
                         const overlap = 2 * particleRadius - dist;
                         p1.position.add(collisionAxis.clone().multiplyScalar(overlap / 2));
                         p2.position.sub(collisionAxis.clone().multiplyScalar(overlap / 2));
