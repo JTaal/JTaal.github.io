@@ -52,6 +52,12 @@
   visualization_url: /visualizations/diffusion-modeling.html
   description: A short description goes here.
 
+- title: Entropy
+  author: Jasper Taal
+  thumbnail: /assets/images/entropy.png
+  visualization_url: /visualizations/entropy.html
+  description: A short description goes here.
+
 - title: Linear Regression
   author: Jasper Taal
   thumbnail: /assets/images/linear-regression.png
