@@ -6,28 +6,31 @@ on:
       - '_visualizations/**'
       - 'python/data_entries.py'
 
+permissions:
+  contents: write
+
 jobs:
   update-visualizations:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install PyYAML
-        run: pip install pyyaml
+      - run: pip install pyyaml
 
-      - name: Generate project entries
-        run: python python/data_entries.py
+      - run: python python/data_entries.py
 
-      - name: Commit updated projects.yml
+      - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add _data/projects.yml
           git commit -m "Regenerate _data/projects.yml from _visualizations" || echo "No changes to commit"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref }}
+          git pull --rebase origin main
+          git push origin main
