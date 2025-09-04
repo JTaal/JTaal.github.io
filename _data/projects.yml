@@ -40,6 +40,12 @@
   visualization_url: /visualizations/machine-learning-optimizers.html
   description: A short description goes here.
 
+- title: Blackhole Entropy
+  author: Jasper Taal
+  thumbnail: /assets/images/blackhole-entropy.png
+  visualization_url: /visualizations/blackhole-entropy.html
+  description: A short description goes here.
+
 - title: Chirp Up And Down
   author: Jasper Taal
   thumbnail: /assets/images/chirp-up-and-down.png
