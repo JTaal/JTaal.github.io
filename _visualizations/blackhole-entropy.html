@@ -171,7 +171,8 @@
         let mainChart;
         let lifecycleStar, isLifecycleRunning = false, lifecycleProgress = 0, lifecycleDuration = 20;
         let collapseScene, collapseCamera, collapseRenderer, star, collapseDisk, isCollapsing = false;
-        let internalParticles = []; // FIX: Declared in global scope
+        let internalParticles = [];
+        let unitBall, fractalBoundary; // FIX: Declared in global scope
 
         function init() {
             scene = new THREE.Scene();
@@ -222,7 +223,7 @@
             document.getElementById('btn-lifecycle').addEventListener('click', () => switchVisualization('lifecycle'));
 
             document.getElementById('btn-toggle-graph').addEventListener('click', toggleGraph);
-            document.getElementById('btn-start-collapse').addEventListener('click', () => { /* Logic restored below */ });
+            document.getElementById('btn-start-collapse').addEventListener('click', () => { /* Logic needed */ });
         }
         
         function toggleGraph() {
