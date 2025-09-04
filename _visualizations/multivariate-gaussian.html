@@ -35,7 +35,7 @@
             font-size: 12px;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
         }
-        #ui-panel {
+        #ui-panel, #settings-panel {
             background-color: rgba(17, 24, 39, 0.8);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(55, 65, 81, 0.5);
@@ -87,10 +87,33 @@
             backdrop-filter: blur(5px);
             border: 1px solid rgba(55, 65, 81, 0.7);
         }
+        input[type="color"] {
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            border: none;
+            padding: 0;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+        }
+        .settings-section-header {
+            border-bottom: 1px solid rgba(55, 65, 81, 0.8);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            color: #9ca3af;
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Fira+Code&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
 </head>
 <body class="m-0 p-0">
     <div id="container"></div>
@@ -99,6 +122,46 @@
 
     <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-center w-full max-w-3xl">
         <h1 class="text-xl font-bold text-gray-100" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.7);">Multivariate Gaussian</h1>
+    </div>
+
+    <button id="settings-btn" class="absolute top-4 right-4 z-20 p-2 rounded-md bg-gray-800 bg-opacity-50 hover:bg-opacity-75 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </button>
+    
+    <div id="settings-panel" class="absolute top-16 right-4 z-20 p-4 rounded-lg shadow-2xl w-72 hidden">
+        <h3 class="text-lg font-bold mb-2 text-gray-100">Settings</h3>
+        <div class="space-y-4">
+             <div>
+                <h4 class="settings-section-header text-sm">Visibility</h4>
+                <div class="space-y-2 pl-1">
+                    <div class="flex items-center justify-between"><label for="showSurface" class="text-sm font-medium text-gray-300">Surface</label><input id="showSurface" type="checkbox" class="h-4 w-4 rounded" checked></div>
+                    <div class="flex items-center justify-between"><label for="showPoints" class="text-sm font-medium text-gray-300">Data Points</label><input id="showPoints" type="checkbox" class="h-4 w-4 rounded" checked></div>
+                    <div class="flex items-center justify-between"><label for="showContour" class="text-sm font-medium text-gray-300">Contour / Ellipsoid</label><input id="showContour" type="checkbox" class="h-4 w-4 rounded" checked></div>
+                    <div class="flex items-center justify-between"><label for="showHistograms" class="text-sm font-medium text-gray-300">Histograms</label><input id="showHistograms" type="checkbox" class="h-4 w-4 rounded" checked></div>
+                </div>
+            </div>
+
+            <div>
+                 <h4 class="settings-section-header text-sm">Graphics</h4>
+                 <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex items-center justify-between"><label for="surfaceColor" class="text-sm font-medium text-gray-300">Surface</label><input id="surfaceColor" type="color" value="#8f00ff"></div>
+                        <div class="flex items-center justify-between"><label for="contourColor" class="text-sm font-medium text-gray-300">Contour</label><input id="contourColor" type="color" value="#34d399"></div>
+                        <div class="flex items-center justify-between"><label for="colorX" class="text-sm font-medium text-gray-300">X-Axis</label><input id="colorX" type="color" value="#ef4444"></div>
+                        <div class="flex items-center justify-between"><label for="colorZ" class="text-sm font-medium text-gray-300">Z-Axis</label><input id="colorZ" type="color" value="#3b82f6"></div>
+                        <div class="flex items-center justify-between"><label for="gridColor" class="text-sm font-medium text-gray-300">Grid</label><input id="gridColor" type="color" value="#444444"></div>
+                    </div>
+                     <div>
+                        <label for="gridResolution" class="block text-sm font-medium text-gray-300">Grid Lines: <span id="gridResolutionValue">10</span></label>
+                        <input id="gridResolution" type="range" min="2" max="50" step="1" value="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                    </div>
+                     <div>
+                        <label for="surfaceResolution" class="block text-sm font-medium text-gray-300">Surface Detail: <span id="surfaceResolutionValue">150</span></label>
+                        <input id="surfaceResolution" type="range" min="20" max="200" step="10" value="150" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="formula-container" class="hidden">
@@ -241,6 +304,7 @@
         const NUM_POINTS = 20000;
         const HISTOGRAM_BINS = 40;
         const PLANE_SIZE = 40;
+        const TRACE_SCALE_FACTOR = 1.5;
         let currentMode = '';
         let peakPosition = new THREE.Vector3();
         let maxHistHeight = 5;
@@ -254,11 +318,10 @@
         let sweepAngle = 0;
 
         let convolveSurface = null;
-        let revealPhase = 'none'; // 'sweeping', 'points'
+        let revealPhase = 'none';
         let revealStartTime = 0;
         let pointsToReveal = null;
         
-        // --- UI Elements ---
         const modeButtons = document.querySelectorAll('.mode-btn');
         const formulaContainer = document.getElementById('formula-container');
         const svgOverlay = document.getElementById('svg-overlay');
@@ -304,8 +367,25 @@
         const covBtn3D = document.getElementById('cov-btn-3d');
         const convolveBtn = document.getElementById('convolve-btn');
         const animationControlsContainer = document.getElementById('animation-controls-container');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+        
+        const settings = {
+            surfaceColor: new THREE.Color(document.getElementById('surfaceColor').value),
+            contourColor: new THREE.Color(document.getElementById('contourColor').value),
+            colorX: new THREE.Color(document.getElementById('colorX').value),
+            colorZ: new THREE.Color(document.getElementById('colorZ').value),
+            gridColor: new THREE.Color(document.getElementById('gridColor').value),
+            gridResolution: parseInt(document.getElementById('gridResolution').value),
+            surfaceResolution: parseInt(document.getElementById('surfaceResolution').value),
+            showSurface: document.getElementById('showSurface').checked,
+            showPoints: document.getElementById('showPoints').checked,
+            showContour: document.getElementById('showContour').checked,
+            showHistograms: document.getElementById('showHistograms').checked,
+        };
 
-
+        init();
+        
         function init() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x000000);
@@ -335,16 +415,19 @@
         
         function setupEventListeners() {
             modeButtons.forEach(btn => btn.addEventListener('click', () => switchMode(btn.dataset.mode)));
+            
             [meanSlider, stdDevSlider].forEach(s => {
                 s.addEventListener('input', update1DSliderText);
                 s.addEventListener('change', update1DDistribution);
             });
             generateButton1D.addEventListener('click', update1DDistribution);
+            
             [stdDevXSlider2D, stdDevZSlider2D, correlationSlider2D].forEach(s => {
                 s.addEventListener('input', update2DSliderText);
                 s.addEventListener('change', update2DDistribution);
             });
             generateButton2D.addEventListener('click', update2DDistribution);
+            
             [stdDevXSlider3D, stdDevYSlider3D, stdDevZSlider3D, rhoXYSlider, rhoXZSlider, rhoYZSlider].forEach(s => {
                 s.addEventListener('input', () => {
                     update3DSliderText();
@@ -358,33 +441,66 @@
             toggleCov3D.addEventListener('click', () => toggleCovarianceMatrix('3d'));
             convolveBtn.addEventListener('click', startConvolveAnimation);
 
+            // Settings Panel Listeners
+            settingsBtn.addEventListener('click', () => settingsPanel.classList.toggle('hidden'));
+            
+            const refresh = () => refreshVisualization();
+            
+            document.getElementById('surfaceColor').addEventListener('input', (e) => { settings.surfaceColor.set(e.target.value); refresh(); });
+            document.getElementById('contourColor').addEventListener('input', (e) => { settings.contourColor.set(e.target.value); refresh(); });
+            document.getElementById('colorX').addEventListener('input', (e) => { settings.colorX.set(e.target.value); refresh(); });
+            document.getElementById('colorZ').addEventListener('input', (e) => { settings.colorZ.set(e.target.value); refresh(); });
+            document.getElementById('gridColor').addEventListener('input', (e) => { settings.gridColor.set(e.target.value); setupSceneForMode(currentMode); });
+            
+            document.getElementById('gridResolution').addEventListener('input', (e) => {
+                document.getElementById('gridResolutionValue').textContent = e.target.value;
+            });
+             document.getElementById('gridResolution').addEventListener('change', (e) => {
+                settings.gridResolution = parseInt(e.target.value);
+                setupSceneForMode(currentMode);
+            });
+
+            document.getElementById('surfaceResolution').addEventListener('input', (e) => {
+                document.getElementById('surfaceResolutionValue').textContent = e.target.value;
+            });
+            document.getElementById('surfaceResolution').addEventListener('change', (e) => {
+                settings.surfaceResolution = parseInt(e.target.value);
+                refresh();
+            });
+
+            document.getElementById('showSurface').addEventListener('input', e => { settings.showSurface = e.target.checked; refresh(); });
+            document.getElementById('showPoints').addEventListener('input', e => { settings.showPoints = e.target.checked; refresh(); });
+            document.getElementById('showContour').addEventListener('input', e => { settings.showContour = e.target.checked; refresh(); });
+            document.getElementById('showHistograms').addEventListener('input', e => { settings.showHistograms = e.target.checked; refresh(); });
+
             window.addEventListener('resize', onWindowResize);
             renderer.domElement.addEventListener('pointerdown', onCanvasClick);
+        }
+        
+        function refreshVisualization() {
+            if (currentMode === '1d') update1DDistribution();
+            else if (currentMode === '2d') update2DDistribution();
+            else if (currentMode === '3d') update3DDistribution();
         }
 
         function toggleCovarianceMatrix(mode) {
             const popup = document.getElementById(`cov-matrix-popup-${mode}`);
-            
             if (covarianceMatrixObject) {
                 guidesGroup.remove(covarianceMatrixObject);
                 covarianceMatrixObject = null;
-                 return; // If object exists, just remove it and stop
+                return;
             }
-
             const matrixContainer = document.createElement('div');
             matrixContainer.innerHTML = popup.innerHTML;
             matrixContainer.className = "cov-matrix-popup p-2 rounded-md";
-            
             covarianceMatrixObject = new CSS2DObject(matrixContainer);
-            const halfSize = PLANE_SIZE/2;
-
+            const halfSize = PLANE_SIZE / 2;
             if (mode === '2d') {
                 covarianceMatrixObject.position.set(halfSize * 0.5, 4, halfSize * 0.5);
-            } else { // 3d
+            } else {
                 covarianceMatrixObject.position.set(halfSize * 0.6, halfSize * 0.6, 0);
             }
             guidesGroup.add(covarianceMatrixObject);
-
         }
         
         function switchMode(newMode) {
@@ -423,9 +539,8 @@
         
         function setupSceneForMode(mode) {
             clearGuides();
-            const gridColor = 0x444444;
             const halfSize = PLANE_SIZE / 2;
-             const createAxisLabel = (text, position) => {
+            const createAxisLabel = (text, position) => {
                 const textDiv = document.createElement('div');
                 textDiv.className = 'label text-lg italic';
                 textDiv.textContent = text;
@@ -438,7 +553,7 @@
                 camera.position.set(0, 5, 25);
                 camera.lookAt(0, 0, 0);
                 controls.target.set(0, 0, 0);
-                const lineMaterial = new THREE.LineBasicMaterial({ color: gridColor });
+                const lineMaterial = new THREE.LineBasicMaterial({ color: settings.gridColor });
                 const points = [new THREE.Vector3(-halfSize, 0, 0), new THREE.Vector3(halfSize, 0, 0)];
                 const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
                 guidesGroup.add(new THREE.Line(lineGeometry, lineMaterial));
@@ -456,21 +571,23 @@
                 camera.position.set(0, PLANE_SIZE * 0.6, PLANE_SIZE * 0.75);
                 camera.lookAt(0, 0, 0);
                 controls.target.set(0, 0, 0);
-                guidesGroup.add(new THREE.GridHelper(PLANE_SIZE, PLANE_SIZE, gridColor, gridColor));
-                 createAxisLabel('x', new THREE.Vector3(halfSize + 1.5, 0, 0));
+                const divisions = settings.gridResolution * (PLANE_SIZE/10);
+                guidesGroup.add(new THREE.GridHelper(PLANE_SIZE, divisions, settings.gridColor, settings.gridColor));
+                createAxisLabel('x', new THREE.Vector3(halfSize + 1.5, 0, 0));
                 createAxisLabel('z', new THREE.Vector3(0, 0, halfSize + 1.5));
             } else if (mode === '3d') {
+                const divisions = settings.gridResolution * (PLANE_SIZE/10);
                 camera.position.set(halfSize * 1.4, halfSize * 0.6, halfSize * 1.4);
                 camera.lookAt(0, 0, 0);
                 controls.target.set(0, 0, 0);
-                const gridXZ = new THREE.GridHelper(PLANE_SIZE, PLANE_SIZE, gridColor, gridColor);
+                const gridXZ = new THREE.GridHelper(PLANE_SIZE, divisions, settings.gridColor, settings.gridColor);
                 gridXZ.position.y = -halfSize;
                 guidesGroup.add(gridXZ);
-                const gridXY = new THREE.GridHelper(PLANE_SIZE, PLANE_SIZE, gridColor, gridColor);
+                const gridXY = new THREE.GridHelper(PLANE_SIZE, divisions, settings.gridColor, settings.gridColor);
                 gridXY.rotation.x = Math.PI / 2;
                 gridXY.position.z = -halfSize;
                 guidesGroup.add(gridXY);
-                const gridYZ = new THREE.GridHelper(PLANE_SIZE, PLANE_SIZE, gridColor, gridColor);
+                const gridYZ = new THREE.GridHelper(PLANE_SIZE, divisions, settings.gridColor, settings.gridColor);
                 gridYZ.rotation.z = Math.PI / 2;
                 gridYZ.position.x = -halfSize;
                 guidesGroup.add(gridYZ);
@@ -504,7 +621,7 @@
                 if (child.element && child.element.parentNode) child.element.parentNode.removeChild(child.element);
             }
         }
-
+        
         function update1DSliderText() {
             meanValue.textContent = parseFloat(meanSlider.value).toFixed(2);
             stdDevValue.textContent = parseFloat(stdDevSlider.value).toFixed(2);
@@ -516,19 +633,26 @@
             const mean = parseFloat(meanSlider.value);
             const stdDev = parseFloat(stdDevSlider.value);
             peakPosition.set(mean, maxHistHeight, 0);
-            const data = generate1DData(NUM_POINTS, mean, stdDev);
-            const hist = createHistogramData(data);
-            if (Math.max(...hist.bins) > 0) {
-                visualizationGroup.add(createHistogramMesh(hist, maxHistHeight, 'x-1d', 0xef4444));
-                pdfGroup.add(create1DPdfCurve(mean, stdDev, maxHistHeight));
+            
+            if (settings.showHistograms) {
+                const data = generate1DData(NUM_POINTS, mean, stdDev);
+                const hist = createHistogramData(data);
+                if (Math.max(...hist.bins) > 0) {
+                    visualizationGroup.add(createHistogramMesh(hist, maxHistHeight, 'x-1d', settings.colorX));
+                }
+            }
+            if (settings.showContour) {
+                const curve = create1DPdfCurve(mean, stdDev, maxHistHeight);
+                curve.material.color.set(settings.contourColor);
+                pdfGroup.add(curve);
             }
         }
-
+        
         function create1DPdfCurve(mean, stdDev, maxHeight) {
             const material = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
             const points = [];
             const segments = 200;
-            const range = PLANE_SIZE; // Use full plane size for the curve length
+            const range = PLANE_SIZE;
             const minX = -range/2;
             const maxX = range/2;
             const pdf = (x, mu, sigma) => (1 / (sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
@@ -542,11 +666,11 @@
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             return new THREE.Line(geometry, material);
         }
-
+        
         function generate1DData(num, mean, stdDev) {
             return Array.from({length: num}, () => mean + stdDev * randomNormal());
         }
-
+        
         function update2DSliderText() {
             const stdX = parseFloat(stdDevXSlider2D.value);
             const stdZ = parseFloat(stdDevZSlider2D.value);
@@ -569,41 +693,53 @@
             const stdX = parseFloat(stdDevXSlider2D.value);
             const stdZ = parseFloat(stdDevZSlider2D.value);
             const rho = parseFloat(correlationSlider2D.value);
-            const data = generateBivariateData(NUM_POINTS, stdX, stdZ, rho);
-            const positions = new Float32Array(data.length * 3);
-            data.forEach((p, i) => {
-                positions[i * 3] = p.x;
-                positions[i * 3 + 1] = 0.01;
-                positions[i * 3 + 2] = p.z;
-            });
-            const geom = new THREE.BufferGeometry();
-            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            visualizationGroup.add(new THREE.Points(geom, new THREE.PointsMaterial({ color: 0xcccccc, size: 0.08 })));
             
-            const { line } = createContourEllipse(stdX, stdZ, rho);
-            pdfGroup.add(line);
-            pdfGroup.add(create2DPdfSurface(stdX, stdZ, rho, maxHistHeight));
-
-            const xHist = createHistogramData(data.map(p => p.x));
-            const zHist = createHistogramData(data.map(p => p.z));
-            const halfSize = PLANE_SIZE / 2;
-            if(Math.max(...xHist.bins)>0) {
-                visualizationGroup.add(createHistogramMesh(xHist, maxHistHeight, 'x-2d', 0xef4444));
-                const xCurve = create1DPdfCurve(0, stdX, maxHistHeight);
-                xCurve.position.z = -halfSize - 0.01;
-                visualizationGroup.add(xCurve);
+            if (settings.showPoints) {
+                const data = generateBivariateData(NUM_POINTS, stdX, stdZ, rho);
+                const positions = new Float32Array(data.length * 3);
+                data.forEach((p, i) => {
+                    positions[i * 3] = p.x;
+                    positions[i * 3 + 1] = 0.01;
+                    positions[i * 3 + 2] = p.z;
+                });
+                const geom = new THREE.BufferGeometry();
+                geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                visualizationGroup.add(new THREE.Points(geom, new THREE.PointsMaterial({ color: 0xcccccc, size: 0.08 })));
             }
-            if(Math.max(...zHist.bins)>0) {
-                visualizationGroup.add(createHistogramMesh(zHist, maxHistHeight, 'z-2d', 0x3b82f6));
-                const zCurve = create1DPdfCurve(0, stdZ, maxHistHeight);
-                zCurve.rotation.y = Math.PI / 2;
-                zCurve.position.x = -halfSize - 0.01;
-                visualizationGroup.add(zCurve);
+            
+            if (settings.showContour) {
+                const { line } = createContourEllipse(stdX, stdZ, rho);
+                pdfGroup.add(line);
+            }
+            if(settings.showSurface) {
+                pdfGroup.add(create2DPdfSurface(stdX, stdZ, rho, maxHistHeight));
+            }
+            if(settings.showHistograms) {
+                 const data = generateBivariateData(NUM_POINTS/10, stdX, stdZ, rho);
+                 const xHist = createHistogramData(data.map(p => p.x));
+                 const zHist = createHistogramData(data.map(p => p.z));
+                 const halfSize = PLANE_SIZE / 2;
+                 if(Math.max(...xHist.bins)>0) {
+                     visualizationGroup.add(createHistogramMesh(xHist, maxHistHeight, 'x-2d', settings.colorX));
+                     const xCurve = create1DPdfCurve(0, stdX, maxHistHeight);
+                     xCurve.position.z = -halfSize - 0.01;
+                     xCurve.material.color.set(settings.colorX);
+                     visualizationGroup.add(xCurve);
+                 }
+                 if(Math.max(...zHist.bins)>0) {
+                     visualizationGroup.add(createHistogramMesh(zHist, maxHistHeight, 'z-2d', settings.colorZ));
+                     const zCurve = create1DPdfCurve(0, stdZ, maxHistHeight);
+                     zCurve.rotation.y = Math.PI / 2;
+                     zCurve.position.x = -halfSize - 0.01;
+                     zCurve.material.color.set(settings.colorZ);
+                     visualizationGroup.add(zCurve);
+                 }
             }
         }
-
+        
         function create2DPdfSurface(stdX, stdZ, rho, maxHeight) {
-            const geometry = new THREE.PlaneGeometry(PLANE_SIZE, PLANE_SIZE, 150, 150);
+            const res = settings.surfaceResolution;
+            const geometry = new THREE.PlaneGeometry(PLANE_SIZE, PLANE_SIZE, res, res);
             geometry.rotateX(-Math.PI / 2);
             const pdf = (x, z, sx, sz, r) => {
                 if (Math.abs(r) >= 1) return 0;
@@ -621,44 +757,25 @@
             positions.needsUpdate = true;
             geometry.computeVertexNormals();
             
-            const shader_colour = 0x8f00ff;
-            const material = new THREE.MeshLambertMaterial({ color: shader_colour, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+            const material = new THREE.MeshLambertMaterial({ color: settings.surfaceColor, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
             
             material.onBeforeCompile = (shader) => {
                 shader.uniforms.u_revealPos = { value: -PLANE_SIZE/2 };
                 shader.uniforms.u_sweepAngle = { value: 0.0 };
-
                 shader.vertexShader = 'varying vec2 v_WorldPosXZ;\n' + shader.vertexShader;
-                shader.vertexShader = shader.vertexShader.replace(
-                    '#include <begin_vertex>',
-                    '#include <begin_vertex>\nv_WorldPosXZ = position.xz;'
-                );
+                shader.vertexShader = shader.vertexShader.replace( '#include <begin_vertex>', '#include <begin_vertex>\nv_WorldPosXZ = position.xz;' );
                 shader.fragmentShader = 'uniform float u_revealPos;\nuniform float u_sweepAngle;\nvarying vec2 v_WorldPosXZ;\n' + shader.fragmentShader;
-                shader.fragmentShader = shader.fragmentShader.replace(
-                    'void main() {',
-                    `void main() {
-                        float c = cos(-u_sweepAngle);
-                        float s = sin(-u_sweepAngle);
-                        mat2 rot = mat2(c, -s, s, c);
-                        vec2 rotatedPos = rot * v_WorldPosXZ;
-
-                        // Reveal based on both axes of the rotated coordinate system
-                        if (rotatedPos.x > u_revealPos || rotatedPos.y > u_revealPos) {
-                            discard;
-                        }
-                    `
-                );
+                shader.fragmentShader = shader.fragmentShader.replace( 'void main() {', `void main() { float c = cos(-u_sweepAngle); float s = sin(-u_sweepAngle); mat2 rot = mat2(c, -s, s, c); vec2 rotatedPos = rot * v_WorldPosXZ; if (rotatedPos.x > u_revealPos || rotatedPos.y > u_revealPos) { discard; }` );
                 surfaceMaterialToAnimate = shader;
             };
 
             const surfaceMesh = new THREE.Mesh(geometry, material);
-            const wireframe_colour = 0x34d399;
-            const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(geometry), new THREE.LineBasicMaterial({ color: wireframe_colour, transparent: true, opacity: 0.2 }));
+            const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(geometry), new THREE.LineBasicMaterial({ color: settings.contourColor, transparent: true, opacity: 0.2 }));
             const group = new THREE.Group();
             group.add(surfaceMesh, wireframe);
             return group;
         }
-
+        
         function generateBivariateData(num, stdX, stdZ, rho) {
             return Array.from({length: num}, () => {
                 const z1 = randomNormal(), z2 = randomNormal();
@@ -675,32 +792,42 @@
             const theta = 0.5 * Math.atan2(2 * rho * stdX * stdZ, stdX**2 - stdZ**2);
             const curve = new THREE.EllipseCurve(0, 0, a, b, 0, 2 * Math.PI, false, theta);
             const points = curve.getPoints(100).map(p => new THREE.Vector3(p.x, 0.01, p.y));
-            return { line: new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: 0x34d399, linewidth: 2 })), maxRadius: Math.max(a, b) };
+            return { line: new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: settings.contourColor, linewidth: 2 })), maxRadius: Math.max(a, b) };
         }
+        
+        function createTrace(variance, color) {
+            const traceLength = Math.max(0.1, variance * TRACE_SCALE_FACTOR);
+            const geometry = new THREE.PlaneGeometry(PLANE_SIZE, traceLength, 1, 20);
+            geometry.rotateX(-Math.PI / 2);
+            geometry.translate(0, 0, -traceLength / 2);
 
+            const material = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, transparent: true, depthWrite: false });
+
+            material.onBeforeCompile = (shader) => {
+                shader.uniforms.traceLength = { value: traceLength };
+                shader.vertexShader = 'varying float vTraceZ;\n' + shader.vertexShader;
+                shader.vertexShader = shader.vertexShader.replace( '#include <begin_vertex>', '#include <begin_vertex>\nvTraceZ = position.z;' );
+                shader.fragmentShader = 'uniform float traceLength;\nvarying float vTraceZ;\n' + shader.fragmentShader;
+                shader.fragmentShader = shader.fragmentShader.replace(
+                    '#include <color_fragment>',
+                    `#include <color_fragment>\n
+                    float alpha = (vTraceZ + traceLength) / traceLength;\n
+                    diffuseColor.a *= alpha * 0.5;\n`
+                );
+            };
+
+            return new THREE.Mesh(geometry, material);
+        }
+        
         function update3DSliderText() {
-            const sx = parseFloat(stdDevXSlider3D.value), sy = parseFloat(stdDevYSlider3D.value), sz = parseFloat(stdDevZSlider3D.value);
-            const rxy = parseFloat(rhoXYSlider.value), rxz = parseFloat(rhoXZSlider.value), ryz = parseFloat(rhoYZSlider.value);
-            stdDevXValue3D.textContent = sx.toFixed(2);
-            stdDevYValue3D.textContent = sy.toFixed(2);
-            stdDevZValue3D.textContent = sz.toFixed(2);
-            rhoXYValue.textContent = rxy.toFixed(2);
-            rhoXZValue.textContent = rxz.toFixed(2);
-            rhoYZValue.textContent = ryz.toFixed(2);
-            const covXY = rxy * sx * sy;
-            const covXZ = rxz * sx * sz;
-            const covYZ = ryz * sy * sz;
-            document.getElementById('cov-3d-00').textContent = (sx**2).toFixed(2);
-            document.getElementById('cov-3d-11').textContent = (sy**2).toFixed(2);
-            document.getElementById('cov-3d-22').textContent = (sz**2).toFixed(2);
-            document.getElementById('cov-3d-01').textContent = covXY.toFixed(2);
-            document.getElementById('cov-3d-10').textContent = covXY.toFixed(2);
-            document.getElementById('cov-3d-02').textContent = covXZ.toFixed(2);
-            document.getElementById('cov-3d-20').textContent = covXZ.toFixed(2);
-            document.getElementById('cov-3d-12').textContent = covYZ.toFixed(2);
-            document.getElementById('cov-3d-21').textContent = covYZ.toFixed(2);
+             stdDevXValue3D.textContent = parseFloat(stdDevXSlider3D.value).toFixed(2);
+             stdDevYValue3D.textContent = parseFloat(stdDevYSlider3D.value).toFixed(2);
+             stdDevZValue3D.textContent = parseFloat(stdDevZSlider3D.value).toFixed(2);
+             rhoXYValue.textContent = parseFloat(rhoXYSlider.value).toFixed(2);
+             rhoXZValue.textContent = parseFloat(rhoXZSlider.value).toFixed(2);
+             rhoYZValue.textContent = parseFloat(rhoYZSlider.value).toFixed(2);
         }
-
+        
         function validate3DCorrelation() {
             const rxy = parseFloat(rhoXYSlider.value), rxz = parseFloat(rhoXZSlider.value), ryz = parseFloat(rhoYZSlider.value);
             const det = 1 - rxy**2 - rxz**2 - ryz**2 + 2 * rxy * rxz * ryz;
@@ -725,24 +852,23 @@
             peakPosition.set(0, 0, 0);
             const sx = parseFloat(stdDevXSlider3D.value), sy = parseFloat(stdDevYSlider3D.value), sz = parseFloat(stdDevZSlider3D.value);
             const rxy = parseFloat(rhoXYSlider.value), rxz = parseFloat(rhoXZSlider.value), ryz = parseFloat(rhoYZSlider.value);
-            const data = generateTrivariateData(NUM_POINTS, sx, sy, sz, rxy, rxz, ryz);
-            const positions = new Float32Array(data.length * 3);
-            data.forEach((p, i) => {
-                positions[i * 3] = p.x;
-                positions[i * 3 + 1] = p.y;
-                positions[i * 3 + 2] = p.z;
-            });
-            const geom = new THREE.BufferGeometry();
-            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const points = new THREE.Points(geom, new THREE.PointsMaterial({ 
-                color: 0xffffff,
-                size: 0.08,
-                transparent: true,
-                opacity: 0.8,
-                depthWrite: false
-             }));
-            visualizationGroup.add(points);
-            pdfGroup.add(create3DPdfEllipsoid(sx, sy, sz, rxy, rxz, ryz));
+            
+            if (settings.showPoints) {
+                const data = generateTrivariateData(NUM_POINTS, sx, sy, sz, rxy, rxz, ryz);
+                const positions = new Float32Array(data.length * 3);
+                data.forEach((p, i) => {
+                    positions[i * 3] = p.x;
+                    positions[i * 3 + 1] = p.y;
+                    positions[i * 3 + 2] = p.z;
+                });
+                const geom = new THREE.BufferGeometry();
+                geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const points = new THREE.Points(geom, new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.8, depthWrite: false }));
+                visualizationGroup.add(points);
+            }
+            if (settings.showContour || settings.showSurface) {
+                pdfGroup.add(create3DPdfEllipsoid(sx, sy, sz, rxy, rxz, ryz));
+            }
         }
         
         function create3DPdfEllipsoid(sx, sy, sz, rxy, rxz, ryz) {
@@ -756,34 +882,22 @@
             if (isNaN(L[1][1]) || isNaN(L[2][1]) || isNaN(L[2][2])) return group;
             const c = Math.sqrt(11.345);
             const geometry = new THREE.SphereGeometry(c, 32, 32);
+            const transformMatrix = new THREE.Matrix4().set( L[0][0], L[1][0], L[2][0], 0, L[0][1], L[1][1], L[2][1], 0, L[0][2], L[1][2], L[2][2], 0, 0, 0, 0, 1 );
             
-            const transformMatrix = new THREE.Matrix4().set(
-                L[0][0], L[1][0], L[2][0], 0,
-                L[0][1], L[1][1], L[2][1], 0,
-                L[0][2], L[1][2], L[2][2], 0,
-                0,       0,       0,       1
-            );
-
-            const material = new THREE.MeshLambertMaterial({
-                color: 0x34d399,
-                transparent: true,
-                opacity: 0.4,
-                side: THREE.DoubleSide,
-                depthWrite: false
-            });
-            const ellipsoid = new THREE.Mesh(geometry, material);
-            ellipsoid.applyMatrix4(transformMatrix);
-
-            const wireframe = new THREE.LineSegments(
-                new THREE.WireframeGeometry(geometry.clone()), 
-                new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 })
-            );
-            wireframe.applyMatrix4(transformMatrix);
-            
-            group.add(ellipsoid, wireframe);
+            if (settings.showSurface) {
+                const material = new THREE.MeshLambertMaterial({ color: settings.contourColor, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthWrite: false });
+                const ellipsoid = new THREE.Mesh(geometry, material);
+                ellipsoid.applyMatrix4(transformMatrix);
+                group.add(ellipsoid);
+            }
+            if(settings.showContour){
+                const wireframe = new THREE.LineSegments( new THREE.WireframeGeometry(geometry.clone()), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 }) );
+                wireframe.applyMatrix4(transformMatrix);
+                group.add(wireframe);
+            }
             return group;
         }
-
+        
         function generateTrivariateData(num, sx, sy, sz, rxy, rxz, ryz) {
             const L = [
                 [sx, 0, 0],
@@ -791,17 +905,12 @@
                 [sz * rxz, sz * (ryz - rxy * rxz) / Math.sqrt(1 - rxy**2), sz * Math.sqrt(1 - rxz**2 - ((ryz - rxy * rxz)**2) / (1 - rxy**2))]
             ];
             if (isNaN(L[1][1]) || isNaN(L[2][1]) || isNaN(L[2][2])) return [];
-            
             return Array.from({length: num}, () => {
                 const z1 = randomNormal(), z2 = randomNormal(), z3 = randomNormal();
-                return {
-                    x: L[0][0] * z1 + L[1][0] * z2 + L[2][0] * z3,
-                    y: L[0][1] * z1 + L[1][1] * z2 + L[2][1] * z3,
-                    z: L[0][2] * z1 + L[1][2] * z2 + L[2][2] * z3
-                };
+                return { x: L[0][0] * z1 + L[1][0] * z2 + L[2][0] * z3, y: L[0][1] * z1 + L[1][1] * z2 + L[2][1] * z3, z: L[0][2] * z1 + L[1][2] * z2 + L[2][2] * z3 };
             });
         }
-
+        
         function onCanvasClick(event) {
             const mouse = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
             raycaster.setFromCamera(mouse, camera);
@@ -841,7 +950,6 @@
             const barWidth = hist.range / HISTOGRAM_BINS;
             const maxCount = Math.max(...hist.bins);
             const halfSize = PLANE_SIZE/2;
-
             hist.bins.forEach((count, i) => {
                 if (count > 0) {
                     const height = (count / maxCount) * maxHistHeight;
@@ -873,14 +981,13 @@
             });
             return { bins, min: minVal, range };
         }
-
+        
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             labelRenderer.setSize(window.innerWidth, window.innerHeight);
-
             if (covarianceMatrixObject) {
                 guidesGroup.remove(covarianceMatrixObject);
                 covarianceMatrixObject = null;
@@ -904,28 +1011,24 @@
             sweepMasterGroup.rotation.y = sweepAngle;
             scene.add(sweepMasterGroup);
 
-            // X-distribution curve (red). TRAVELS along X-axis. ORIENTED along Z-axis.
+            // X-distribution (red) setup
             sweepGroupX = new THREE.Group();
             const xCurve = create1DPdfCurve(0, stdX, maxHistHeight);
-            if (xCurve.material) {
-                xCurve.material.color.set(0xef4444);
-            }
+            xCurve.material.color.set(settings.colorX);
             sweepGroupX.add(xCurve);
-            sweepGroupX.rotation.y = Math.PI / 2; // Orient along Z
+            sweepGroupX.add(createTrace(stdX * stdX, settings.colorX));
+            sweepGroupX.rotation.y = Math.PI / 2;
             sweepMasterGroup.add(sweepGroupX);
             
-            // Z-distribution curve (blue). TRAVELS along Z-axis. ORIENTED along X-axis.
+            // Z-distribution (blue) setup
             sweepGroupZ = new THREE.Group();
             const zCurve = create1DPdfCurve(0, stdZ, maxHistHeight);
-            if (zCurve.material) {
-                zCurve.material.color.set(0x3b82f6);
-            }
+            zCurve.material.color.set(settings.colorZ);
             sweepGroupZ.add(zCurve);
-            // No rotation needed, create1DPdfCurve is already oriented along X
+            sweepGroupZ.add(createTrace(stdZ * stdZ, settings.colorZ));
             sweepMasterGroup.add(sweepGroupZ);
             
             const startPos = -PLANE_SIZE / 2 * 1.25;
-            // Set initial positions for the sweep start
             sweepGroupX.position.x = startPos;
             sweepGroupZ.position.z = startPos;
             
@@ -937,14 +1040,13 @@
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            const elapsedTime = clock.getElapsedTime();
             
             if (revealPhase === 'sweeping') {
                 visualizationGroup.visible = true;
                 pointsToReveal = visualizationGroup.children.find(c => c.type === 'Points');
                 if (pointsToReveal) pointsToReveal.visible = false;
                 
-                const animElapsed = elapsedTime - convolveStartTime;
+                const animElapsed = clock.getElapsedTime() - convolveStartTime;
                 const progress = Math.min(animElapsed / 4.0, 1.0);
                 const halfSize = PLANE_SIZE / 2;
                 const sweepRange = PLANE_SIZE * 1.5;
@@ -952,7 +1054,6 @@
                 const currentPos = startPos + progress * sweepRange;
                 const sweepLimit = halfSize * 1.25;
 
-                // Move each curve along its designated trajectory
                 if (sweepGroupX) sweepGroupX.position.x = Math.min(currentPos, sweepLimit);
                 if (sweepGroupZ) sweepGroupZ.position.z = Math.min(currentPos, sweepLimit);
 
@@ -965,11 +1066,7 @@
                     if (sweepMasterGroup) scene.remove(sweepMasterGroup);
                     if (convolveSurface) scene.remove(convolveSurface);
                     
-                    sweepMasterGroup = null;
-                    sweepGroupX = null;
-                    sweepGroupZ = null;
-                    convolveSurface = null;
-                    surfaceMaterialToAnimate = null;
+                    sweepMasterGroup = null; sweepGroupX = null; sweepGroupZ = null; convolveSurface = null; surfaceMaterialToAnimate = null;
 
                     revealPhase = 'points';
                     revealStartTime = clock.getElapsedTime();
@@ -980,7 +1077,7 @@
                 }
 
             } else if (revealPhase === 'points') {
-                const animElapsed = elapsedTime - revealStartTime;
+                const animElapsed = clock.getElapsedTime() - revealStartTime;
                 const progress = Math.min(animElapsed / 2.0, 1.0);
 
                 if (pointsToReveal) {
@@ -998,8 +1095,6 @@
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         }
-
-        init();
     </script>
 </body>
 </html>
