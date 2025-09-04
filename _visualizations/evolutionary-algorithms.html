@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolutionary Algorithm 3D Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #e5e7eb; overflow: hidden; }
+        #container, #labels { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+        #container { pointer-events: auto; }
+        #labels { pointer-events: none; z-index: 2; }
+        .label { color: #9ca3af; font-size: 12px; text-shadow: 1px 1px 3px rgba(0,0,0,0.7); }
+        .panel { background-color: rgba(17, 24, 39, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(55, 65, 81, 0.5); z-index: 10; }
+        .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; background: #3b82f6; cursor: pointer; border-radius: 50%; }
+        .toggle-btn { background-color: rgba(31, 41, 55, 0.8); border: 1px solid rgba(55, 65, 81, 0.5); }
+        .toggle-btn.active { background-color: #2563eb; border-color: rgba(59, 130, 246, 0.7); color: #ffffff; }
+        select { background-color: #374151; border: 1px solid #4b5563; }
+        #panel-content { transition: max-height 0.5s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.5s ease-in-out; max-height: 500px; opacity: 1; overflow: hidden; margin-top: 1rem; }
+        #ui-panel.collapsed #panel-content { max-height: 0; opacity: 0; margin-top: 0; }
+        #collapse-btn svg { transition: transform 0.3s ease-in-out; }
+        #ui-panel.collapsed #collapse-btn svg { transform: rotate(180deg); }
+        .summary-btn { background-color: rgba(55, 65, 81, 0.7); border-radius: 50%; padding: 4px; }
+        .summary-btn:hover { background-color: rgba(75, 85, 99, 0.9); }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="m-0 p-0">
+    <div id="container"></div>
+    <div id="labels"></div>
+
+    <!-- Top Control Bar -->
+    <div id="top-bar" class="panel absolute top-4 left-1/2 -translate-x-1/2 p-2 rounded-lg shadow-2xl flex items-center gap-2 md:gap-4 flex-wrap justify-center">
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-gray-400">Landscape:</span>
+            <select id="landscape-selector" class="rounded-md text-sm p-1">
+                <option value="sphere">Sphere</option>
+                <option value="ackley">Ackley</option>
+                <option value="rastrigin">Rastrigin</option>
+            </select>
+        </div>
+        <div class="border-l border-gray-600 h-8 hidden md:block"></div>
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-gray-400">Algorithm:</span>
+            <div id="algorithm-selector" class="flex gap-1 bg-gray-900/50 rounded-md p-1">
+                <button data-algo="ga" class="toggle-btn px-3 py-1 text-sm font-medium rounded-md transition-colors">GA</button>
+                <button data-algo="es" class="toggle-btn px-3 py-1 text-sm font-medium rounded-md transition-colors">ES</button>
+                <button data-algo="de" class="toggle-btn px-3 py-1 text-sm font-medium rounded-md transition-colors">DE</button>
+                <button data-algo="cma-es" class="toggle-btn px-3 py-1 text-sm font-medium rounded-md transition-colors">CMA-ES</button>
+            </div>
+        </div>
+        <div class="border-l border-gray-600 h-8 hidden md:block"></div>
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-gray-400">View:</span>
+            <div id="view-selector" class="flex gap-1 bg-gray-900/50 rounded-md p-1">
+                <button data-view="population" class="toggle-btn px-3 py-1 text-sm font-medium rounded-md transition-colors">Population</button>
+                <button data-view="io_space" class="toggle-btn px-3 py-1 text-sm font-medium rounded-md transition-colors">Input/Output</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main UI Panel -->
+    <div id="ui-panel" class="panel absolute bottom-4 left-1/2 -translate-x-1/2 p-3 rounded-lg shadow-2xl max-w-7xl w-[95%]">
+        <div id="panel-summary" class="hidden text-xs md:text-sm text-gray-300 font-mono w-full justify-between items-center"></div>
+        <div id="panel-content">
+             <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <button id="start-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">Start</button>
+                    <button id="pause-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition hidden">Pause</button>
+                    <button id="reset-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Reset</button>
+                    <div class="ml-4 text-center">
+                        <div class="text-xs text-gray-400">Generation</div>
+                        <div id="generation-counter" class="text-xl font-bold">0</div>
+                    </div>
+                </div>
+                <div class="flex-grow w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Population Size: <span id="populationSizeValue" class="font-bold text-blue-400">100</span></label>
+                        <input id="populationSize" type="range" min="10" max="500" step="10" value="100" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                    </div>
+                    <div id="mutationRateControl">
+                        <label class="block text-sm font-medium text-gray-300">Mutation / &sigma;: <span id="mutationRateValue" class="font-bold text-blue-400">0.10</span></label>
+                        <input id="mutationRate" type="range" min="0.01" max="1" step="0.01" value="0.1" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                    </div>
+                    <div id="deFControl" class="hidden">
+                        <label class="block text-sm font-medium text-gray-300">Weight (F): <span id="deFValue" class="font-bold text-blue-400">0.8</span></label>
+                        <input id="deF" type="range" min="0.1" max="2.0" step="0.1" value="0.8" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                    </div>
+                    <div id="deCRControl" class="hidden">
+                        <label class="block text-sm font-medium text-gray-300">Crossover (CR): <span id="deCRValue" class="font-bold text-blue-400">0.9</span></label>
+                        <input id="deCR" type="range" min="0.0" max="1.0" step="0.05" value="0.9" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                    </div>
+                    <div>
+                         <label class="block text-sm font-medium text-gray-300">Elite Size (%): <span id="eliteSizeValue" class="font-bold text-blue-400">5</span></label>
+                         <input id="eliteSize" type="range" min="1" max="20" step="1" value="5" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Speed (Gen/s): <span id="speedValue" class="font-bold text-blue-400">5</span></label>
+                        <input id="speed" type="range" min="1" max="60" step="1" value="5" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 w-full md:w-auto justify-around md:justify-end">
+                    <div id="selectionControl">
+                        <label for="selection-strategy" class="block text-xs font-medium text-gray-400 mb-1">Selection</label>
+                        <select id="selection-strategy" class="rounded-md text-sm p-1 w-full">
+                            <option value="tournament">Tournament</option>
+                            <option value="roulette">Roulette Wheel</option>
+                            <option value="rank">Rank</option>
+                        </select>
+                    </div>
+                    <div id="crossoverControl">
+                        <label for="crossover-strategy" class="block text-xs font-medium text-gray-400 mb-1">Crossover</label>
+                        <select id="crossover-strategy" class="rounded-md text-sm p-1 w-full">
+                            <option value="single_point">Single-Point</option>
+                            <option value="two_point">Two-Point</option>
+                            <option value="uniform">Uniform</option>
+                            <option value="arithmetic">Arithmetic</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button id="collapse-btn" class="absolute -top-3 right-4 bg-gray-700 hover:bg-gray-600 p-1 rounded-full text-white">
+             <svg xmlns="http://www.w.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+        </button>
+    </div>
+
+    <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/" } }</script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // --- SCENE & STATE ---
+        let scene, camera, renderer, controls, labelRenderer;
+        const clock = new THREE.Clock();
+        const LANDSCAPE_SIZE = 200;
+        const LANDSCAPE_RES = 150;
+
+        const populationView = new THREE.Group();
+        const ioSpaceView = new THREE.Group();
+        let populationPoints, cmaEsEllipsoid, landscapeMesh, optimumMarker;
+        let inputSpacePoints, outputSpacePoints, ioConnectors;
+        let populationGrowthState = { isAnimating: false, currentCount: 0, startTime: 0, duration: 1.0 };
+        let lastGenerationTime = 0;
+
+        const state = {
+            algorithm: 'ga', view: 'population', isRunning: false, landscape: 'sphere',
+            populationSize: 100, mutationRate: 0.1, eliteSize: 5,
+            de_F: 0.8, de_CR: 0.9, speed: 5, generation: 0,
+            population: [], selectionFn: tournamentSelection, crossoverFn: singlePointCrossover,
+            cma: { mean: new THREE.Vector3(), covarianceMatrix: new THREE.Matrix3().identity() }
+        };
+
+        const ui = {
+            generationCounter: document.getElementById('generation-counter'),
+            startBtn: document.getElementById('start-btn'),
+            pauseBtn: document.getElementById('pause-btn'),
+            resetBtn: document.getElementById('reset-btn'),
+            populationSizeValue: document.getElementById('populationSizeValue'),
+            mutationRateValue: document.getElementById('mutationRateValue'),
+            eliteSizeSlider: document.getElementById('eliteSize'),
+            eliteSizeValue: document.getElementById('eliteSizeValue'),
+            speedValue: document.getElementById('speedValue'),
+            crossoverControl: document.getElementById('crossoverControl'),
+            selectionControl: document.getElementById('selectionControl'),
+            mutationRateControl: document.getElementById('mutationRateControl'),
+            deFControl: document.getElementById('deFControl'),
+            deCRControl: document.getElementById('deCRControl'),
+            deFValue: document.getElementById('deFValue'),
+            deCRValue: document.getElementById('deCRValue'),
+            collapseBtn: document.getElementById('collapse-btn'),
+            uiPanel: document.getElementById('ui-panel'),
+            panelSummary: document.getElementById('panel-summary'),
+        };
+
+        // --- LANDSCAPE DEFINITIONS ---
+        const landscapes = {
+            sphere: {
+                fn: (x, z) => (x*x + z*z) / 50, // Divide to scale height
+                optimum: new THREE.Vector3(0, 0, 0),
+                domain: 30,
+            },
+            ackley: {
+                fn: (x, z) => {
+                    const a = 20, b = 0.2, c = 2 * Math.PI;
+                    const term1 = -a * Math.exp(-b * Math.sqrt(0.5 * (x*x + z*z)));
+                    const term2 = -Math.exp(0.5 * (Math.cos(c * x) + Math.cos(c * z)));
+                    return (term1 + term2 + a + Math.E) / 2; // Scale height
+                },
+                optimum: new THREE.Vector3(0, 0, 0),
+                domain: 32.768,
+            },
+            rastrigin: {
+                fn: (x, z) => {
+                    const A = 10;
+                    const term1 = (x*x - A * Math.cos(2 * Math.PI * x));
+                    const term2 = (z*z - A * Math.cos(2 * Math.PI * z));
+                    return (A * 2 + term1 + term2) / 10; // Scale height
+                },
+                optimum: new THREE.Vector3(0, 0, 0),
+                domain: 5.12,
+            }
+        };
+
+        // --- INITIALIZATION ---
+        init();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0a);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('labels').appendChild(labelRenderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.maxDistance = 500;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            scene.add(new THREE.DirectionalLight(0xffffff, 1.0).position.set(50, 100, 75));
+
+            scene.add(populationView);
+            scene.add(ioSpaceView);
+
+            setupViews();
+            setupEventListeners();
+            resetSimulation();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('landscape-selector').addEventListener('change', e => {
+                state.landscape = e.target.value;
+                resetSimulation();
+            });
+            document.querySelectorAll('#algorithm-selector button').forEach(btn => btn.addEventListener('click', () => switchAlgorithm(btn.dataset.algo)));
+            document.querySelectorAll('#view-selector button').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
+            ui.startBtn.addEventListener('click', startSimulation);
+            ui.pauseBtn.addEventListener('click', pauseSimulation);
+            ui.resetBtn.addEventListener('click', resetSimulation);
+            
+            document.getElementById('populationSize').addEventListener('input', e => ui.populationSizeValue.textContent = e.target.value);
+            document.getElementById('populationSize').addEventListener('change', e => {
+                state.populationSize = parseInt(e.target.value);
+                if (!state.isRunning) resetSimulation();
+            });
+            document.getElementById('mutationRate').addEventListener('input', e => {
+                state.mutationRate = parseFloat(e.target.value);
+                ui.mutationRateValue.textContent = state.mutationRate.toFixed(2);
+            });
+            ui.eliteSizeSlider.addEventListener('input', e => {
+                state.eliteSize = parseInt(e.target.value);
+                ui.eliteSizeValue.textContent = state.eliteSize;
+            });
+            document.getElementById('speed').addEventListener('input', e => {
+                state.speed = parseInt(e.target.value);
+                ui.speedValue.textContent = state.speed;
+            });
+            document.getElementById('deF').addEventListener('input', e => {
+                state.de_F = parseFloat(e.target.value);
+                ui.deFValue.textContent = state.de_F.toFixed(2);
+            });
+            document.getElementById('deCR').addEventListener('input', e => {
+                state.de_CR = parseFloat(e.target.value);
+                ui.deCRValue.textContent = state.de_CR.toFixed(2);
+            });
+            
+            document.getElementById('selection-strategy').addEventListener('change', e => state.selectionFn = { tournament: tournamentSelection, roulette: rouletteWheelSelection, rank: rankSelection }[e.target.value]);
+            document.getElementById('crossover-strategy').addEventListener('change', e => state.crossoverFn = { single_point: singlePointCrossover, two_point: twoPointCrossover, uniform: uniformCrossover, arithmetic: arithmeticCrossover }[e.target.value]);
+            
+            ui.collapseBtn.addEventListener('click', togglePanelCollapse);
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // --- CONTROL & UI FUNCTIONS ---
+        function startSimulation() { state.isRunning = true; ui.startBtn.classList.add('hidden'); ui.pauseBtn.classList.remove('hidden'); updateSummaryBar(); }
+        function pauseSimulation() { state.isRunning = false; ui.startBtn.classList.remove('hidden'); ui.pauseBtn.classList.add('hidden'); updateSummaryBar(); }
+        function resetSimulation() {
+            pauseSimulation();
+            state.generation = 0;
+            ui.generationCounter.textContent = '0';
+            initializePopulation();
+            setupViews();
+            updateVisualization();
+            startPopulationGrowthAnimation();
+        }
+        function switchAlgorithm(algo) {
+            if (state.algorithm === algo) return;
+            state.algorithm = algo;
+            document.querySelectorAll('#algorithm-selector button').forEach(btn => btn.classList.toggle('active', btn.dataset.algo === algo));
+            const isGA = algo === 'ga', isES = algo === 'es' || algo === 'cma-es', isDE = algo === 'de';
+            ui.crossoverControl.style.visibility = isGA || isDE ? 'visible' : 'hidden';
+            ui.selectionControl.style.visibility = isGA || isES || isDE ? 'visible' : 'hidden';
+            ui.mutationRateControl.style.display = isGA || isES ? 'block' : 'none';
+            ui.deFControl.style.display = isDE ? 'block' : 'none';
+            ui.deCRControl.style.display = isDE ? 'block' : 'none';
+            resetSimulation();
+        }
+        function switchView(view) {
+            if (state.view === view) return;
+            state.view = view;
+            document.querySelectorAll('#view-selector button').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
+            populationView.visible = view === 'population';
+            ioSpaceView.visible = view === 'io_space';
+            setupCameraForView(view);
+        }
+        function togglePanelCollapse() {
+            const isCollapsed = ui.uiPanel.classList.toggle('collapsed');
+            ui.panelSummary.classList.toggle('hidden', !isCollapsed);
+            if (isCollapsed) updateSummaryBar();
+        }
+        function updateSummaryBar() {
+            if (!ui.uiPanel.classList.contains('collapsed')) return;
+            const playIcon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path></svg>`;
+            const pauseIcon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 4.5a.75.75 0 00-.75.75v10.5a.75.75 0 001.5 0V5.25a.75.75 0 00-.75-.75zM14.25 4.5a.75.75 0 00-.75.75v10.5a.75.75 0 001.5 0V5.25a.75.75 0 00-.75-.75z"></path></svg>`;
+            const resetIcon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M15.312 11.342a5.986 5.986 0 01-4.654 4.654c.643.21 1.316.335 2.023.372a.75.75 0 01.028 1.498 7.483 7.483 0 00-2.53-.464c-4.142 0-7.5-3.358-7.5-7.5s3.358-7.5 7.5-7.5a7.487 7.487 0 016.112 3.626.75.75 0 11-1.299.75A5.987 5.987 0 0010.318 4.5a6 6 0 00-6 6c0 2.668 1.74 4.943 4.158 5.688a.75.75 0 01.658-1.374 5.986 5.986 0 014.178-4.178.75.75 0 111.374-.658z" clip-rule="evenodd"></path><path d="M16.5 6.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75z"></path><path fill-rule="evenodd" d="M16 1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V2.25A.75.75 0 0116 1.5z" clip-rule="evenodd"></path></svg>`;
+            const summaryHTML = `
+                <div class="flex items-center gap-3">
+                    <button id="summary-play-btn" class="summary-btn text-green-400 ${state.isRunning ? 'hidden':''}">${playIcon}</button>
+                    <button id="summary-pause-btn" class="summary-btn text-yellow-400 ${!state.isRunning ? 'hidden':''}">${pauseIcon}</button>
+                    <button id="summary-reset-btn" class="summary-btn text-red-400">${resetIcon}</button>
+                </div>
+                <div class="flex items-center gap-2 md:gap-4 flex-wrap justify-end">
+                    <span>Algo: <strong class="text-blue-400">${state.algorithm.toUpperCase()}</strong></span>
+                    <span>Gen: <strong class="text-blue-400">${state.generation}</strong></span>
+                    <span class="hidden sm:inline">Pop: <strong class="text-blue-400">${state.populationSize}</strong></span>
+                    <span class="hidden md:inline">Landscape: <strong class="text-blue-400">${state.landscape}</strong></span>
+                </div>`;
+            ui.panelSummary.innerHTML = summaryHTML;
+            document.getElementById('summary-play-btn')?.addEventListener('click', startSimulation);
+            document.getElementById('summary-pause-btn')?.addEventListener('click', pauseSimulation);
+            document.getElementById('summary-reset-btn')?.addEventListener('click', resetSimulation);
+        }
+
+        // --- ALGORITHM CORE & OPERATORS (omitted for brevity) ---
+        function runNextGeneration(){state.population.forEach(p=>p.fitness=evaluateFitness(p.genes));state.population.sort((a,b)=>a.fitness-b.fitness);if(state.algorithm==='ga')runGAGeneration();else if(state.algorithm==='es')runESGeneration();else if(state.algorithm==='de')runDEGeneration();else if(state.algorithm==='cma-es')runCMAESGeneration();state.generation++;}
+        function runGAGeneration(){const newPop=[JSON.parse(JSON.stringify(state.population[0]))];while(newPop.length<state.populationSize){const p1=state.selectionFn(state.population);const p2=state.selectionFn(state.population);const children=state.crossoverFn(p1,p2);children.forEach(c=>{mutate(c);if(newPop.length<state.populationSize)newPop.push(c);});}state.population=newPop;}
+        function runESGeneration(){const newPop=[];const parents=state.population.slice(0,state.populationSize/2);newPop.push(...parents);while(newPop.length<state.populationSize){const p=parents[Math.floor(Math.random()*parents.length)];const child=JSON.parse(JSON.stringify(p));mutate(child);newPop.push(child);}newPop.forEach(p=>p.fitness=evaluateFitness(p.genes));newPop.sort((a,b)=>a.fitness-b.fitness);state.population=newPop.slice(0,state.populationSize);}
+        function runDEGeneration(){const newPop=[];for(let i=0;i<state.populationSize;i++){const target=state.population[i];let a,b,c;do{a=state.population[Math.floor(Math.random()*state.populationSize)];}while(a===target);do{b=state.population[Math.floor(Math.random()*state.populationSize)];}while(b===target||b===a);do{c=state.population[Math.floor(Math.random()*state.populationSize)];}while(c===target||c===a||c===b);const mutant={genes:[],fitness:0};const R=Math.floor(Math.random()*target.genes.length);for(let j=0;j<target.genes.length;j++){if(Math.random()<state.de_CR||j===R){mutant.genes[j]=a.genes[j]+state.de_F*(b.genes[j]-c.genes[j]);}else{mutant.genes[j]=target.genes[j];}}mutant.fitness=evaluateFitness(mutant.genes);newPop.push(mutant.fitness<target.fitness?mutant:target);}state.population=newPop;}
+        function runCMAESGeneration(){const best=state.population.slice(0,Math.floor(state.populationSize*0.25));const newMean=new THREE.Vector3(0,0,0);best.forEach(ind=>newMean.add(new THREE.Vector3().fromArray(ind.genes)));newMean.divideScalar(best.length);state.cma.mean.lerp(newMean,0.1);const bestVec=new THREE.Vector3().fromArray(best[0].genes).normalize();const randVec=new THREE.Vector3(Math.random(),Math.random(),Math.random()).normalize();const axis2=new THREE.Vector3().crossVectors(bestVec,randVec).normalize();const axis3=new THREE.Vector3().crossVectors(bestVec,axis2).normalize();state.cma.covarianceMatrix.set(bestVec.x,axis2.x,axis3.x,bestVec.y,axis2.y,axis3.y,bestVec.z,axis2.z,axis3.z);state.population=[];for(let i=0;i<state.populationSize;i++){const s=new THREE.Vector3((Math.random()-0.5)*10,(Math.random()-0.5)*2,(Math.random()-0.5)*2);s.applyMatrix3(state.cma.covarianceMatrix);s.add(state.cma.mean);state.population.push({genes:s.toArray(),fitness:0});}}
+        function initializePopulation(){state.population=[];const domain=landscapes[state.landscape].domain;state.cma.mean=new THREE.Vector3((Math.random()-0.5)*domain,(Math.random()-0.5)*domain,(Math.random()-0.5)*domain);state.cma.covarianceMatrix.identity();for(let i=0;i<state.populationSize;i++){state.population.push({genes:[(Math.random()-0.5)*domain*2,(Math.random()-0.5)*domain*2,(Math.random()-0.5)*domain*2],fitness:Infinity});}}
+        function evaluateFitness(genes){return landscapes[state.landscape].fn(genes[0], genes[2]);}
+        function tournamentSelection(pop){const size=5;let best=pop[Math.floor(Math.random()*pop.length)];for(let i=1;i<size;i++){const cont=pop[Math.floor(Math.random()*pop.length)];if(cont.fitness<best.fitness)best=cont;}return best;}
+        function rouletteWheelSelection(pop){const maxFit=Math.max(...pop.map(p=>p.fitness));const invFit=pop.map(p=>maxFit-p.fitness);const total=invFit.reduce((s,i)=>s+i,0);if(total<=0)return tournamentSelection(pop);let pick=Math.random()*total;for(let i=0;i<pop.length;i++){pick-=invFit[i];if(pick<=0)return pop[i];}return pop[pop.length-1];}
+        function rankSelection(pop){const ranks=pop.map((_,i)=>pop.length-i);const total=ranks.reduce((s,r)=>s+r,0);let pick=Math.random()*total;for(let i=0;i<pop.length;i++){pick-=ranks[i];if(pick<=0)return pop[i];}return pop[pop.length-1];}
+        function singlePointCrossover(p1,p2){const cp=1+Math.floor(Math.random()*(p1.genes.length-2));return[{genes:p1.genes.slice(0,cp).concat(p2.genes.slice(cp)),f:0},{genes:p2.genes.slice(0,cp).concat(p1.genes.slice(cp)),f:0}];}
+        function twoPointCrossover(p1,p2){let cp1=Math.floor(Math.random()*p1.genes.length),cp2=Math.floor(Math.random()*p1.genes.length);if(cp1>cp2)[cp1,cp2]=[cp2,cp1];return[{genes:p1.genes.slice(0,cp1).concat(p2.genes.slice(cp1,cp2)).concat(p1.genes.slice(cp2)),f:0},{genes:p2.genes.slice(0,cp1).concat(p1.genes.slice(cp1,cp2)).concat(p2.genes.slice(cp2)),f:0}];}
+        function uniformCrossover(p1,p2){const c1g=[],c2g=[];for(let i=0;i<p1.genes.length;i++){if(Math.random()<0.5){c1g.push(p1.genes[i]);c2g.push(p2.genes[i]);}else{c1g.push(p2.genes[i]);c2g.push(p1.genes[i]);}}return[{genes:c1g,f:0},{genes:c2g,f:0}];}
+        function arithmeticCrossover(p1,p2){const a=Math.random(),c1g=[],c2g=[];for(let i=0;i<p1.genes.length;i++){c1g.push(a*p1.genes[i]+(1-a)*p2.genes[i]);c2g.push((1-a)*p1.genes[i]+a*p2.genes[i]);}return[{genes:c1g,f:0},{genes:c2g,f:0}];}
+        function mutate(ind){for(let i=0;i<ind.genes.length;i++){if(Math.random()<state.mutationRate){ind.genes[i]+=(Math.random()-0.5)*state.mutationRate*5;}}}
+
+        // --- 3D VISUALIZATION ---
+        function setupViews() {
+            populationView.clear();
+            ioSpaceView.clear();
+
+            // Population View Setup
+            landscapeMesh = createLandscapeMesh(landscapes[state.landscape]);
+            populationView.add(landscapeMesh);
+            
+            const pointsGeom = new THREE.BufferGeometry();
+            pointsGeom.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(state.populationSize * 3), 3));
+            pointsGeom.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(state.populationSize * 3), 3));
+            populationPoints = new THREE.Points(pointsGeom, new THREE.PointsMaterial({ size: 1, vertexColors: true, transparent: true, opacity: 0.9 }));
+            populationView.add(populationPoints);
+
+            const optimumGeom = new THREE.SphereGeometry(0.5, 16, 16);
+            optimumMarker = new THREE.Mesh(optimumGeom, new THREE.MeshBasicMaterial({ color: 0xffff00 }));
+            populationView.add(optimumMarker);
+            
+            const ellipsoidGeom = new THREE.SphereGeometry(1, 32, 16);
+            cmaEsEllipsoid = new THREE.Mesh(ellipsoidGeom, new THREE.MeshBasicMaterial({color: 0xfde047, wireframe: true, transparent: true, opacity: 0.5}));
+            populationView.add(cmaEsEllipsoid);
+
+            // IO Space View Setup
+            const spaceSize = 150, separation = 1.2 * spaceSize;
+            ioSpaceView.add(new THREE.GridHelper(spaceSize, 20, 0xef4444, 0x442222)).position.x = -separation / 2;
+            ioSpaceView.add(createLabel("Input (Decision) Space", new THREE.Vector3(-separation / 2, spaceSize/2 + 10, 0)));
+            ioSpaceView.add(new THREE.GridHelper(spaceSize, 20, 0x3b82f6, 0x222244)).position.x = separation / 2;
+            ioSpaceView.add(createLabel("Output (Objective) Space", new THREE.Vector3(separation / 2, spaceSize/2 + 10, 0)));
+            
+            const inputPointsGeom = new THREE.BufferGeometry();
+            inputPointsGeom.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(state.populationSize * 3), 3));
+            inputSpacePoints = new THREE.Points(inputPointsGeom, new THREE.PointsMaterial({ color: 0xf87171, size: 0.8 }));
+            ioSpaceView.add(inputSpacePoints);
+
+            const outputPointsGeom = new THREE.BufferGeometry();
+            outputPointsGeom.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(state.populationSize * 3), 3));
+            outputSpacePoints = new THREE.Points(outputPointsGeom, new THREE.PointsMaterial({ color: 0x60a5fa, size: 0.8 }));
+            ioSpaceView.add(outputSpacePoints);
+
+            const lineGeom = new THREE.BufferGeometry();
+            lineGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(state.populationSize * 6), 3));
+            ioConnectors = new THREE.LineSegments(lineGeom, new THREE.LineBasicMaterial({color: 0x6b7280, transparent: true, opacity: 0.3}));
+            ioSpaceView.add(ioConnectors);
+
+            switchView(state.view);
+            switchAlgorithm(state.algorithm);
+        }
+
+        function createLandscapeMesh(landscape) {
+            const geom = new THREE.PlaneGeometry(LANDSCAPE_SIZE, LANDSCAPE_SIZE, LANDSCAPE_RES, LANDSCAPE_RES);
+            const pos = geom.attributes.position;
+            const domain = landscape.domain;
+            for (let i = 0; i < pos.count; i++) {
+                const x = pos.getX(i) * (domain / (LANDSCAPE_SIZE/2));
+                const z = pos.getY(i) * (domain / (LANDSCAPE_SIZE/2));
+                pos.setZ(i, landscapes[state.landscape].fn(x, z));
+            }
+            geom.rotateX(-Math.PI / 2);
+            geom.computeVertexNormals();
+            
+            const mat = new THREE.MeshStandardMaterial({
+                vertexColors: true,
+                metalness: 0.2,
+                roughness: 0.8,
+            });
+
+            // Add contour lines via vertex colors
+            const colors = [];
+            const maxHeight = 30; // Heuristic for coloring
+            for (let i = 0; i < pos.count; i++) {
+                const height = pos.getY(i);
+                const isContour = Math.abs((height * 10) % 2) < 0.1;
+                const baseColor = new THREE.Color().setHSL(0.6 - (height / maxHeight) * 0.5, 0.5, 0.3);
+                const contourColor = new THREE.Color(0x9ca3af);
+                const finalColor = isContour ? contourColor : baseColor;
+                colors.push(finalColor.r, finalColor.g, finalColor.b);
+            }
+            geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            return new THREE.Mesh(geom, mat);
+        }
+
+        function updateVisualization() {
+            if (!state.population || state.population.length === 0) return;
+
+            const landscape = landscapes[state.landscape];
+            optimumMarker.position.copy(landscape.optimum);
+            optimumMarker.position.y = landscape.fn(landscape.optimum.x, landscape.optimum.z) + 0.5;
+
+            cmaEsEllipsoid.visible = state.algorithm === 'cma-es';
+            if(cmaEsEllipsoid.visible) {
+                const transformMatrix = new THREE.Matrix4().setFromMatrix3(state.cma.covarianceMatrix);
+                const scaleMatrix = new THREE.Matrix4().makeScale(state.mutationRate*20, state.mutationRate*10, state.mutationRate*10);
+                transformMatrix.multiply(scaleMatrix);
+                cmaEsEllipsoid.matrix.makeTranslation(state.cma.mean.x, state.cma.mean.y, state.cma.mean.z).multiply(transformMatrix);
+                cmaEsEllipsoid.matrixAutoUpdate = false;
+            }
+
+            const popPos = populationPoints.geometry.attributes.position.array;
+            const popColors = populationPoints.geometry.attributes.color.array;
+            const inputPos = inputSpacePoints.geometry.attributes.position.array;
+            const outputPos = outputSpacePoints.geometry.attributes.position.array;
+            const linePos = ioConnectors.geometry.attributes.position.array;
+            
+            const spaceSize = 150, separation = 1.2*spaceSize;
+            const domain = landscape.domain;
+            const eliteCount = Math.floor(state.populationSize * (state.eliteSize / 100));
+
+            const normalColor = new THREE.Color(0x34d399);
+            const eliteColor = new THREE.Color(0xf472b6);
+
+            for (let i = 0; i < state.populationSize; i++) {
+                const ind = state.population[i];
+                if (!ind) continue;
+                
+                const isElite = i < eliteCount;
+                const color = isElite ? eliteColor : normalColor;
+                popColors[i*3] = color.r; popColors[i*3+1] = color.g; popColors[i*3+2] = color.b;
+                
+                popPos[i*3]=ind.genes[0]; popPos[i*3+2]=ind.genes[2];
+                popPos[i*3+1] = landscape.fn(ind.genes[0], ind.genes[2]) + 0.2; // Place point slightly above surface
+
+                const ix = Math.max(-domain, Math.min(domain, ind.genes[0])) / domain * (spaceSize/2);
+                const iy = Math.max(-domain, Math.min(domain, ind.genes[1])) / domain * (spaceSize/2); // Map y gene
+                const iz = Math.max(-domain, Math.min(domain, ind.genes[2])) / domain * (spaceSize/2);
+                inputPos[i*3]=ix-separation/2; inputPos[i*3+1]=iy; inputPos[i*3+2]=iz;
+                
+                const normFit = Math.min(ind.fitness / 50, 1.0);
+                outputPos[i*3]=separation/2; outputPos[i*3+1]=(normFit-0.5)*spaceSize; outputPos[i*3+2]=0;
+                
+                linePos[i*6]=inputPos[i*3]; linePos[i*6+1]=inputPos[i*3+1]; linePos[i*6+2]=inputPos[i*3+2];
+                linePos[i*6+3]=outputPos[i*3]; linePos[i*6+4]=outputPos[i*3+1]; linePos[i*6+5]=outputPos[i*3+2];
+            }
+            populationPoints.geometry.attributes.position.needsUpdate = true;
+            populationPoints.geometry.attributes.color.needsUpdate = true;
+            inputSpacePoints.geometry.attributes.position.needsUpdate = true;
+            outputSpacePoints.geometry.attributes.position.needsUpdate = true;
+            ioConnectors.geometry.attributes.position.needsUpdate = true;
+        }
+        
+        function createLabel(text, position) {
+            const div = document.createElement('div'); div.className = 'label text-lg'; div.textContent = text;
+            const label = new CSS2DObject(div); label.position.copy(position); return label;
+        }
+        
+        function setupCameraForView(view) {
+            if (view === 'population') {
+                camera.position.set(40, 50, 60);
+                controls.target.set(0, 0, 0);
+            } else {
+                camera.position.set(0, 0, 250);
+                controls.target.set(0, 0, 0);
+            }
+        }
+        
+        function startPopulationGrowthAnimation() {
+            populationGrowthState.isAnimating = true;
+            populationGrowthState.startTime = clock.getElapsedTime();
+            if(populationPoints) populationPoints.geometry.setDrawRange(0, 0);
+        }
+
+        // --- RENDER LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            const now = clock.getElapsedTime();
+            
+            if (populationGrowthState.isAnimating) {
+                const progress = Math.min((now - populationGrowthState.startTime) / populationGrowthState.duration, 1.0);
+                if(populationPoints) populationPoints.geometry.setDrawRange(0, Math.floor(progress * state.populationSize));
+                if (progress >= 1.0) populationGrowthState.isAnimating = false;
+            }
+
+            if (state.isRunning && (now - lastGenerationTime) > (1 / state.speed)) {
+                runNextGeneration();
+                updateVisualization();
+                ui.generationCounter.textContent = state.generation;
+                updateSummaryBar();
+                lastGenerationTime = now;
+            }
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html>
+
