@@ -82,6 +82,12 @@
   visualization_url: /visualizations/multivariate-gaussian.html
   description: A short description goes here.
 
+- title: Evolutionary Algorithms
+  author: Jasper Taal
+  thumbnail: /assets/images/evolutionary-algorithms.png
+  visualization_url: /visualizations/evolutionary-algorithms.html
+  description: A short description goes here.
+
 - title: Rotary Positional Embedding
   author: Jasper Taal
   thumbnail: /assets/images/rotary-positional-embedding.png
