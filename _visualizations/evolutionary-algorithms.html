@@ -64,11 +64,15 @@
             </div>
             <select id="ga-algo-selector" class="rounded-md text-sm p-1">
                 <option value="ga">Standard GA</option>
+                <option value="ssga">Steady-State GA</option>
+                <option value="mga">Microbial GA</option>
                 <option value="de">Differential Evolution</option>
                 <option value="pso">Particle Swarm (PSO)</option>
             </select>
             <select id="es-algo-selector" class="rounded-md text-sm p-1 hidden">
                 <option value="es">Standard ES</option>
+                <option value="mu_lambda_es">(μ, λ)-ES</option>
+                <option value="mu_plus_lambda_es">(μ + λ)-ES</option>
                 <option value="cma-es">CMA-ES</option>
                 <option value="sa">Simulated Annealing</option>
             </select>
@@ -144,8 +148,8 @@
              <div>
                 <h4 class="settings-section-header text-sm">Colors</h4>
                 <div class="grid grid-cols-2 gap-2">
-                    <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">High Fitness</label><input id="landscapeColorHigh" type="color" value="#22d3ee"></div>
-                    <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">Low Fitness</label><input id="landscapeColorLow" type="color" value="#4f46e5"></div>
+                    <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">Landscape (High)</label><input id="landscapeColorHigh" type="color" value="#22d3ee"></div>
+                    <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">Landscape (Low)</label><input id="landscapeColorLow" type="color" value="#4f46e5"></div>
                     <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">Contours</label><input id="landscapeColorContour" type="color" value="#9ca3af"></div>
                     <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">Vector (High)</label><input id="vectorColorHigh" type="color" value="#22c55e"></div>
                     <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">Vector (Low)</label><input id="vectorColorLow" type="color" value="#ef4444"></div>
@@ -200,6 +204,14 @@
                      <label class="block text-sm font-medium text-gray-300">Boltzmann Temp: <span id="boltzmannTempValue" class="font-bold text-blue-400">0.1</span></label>
                     <input id="boltzmannTemp" type="range" min="0.01" max="1" step="0.01" value="0.1" class="w-full h-2 bg-gray-700 rounded-lg slider">
                 </div>
+                 <div id="truncationControl" class="hidden">
+                     <label class="block text-sm font-medium text-gray-300">Truncation %: <span id="truncationValue" class="font-bold text-blue-400">50</span></label>
+                    <input id="truncation" type="range" min="10" max="90" step="5" value="50" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                </div>
+                 <div id="tournamentControl" class="hidden">
+                     <label class="block text-sm font-medium text-gray-300">Tournament Size: <span id="tournamentValue" class="font-bold text-blue-400">5</span></label>
+                    <input id="tournament" type="range" min="2" max="20" step="1" value="5" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                </div>
                 <div id="deFControl" class="hidden">
                     <label class="block text-sm font-medium text-gray-300">Weight (F): <span id="deFValue" class="font-bold text-blue-400">0.8</span></label>
                     <input id="deF" type="range" min="0.1" max="2.0" step="0.1" value="0.8" class="w-full h-2 bg-gray-700 rounded-lg slider">
@@ -212,14 +224,32 @@
                      <label class="block text-sm font-medium text-gray-300">Elite Size (%): <span id="eliteSizeValue" class="font-bold text-blue-400">5</span></label>
                      <input id="eliteSize" type="range" min="1" max="20" step="1" value="5" class="w-full h-2 bg-gray-700 rounded-lg slider">
                 </div>
+                 <div id="muLambdaControl" class="hidden">
+                     <label class="block text-sm font-medium text-gray-300">Parents (μ): <span id="muLambdaValue" class="font-bold text-blue-400">50</span></label>
+                    <input id="muLambda" type="range" min="1" max="100" step="1" value="50" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                </div>
+                 <div id="blxControl" class="hidden">
+                     <label class="block text-sm font-medium text-gray-300">Blend Alpha (α): <span id="blxValue" class="font-bold text-blue-400">0.5</span></label>
+                    <input id="blx" type="range" min="0" max="1" step="0.1" value="0.5" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                </div>
+                 <div id="sbxControl" class="hidden">
+                     <label class="block text-sm font-medium text-gray-300">SBX Index (η): <span id="sbxValue" class="font-bold text-blue-400">15</span></label>
+                    <input id="sbx" type="range" min="1" max="50" step="1" value="15" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                </div>
                 <div id="selectionControl">
                     <label for="selection-strategy" class="block text-sm font-medium text-gray-300">Selection</label>
                     <select id="selection-strategy" class="rounded-md text-sm p-1 w-full mt-1">
                         <option value="tournament">Tournament</option>
                         <option value="roulette">Roulette Wheel</option>
+                        <option value="sus">Stochastic Universal</option>
                         <option value="rank">Rank</option>
                         <option value="boltzmann">Boltzmann</option>
+                        <option value="truncation">Truncation</option>
                     </select>
+                </div>
+                 <div id="arithmeticControl" class="hidden">
+                     <label class="block text-sm font-medium text-gray-300">Arithmetic Alpha (α): <span id="arithmeticValue" class="font-bold text-blue-400">0.5</span></label>
+                    <input id="arithmetic" type="range" min="0" max="1" step="0.1" value="0.5" class="w-full h-2 bg-gray-700 rounded-lg slider">
                 </div>
                 <div id="crossoverControl">
                     <label for="crossover-strategy" class="block text-sm font-medium text-gray-300">Crossover</label>
@@ -228,6 +258,8 @@
                         <option value="two_point">Two-Point</option>
                         <option value="uniform">Uniform</option>
                         <option value="arithmetic">Arithmetic</option>
+                        <option value="blx">Blend (BLX-α)</option>
+                        <option value="sbx">Simulated Binary (SBX)</option>
                     </select>
                 </div>
             </div>
@@ -257,6 +289,8 @@
             algorithm: 'ga', algoCategory: 'GA', view: 'population', isRunning: false, landscape: 'sphere',
             populationSize: 100, mutationRate: 0.1, eliteSize: 5,
             de_F: 0.8, de_CR: 0.9, pso_w: 0.7, sa_temp: 1000, cma_sigma: 0.5, boltzmann_temp: 0.1,
+            truncation_percent: 0.5, blx_alpha: 0.5, sbx_eta: 15, mu_lambda_mu: 50, arithmetic_alpha: 0.5,
+            tournament_size: 5,
             speed: 5, generation: 0,
             population: [], selectionFn: tournamentSelection, crossoverFn: singlePointCrossover,
             cma: { mean: new THREE.Vector3(), covarianceMatrix: new THREE.Matrix3().identity() },
@@ -300,6 +334,24 @@
             boltzmannControl: document.getElementById('boltzmannControl'),
             boltzmannTempSlider: document.getElementById('boltzmannTemp'),
             boltzmannTempValue: document.getElementById('boltzmannTempValue'),
+            truncationControl: document.getElementById('truncationControl'),
+            truncationSlider: document.getElementById('truncation'),
+            truncationValue: document.getElementById('truncationValue'),
+            muLambdaControl: document.getElementById('muLambdaControl'),
+            muLambdaSlider: document.getElementById('muLambda'),
+            muLambdaValue: document.getElementById('muLambdaValue'),
+            blxControl: document.getElementById('blxControl'),
+            blxSlider: document.getElementById('blx'),
+            blxValue: document.getElementById('blxValue'),
+            sbxControl: document.getElementById('sbxControl'),
+            sbxSlider: document.getElementById('sbx'),
+            sbxValue: document.getElementById('sbxValue'),
+            arithmeticControl: document.getElementById('arithmeticControl'),
+            arithmeticSlider: document.getElementById('arithmetic'),
+            arithmeticValue: document.getElementById('arithmeticValue'),
+            tournamentControl: document.getElementById('tournamentControl'),
+            tournamentSlider: document.getElementById('tournament'),
+            tournamentValue: document.getElementById('tournamentValue'),
             collapseBtn: document.getElementById('collapse-btn'),
             uiPanel: document.getElementById('ui-panel'),
             panelSummary: document.getElementById('panel-summary'),
@@ -417,7 +469,7 @@
             ui.resetBtn.addEventListener('click', resetSimulation);
             ui.collapseBtn.addEventListener('click', togglePanelCollapse);
             ui.speedSlider.addEventListener('input', e => { state.speed = parseInt(e.target.value); ui.speedValue.textContent = state.speed; });
-            ui.populationSizeSlider.addEventListener('input', e => ui.populationSizeValue.textContent = e.target.value);
+            ui.populationSizeSlider.addEventListener('input', e => { ui.populationSizeValue.textContent = e.target.value; ui.muLambdaSlider.max = e.target.value; });
             ui.populationSizeSlider.addEventListener('change', e => { state.populationSize = parseInt(e.target.value); resetSimulation(); });
             ui.mutationRateSlider.addEventListener('input', e => { state.mutationRate = parseFloat(e.target.value); ui.mutationRateValue.textContent = state.mutationRate.toFixed(2); });
             ui.cmaSigmaSlider.addEventListener('input', e => { state.cma_sigma = parseFloat(e.target.value); ui.cmaSigmaValue.textContent = state.cma_sigma.toFixed(2); });
@@ -427,13 +479,29 @@
             ui.psoInertiaSlider.addEventListener('input', e => { state.pso_w = parseFloat(e.target.value); ui.psoInertiaValue.textContent = state.pso_w.toFixed(2); });
             ui.saTempSlider.addEventListener('input', e => { state.sa_temp = parseFloat(e.target.value); ui.saTempValue.textContent = state.sa_temp; });
             ui.boltzmannTempSlider.addEventListener('input', e => { state.boltzmann_temp = parseFloat(e.target.value); ui.boltzmannTempValue.textContent = state.boltzmann_temp.toFixed(2); });
+            ui.truncationSlider.addEventListener('input', e => { state.truncation_percent = parseFloat(e.target.value) / 100; ui.truncationValue.textContent = e.target.value; });
+            ui.muLambdaSlider.addEventListener('input', e => { state.mu_lambda_mu = parseInt(e.target.value); ui.muLambdaValue.textContent = e.target.value; });
+            ui.blxSlider.addEventListener('input', e => { state.blx_alpha = parseFloat(e.target.value); ui.blxValue.textContent = state.blx_alpha.toFixed(1); });
+            ui.sbxSlider.addEventListener('input', e => { state.sbx_eta = parseInt(e.target.value); ui.sbxValue.textContent = state.sbx_eta; });
+            ui.arithmeticSlider.addEventListener('input', e => { state.arithmetic_alpha = parseFloat(e.target.value); ui.arithmeticValue.textContent = state.arithmetic_alpha.toFixed(1); });
+            ui.tournamentSlider.addEventListener('input', e => { state.tournament_size = parseInt(e.target.value); ui.tournamentValue.textContent = state.tournament_size; });
+            
             document.getElementById('selection-strategy').addEventListener('change', e => { 
                 const selection = e.target.value;
-                const strategies = { tournament: tournamentSelection, roulette: rouletteWheelSelection, rank: rankSelection, boltzmann: boltzmannSelection };
+                const strategies = { tournament: tournamentSelection, roulette: rouletteWheelSelection, rank: rankSelection, boltzmann: boltzmannSelection, sus: stochasticUniversalSampling, truncation: truncationSelection };
                 state.selectionFn = strategies[selection]; 
                 ui.boltzmannControl.style.display = selection === 'boltzmann' ? 'block' : 'none';
+                ui.truncationControl.style.display = selection === 'truncation' ? 'block' : 'none';
+                ui.tournamentControl.style.display = selection === 'tournament' ? 'block' : 'none';
             });
-            document.getElementById('crossover-strategy').addEventListener('change', e => state.crossoverFn = { single_point: singlePointCrossover, two_point: twoPointCrossover, uniform: uniformCrossover, arithmetic: arithmeticCrossover }[e.target.value]);
+            document.getElementById('crossover-strategy').addEventListener('change', e => {
+                const crossover = e.target.value;
+                const strategies = { single_point: singlePointCrossover, two_point: twoPointCrossover, uniform: uniformCrossover, arithmetic: arithmeticCrossover, blx: blendCrossover, sbx: simulatedBinaryCrossover };
+                state.crossoverFn = strategies[crossover];
+                ui.blxControl.style.display = crossover === 'blx' ? 'block' : 'none';
+                ui.sbxControl.style.display = crossover === 'sbx' ? 'block' : 'none';
+                ui.arithmeticControl.style.display = crossover === 'arithmetic' ? 'block' : 'none';
+            });
             window.addEventListener('resize', onWindowResize);
         }
 
@@ -444,13 +512,14 @@
         function switchAlgoCategory(category) { if (state.algoCategory === category) return; state.algoCategory = category; document.querySelectorAll('#algo-category-selector button').forEach(btn => btn.classList.toggle('active', btn.dataset.category === category)); if (category === 'GA') { ui.gaAlgoSelector.classList.remove('hidden'); ui.esAlgoSelector.classList.add('hidden'); switchAlgorithm(ui.gaAlgoSelector.value); } else { ui.gaAlgoSelector.classList.add('hidden'); ui.esAlgoSelector.classList.remove('hidden'); switchAlgorithm(ui.esAlgoSelector.value); } }
         function switchAlgorithm(algo) {
             state.algorithm = algo;
-            const controls = {sel:false, cross:false, mut:false, cma: false, de:false, pso:false, sa:false};
-            if (algo==='ga' || algo==='de') { controls.sel = true; controls.cross = true; }
-            if (algo==='ga' || algo==='es') { controls.mut = true; }
+            const controls = {sel:false, cross:false, mut:false, cma: false, de:false, pso:false, sa:false, mu:false};
+            if (['ga', 'de', 'ssga', 'mga'].includes(algo)) { controls.sel = true; controls.cross = true; }
+            if (['ga', 'es', 'ssga', 'mga'].includes(algo)) { controls.mut = true; }
             if (algo==='cma-es') { controls.cma = true; }
             if (algo==='de') { controls.de = true; }
             if (algo==='pso') { controls.pso = true; }
             if (algo==='sa') { controls.sa = true; }
+            if (algo==='mu_lambda_es' || algo==='mu_plus_lambda_es') { controls.mu = true; }
 
             ui.selectionControl.style.display = controls.sel ? 'block':'none';
             ui.crossoverControl.style.display = controls.cross ? 'block':'none';
@@ -459,7 +528,18 @@
             ui.deFControl.style.display = ui.deCRControl.style.display = controls.de ? 'block':'none';
             ui.psoParams.style.display = controls.pso ? 'block':'none';
             ui.saParams.style.display = controls.sa ? 'block':'none';
-             ui.boltzmannControl.style.display = document.getElementById('selection-strategy').value === 'boltzmann' && controls.sel ? 'block' : 'none';
+            ui.muLambdaControl.style.display = controls.mu ? 'block':'none';
+            
+            const sel = document.getElementById('selection-strategy').value;
+            ui.boltzmannControl.style.display = sel === 'boltzmann' && controls.sel ? 'block' : 'none';
+            ui.truncationControl.style.display = sel === 'truncation' && controls.sel ? 'block' : 'none';
+            ui.tournamentControl.style.display = sel === 'tournament' && controls.sel ? 'block' : 'none';
+            
+            const cross = document.getElementById('crossover-strategy').value;
+            ui.blxControl.style.display = cross === 'blx' && controls.cross ? 'block' : 'none';
+            ui.sbxControl.style.display = cross === 'sbx' && controls.cross ? 'block' : 'none';
+            ui.arithmeticControl.style.display = cross === 'arithmetic' && controls.cross ? 'block' : 'none';
+
 
             if (!state.isRunning) { resetSimulation(); }
         }
@@ -474,23 +554,30 @@
         }
 
         // --- ALGORITHMS ---
-        function runNextGeneration(){state.population.forEach(p=>p.fitness=evaluateFitness(p.genes));state.population.sort((a,b)=>a.fitness-b.fitness);if(state.algorithm==='ga')runGAGeneration();else if(state.algorithm==='es')runESGeneration();else if(state.algorithm==='de')runDEGeneration();else if(state.algorithm==='cma-es')runCMAESGeneration();else if(state.algorithm==='pso')runPSOGeneration();else if(state.algorithm==='sa')runSAGeneration();state.generation++;}
+        function runNextGeneration(){state.population.forEach(p=>p.fitness=evaluateFitness(p.genes));state.population.sort((a,b)=>a.fitness-b.fitness);if(state.algorithm==='ga')runGAGeneration();else if(state.algorithm==='es')runESGeneration();else if(state.algorithm==='de')runDEGeneration();else if(state.algorithm==='cma-es')runCMAESGeneration();else if(state.algorithm==='pso')runPSOGeneration();else if(state.algorithm==='sa')runSAGeneration();else if(state.algorithm==='ssga')runSSGAGeneration();else if(state.algorithm==='mga')runMGAGeneration();else if(state.algorithm==='mu_lambda_es')runMuLambdaESGeneration(true);else if(state.algorithm==='mu_plus_lambda_es')runMuLambdaESGeneration(false);state.generation++;}
         function runGAGeneration(){const newPop=[JSON.parse(JSON.stringify(state.population[0]))];while(newPop.length<state.populationSize){const p1=state.selectionFn(state.population);const p2=state.selectionFn(state.population);const children=state.crossoverFn(p1,p2);children.forEach(c=>{mutate(c);if(newPop.length<state.populationSize)newPop.push(c);});}state.population=newPop;}
+        function runSSGAGeneration(){for(let i=0; i < 2; i++){ const p1 = state.selectionFn(state.population); const p2 = state.selectionFn(state.population); const children = state.crossoverFn(p1, p2); children.forEach(c => mutate(c)); state.population.splice(state.population.length-2, 2, ...children);} }
+        function runMGAGeneration() { const i = Math.floor(Math.random() * state.populationSize); let j; do { j = Math.floor(Math.random() * state.populationSize); } while(i === j); const p1 = state.population[i], p2 = state.population[j]; const [winner, loser] = p1.fitness < p2.fitness ? [p1, p2] : [p2, p1]; const child = state.crossoverFn(winner, loser)[0]; mutate(child); const loserIndex = state.population.findIndex(p => p === loser); state.population[loserIndex] = child; }
         function runESGeneration(){const newPop=[];const parents=state.population.slice(0,Math.floor(state.populationSize/2));newPop.push(...parents);while(newPop.length<state.populationSize){const p=parents[Math.floor(Math.random()*parents.length)];const child=JSON.parse(JSON.stringify(p));mutate(child);newPop.push(child);}newPop.forEach(p=>p.fitness=evaluateFitness(p.genes));newPop.sort((a,b)=>a.fitness-b.fitness);state.population=newPop.slice(0,state.populationSize);}
+        function runMuLambdaESGeneration(comma) { const mu = state.mu_lambda_mu; const parents = state.population.slice(0, mu); const offspring = []; while(offspring.length < state.populationSize) { const p = parents[Math.floor(Math.random() * parents.length)]; const child = JSON.parse(JSON.stringify(p)); mutate(child); offspring.push(child); } offspring.forEach(p => p.fitness = evaluateFitness(p.genes)); if (comma) { state.population = offspring; } else { state.population.push(...offspring); } state.population.sort((a, b) => a.fitness - b.fitness); state.population = state.population.slice(0, state.populationSize); }
         function runDEGeneration(){const newPop=[];for(let i=0;i<state.populationSize;i++){const target=state.population[i];let a,b,c;do{a=state.population[Math.floor(Math.random()*state.populationSize)];}while(a===target);do{b=state.population[Math.floor(Math.random()*state.populationSize)];}while(b===target||b===a);do{c=state.population[Math.floor(Math.random()*state.populationSize)];}while(c===target||c===a||c===b);const mutant={genes:[],fitness:0};const R=Math.floor(Math.random()*target.genes.length);for(let j=0;j<target.genes.length;j++){if(Math.random()<state.de_CR||j===R){mutant.genes[j]=a.genes[j]+state.de_F*(b.genes[j]-c.genes[j]);}else{mutant.genes[j]=target.genes[j];}}mutant.fitness=evaluateFitness(mutant.genes);newPop.push(mutant.fitness<target.fitness?mutant:target);}state.population=newPop;}
         function runCMAESGeneration(){const best=state.population.slice(0,Math.floor(state.populationSize*0.25));const newMean=new THREE.Vector3(0,0,0);best.forEach(ind=>newMean.add(new THREE.Vector3().fromArray(ind.genes)));newMean.divideScalar(best.length);state.cma.mean.lerp(newMean,0.1);const bestVec=new THREE.Vector3().fromArray(best[0].genes).normalize();const randVec=new THREE.Vector3(Math.random(),Math.random(),Math.random()).normalize();const axis2=new THREE.Vector3().crossVectors(bestVec,randVec).normalize();const axis3=new THREE.Vector3().crossVectors(bestVec,axis2).normalize();state.cma.covarianceMatrix.set(bestVec.x,axis2.x,axis3.x,bestVec.y,axis2.y,axis3.y,bestVec.z,axis2.z,axis3.z);state.population=[];for(let i=0;i<state.populationSize;i++){const s=new THREE.Vector3((Math.random()-0.5)*2,(Math.random()-0.5)*2,(Math.random()-0.5)*2);s.multiplyScalar(state.cma_sigma * 5); s.applyMatrix3(state.cma.covarianceMatrix); s.add(state.cma.mean); state.population.push({genes:s.toArray(),fitness:0});}}
         function runPSOGeneration() { const c1 = 1.5, c2 = 1.5; const gBest = state.population[0]; state.population.forEach(p => { for(let i=0; i < p.genes.length; i++) { const r1 = Math.random(), r2 = Math.random(); p.velocity[i] = state.pso_w * p.velocity[i] + c1 * r1 * (p.pBest.genes[i] - p.genes[i]) + c2 * r2 * (gBest.genes[i] - p.genes[i]); p.genes[i] += p.velocity[i]; } p.fitness = evaluateFitness(p.genes); if (p.fitness < p.pBest.fitness) { p.pBest = {genes: [...p.genes], fitness: p.fitness}; } }); }
         function runSAGeneration() { const current = state.population[0]; const neighbor = {genes: [...current.genes], fitness: 0}; const domain = landscapes[state.landscape].domain; for (let i = 0; i < neighbor.genes.length; i++) { neighbor.genes[i] += (Math.random() - 0.5) * (state.sa_temp / 1000) * domain; } neighbor.fitness = evaluateFitness(neighbor.genes); const delta = neighbor.fitness - current.fitness; if (delta < 0 || Math.exp(-delta / state.sa_temp) > Math.random()) { state.population[0] = neighbor; } state.sa_temp *= 0.99; }
         function initializePopulation(){state.population=[]; const spawnSize = state.landscapeScale * (state.spawnRange / 100); const halfSpawn = spawnSize / 2; state.cma.mean=new THREE.Vector3((Math.random()-0.5)*halfSpawn,(Math.random()-0.5)*halfSpawn,(Math.random()-0.5)*halfSpawn);state.cma.covarianceMatrix.identity();for(let i=0;i<state.populationSize;i++){ const ind = {genes:[(Math.random()-0.5)*spawnSize,(Math.random()-0.5)*20,(Math.random()-0.5)*spawnSize], fitness:Infinity}; if (state.algorithm === 'pso') { ind.velocity = [0,0,0]; ind.pBest = {genes:[...ind.genes], fitness: Infinity}; } state.population.push(ind); } state.sa_temp = parseFloat(ui.saTempSlider.value); }
         function evaluateFitness(genes){return landscapes[state.landscape].fn(genes[0], genes[2], state.landscapeParams);}
-        function tournamentSelection(pop){const size=5;let best=pop[Math.floor(Math.random()*pop.length)];for(let i=1;i<size;i++){const cont=pop[Math.floor(Math.random()*pop.length)];if(cont.fitness<best.fitness)best=cont;}return best;}
+        function tournamentSelection(pop){const size=state.tournament_size;let best=pop[Math.floor(Math.random()*pop.length)];for(let i=1;i<size;i++){const cont=pop[Math.floor(Math.random()*pop.length)];if(cont.fitness<best.fitness)best=cont;}return best;}
         function rouletteWheelSelection(pop){const maxFit=Math.max(...pop.map(p=>p.fitness).filter(f=>isFinite(f)));const invFit=pop.map(p=>isFinite(p.fitness)?maxFit-p.fitness:0);const total=invFit.reduce((s,i)=>s+i,0);if(total<=0)return tournamentSelection(pop);let pick=Math.random()*total;for(let i=0;i<pop.length;i++){pick-=invFit[i];if(pick<=0)return pop[i];}return pop[pop.length-1];}
         function rankSelection(pop){const ranks=pop.map((_,i)=>pop.length-i);const total=ranks.reduce((s,r)=>s+r,0);let pick=Math.random()*total;for(let i=0;i<pop.length;i++){pick-=ranks[i];if(pick<=0)return pop[i];}return pop[pop.length-1];}
         function boltzmannSelection(pop) { const T = state.boltzmann_temp; const values = pop.map(p => Math.exp(-p.fitness / T)); const total = values.reduce((s, v) => s + v, 0); if (total <= 0) return tournamentSelection(pop); let pick = Math.random() * total; for (let i=0; i < pop.length; i++) { pick -= values[i]; if (pick <= 0) return pop[i]; } return pop[pop.length - 1]; }
+        function stochasticUniversalSampling(pop) { const totalFitness = pop.reduce((sum, ind) => sum + ind.fitness, 0); const pointerDist = totalFitness / 2; const start = Math.random() * pointerDist; const pointers = [start, start + pointerDist]; const selected = []; pop.forEach(ind => { pointers.forEach((p, i) => { if (p < ind.fitness) { selected.push(ind); pointers[i] += totalFitness; } }); }); return selected[Math.floor(Math.random() * selected.length)] || pop[0]; }
+        function truncationSelection(pop) { const count = Math.floor(pop.length * state.truncation_percent); return pop[Math.floor(Math.random() * count)]; }
         function singlePointCrossover(p1,p2){const cp=1+Math.floor(Math.random()*(p1.genes.length-2));return[{genes:p1.genes.slice(0,cp).concat(p2.genes.slice(cp)),f:0},{genes:p2.genes.slice(0,cp).concat(p1.genes.slice(cp)),f:0}];}
         function twoPointCrossover(p1,p2){let cp1=Math.floor(Math.random()*p1.genes.length),cp2=Math.floor(Math.random()*p1.genes.length);if(cp1>cp2)[cp1,cp2]=[cp2,cp1];return[{genes:p1.genes.slice(0,cp1).concat(p2.genes.slice(cp1,cp2)).concat(p1.genes.slice(cp2)),f:0},{genes:p2.genes.slice(0,cp1).concat(p1.genes.slice(cp1,cp2)).concat(p2.genes.slice(cp2)),f:0}];}
         function uniformCrossover(p1,p2){const c1g=[],c2g=[];for(let i=0;i<p1.genes.length;i++){if(Math.random()<0.5){c1g.push(p1.genes[i]);c2g.push(p2.genes[i]);}else{c1g.push(p2.genes[i]);c2g.push(p1.genes[i]);}}return[{genes:c1g,f:0},{genes:c2g,f:0}];}
-        function arithmeticCrossover(p1,p2){const a=Math.random(),c1g=[],c2g=[];for(let i=0;i<p1.genes.length;i++){c1g.push(a*p1.genes[i]+(1-a)*p2.genes[i]);c2g.push((1-a)*p1.genes[i]+a*p2.genes[i]);}return[{genes:c1g,f:0},{genes:c2g,f:0}];}
+        function arithmeticCrossover(p1,p2){const a=state.arithmetic_alpha,c1g=[],c2g=[];for(let i=0;i<p1.genes.length;i++){c1g.push(a*p1.genes[i]+(1-a)*p2.genes[i]);c2g.push((1-a)*p1.genes[i]+a*p2.genes[i]);}return[{genes:c1g,f:0},{genes:c2g,f:0}];}
+        function blendCrossover(p1, p2) { const alpha = state.blx_alpha; const c1g = [], c2g = []; for (let i = 0; i < p1.genes.length; i++) { const d = Math.abs(p1.genes[i] - p2.genes[i]); const min = Math.min(p1.genes[i], p2.genes[i]) - alpha * d; const max = Math.max(p1.genes[i], p2.genes[i]) + alpha * d; c1g.push(min + Math.random() * (max - min)); c2g.push(min + Math.random() * (max - min)); } return [{genes:c1g, f:0}, {genes:c2g, f:0}]; }
+        function simulatedBinaryCrossover(p1, p2) { const eta = state.sbx_eta; const c1g = [], c2g = []; for (let i = 0; i < p1.genes.length; i++) { const u = Math.random(); let beta; if (u <= 0.5) { beta = (2 * u)**(1 / (eta + 1)); } else { beta = (1 / (2 * (1 - u)))**(1 / (eta + 1)); } c1g.push(0.5 * (((1 + beta) * p1.genes[i]) + (1 - beta) * p2.genes[i])); c2g.push(0.5 * (((1 - beta) * p1.genes[i]) + (1 + beta) * p2.genes[i])); } return [{genes:c1g, f:0}, {genes:c2g, f:0}];}
         function mutate(ind){for(let i=0;i<ind.genes.length;i++){if(Math.random()<state.mutationRate){ind.genes[i]+=(Math.random()-0.5)*state.mutationRate*5;}}}
 
         // --- 3D VISUALIZATION ---
