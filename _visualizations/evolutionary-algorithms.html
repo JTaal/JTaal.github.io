@@ -39,11 +39,21 @@
         <div class="flex items-center gap-2">
             <span class="text-sm font-medium text-gray-400">Landscape:</span>
             <select id="landscape-selector" class="rounded-md text-sm p-1">
-                <option value="sphere">🟢 Sphere (Easy)</option>
-                <option value="ackley">🟡 Ackley (Medium)</option>
-                <option value="himmelblau">🟡 Himmelblau's (Medium)</option>
-                <option value="rastrigin">🔴 Rastrigin (Hard)</option>
-                <option value="rosenbrock">🔴 Rosenbrock (Hard)</option>
+                <option value="sphere">🟢 Sphere</option>
+                <option value="booth">🟢 Booth's</option>
+                <option value="matyas">🟢 Matyas</option>
+                <option value="ackley">🟡 Ackley</option>
+                <option value="himmelblau">🟡 Himmelblau's</option>
+                <option value="beale">🟡 Beale</option>
+                <option value="goldstein">🟡 Goldstein-Price</option>
+                <option value="levi">🟡 Lévi No.13</option>
+                <option value="three_hump">🟡 Three-Hump Camel</option>
+                <option value="rastrigin">🔴 Rastrigin</option>
+                <option value="rosenbrock">🔴 Rosenbrock</option>
+                <option value="bukin">🔴 Bukin No.6</option>
+                <option value="easom">🔴 Easom</option>
+                <option value="cross_in_tray">🔴 Cross-in-Tray</option>
+                <option value="eggholder">🔴 Eggholder</option>
             </select>
         </div>
         <div class="border-l border-gray-600 h-8 hidden md:block"></div>
@@ -106,8 +116,12 @@
                         <label class="block text-sm font-medium text-gray-300">Landscape Scale: <span id="landscapeScaleValue" class="font-bold text-blue-400">200</span></label>
                         <input id="landscapeScale" type="range" min="50" max="400" step="10" value="200" class="w-full h-2 bg-gray-700 rounded-lg slider">
                     </div>
+                     <div>
+                        <label class="block text-sm font-medium text-gray-300">Initial Spawn Range (%): <span id="spawnRangeValue" class="font-bold text-blue-400">100</span></label>
+                        <input id="spawnRange" type="range" min="10" max="100" step="5" value="100" class="w-full h-2 bg-gray-700 rounded-lg slider">
+                    </div>
                     <div id="landscape-params-container" class="space-y-2">
-                        <p id="sphere-params" class="text-xs text-gray-400">The Sphere function has no tunable parameters.</p>
+                        <p id="no-params" class="text-xs text-gray-400">This function has no tunable parameters.</p>
                         <div id="ackley-params" class="hidden space-y-2">
                             <div>
                                 <label class="block text-xs font-medium text-gray-300">a (Amplitude): <span id="ackley_a_value">20</span></label>
@@ -124,21 +138,17 @@
                                 <input id="rastrigin_a" type="range" min="1" max="20" step="1" value="10" class="w-full h-2 bg-gray-700 rounded-lg slider">
                             </div>
                         </div>
-                         <div id="himmelblau-params" class="hidden space-y-2">
-                             <p class="text-xs text-gray-400">Himmelblau's function has no tunable parameters.</p>
-                        </div>
-                         <div id="rosenbrock-params" class="hidden space-y-2">
-                             <p class="text-xs text-gray-400">Rosenbrock's function has no tunable parameters.</p>
-                        </div>
                     </div>
                  </div>
             </div>
              <div>
-                <h4 class="settings-section-header text-sm">Landscape Colors</h4>
+                <h4 class="settings-section-header text-sm">Colors</h4>
                 <div class="grid grid-cols-2 gap-2">
-                    <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">High Fitness</label><input id="landscapeColorHigh" type="color" value="#00bfff"></div>
+                    <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">High Fitness</label><input id="landscapeColorHigh" type="color" value="#22d3ee"></div>
                     <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">Low Fitness</label><input id="landscapeColorLow" type="color" value="#4f46e5"></div>
                     <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">Contours</label><input id="landscapeColorContour" type="color" value="#9ca3af"></div>
+                    <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">Vector (High)</label><input id="vectorColorHigh" type="color" value="#22c55e"></div>
+                    <div class="flex items-center justify-between"><label class="text-sm font-medium text-gray-300">Vector (Low)</label><input id="vectorColorLow" type="color" value="#ef4444"></div>
                 </div>
             </div>
         </div>
@@ -250,8 +260,9 @@
             speed: 5, generation: 0,
             population: [], selectionFn: tournamentSelection, crossoverFn: singlePointCrossover,
             cma: { mean: new THREE.Vector3(), covarianceMatrix: new THREE.Matrix3().identity() },
-            landscapeRes: 150, pointSize: 0.4, showContours: false, landscapeScale: 200,
-            landscapeColorHigh: '#00bfff', landscapeColorLow: '#4f46e5', landscapeColorContour: '#9ca3af',
+            landscapeRes: 150, pointSize: 0.4, showContours: false, landscapeScale: 200, spawnRange: 100,
+            landscapeColorHigh: '#22d3ee', landscapeColorLow: '#4f46e5', landscapeColorContour: '#9ca3af',
+            vectorColorHigh: '#22c55e', vectorColorLow: '#ef4444',
             landscapeParams: { ackley_a: 20, ackley_b: 0.2, rastrigin_a: 10 }
         };
 
@@ -301,14 +312,14 @@
             pointSizeValue: document.getElementById('pointSizeValue'),
             landscapeScaleSlider: document.getElementById('landscapeScale'),
             landscapeScaleValue: document.getElementById('landscapeScaleValue'),
+            spawnRangeSlider: document.getElementById('spawnRange'),
+            spawnRangeValue: document.getElementById('spawnRangeValue'),
             gaAlgoSelector: document.getElementById('ga-algo-selector'),
             esAlgoSelector: document.getElementById('es-algo-selector'),
             landscapeParams: {
-                sphere: document.getElementById('sphere-params'),
+                no_params: document.getElementById('no-params'),
                 ackley: document.getElementById('ackley-params'),
                 rastrigin: document.getElementById('rastrigin-params'),
-                himmelblau: document.getElementById('himmelblau-params'),
-                rosenbrock: document.getElementById('rosenbrock-params'),
                 ackley_a: document.getElementById('ackley_a'),
                 ackley_a_value: document.getElementById('ackley_a_value'),
                 ackley_b: document.getElementById('ackley_b'),
@@ -323,7 +334,17 @@
             ackley: { fn: (x, z, p) => (-p.ackley_a * Math.exp(-p.ackley_b * Math.sqrt(0.5 * (x*x + z*z))) - Math.exp(0.5 * (Math.cos(2 * Math.PI * x) + Math.cos(2 * Math.PI * z))) + p.ackley_a + Math.E) / 2, optimum: new THREE.Vector3(0, 0, 0), domain: 32.768 },
             rastrigin: { fn: (x, z, p) => (p.rastrigin_a * 2 + (x*x - p.rastrigin_a * Math.cos(2 * Math.PI * x)) + (z*z - p.rastrigin_a * Math.cos(2 * Math.PI * z))) / 10, optimum: new THREE.Vector3(0, 0, 0), domain: 5.12 },
             himmelblau: { fn: (x, z, p) => ((x*x + z - 11)**2 + (x + z*z - 7)**2) / 100, optimum: new THREE.Vector3(3, 2, 0), domain: 6 },
-            rosenbrock: { fn: (x, z, p) => ((1-x)**2 + 100 * (z - x*x)**2) / 100, optimum: new THREE.Vector3(1, 1, 0), domain: 2.048}
+            rosenbrock: { fn: (x, z, p) => ((1-x)**2 + 100 * (z - x*x)**2) / 100, optimum: new THREE.Vector3(1, 1, 0), domain: 2.048},
+            beale: { fn: (x, z, p) => ((1.5 - x + x*z)**2 + (2.25 - x + x*z*z)**2 + (2.625 - x + x*z**3)**2) / 100, optimum: new THREE.Vector3(3, 0.5, 0), domain: 4.5},
+            goldstein: { fn: (x, z, p) => ( (1 + (x+z+1)**2 * (19 - 14*x + 3*x**2 - 14*z + 6*x*z + 3*z**2)) * (30 + (2*x-3*z)**2 * (18 - 32*x + 12*x**2 + 48*z - 36*x*z + 27*z**2)) ) / 100000, optimum: new THREE.Vector3(0, -1, 0), domain: 2},
+            booth: { fn: (x, z, p) => ((x + 2*z - 7)**2 + (2*x + z - 5)**2) / 100, optimum: new THREE.Vector3(1, 3, 0), domain: 10},
+            bukin: { fn: (x, z, p) => 100 * Math.sqrt(Math.abs(z - 0.01*x**2)) + 0.01 * Math.abs(x + 10), optimum: new THREE.Vector3(-10, 1, 0), domain: 15},
+            matyas: { fn: (x, z, p) => 0.26 * (x**2 + z**2) - 0.48 * x * z, optimum: new THREE.Vector3(0,0,0), domain: 10},
+            levi: { fn: (x, z, p) => Math.sin(3*Math.PI*x)**2 + (x-1)**2 * (1+Math.sin(3*Math.PI*z)**2) + (z-1)**2 * (1+Math.sin(2*Math.PI*z)**2), optimum: new THREE.Vector3(1,1,0), domain: 10},
+            three_hump: { fn: (x, z, p) => 2*x**2 - 1.05*x**4 + x**6/6 + x*z + z**2, optimum: new THREE.Vector3(0,0,0), domain: 5},
+            easom: { fn: (x, z, p) => -Math.cos(x)*Math.cos(z)*Math.exp(-((x-Math.PI)**2 + (z-Math.PI)**2)) + 2, optimum: new THREE.Vector3(Math.PI, Math.PI, 0), domain: 10},
+            cross_in_tray: { fn: (x, z, p) => -0.0001 * (Math.abs(Math.sin(x)*Math.sin(z)*Math.exp(Math.abs(100 - Math.sqrt(x**2+z**2)/Math.PI))) + 1)**0.1 + 2, optimum: new THREE.Vector3(1.34941, 1.34941, 0), domain: 10},
+            eggholder: { fn: (x, z, p) => -(z+47)*Math.sin(Math.sqrt(Math.abs(x/2 + (z+47)))) - x*Math.sin(Math.sqrt(Math.abs(x-(z+47)))) / 100 + 5, optimum: new THREE.Vector3(512, 404.2319, 0), domain: 512}
         };
 
         init();
@@ -367,6 +388,7 @@
             ui.landscapeResSlider.addEventListener('input', e => ui.landscapeResValue.textContent = e.target.value);
             ui.pointSizeSlider.addEventListener('input', e => ui.pointSizeValue.textContent = parseFloat(e.target.value).toFixed(1));
             ui.landscapeScaleSlider.addEventListener('input', e => ui.landscapeScaleValue.textContent = e.target.value);
+            ui.spawnRangeSlider.addEventListener('input', e => ui.spawnRangeValue.textContent = e.target.value);
             ui.landscapeParams.ackley_a.addEventListener('input', e => ui.landscapeParams.ackley_a_value.textContent = e.target.value);
             ui.landscapeParams.ackley_b.addEventListener('input', e => ui.landscapeParams.ackley_b_value.textContent = parseFloat(e.target.value).toFixed(2));
             ui.landscapeParams.rastrigin_a.addEventListener('input', e => ui.landscapeParams.rastrigin_a_value.textContent = e.target.value);
@@ -376,12 +398,15 @@
                 state.pointSize = parseFloat(ui.pointSizeSlider.value);
                 state.showContours = document.getElementById('showContours').checked;
                 state.landscapeScale = parseInt(ui.landscapeScaleSlider.value);
+                state.spawnRange = parseInt(ui.spawnRangeSlider.value);
                 state.landscapeParams.ackley_a = parseFloat(ui.landscapeParams.ackley_a.value);
                 state.landscapeParams.ackley_b = parseFloat(ui.landscapeParams.ackley_b.value);
                 state.landscapeParams.rastrigin_a = parseFloat(ui.landscapeParams.rastrigin_a.value);
                 state.landscapeColorHigh = document.getElementById('landscapeColorHigh').value;
                 state.landscapeColorLow = document.getElementById('landscapeColorLow').value;
                 state.landscapeColorContour = document.getElementById('landscapeColorContour').value;
+                state.vectorColorHigh = document.getElementById('vectorColorHigh').value;
+                state.vectorColorLow = document.getElementById('vectorColorLow').value;
                 ui.settingsPanel.classList.add('hidden');
                 resetSimulation();
             });
@@ -444,7 +469,8 @@
         function updateLandscapeParamUI() {
             Object.values(ui.landscapeParams).forEach(el => { if (el.tagName === 'DIV' || el.tagName === 'P') el.classList.add('hidden'); });
             const activeParams = ui.landscapeParams[state.landscape];
-            if (activeParams) activeParams.classList.remove('hidden');
+            if (activeParams) { activeParams.classList.remove('hidden'); }
+            else { ui.landscapeParams.no_params.classList.remove('hidden'); }
         }
 
         // --- ALGORITHMS ---
@@ -455,7 +481,7 @@
         function runCMAESGeneration(){const best=state.population.slice(0,Math.floor(state.populationSize*0.25));const newMean=new THREE.Vector3(0,0,0);best.forEach(ind=>newMean.add(new THREE.Vector3().fromArray(ind.genes)));newMean.divideScalar(best.length);state.cma.mean.lerp(newMean,0.1);const bestVec=new THREE.Vector3().fromArray(best[0].genes).normalize();const randVec=new THREE.Vector3(Math.random(),Math.random(),Math.random()).normalize();const axis2=new THREE.Vector3().crossVectors(bestVec,randVec).normalize();const axis3=new THREE.Vector3().crossVectors(bestVec,axis2).normalize();state.cma.covarianceMatrix.set(bestVec.x,axis2.x,axis3.x,bestVec.y,axis2.y,axis3.y,bestVec.z,axis2.z,axis3.z);state.population=[];for(let i=0;i<state.populationSize;i++){const s=new THREE.Vector3((Math.random()-0.5)*2,(Math.random()-0.5)*2,(Math.random()-0.5)*2);s.multiplyScalar(state.cma_sigma * 5); s.applyMatrix3(state.cma.covarianceMatrix); s.add(state.cma.mean); state.population.push({genes:s.toArray(),fitness:0});}}
         function runPSOGeneration() { const c1 = 1.5, c2 = 1.5; const gBest = state.population[0]; state.population.forEach(p => { for(let i=0; i < p.genes.length; i++) { const r1 = Math.random(), r2 = Math.random(); p.velocity[i] = state.pso_w * p.velocity[i] + c1 * r1 * (p.pBest.genes[i] - p.genes[i]) + c2 * r2 * (gBest.genes[i] - p.genes[i]); p.genes[i] += p.velocity[i]; } p.fitness = evaluateFitness(p.genes); if (p.fitness < p.pBest.fitness) { p.pBest = {genes: [...p.genes], fitness: p.fitness}; } }); }
         function runSAGeneration() { const current = state.population[0]; const neighbor = {genes: [...current.genes], fitness: 0}; const domain = landscapes[state.landscape].domain; for (let i = 0; i < neighbor.genes.length; i++) { neighbor.genes[i] += (Math.random() - 0.5) * (state.sa_temp / 1000) * domain; } neighbor.fitness = evaluateFitness(neighbor.genes); const delta = neighbor.fitness - current.fitness; if (delta < 0 || Math.exp(-delta / state.sa_temp) > Math.random()) { state.population[0] = neighbor; } state.sa_temp *= 0.99; }
-        function initializePopulation(){state.population=[]; const halfScale = state.landscapeScale / 2; state.cma.mean=new THREE.Vector3((Math.random()-0.5)*halfScale,(Math.random()-0.5)*halfScale,(Math.random()-0.5)*halfScale);state.cma.covarianceMatrix.identity();for(let i=0;i<state.populationSize;i++){ const ind = {genes:[(Math.random()-0.5)*state.landscapeScale,(Math.random()-0.5)*20,(Math.random()-0.5)*state.landscapeScale], fitness:Infinity}; if (state.algorithm === 'pso') { ind.velocity = [0,0,0]; ind.pBest = {genes:[...ind.genes], fitness: Infinity}; } state.population.push(ind); } state.sa_temp = parseFloat(ui.saTempSlider.value); }
+        function initializePopulation(){state.population=[]; const spawnSize = state.landscapeScale * (state.spawnRange / 100); const halfSpawn = spawnSize / 2; state.cma.mean=new THREE.Vector3((Math.random()-0.5)*halfSpawn,(Math.random()-0.5)*halfSpawn,(Math.random()-0.5)*halfSpawn);state.cma.covarianceMatrix.identity();for(let i=0;i<state.populationSize;i++){ const ind = {genes:[(Math.random()-0.5)*spawnSize,(Math.random()-0.5)*20,(Math.random()-0.5)*spawnSize], fitness:Infinity}; if (state.algorithm === 'pso') { ind.velocity = [0,0,0]; ind.pBest = {genes:[...ind.genes], fitness: Infinity}; } state.population.push(ind); } state.sa_temp = parseFloat(ui.saTempSlider.value); }
         function evaluateFitness(genes){return landscapes[state.landscape].fn(genes[0], genes[2], state.landscapeParams);}
         function tournamentSelection(pop){const size=5;let best=pop[Math.floor(Math.random()*pop.length)];for(let i=1;i<size;i++){const cont=pop[Math.floor(Math.random()*pop.length)];if(cont.fitness<best.fitness)best=cont;}return best;}
         function rouletteWheelSelection(pop){const maxFit=Math.max(...pop.map(p=>p.fitness).filter(f=>isFinite(f)));const invFit=pop.map(p=>isFinite(p.fitness)?maxFit-p.fitness:0);const total=invFit.reduce((s,i)=>s+i,0);if(total<=0)return tournamentSelection(pop);let pick=Math.random()*total;for(let i=0;i<pop.length;i++){pick-=invFit[i];if(pick<=0)return pop[i];}return pop[pop.length-1];}
@@ -503,7 +529,7 @@
                 const outputPointsGeom = new THREE.BufferGeometry();
                 outputPointsGeom.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(state.populationSize * 3), 3));
                 outputSpacePoints = new THREE.Points(outputPointsGeom, new THREE.PointsMaterial({ color: 0x60a5fa, size: 0.8 }));
-                ioSpaceView.add(outputPointsGeom);
+                ioSpaceView.add(outputSpacePoints);
                 const lineGeom = new THREE.BufferGeometry();
                 lineGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(state.populationSize * 6), 3));
                 ioConnectors = new THREE.LineSegments(lineGeom, new THREE.LineBasicMaterial({color: 0x6b7280, transparent: true, opacity: 0.3}));
@@ -634,8 +660,8 @@
                 const popColors = populationPoints.geometry.attributes.color.array;
                 const eliteCount = Math.floor(state.populationSize * (state.eliteSize / 100));
                 const eliteColor = new THREE.Color(0xf472b6);
-                const hotColor = new THREE.Color(0xff4500);
-                const coolColor = new THREE.Color(0x00bfff);
+                const hotColor = new THREE.Color(state.vectorColorLow);
+                const coolColor = new THREE.Color(state.vectorColorHigh);
                 const nonElitePop = state.population.slice(eliteCount);
                 const minFitness = nonElitePop.length > 0 ? nonElitePop[0].fitness : 0;
                 const maxFitness = nonElitePop.length > 0 ? nonElitePop[nonElitePop.length - 1].fitness : minFitness;
