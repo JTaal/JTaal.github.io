@@ -155,6 +155,46 @@
         .surprisal-gradient {
             background-image: linear-gradient( to right, hsl(240, 90%, 60%), hsl(180, 90%, 60%), hsl(120, 90%, 60%), hsl(60, 90%, 60%), hsl(0, 90%, 60%) );
         }
+        #settings-button {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            z-index: 10;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #settings-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px) rotate(45deg);
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding-top: 1rem;
+            padding-bottom: 2rem;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+        #close-settings {
+            font-size: 2.5rem;
+            line-height: 1;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -179,6 +219,11 @@
                 <div class="chart-container">
                     <canvas id="shannon-growth-chart"></canvas>
                 </div>
+                 <h3 class="font-bold text-lg text-indigo-400 mt-4">The Classic Coin Flip</h3>
+                <p class="text-sm text-gray-300">This graph shows the entropy of a single coin flip. Entropy is lowest (0) when the outcome is certain (an unfair coin that always lands on heads or tails). It reaches its maximum (1 bit) when the coin is fair (p=0.5), representing the highest uncertainty.</p>
+                <div class="chart-container">
+                    <canvas id="coin-flip-chart"></canvas>
+                </div>
              </div>
              <div id="differential-explanation-content">
                 <h3 class="font-bold text-lg text-teal-400 mt-4">Probability Density (PDF)</h3>
@@ -192,14 +237,67 @@
     
     <div id="controls-panel" class="ui-panel"></div>
 
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+    </button>
+    
+    <div id="settings-panel" class="ui-panel">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div class="space-y-6">
+            <div class="control-group text-left w-full">
+                <label for="particle-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Particle Count:</span>
+                    <span id="particle-count-value">2000</span>
+                </label>
+                <input id="particle-slider" type="range" min="100" max="5000" step="100" value="2000" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="energy-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>System Energy (Temp):</span>
+                    <span id="energy-value">1.0x</span>
+                </label>
+                <input id="energy-slider" type="range" min="0.1" max="5" step="0.1" value="1.0" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="particle-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Particle Size:</span>
+                    <span id="particle-size-value">0.10</span>
+                </label>
+                <input id="particle-size-slider" type="range" min="0.02" max="0.5" step="0.01" value="0.1" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="graphics-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Graphics Quality:</span>
+                    <span id="graphics-quality-value">High</span>
+                </label>
+                <input id="graphics-slider" type="range" min="0.5" max="2" step="0.1" value="1.5" class="w-full">
+                 <div class="text-xs text-gray-500 w-full flex justify-between mt-1">
+                    <span>Low</span>
+                    <span>Native</span>
+                    <span>High</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
 <script type="module">
-    let scene, camera, renderer, controls;
+    let scene, camera, renderer, controls, raycaster, mouse;
     let activeSceneObjects = new THREE.Group();
-    let raycaster, mouse;
-    const fontLoader = new THREE.FontLoader();
-    let mainFont = null;
+    let currentParticleSystem = null;
     let particles = [];
-    const NUM_PARTICLES = 2000;
+    
+    // --- Global Settings ---
+    let particleCount = 2000;
+    let particleSize = 0.1;
+    let systemEnergy = 1.0;
+
     let shannonGrowthChart, differentialInfoChart;
 
     const concepts = {
@@ -217,8 +315,8 @@
         },
         boltzmann_entropy: {
             title: 'Boltzmann Entropy',
-            description: 'This concept from physics relates the statistical randomness of a system (the number of possible microscopic arrangements, W) to its overall entropy (S). Drag the barrier or use the new controls to change the system\'s constraints.',
-            formula: 'S = k<sub>B</sub> ln(W)',
+            description: 'This concept from physics relates the statistical randomness of a system (the number of possible microscopic arrangements, W) to its overall entropy (S). This view shows the CHANGE in entropy (ΔS) as a system expands.',
+            formula: '&#916;S = k<sub>B</sub> ln(W<sub>final</sub> / W<sub>initial</sub>)',
             init: initBoltzmann,
         }
     };
@@ -230,7 +328,6 @@
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -244,12 +341,10 @@
         scene.add(new THREE.PointLight(0xffffff, 0.8, 100));
         scene.add(activeSceneObjects);
 
-        fontLoader.load('https://cdn.jsdelivr.net/npm/three/examples/fonts/helvetiker_regular.typeface.json', (font) => {
-            mainFont = font;
-            createMenu();
-            setupInfoPanelCharts();
-            switchConcept('shannon_entropy');
-        });
+        createMenu();
+        setupInfoPanelCharts();
+        setupSettingsPanel();
+        switchConcept('shannon_entropy');
         
         window.addEventListener('resize', onWindowResize, false);
         document.getElementById('info-panel').addEventListener('click', (e) => {
@@ -267,6 +362,7 @@
     function switchConcept(key) {
         if (key === currentConceptKey) return;
         currentCleanup();
+        currentParticleSystem = null;
         while(activeSceneObjects.children.length > 0) { 
             const obj = activeSceneObjects.children[0];
             if (obj.geometry) obj.geometry.dispose();
@@ -304,35 +400,96 @@
         });
     }
 
+    function setupSettingsPanel() {
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsButton = document.getElementById('settings-button');
+        const closeSettingsButton = document.getElementById('close-settings');
+        
+        const particleSlider = document.getElementById('particle-slider');
+        const particleCountValue = document.getElementById('particle-count-value');
+        const graphicsSlider = document.getElementById('graphics-slider');
+        const graphicsQualityValue = document.getElementById('graphics-quality-value');
+        const energySlider = document.getElementById('energy-slider');
+        const energyValue = document.getElementById('energy-value');
+        const particleSizeSlider = document.getElementById('particle-size-slider');
+        const particleSizeValue = document.getElementById('particle-size-value');
+
+        const initialPixelRatio = Math.min(window.devicePixelRatio, 2);
+        graphicsSlider.value = initialPixelRatio;
+        renderer.setPixelRatio(initialPixelRatio);
+        updateGraphicsLabel(initialPixelRatio);
+
+        settingsButton.addEventListener('click', () => settingsPanel.classList.add('open'));
+        closeSettingsButton.addEventListener('click', () => settingsPanel.classList.remove('open'));
+
+        particleSlider.addEventListener('input', (e) => particleCountValue.textContent = e.target.value);
+        particleSlider.addEventListener('change', (e) => {
+            particleCount = parseInt(e.target.value, 10);
+            resetCurrentConcept(); 
+        });
+
+        energySlider.addEventListener('input', (e) => {
+            systemEnergy = parseFloat(e.target.value);
+            energyValue.textContent = `${systemEnergy.toFixed(1)}x`;
+        });
+        
+        particleSizeSlider.addEventListener('input', (e) => {
+            particleSize = parseFloat(e.target.value);
+            particleSizeValue.textContent = particleSize.toFixed(2);
+            if(currentParticleSystem) {
+                currentParticleSystem.material.size = particleSize;
+            }
+        });
+
+        graphicsSlider.addEventListener('input', (e) => {
+            const quality = parseFloat(e.target.value);
+            renderer.setPixelRatio(quality);
+            updateGraphicsLabel(quality);
+        });
+
+        function updateGraphicsLabel(quality) {
+            if (quality < 0.8) graphicsQualityValue.textContent = "Low";
+            else if (quality < 1.5) graphicsQualityValue.textContent = "Medium";
+            else if (quality < 1.9) graphicsQualityValue.textContent = "High";
+            else graphicsQualityValue.textContent = "Ultra";
+        }
+    }
+
+    function resetCurrentConcept() {
+        if (!currentConceptKey) return;
+        const key = currentConceptKey;
+        currentConceptKey = null; // Trick switchConcept into reloading
+        switchConcept(key);
+    }
+
     function setupInfoPanelCharts() {
         const shannonCtx = document.getElementById('shannon-growth-chart').getContext('2d');
-        const labels = Array.from({length: 100}, (_, i) => i + 1);
+        const labels = Array.from({length: 1000}, (_, i) => i + 1);
         const data = labels.map(n => Math.log2(n));
         
         shannonGrowthChart = new Chart(shannonCtx, {
             type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'H_max = log2(N)', data: data, borderColor: '#818cf8', tension: 0.1, pointRadius: 0 },
-                    { label: 'Current N', data: [], type: 'scatter', backgroundColor: '#ef4444', pointRadius: 5 }
-                ]
-            },
-            options: {
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { 
-                    x: { title: { display: true, text: 'Number of States (N)', color: '#9ca3af'}, ticks: { color: '#9ca3af' }}, 
-                    y: { title: { display: true, text: 'Max Entropy (bits)', color: '#9ca3af'}, ticks: { color: '#9ca3af' }}
-                }
-            }
+            data: { labels: labels, datasets: [ { label: 'H_max = log2(N)', data: data, borderColor: '#818cf8', tension: 0.1, pointRadius: 0 }, { label: 'Current N', data: [], type: 'scatter', backgroundColor: '#ef4444', pointRadius: 5 } ] },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Number of States (N)', color: '#9ca3af'}, ticks: { color: '#9ca3af' }}, y: { title: { display: true, text: 'Max Entropy (bits)', color: '#9ca3af'}, ticks: { color: '#9ca3af' }} } }
+        });
+
+        const coinFlipCtx = document.getElementById('coin-flip-chart').getContext('2d');
+        const coinFlipData = [];
+        for (let i = 0; i <= 100; i++) {
+            const p = i / 100;
+            if (p === 0 || p === 1) coinFlipData.push({x: p, y: 0});
+            else coinFlipData.push({x:p, y: -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p))});
+        }
+
+        new Chart(coinFlipCtx, {
+            type: 'line',
+            data: { datasets: [{ label: 'H(p)', data: coinFlipData, borderColor: '#f472b6', backgroundColor: 'rgba(244, 114, 182, 0.3)', fill: 'origin', tension: 0.1, pointRadius: 0 }] },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { type: 'linear', title: { display: true, text: 'Probability of Heads (p)', color: '#9ca3af' }, ticks: { color: '#9ca3af' } }, y: { title: { display: true, text: 'Entropy (bits)', color: '#9ca3af' }, ticks: { color: '#9ca3af' }, beginAtZero: true, max: 1.1 } } }
         });
 
         const diffCtx = document.getElementById('differential-pdf-chart').getContext('2d');
         differentialInfoChart = new Chart(diffCtx, {
-            type: 'line',
-            data: { datasets: [] },
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false }}, scales: { x: { type: 'linear', min: -10, max: 10, ticks: { color: '#9ca3af' }}, y: { beginAtZero: true, ticks: { color: '#9ca3af' }}} }
+            type: 'line', data: { datasets: [] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false }}, scales: { x: { type: 'linear', min: -10, max: 10, ticks: { color: '#9ca3af' }}, y: { beginAtZero: true, ticks: { color: '#9ca3af' }}} }
         });
     }
     
@@ -343,28 +500,28 @@
         shannonGrowthChart.update();
     }
     
-    function createParticles(count = NUM_PARTICLES, color = 0x818cf8) {
+    function createParticles(count, color = 0x818cf8) {
         particles = [];
         const geometry = new THREE.BufferGeometry();
         const positions = new Float32Array(count * 3);
         const colors = new Float32Array(count * 3);
-        const material = new THREE.PointsMaterial({ size: 0.1, blending: THREE.AdditiveBlending, transparent: true, sizeAttenuation: true, vertexColors: true });
+        const material = new THREE.PointsMaterial({ size: particleSize, blending: THREE.AdditiveBlending, transparent: true, sizeAttenuation: true, vertexColors: true });
         for (let i = 0; i < count; i++) {
             const [x,y,z] = [(Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10];
             positions.set([x,y,z], i*3);
             const baseColor = new THREE.Color(color);
             colors.set([baseColor.r, baseColor.g, baseColor.b], i * 3);
-            particles.push({ position: new THREE.Vector3(x, y, z), velocity: new THREE.Vector3() });
+            particles.push({ position: new THREE.Vector3(x, y, z), velocity: new THREE.Vector3(), lastY: y });
         }
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        const points = new THREE.Points(geometry, material);
-        activeSceneObjects.add(points);
-        return points;
+        currentParticleSystem = new THREE.Points(geometry, material);
+        activeSceneObjects.add(currentParticleSystem);
+        return currentParticleSystem;
     }
 
     function initShannon() {
-        const particleSystem = createParticles();
+        const particleSystem = createParticles(particleCount);
         let attractors = [];
         let distributions = [];
         let entropyText;
@@ -388,13 +545,13 @@
         function applyDistribution() {
             let particleIndex = 0;
             for (let i = 0; i < attractors.length; i++) {
-                const count = Math.round(NUM_PARTICLES * (distributions[i] || 0));
+                const count = Math.round(particleCount * (distributions[i] || 0));
                 for (let j = 0; j < count; j++) {
                     if (particles[particleIndex]) particles[particleIndex].attractorIndex = i;
                     particleIndex++;
                 }
             }
-             while(particleIndex < NUM_PARTICLES) {
+             while(particleIndex < particleCount) {
                  if (particles[particleIndex]) particles[particleIndex].attractorIndex = particleIndex % attractors.length;
                  particleIndex++;
             }
@@ -405,7 +562,7 @@
             controlsDiv.innerHTML = `
                 <div class="control-group">
                     <label for="states-input" class="text-sm font-medium">Number of States:</label>
-                    <input id="states-input" type="number" min="1" max="100" value="${numStates}" class="w-20">
+                    <input id="states-input" type="number" min="1" max="1000" value="${numStates}" class="w-20">
                 </div>
                 <div class="text-center text-3xl font-bold"><span id="entropy-value" class="text-white">1.00</span> bits</div>
                 <div id="dist-controls" class="flex items-center gap-4"></div>
@@ -424,28 +581,11 @@
             `;
             entropyText = document.getElementById('entropy-value');
             const statesInput = document.getElementById('states-input');
-            statesInput.addEventListener('focus', (e) => e.target.select());
             statesInput.addEventListener('input', (e) => {
-                let n = parseInt(e.target.value);
-                if (isNaN(n) || n < 1) return;
-                if (n > 100) n = 100;
-                e.target.value = n;
-                setup(n);
-                createDistributionControls(n);
+                let n = parseInt(e.target.value); if (isNaN(n) || n < 1) return; if (n > 1000) n = 1000; e.target.value = n; setup(n); createDistributionControls(n);
             });
-             statesInput.addEventListener('blur', (e) => {
-                 let n = parseInt(e.target.value);
-                if (isNaN(n) || n < 1) {
-                    e.target.value = 1;
-                    setup(1);
-                    createDistributionControls(1);
-                }
-            });
-
             document.getElementById('surprisal-toggle').addEventListener('click', (e) => {
-                surprisalMode = !surprisalMode;
-                e.target.classList.toggle('active', surprisalMode);
-                document.getElementById('surprisal-legend').classList.toggle('hidden', !surprisalMode);
+                surprisalMode = !surprisalMode; e.target.classList.toggle('active', surprisalMode); document.getElementById('surprisal-legend').classList.toggle('hidden', !surprisalMode);
             });
             createDistributionControls(numStates);
         }
@@ -453,17 +593,10 @@
         function createDistributionControls(numStates) {
             const distControlsDiv = document.getElementById('dist-controls');
             distControlsDiv.innerHTML = '';
-            if (numStates <= 1) {
-                distributions = [1];
-                applyDistribution();
-                return;
-            };
-
+            if (numStates <= 1) { distributions = [1]; applyDistribution(); return; };
             if (numStates <= 5) {
-                let sliderHTML = '<div class="flex flex-col gap-2 w-40">';
-                for(let i = 0; i < numStates - 1; i++) {
-                    sliderHTML += `<div><input class="dist-slider" data-index="${i}" type="range" min="0" max="1" step="0.01" value="${1/(numStates-i)}"></div>`;
-                }
+                let sliderHTML = '<div class="flex flex-col gap-2 w-full max-w-xs">';
+                for(let i = 0; i < numStates - 1; i++) sliderHTML += `<div><input class="dist-slider" data-index="${i}" type="range" min="0" max="1" step="0.01" value="${1/(numStates-i)}"></div>`;
                 sliderHTML += '</div>';
                 distControlsDiv.innerHTML = sliderHTML;
                 document.querySelectorAll('.dist-slider').forEach(s => s.addEventListener('input', handleSliderChange));
@@ -512,24 +645,25 @@
             const probs = new Array(attractors.length).fill(1e-9); 
             
             particles.forEach(p => {
-                if (probs[p.attractorIndex] !== undefined) probs[p.attractorIndex]++;
+                if (p.attractorIndex !== undefined && probs[p.attractorIndex] !== undefined) probs[p.attractorIndex]++;
             });
 
-            const normalizedProbs = probs.map(c => c / (NUM_PARTICLES + attractors.length * 1e-9));
+            const normalizedProbs = probs.map(c => c / (particleCount + attractors.length * 1e-9));
             const surprisals = normalizedProbs.map(p => -Math.log2(p));
             const maxSurprisal = Math.max(...surprisals, 1);
 
             normalizedProbs.forEach(p => {
-                entropy -= p * Math.log2(p);
+                if(p > 0) entropy -= p * Math.log2(p);
             });
 
             const defaultColor = new THREE.Color(0x818cf8);
             const surprisalColor = new THREE.Color();
+            const randomForce = 0.05 * systemEnergy;
 
             particles.forEach((p, i) => {
                 const attractor = attractors[p.attractorIndex];
                 if(attractor) p.velocity.add(attractor.position.clone().sub(p.position).multiplyScalar(0.002));
-                p.velocity.add(new THREE.Vector3((Math.random()-0.5)*0.05, (Math.random()-0.5)*0.05, (Math.random()-0.5)*0.05));
+                p.velocity.add(new THREE.Vector3((Math.random()-0.5)*randomForce, (Math.random()-0.5)*randomForce, (Math.random()-0.5)*randomForce));
                 p.velocity.multiplyScalar(0.95);
                 p.position.add(p.velocity);
                 positions.set([p.position.x, p.position.y, p.position.z], i*3);
@@ -556,7 +690,7 @@
     }
 
     function initDifferential() {
-        const particleSystem = createParticles();
+        const particleSystem = createParticles(particleCount);
         let boundingBox = new THREE.Box3(new THREE.Vector3(-5,-5,-5), new THREE.Vector3(5,5,5));
         let boxHelper = new THREE.Box3Helper(boundingBox, 0x0d9488);
         activeSceneObjects.add(boxHelper);
@@ -567,14 +701,13 @@
         function updatePDFChart() {
             const pdfDesc = document.getElementById('pdf-description');
             if (mode === 'uniform') {
-                const size = document.getElementById('size-slider').value;
-                const halfSize = parseFloat(size);
-                const volume = Math.pow(halfSize*2, 3);
+                const size = parseFloat(document.getElementById('size-slider').value);
+                const volume = Math.pow(size*2, 3);
                 const height = volume > 0 ? 1 / volume : 0;
                 pdfDesc.textContent = "For a uniform distribution, the PDF is a constant value within the volume. The area under this 'curve' must equal 1.";
-                differentialInfoChart.data = { datasets: [{ stepped: true, data: [{x: -halfSize, y: height}, {x: halfSize, y: height}], borderColor: '#facc15', backgroundColor: 'rgba(250, 204, 21, 0.3)', fill: {target: 'origin'} }] };
-                differentialInfoChart.options.scales.x.min = -halfSize - 1;
-                differentialInfoChart.options.scales.x.max = halfSize + 1;
+                differentialInfoChart.data = { datasets: [{ stepped: true, data: [{x: -size, y: height}, {x: size, y: height}], borderColor: '#facc15', backgroundColor: 'rgba(250, 204, 21, 0.3)', fill: {target: 'origin'} }] };
+                differentialInfoChart.options.scales.x.min = -size - 1;
+                differentialInfoChart.options.scales.x.max = size + 1;
             } else {
                 const sigma = Math.sqrt(variance);
                 pdfDesc.textContent = "For a Gaussian (Normal) distribution, the PDF is a bell curve. Higher variance means a wider, flatter curve, increasing entropy.";
@@ -601,12 +734,12 @@
                     </div>
                 </div>
                 <div id="uniform-controls" class="control-group">
-                    <label class="text-sm font-medium">Container Size: <span id="volume-value">1000</span> (Volume)</label>
-                    <input id="size-slider" type="range" min="0.1" max="25" step="0.1" value="5" class="w-48">
+                    <label class="text-sm font-medium">Container Half-Size: <span id="size-value">5.0</span></label>
+                    <input id="size-slider" type="range" min="0.1" max="10" step="0.1" value="5" class="w-full max-w-xs">
                 </div>
                  <div id="gaussian-controls" class="control-group hidden">
                     <label class="text-sm font-medium">Variance (&sigma;²): <span id="variance-value">5.0</span></label>
-                    <input id="variance-slider" type="range" min="0" max="100" step="1" value="50" class="w-48">
+                    <input id="variance-slider" type="range" min="0" max="100" step="1" value="50" class="w-full max-w-xs">
                 </div>
                 <div class="text-center text-3xl font-bold text-teal-400"><span id="entropy-value" class="text-white">9.97</span> bits</div>
             `;
@@ -624,17 +757,14 @@
 
             document.getElementById('size-slider').addEventListener('input', (e) => {
                 const size = parseFloat(e.target.value);
-                boundingBox.setFromCenterAndSize(new THREE.Vector3(), new THREE.Vector3(size, size, size));
-                const volume = Math.pow(size*2, 3);
-                document.getElementById('volume-value').textContent = volume.toFixed(0);
+                boundingBox.setFromCenterAndSize(new THREE.Vector3(), new THREE.Vector3(2*size, 2*size, 2*size));
+                document.getElementById('size-value').textContent = size.toFixed(1);
                 updatePDFChart();
             });
             document.getElementById('variance-slider').addEventListener('input', e => {
                 const sliderValue = parseFloat(e.target.value);
-                const minVar = 0.1;
-                const maxVar = 1000000;
-                const minLog = Math.log(minVar);
-                const maxLog = Math.log(maxVar);
+                const minVar = 0.1; const maxVar = 1000000;
+                const minLog = Math.log(minVar); const maxLog = Math.log(maxVar);
                 const scale = (maxLog - minLog) / 100;
                 const actualVariance = Math.exp(minLog + scale * sliderValue);
                 variance = actualVariance;
@@ -645,253 +775,201 @@
         }
         
         function update() {
-            const positions = particleSystem.geometry.attributes.position.array;
+             const positions = particleSystem.geometry.attributes.position.array;
+            const randomForce = 0.1 * systemEnergy;
             particles.forEach((p, i) => {
                 if (mode === 'uniform') {
-                    p.velocity.add(new THREE.Vector3((Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1));
+                    p.velocity.add(new THREE.Vector3((Math.random()-0.5)*randomForce, (Math.random()-0.5)*randomForce, (Math.random()-0.5)*randomForce));
                     p.position.add(p.velocity);
                     ['x', 'y', 'z'].forEach(axis => {
                         if (p.position[axis] < boundingBox.min[axis] || p.position[axis] > boundingBox.max[axis]) {
-                            p.position[axis] = THREE.MathUtils.clamp(p.position[axis], boundingBox.min[axis], boundingBox.max[axis]);
-                            p.velocity[axis] *= -0.8;
+                            p.position[axis] = THREE.MathUtils.clamp(p.position[axis], boundingBox.min[axis], boundingBox.max[axis]); p.velocity[axis] *= -0.8;
                         }
                     });
                     p.velocity.multiplyScalar(0.99);
-                } else {
+                } else { 
                     const restoringForce = p.position.clone().multiplyScalar(-0.005 / variance);
                     p.velocity.add(restoringForce);
-                    p.velocity.add(new THREE.Vector3((Math.random()-0.5)*0.05, (Math.random()-0.5)*0.05, (Math.random()-0.5)*0.05));
+                    p.velocity.add(new THREE.Vector3((Math.random()-0.5)*0.05*systemEnergy, (Math.random()-0.5)*0.05*systemEnergy, (Math.random()-0.5)*0.05*systemEnergy));
                     p.velocity.multiplyScalar(0.95);
                     p.position.add(p.velocity);
                 }
                 positions.set([p.position.x, p.position.y, p.position.z], i*3);
             });
             
-            let entropy = 0;
-            if (mode === 'uniform') {
-                const size = boundingBox.getSize(new THREE.Vector3());
-                const volume = size.x * size.y * size.z;
-                entropy = Math.log2(volume);
-            } else {
-                entropy = 0.5 * Math.log2(Math.pow(2 * Math.PI * Math.E * variance, 3));
-            }
-
+            let entropy = 0; if (mode === 'uniform') { const size = boundingBox.getSize(new THREE.Vector3()); const volume = size.x * size.y * size.z; entropy = Math.log2(volume); } else { entropy = 0.5 * Math.log2(Math.pow(2 * Math.PI * Math.E * variance, 3)); }
             if (entropyText) entropyText.textContent = entropy.toFixed(2);
             particleSystem.geometry.attributes.position.needsUpdate = true;
         }
 
         createControls();
+        updatePDFChart();
         return { update, cleanup: () => {} };
     }
     
     function initBoltzmann() {
-        const PARTICLE_COUNT = 500;
         const BOX_SIZE = 10;
-        const particleSystem = createParticles(PARTICLE_COUNT, 0xffa500);
+        const particleSystem = createParticles(particleCount, 0xffa500);
         let boundingBox = new THREE.Box3(new THREE.Vector3(-BOX_SIZE/2, -BOX_SIZE/2, -BOX_SIZE/2), new THREE.Vector3(BOX_SIZE/2, BOX_SIZE/2, BOX_SIZE/2));
         const boxHelper = new THREE.Box3Helper(boundingBox, 0xffffff);
+        const barrierGeo = new THREE.PlaneGeometry(BOX_SIZE, BOX_SIZE);
+        const barrierMat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.3, side: THREE.DoubleSide});
+        const barrier = new THREE.Mesh(barrierGeo, barrierMat);
+        barrier.rotation.x = Math.PI / 2;
         
         const sphereGeo = new THREE.SphereGeometry(BOX_SIZE/2, 32, 32);
         const sphereMat = new THREE.MeshBasicMaterial({color: 0xffffff, wireframe: true, transparent: true, opacity: 0.3});
         const sphereHelper = new THREE.Mesh(sphereGeo, sphereMat);
         sphereHelper.visible = false;
-        
-        activeSceneObjects.add(boxHelper, sphereHelper);
 
-        const barrierGeo = new THREE.PlaneGeometry(BOX_SIZE, BOX_SIZE);
-        const barrierMat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.3, side: THREE.DoubleSide});
-        const barrier = new THREE.Mesh(barrierGeo, barrierMat);
-        barrier.rotation.x = Math.PI / 2;
-        activeSceneObjects.add(barrier);
+        const sphericalBarrierGeo = new THREE.SphereGeometry(1, 32, 16);
+        const sphericalBarrierMat = new THREE.MeshBasicMaterial({color: 0xffa500, wireframe: true, transparent: true, opacity: 0.5});
+        const sphericalBarrier = new THREE.Mesh(sphericalBarrierGeo, sphericalBarrierMat);
+        sphericalBarrier.visible = false;
+        let sphericalBarrierRadius = BOX_SIZE / 4;
+        sphericalBarrier.scale.set(sphericalBarrierRadius, sphericalBarrierRadius, sphericalBarrierRadius);
 
-        let entropyText, barrierSlider;
-        let selectedObject = null;
+        activeSceneObjects.add(boxHelper, sphereHelper, barrier, sphericalBarrier);
+
+        let entropyText, barrierSlider, selectedObject = null;
         const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-        let shapeMode = 'cube';
-        let gravityMode = false;
-        let collisionsMode = false;
-        
+        let shapeMode = 'cube'; let gravityMode = false; let collisionsMode = false;
+
         function resetParticles() {
             particles.forEach(p => {
-                p.velocity.set((Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1);
+                p.velocity.set(0,0,0);
                 if(shapeMode === 'cube') {
-                    p.position.set(
-                        (Math.random() - 0.5) * BOX_SIZE,
-                        (Math.random() - 0.5) * (BOX_SIZE / 2) - (BOX_SIZE / 4),
-                        (Math.random() - 0.5) * BOX_SIZE
-                    );
+                    p.position.set( (Math.random() - 0.5) * BOX_SIZE, Math.random() * BOX_SIZE / 2, (Math.random() - 0.5) * BOX_SIZE );
                 } else {
-                     p.position.setFromSphericalCoords(
-                        Math.random() * BOX_SIZE/2,
-                        Math.acos(2 * Math.random() - 1),
-                        Math.random() * 2 * Math.PI
-                    );
+                     const r = sphericalBarrierRadius + Math.random() * (BOX_SIZE/2 - sphericalBarrierRadius);
+                     p.position.setFromSphericalCoords(r, Math.acos(2 * Math.random() - 1), Math.random() * 2 * Math.PI );
                 }
+                p.lastY = p.position.y;
             });
-            barrier.position.y = -BOX_SIZE/4;
-            if(barrierSlider) barrierSlider.value = -BOX_SIZE/4;
+            if (shapeMode === 'cube') {
+                barrier.position.y = 0;
+                if(barrierSlider) barrierSlider.value = 0;
+            }
         }
 
         function createControls() {
             const controlsDiv = document.getElementById('controls-panel');
             controlsDiv.innerHTML = `
-                <div class="control-group">
-                    <div class="text-center text-3xl font-bold my-2 text-orange-400">S ~ <span id="entropy-value" class="text-white">1.00</span></div>
-                </div>
-                <div class="flex gap-4">
-                    <button id="shape-toggle" class="toggle-button">Shape: Cube</button>
-                    <button id="gravity-toggle" class="toggle-button">Gravity: Off</button>
+                <div class="control-group"> <div class="text-center text-3xl font-bold my-2 text-orange-400">&#916;S ~ <span id="entropy-value" class="text-white">0.00</span></div> </div>
+                <div class="flex gap-4"> 
+                    <button id="shape-toggle" class="toggle-button">Shape: Cube</button> 
+                    <button id="gravity-toggle" class="toggle-button">Gravity: Off</button> 
                     <button id="collision-toggle" class="toggle-button">Collisions: Off</button>
                 </div>
-                <div id="barrier-controls" class="control-group">
-                    <label class="text-sm font-medium">Remove Barrier</label>
-                    <input id="barrier-slider" type="range" min="${-BOX_SIZE/2}" max="${BOX_SIZE/2}" step="0.1" value="0" class="w-48">
-                </div>
+                <div id="barrier-controls" class="control-group"> <label class="text-sm font-medium">Floor Position</label> <input id="barrier-slider" type="range" min="${-BOX_SIZE/2}" max="${BOX_SIZE/2}" step="0.01" value="0" class="w-full max-w-xs"> </div>
+                <div id="sphere-barrier-controls" class="control-group hidden"> <label class="text-sm font-medium">Inner Barrier Radius: <span id="radius-value">${sphericalBarrierRadius.toFixed(1)}</span></label> <input id="sphere-barrier-slider" type="range" min="0" max="${BOX_SIZE/2}" step="0.01" value="${sphericalBarrierRadius}" class="w-full max-w-xs"> </div>
             `;
             entropyText = document.getElementById('entropy-value');
             barrierSlider = document.getElementById('barrier-slider');
-            const shapeBtn = document.getElementById('shape-toggle');
-            const gravityBtn = document.getElementById('gravity-toggle');
-            const collisionBtn = document.getElementById('collision-toggle');
-            const barrierControls = document.getElementById('barrier-controls');
+            const shapeBtn = document.getElementById('shape-toggle'); const gravityBtn = document.getElementById('gravity-toggle'); const collisionBtn = document.getElementById('collision-toggle');
+            const barrierControls = document.getElementById('barrier-controls'); const sphereBarrierControls = document.getElementById('sphere-barrier-controls');
+            const sphereBarrierSlider = document.getElementById('sphere-barrier-slider'); const radiusValueSpan = document.getElementById('radius-value');
 
             shapeBtn.addEventListener('click', () => {
-                shapeMode = shapeMode === 'cube' ? 'sphere' : 'cube';
-                shapeBtn.textContent = `Shape: ${shapeMode === 'cube' ? 'Cube' : 'Sphere'}`;
-                boxHelper.visible = shapeMode === 'cube';
-                sphereHelper.visible = shapeMode === 'sphere';
-                barrier.visible = shapeMode === 'cube';
-                barrierControls.classList.toggle('hidden', shapeMode !== 'cube');
-                resetParticles();
+                shapeMode = shapeMode === 'cube' ? 'sphere' : 'cube'; shapeBtn.textContent = `Shape: ${shapeMode === 'cube' ? 'Cube' : 'Sphere'}`;
+                boxHelper.visible = shapeMode === 'cube'; sphereHelper.visible = shapeMode === 'sphere'; barrier.visible = shapeMode === 'cube'; sphericalBarrier.visible = shapeMode === 'sphere';
+                barrierControls.classList.toggle('hidden', shapeMode !== 'cube'); sphereBarrierControls.classList.toggle('hidden', shapeMode !== 'sphere'); resetParticles();
             });
-            
-            gravityBtn.addEventListener('click', () => {
-                gravityMode = !gravityMode;
-                gravityBtn.textContent = `Gravity: ${gravityMode ? 'On' : 'Off'}`;
-                gravityBtn.classList.toggle('active', gravityMode);
-            });
-
-            collisionBtn.addEventListener('click', () => {
-                collisionsMode = !collisionsMode;
-                collisionBtn.textContent = `Collisions: ${collisionsMode ? 'On' : 'Off'}`;
-                collisionBtn.classList.toggle('active', collisionsMode);
-            });
-            
-            barrierSlider.addEventListener('input', (e) => {
-                const val = parseFloat(e.target.value);
-                barrier.position.y = val;
+            gravityBtn.addEventListener('click', () => { gravityMode = !gravityMode; gravityBtn.textContent = `Gravity: ${gravityMode ? 'On' : 'Off'}`; gravityBtn.classList.toggle('active', gravityMode); });
+            collisionBtn.addEventListener('click', () => { collisionsMode = !collisionsMode; collisionBtn.textContent = `Collisions: ${collisionsMode ? 'On' : 'Off'}`; collisionBtn.classList.toggle('active', collisionsMode); });
+            barrierSlider.addEventListener('input', (e) => barrier.position.y = parseFloat(e.target.value));
+            sphereBarrierSlider.addEventListener('input', (e) => {
+                sphericalBarrierRadius = parseFloat(e.target.value); sphericalBarrier.scale.set(sphericalBarrierRadius, sphericalBarrierRadius, sphericalBarrierRadius); radiusValueSpan.textContent = sphericalBarrierRadius.toFixed(1);
             });
         }
         
         const onPointerDown = (e) => {
             if (shapeMode !== 'cube') return;
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObject(barrier);
-            if (intersects.length > 0) {
-                selectedObject = barrier;
-                controls.enabled = false;
-            }
+            if (intersects.length > 0) { selectedObject = barrier; controls.enabled = false; }
         };
-
         const onPointerMove = (e) => {
             if (selectedObject) {
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
                 const intersectionPoint = new THREE.Vector3();
                 raycaster.ray.intersectPlane(plane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(plane.normal), selectedObject.position), intersectionPoint);
-                
-                let newY = intersectionPoint.y;
-                newY = Math.max(-BOX_SIZE/2, Math.min(newY, BOX_SIZE / 2));
-                barrier.position.y = newY;
-                barrierSlider.value = newY;
+                let newY = intersectionPoint.y; newY = Math.max(-BOX_SIZE/2, Math.min(newY, BOX_SIZE / 2));
+                barrier.position.y = newY; barrierSlider.value = newY;
             }
         };
-
-        const onPointerUp = () => {
-            selectedObject = null;
-            controls.enabled = true;
-        };
+        const onPointerUp = () => { selectedObject = null; controls.enabled = true; };
 
         renderer.domElement.addEventListener('pointerdown', onPointerDown);
         renderer.domElement.addEventListener('pointermove', onPointerMove);
         renderer.domElement.addEventListener('pointerup', onPointerUp);
 
         function handleCollisions() {
-            const particleRadius = 0.1;
-            for(let i=0; i < particles.length; i++) {
-                for(let j=i+1; j < particles.length; j++) {
-                    const p1 = particles[i];
-                    const p2 = particles[j];
+            const collisionRadius = particleSize * 2;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p1 = particles[i]; const p2 = particles[j];
                     const dist = p1.position.distanceTo(p2.position);
-                    if(dist < 2 * particleRadius) {
-                        const collisionAxis = p1.position.clone().sub(p2.position).normalize();
-                        const v1 = p1.velocity;
-                        const v2 = p2.velocity;
-                        const v1_proj = collisionAxis.clone().multiplyScalar(v1.dot(collisionAxis));
-                        const v2_proj = collisionAxis.clone().multiplyScalar(v2.dot(collisionAxis));
-                        v1.sub(v1_proj).add(v2_proj);
-                        v2.sub(v2_proj).add(v1_proj);
-                        
-                        const overlap = 2 * particleRadius - dist;
-                        p1.position.add(collisionAxis.clone().multiplyScalar(overlap / 2));
-                        p2.position.sub(collisionAxis.clone().multiplyScalar(overlap / 2));
+                    if (dist < collisionRadius) {
+                        const v1 = p1.velocity; const v2 = p2.velocity;
+                        const pos1 = p1.position; const pos2 = p2.position;
+                        const collisionNormal = pos1.clone().sub(pos2).normalize();
+                        const v_relative = v1.clone().sub(v2);
+                        const speed = v_relative.dot(collisionNormal);
+                        if (speed < 0) {
+                            const impulse = (2 * speed) / 2; // Assuming equal mass
+                            v1.sub(collisionNormal.clone().multiplyScalar(impulse));
+                            v2.add(collisionNormal.clone().multiplyScalar(impulse));
+                        }
                     }
                 }
             }
         }
 
         function update() {
+            if (collisionsMode) handleCollisions();
+
             const positions = particleSystem.geometry.attributes.position.array;
-            const barrierY = barrier.position.y;
-            
-            if(collisionsMode) handleCollisions();
+            const randomForce = 0.01 * systemEnergy;
 
             particles.forEach((p, i) => {
-                if (!gravityMode) {
-                    p.velocity.add(new THREE.Vector3((Math.random()-0.5)*0.01, (Math.random()-0.5)*0.01, (Math.random()-0.5)*0.01));
+                if (!gravityMode) p.velocity.add(new THREE.Vector3((Math.random()-0.5)*randomForce, (Math.random()-0.5)*randomForce, (Math.random()-0.5)*randomForce));
+                else {
+                    if (shapeMode === 'cube') p.velocity.y -= 0.005 * systemEnergy;
+                    else p.velocity.add(p.position.clone().multiplyScalar(-0.001 * systemEnergy));
                 }
-                
-                if (gravityMode) {
-                    if (shapeMode === 'cube') {
-                        p.velocity.y -= 0.005;
-                    } else {
-                        p.velocity.add(p.position.clone().multiplyScalar(-0.001));
-                    }
-                }
-
                 p.position.add(p.velocity);
-                const pos = p.position;
-                const vel = p.velocity;
+                const pos = p.position; const vel = p.velocity;
                 
                 if(shapeMode === 'cube') {
-                    if (pos.x < -BOX_SIZE/2 || pos.x > BOX_SIZE/2) vel.x *= -0.9;
-                    if (pos.y < -BOX_SIZE/2 || pos.y > BOX_SIZE/2) vel.y *= -0.9;
-                    if (pos.z < -BOX_SIZE/2 || pos.z > BOX_SIZE/2) vel.z *= -0.9;
-                    if (pos.y < barrierY && (pos.y - vel.y) >= barrierY) vel.y *= -0.9;
-                    pos.clamp(boundingBox.min, boundingBox.max);
+                    if (pos.x < -BOX_SIZE/2 || pos.x > BOX_SIZE/2) { vel.x *= -0.9; pos.x = Math.sign(pos.x) * BOX_SIZE/2; }
+                    if (pos.y > BOX_SIZE/2) { vel.y *= -0.9; pos.y = BOX_SIZE/2; } 
+                    if (pos.z < -BOX_SIZE/2 || pos.z > BOX_SIZE/2) { vel.z *= -0.9; pos.z = Math.sign(pos.z) * BOX_SIZE/2; }
+                    
+                    const barrierY = barrier.position.y;
+                    if (pos.y < barrierY) { vel.y *= -0.9; pos.y = barrierY; }
                 } else {
-                    if(pos.length() > BOX_SIZE/2) {
-                        const normal = pos.clone().normalize();
-                        vel.reflect(normal).multiplyScalar(0.9);
-                        pos.copy(normal.multiplyScalar(BOX_SIZE/2));
-                    }
+                    if(pos.length() > BOX_SIZE/2) { const n = pos.clone().normalize(); vel.reflect(n).multiplyScalar(0.9); pos.copy(n.multiplyScalar(BOX_SIZE/2)); }
+                    if (pos.length() < sphericalBarrierRadius) { const n = pos.clone().normalize(); vel.reflect(n).multiplyScalar(0.9); pos.copy(n.multiplyScalar(sphericalBarrierRadius)); }
                 }
-                
                 positions.set([pos.x, pos.y, pos.z], i*3);
             });
             
             if (shapeMode === 'cube') {
-                const accessibleHeight = (BOX_SIZE/2) + barrier.position.y;
-                const W = accessibleHeight / BOX_SIZE; 
-                const entropy = Math.log(W * 1e12); // Scaled for better visualization
-                if (entropyText) entropyText.textContent = entropy.toFixed(2);
+                const initialHeight = BOX_SIZE / 2;
+                const finalHeight = (BOX_SIZE / 2) - barrier.position.y;
+                const W_ratio = finalHeight / initialHeight;
+                const deltaS = Math.log(W_ratio); // We use natural log for this formula
+                if (entropyText) entropyText.innerHTML = W_ratio > 1e-3 ? deltaS.toFixed(2) : "-&infin;";
             } else {
-                 if (entropyText) entropyText.textContent = "Constant";
+                 const R_outer = BOX_SIZE / 2;
+                 const R_inner = sphericalBarrierRadius;
+                 const W_proportional = Math.pow(R_outer, 3) - Math.pow(R_inner, 3);
+                 const entropy = Math.log(W_proportional);
+                 if (entropyText) entropyText.innerHTML = isFinite(entropy) && W_proportional > 0 ? entropy.toFixed(2) : "-&infin;";
             }
-            
             particleSystem.geometry.attributes.position.needsUpdate = true;
         }
         
@@ -903,24 +981,12 @@
                 renderer.domElement.removeEventListener('pointerdown', onPointerDown);
                 renderer.domElement.removeEventListener('pointermove', onPointerMove);
                 renderer.domElement.removeEventListener('pointerup', onPointerUp);
-            }
+            } 
         };
     }
 
-
-    function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        if(currentUpdate) currentUpdate();
-        renderer.render(scene, camera);
-    }
-
+    function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+    function animate() { requestAnimationFrame(animate); controls.update(); if(currentUpdate) currentUpdate(); renderer.render(scene, camera); }
     init();
 </script>
 </body>
