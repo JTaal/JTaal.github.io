@@ -264,7 +264,7 @@
                     <span>Light Speed / Time Flow:</span>
                     <span id="light-speed-value">1.0x</span>
                 </label>
-                <input id="light-speed-slider" type="range" min="0.1" max="5" step="0.05" value="1.0" class="w-full">
+                <input id="light-speed-slider" type="range" min="0.1" max="1000" step="1" value="1.0" class="w-full">
             </div>
             <div class="control-group text-left w-full">
                 <label for="trace-length-slider" class="text-sm font-medium self-start w-full flex justify-between">
@@ -489,7 +489,7 @@
         
         lightSpeedSlider.addEventListener('input', (e) => {
             timeMultiplier = parseFloat(e.target.value);
-            lightSpeedValue.textContent = `${timeMultiplier.toFixed(2)}x`;
+            lightSpeedValue.textContent = `${timeMultiplier.toFixed(0)}x`;
         });
 
         traceLengthSlider.addEventListener('input', (e) => {
@@ -1066,7 +1066,7 @@
     }
 
     function initBlackHole() {
-        const G = 1, c = 10, STAR_THRESHOLD = 3.0, LOW_MASS_THRESHOLD = 0.1, HIGH_MASS_THRESHOLD = 0.5;
+        const G = 1, c = 10, STAR_THRESHOLD = 3.0;
         let mass = 1.0;
         let time = 0;
         let entropyText, radiusText, kappaText, ratioText, lorentzText;
@@ -1074,6 +1074,7 @@
         let lightRaysVisible = true;
         let geodesicLinesVisible = true;
         let gridVisible = false;
+        let particlesVisible = true;
 
         const GRID_SIZE = 20;
         const GRID_SPACING = 5;
@@ -1115,9 +1116,9 @@
         // --- Flowing Particles ---
         const flowingParticles = createParticles(particleCount, 0xffffff);
         flowingParticles.material.size = 0.08;
-        
-        // --- Geodesic Lines (Curved) ---
-        const curvedGeodesicGroup = new THREE.Group();
+
+        // --- Geodesic Lines ---
+        const geodesicGroup = new THREE.Group();
         const geodesicLines = [];
         const NUM_GEODESICS = 100;
         const GEO_POINTS = 200;
@@ -1147,39 +1148,42 @@
             const initialVelocity = tangentVec.multiplyScalar(c * 0.05); 
 
             geodesicLines.push({line, startPos, initialVelocity});
-            curvedGeodesicGroup.add(line);
+            geodesicGroup.add(line);
         }
-        activeSceneObjects.add(curvedGeodesicGroup);
+        activeSceneObjects.add(geodesicGroup);
 
         // --- Static 3D Grid ---
         const staticGridGroup = new THREE.Group();
-        const gridLineMaterial = new THREE.LineBasicMaterial({ color: 0x374151, transparent: true, opacity: 0.5 });
-        const GRID_LINE_COUNT = 15; 
-        const gridStep = (SIMULATION_RADIUS * 2) / (GRID_LINE_COUNT - 1);
         staticGridGroup.userData.lines = [];
+        const gridLineMaterial = new THREE.LineBasicMaterial({ color: 0x374151, transparent: true, opacity: 0.5 });
+        const GRID_LINE_COUNT = 15;
+        const gridLineSegments = 50;
+        const gridStep = (SIMULATION_RADIUS * 2) / (GRID_LINE_COUNT - 1);
 
         for (let i = 0; i < GRID_LINE_COUNT; i++) {
             const current = -SIMULATION_RADIUS + i * gridStep;
-            // XY planes
+            // XY plane lines
             for (let j = 0; j < GRID_LINE_COUNT; j++) {
                 const z = -SIMULATION_RADIUS + j * gridStep;
-                let points1 = [new THREE.Vector3(-SIMULATION_RADIUS, current, z), new THREE.Vector3(SIMULATION_RADIUS, current, z)];
-                let points2 = [new THREE.Vector3(current, -SIMULATION_RADIUS, z), new THREE.Vector3(current, SIMULATION_RADIUS, z)];
-                staticGridGroup.userData.lines.push({ points: points1 });
-                staticGridGroup.userData.lines.push({ points: points2 });
+                staticGridGroup.userData.lines.push({ start: new THREE.Vector3(-SIMULATION_RADIUS, current, z), end: new THREE.Vector3(SIMULATION_RADIUS, current, z) });
+                staticGridGroup.userData.lines.push({ start: new THREE.Vector3(current, -SIMULATION_RADIUS, z), end: new THREE.Vector3(current, SIMULATION_RADIUS, z) });
             }
              // XZ planes
             for (let j = 0; j < GRID_LINE_COUNT; j++) {
-                const y = -SIMULATION_RADIUS + j * gridStep;
-                let points1 = [new THREE.Vector3(-SIMULATION_RADIUS, y, current), new THREE.Vector3(SIMULATION_RADIUS, y, current)];
-                 let points2 = [new THREE.Vector3(current, y, -SIMULATION_RADIUS), new THREE.Vector3(current, y, SIMULATION_RADIUS)];
-                staticGridGroup.userData.lines.push({ points: points1 });
-                staticGridGroup.userData.lines.push({ points: points2 });
+                 const y = -SIMULATION_RADIUS + j * gridStep;
+                staticGridGroup.userData.lines.push({ start: new THREE.Vector3(-SIMULATION_RADIUS, y, current), end: new THREE.Vector3(SIMULATION_RADIUS, y, current) });
+                staticGridGroup.userData.lines.push({ start: new THREE.Vector3(current, y, -SIMULATION_RADIUS), end: new THREE.Vector3(current, y, SIMULATION_RADIUS) });
             }
         }
+
         staticGridGroup.userData.lines.forEach(data => {
-            let geom = new THREE.BufferGeometry().setFromPoints(data.points);
+            const points = [];
+            for(let i=0; i <= gridLineSegments; i++){
+                points.push(data.start.clone().lerp(data.end, i/gridLineSegments));
+            }
+            let geom = new THREE.BufferGeometry().setFromPoints(points);
             data.line = new THREE.Line(geom, gridLineMaterial.clone());
+            data.originalVertices = points;
             staticGridGroup.add(data.line);
         });
         activeSceneObjects.add(staticGridGroup);
@@ -1240,6 +1244,7 @@
                     <label class="text-sm font-medium">Mass (10^x Solar Masses): <span id="mass-value">1.00e+0</span></label>
                     <div class="flex items-center gap-2 flex-wrap justify-center">
                         <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
+                        <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
                         <button id="grid-toggle" class="toggle-button text-xs p-2">Spacetime Grid: Off</button>
                         <button id="vector-field-toggle" class="toggle-button active text-xs p-2">Vectors: On</button>
                         <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
@@ -1269,6 +1274,7 @@
             const lightRaysToggle = document.getElementById('light-rays-toggle');
             const geodesicToggle = document.getElementById('geodesic-toggle');
             const gridToggle = document.getElementById('grid-toggle');
+            const particleToggle = document.getElementById('particle-toggle');
             const pauseButton = document.getElementById('pause-toggle');
             const resetButton = document.getElementById('reset-button');
 
@@ -1304,6 +1310,12 @@
                 gridVisible = !gridVisible;
                 e.target.textContent = `Spacetime Grid: ${gridVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', gridVisible);
+            });
+            
+            particleToggle.addEventListener('click', (e) => {
+                particlesVisible = !particlesVisible;
+                e.target.textContent = `Particles: ${particlesVisible ? 'On' : 'Off'}`;
+                e.target.classList.toggle('active', particlesVisible);
             });
 
             pauseButton.addEventListener('click', (e) => {
@@ -1363,26 +1375,27 @@
             }
 
             // --- Update Flowing Particles ---
-            const particlePositions = flowingParticles.geometry.attributes.position;
-            particles.forEach((p, i) => {
-                const r = p.position.length();
-                if (r > 0.01) {
-                    const v_inflow_mag = Math.sqrt(rs / r) * c;
-                    const inflow_velocity = p.position.clone().normalize().multiplyScalar(-v_inflow_mag);
-                    p.position.add(inflow_velocity.multiplyScalar(dt * 0.2 * systemEnergy));
-                }
+            flowingParticles.visible = particlesVisible;
+            if (particlesVisible) {
+                const particlePositions = flowingParticles.geometry.attributes.position;
+                particles.forEach((p, i) => {
+                    const r = p.position.length();
+                    if (r > 0.01) {
+                        const v_inflow_mag = Math.sqrt(rs / r) * c;
+                        const inflow_velocity = p.position.clone().normalize().multiplyScalar(-v_inflow_mag);
+                        p.position.add(inflow_velocity.multiplyScalar(dt * 0.2 * systemEnergy));
+                    }
 
-                if (p.position.length() < objectRadius * 1.1) {
-                     resetParticle(p);
-                }
-                particlePositions.setXYZ(i, p.position.x, p.position.y, p.position.z);
-            });
-            particlePositions.needsUpdate = true;
+                    if (p.position.length() < objectRadius * 1.1) {
+                         resetParticle(p);
+                    }
+                    particlePositions.setXYZ(i, p.position.x, p.position.y, p.position.z);
+                });
+                particlePositions.needsUpdate = true;
+            }
 
             // --- Update Geodesic Lines ---
-            curvedGeodesicGroup.visible = geodesicLinesVisible;
-            staticGridGroup.visible = gridVisible;
-            
+            geodesicGroup.visible = geodesicLinesVisible;
             if (geodesicLinesVisible) {
                 geodesicLines.forEach(item => {
                     const positions = item.line.geometry.attributes.position;
@@ -1411,6 +1424,29 @@
                         const posChangeFromInflow = inflow_velocity.multiplyScalar(sim_dt * 0.5); 
                         
                         currentPos.add(posChangeFromVel).add(posChangeFromInflow);
+                    }
+                    positions.needsUpdate = true;
+                });
+            }
+             // --- Update Static Grid ---
+            staticGridGroup.visible = gridVisible;
+            if (gridVisible) {
+                staticGridGroup.userData.lines.forEach(item => {
+                    const positions = item.line.geometry.attributes.position;
+                    for (let i = 0; i <= gridLineSegments; i++) {
+                        let currentPos = item.originalVertices[i].clone();
+                        let r = currentPos.length();
+
+                        if (r > 0.01) {
+                            const v_inflow_mag = Math.sqrt(rs / r) * c;
+                            const inflow_velocity = currentPos.clone().normalize().multiplyScalar(-v_inflow_mag);
+                            currentPos.add(inflow_velocity.multiplyScalar(time * 0.05));
+                        }
+                         if(currentPos.length() < objectRadius * 1.1) {
+                             currentPos.copy(item.originalVertices[i]);
+                         }
+
+                        positions.setXYZ(i, currentPos.x, currentPos.y, currentPos.z);
                     }
                     positions.needsUpdate = true;
                 });
