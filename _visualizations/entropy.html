@@ -276,9 +276,9 @@
             <div class="control-group text-left w-full">
                 <label for="particle-slider" class="text-sm font-medium self-start w-full flex justify-between">
                     <span>Particle Count:</span>
-                    <span id="particle-count-value">3000</span>
+                    <span id="particle-count-value">5000</span>
                 </label>
-                <input id="particle-slider" type="range" min="100" max="10000" step="100" value="3000" class="w-full">
+                <input id="particle-slider" type="range" min="100" max="20000" step="100" value="5000" class="w-full">
             </div>
             <div class="control-group text-left w-full">
                 <label for="energy-slider" class="text-sm font-medium self-start w-full flex justify-between">
@@ -317,12 +317,13 @@
     let particles = [];
     
     // --- Global Settings ---
-    let particleCount = 3000;
+    let particleCount = 5000;
     let particleSize = 0.1;
     let systemEnergy = 1.0;
     let timeMultiplier = 1.0;
     let lightRayRange = 40;
     let followMode = false;
+    let isPaused = false;
 
     let shannonGrowthChart, differentialInfoChart;
     let followObject = null;
@@ -349,7 +350,7 @@
         blackhole_entropy: {
             title: 'Black Hole Entropy',
             description: 'This concept relates the entropy of a black hole to its event horizon\'s surface area. The formula shown is Einstein\'s Field Equation, which describes how mass-energy ($T_{\mu\nu}$) curves spacetime ($G_{\mu\nu}$).',
-            formula: 'G<sub>&mu;&nu;</sub> = (8&pi;G/c<sup>4</sup>)T<sub>&mu;&nu;</sub>',
+            formula: 'G<sub>&mu;&nu;</sub> = R<sub>&mu;&nu;</sub> - &frac12;R g<sub>&mu;&nu;</sub> = (8&pi;G/c<sup>4</sup>)T<sub>&mu;&nu;</sub>',
             init: initBlackHole,
         }
     };
@@ -397,6 +398,7 @@
 
     function switchConcept(key) {
         if (key === currentConceptKey) return;
+        isPaused = false;
         currentCleanup();
         followObject = null;
         currentParticleSystem = null;
@@ -531,6 +533,9 @@
     function resetCurrentConcept() {
         if (!currentConceptKey) return;
         const key = currentConceptKey;
+        isPaused = false;
+        const pauseButton = document.getElementById('pause-toggle');
+        if (pauseButton) pauseButton.textContent = 'Pause';
         currentConceptKey = null; // Trick switchConcept into reloading
         switchConcept(key);
     }
@@ -712,6 +717,7 @@
         }
 
         function update() {
+            if (isPaused) return;
             const positions = particleSystem.geometry.attributes.position.array;
             const colors = particleSystem.geometry.attributes.color.array;
             let entropy = 0;
@@ -848,6 +854,7 @@
         }
         
         function update() {
+            if (isPaused) return;
              const positions = particleSystem.geometry.attributes.position.array;
             const randomForce = 0.1 * systemEnergy;
             particles.forEach((p, i) => {
@@ -1002,6 +1009,7 @@
         }
 
         function update() {
+            if (isPaused) return;
             if (collisionsMode) handleCollisions();
             const positions = particleSystem.geometry.attributes.position.array;
             const randomForce = 0.01 * systemEnergy;
@@ -1084,7 +1092,7 @@
         followObject = centralObject;
 
         // --- Event Horizon Outline ---
-        const horizonOutline = new THREE.Mesh(new THREE.TorusGeometry(1, 0.08, 16, 100), new THREE.MeshBasicMaterial({ color: 0xffa500, side: THREE.DoubleSide }));
+        const horizonOutline = new THREE.Mesh(new THREE.TorusGeometry(1, 0.1, 16, 100), new THREE.MeshBasicMaterial({ color: 0xffa500, side: THREE.DoubleSide }));
         activeSceneObjects.add(horizonOutline);
 
        // --- Spacetime Vector Field ---
@@ -1094,7 +1102,7 @@
             for (let y = -GRID_SIZE; y <= GRID_SIZE; y++) {
                 for (let z = -GRID_SIZE; z <= GRID_SIZE; z++) {
                     const origin = new THREE.Vector3(x * GRID_SPACING, y * GRID_SPACING, z * GRID_SPACING);
-                    if (origin.length() < GRID_SPACING || Math.random() > 0.5) continue; // Thin out the vectors a bit
+                    if (origin.length() < GRID_SPACING * 1.5) continue; 
                     const arrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, 2, 0x4b5563, 1, 0.5);
                     arrows.push(arrow);
                     vectorField.add(arrow);
@@ -1111,10 +1119,10 @@
         const geodesicGroup = new THREE.Group();
         const geodesicLines = [];
         const NUM_GEODESICS = 100;
-        const GEO_POINTS = 50;
+        const GEO_POINTS = 200;
 
         for(let i=0; i < NUM_GEODESICS; i++) {
-            const material = new THREE.LineBasicMaterial({color: 0x60a5fa, transparent: true, opacity: 0.3});
+            const material = new THREE.LineBasicMaterial({color: 0x60a5fa, transparent: true, opacity: 0.7, linewidth: 2});
             const geometry = new THREE.BufferGeometry();
             const positions = new Float32Array(GEO_POINTS * 3);
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -1137,13 +1145,25 @@
         }
         activeSceneObjects.add(geodesicGroup);
 
-        // Initialize particles throughout the vector field volume
-        particles.forEach(p => {
-             const r = Math.random() * SIMULATION_RADIUS;
-             p.position.setFromSphericalCoords(r, Math.acos(2 * Math.random() - 1), Math.random() * Math.PI * 2);
-        });
+        const resetParticle = (p) => {
+            const gridX = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
+            const gridY = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
+            const gridZ = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
+            
+            const axis = Math.floor(Math.random() * 3);
+            const pos = new THREE.Vector3(gridX * GRID_SPACING, gridY * GRID_SPACING, gridZ * GRID_SPACING);
+
+            if(axis === 0) pos.x += (Math.random() - 0.5) * GRID_SPACING;
+            else if(axis === 1) pos.y += (Math.random() - 0.5) * GRID_SPACING;
+            else pos.z += (Math.random() - 0.5) * GRID_SPACING;
+
+            p.position.copy(pos);
+        };
+        particles.forEach(resetParticle);
+
 
         // --- Light Rays ---
+        const lightRayGroup = new THREE.Group();
         const MAX_RAYS = 200, NUM_WAVE_POINTS = 20;
         const rays = [];
         for (let i = 0; i < MAX_RAYS; i++) {
@@ -1152,9 +1172,10 @@
             const positions = new Float32Array(NUM_WAVE_POINTS * 3);
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             const line = new THREE.Line(geometry, material);
-            activeSceneObjects.add(line);
+            lightRayGroup.add(line);
             rays.push({ line, position: new THREE.Vector3(), velocity: new THREE.Vector3(), prevDist: 0 });
         }
+        activeSceneObjects.add(lightRayGroup);
         
         function resetRay(ray) {
             const rs = (2 * G * mass) / (c * c);
@@ -1184,6 +1205,10 @@
                         <button id="geodesic-toggle" class="toggle-button active text-xs p-2">Geodesics: On</button>
                     </div>
                 </div>
+                 <div class="flex items-center gap-2 flex-wrap justify-center">
+                    <button id="pause-toggle" class="toggle-button text-sm p-2">Pause</button>
+                    <button id="reset-button" class="toggle-button text-sm p-2">Reset</button>
+                </div>
                 <div class="flex flex-wrap gap-x-6 gap-y-2 justify-center">
                     <div class="control-group"> <div class="text-sm text-purple-400">Entropy (S/k<sub>B</sub>)</div> <div id="bh-entropy-value" class="text-lg font-bold">...</div> </div>
                     <div class="control-group"> <div class="text-sm text-purple-400">Object Radius</div> <div id="rs-value" class="text-lg font-bold">...</div> </div>
@@ -1202,6 +1227,9 @@
             const vectorFieldToggle = document.getElementById('vector-field-toggle');
             const lightRaysToggle = document.getElementById('light-rays-toggle');
             const geodesicToggle = document.getElementById('geodesic-toggle');
+            const pauseButton = document.getElementById('pause-toggle');
+            const resetButton = document.getElementById('reset-button');
+
 
             mass = Math.pow(10, parseFloat(massSlider.value));
             massValueSpan.textContent = mass.toExponential(2);
@@ -1222,17 +1250,28 @@
                 lightRaysVisible = !lightRaysVisible;
                 e.target.textContent = `Light Rays: ${lightRaysVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', lightRaysVisible);
-                rays.forEach(ray => ray.line.visible = lightRaysVisible);
             });
-
-             geodesicToggle.addEventListener('click', (e) => {
+            
+            geodesicToggle.addEventListener('click', (e) => {
                 geodesicLinesVisible = !geodesicLinesVisible;
                 e.target.textContent = `Geodesics: ${geodesicLinesVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', geodesicLinesVisible);
             });
+
+            pauseButton.addEventListener('click', (e) => {
+                isPaused = !isPaused;
+                e.target.textContent = isPaused ? 'Resume' : 'Pause';
+                e.target.classList.toggle('active', isPaused);
+            });
+
+            resetButton.addEventListener('click', () => {
+                resetCurrentConcept();
+            });
         }
         
         function update() {
+            if (isPaused) return;
+
             const dt = 0.016 * timeMultiplier;
             time += dt;
             
@@ -1261,7 +1300,6 @@
                  lorentzText.textContent = lorentzFactor.toExponential(2);
             }
             
-
             // --- Update Spacetime Vector Field ---
             vectorField.visible = vectorFieldVisible;
             if (vectorFieldVisible) {
@@ -1286,17 +1324,8 @@
                     p.position.add(inflow_velocity.multiplyScalar(dt * 0.2 * systemEnergy));
                 }
 
-                if (p.position.length() < objectRadius * 1.1 || p.position.length() > SIMULATION_RADIUS * 1.1) {
-                     const face = Math.floor(Math.random() * 6);
-                     const coord = (val) => (Math.random() - 0.5) * 2 * val;
-                     switch(face) {
-                        case 0: p.position.set(SIMULATION_RADIUS, coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS)); break;
-                        case 1: p.position.set(-SIMULATION_RADIUS, coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS)); break;
-                        case 2: p.position.set(coord(SIMULATION_RADIUS), SIMULATION_RADIUS, coord(SIMULATION_RADIUS)); break;
-                        case 3: p.position.set(coord(SIMULATION_RADIUS), -SIMULATION_RADIUS, coord(SIMULATION_RADIUS)); break;
-                        case 4: p.position.set(coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS), SIMULATION_RADIUS); break;
-                        case 5: p.position.set(coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS), -SIMULATION_RADIUS); break;
-                     }
+                if (p.position.length() < objectRadius * 1.1) {
+                     resetParticle(p);
                 }
                 particlePositions.setXYZ(i, p.position.x, p.position.y, p.position.z);
             });
@@ -1311,7 +1340,10 @@
                     for(let i=0; i<GEO_POINTS; i++) {
                         positions.setXYZ(i, currentPos.x, currentPos.y, currentPos.z);
                         const r = currentPos.length();
-                        if(r < objectRadius * 1.1) break;
+                        if(r < objectRadius * 1.1) {
+                            for(let j=i; j<GEO_POINTS; j++) positions.setXYZ(j, currentPos.x, currentPos.y, currentPos.z);
+                            break;
+                        }
                         const v_inflow_mag = Math.sqrt(rs / r) * c;
                         const inflow_velocity = currentPos.clone().normalize().multiplyScalar(-v_inflow_mag);
                         currentPos.add(inflow_velocity.multiplyScalar(dt * 0.5));
@@ -1320,11 +1352,10 @@
                 });
             }
 
-
             // --- Update Light Rays ---
+            lightRayGroup.visible = lightRaysVisible;
             if(lightRaysVisible) {
                 rays.forEach((ray) => {
-                    ray.line.visible = true;
                     const r = ray.position.length();
                     if(r < objectRadius || r > lightRayRange) {
                         resetRay(ray);
@@ -1370,8 +1401,6 @@
                     positions.needsUpdate = true;
                     if(ray.line.geometry.attributes.color) ray.line.geometry.attributes.color.needsUpdate = true;
                 });
-            } else {
-                 rays.forEach((ray) => { ray.line.visible = false; });
             }
         }
         
@@ -1398,7 +1427,7 @@
     function animate() { 
         requestAnimationFrame(animate); 
         controls.update(); 
-        if(currentUpdate) currentUpdate(); 
+        if(!isPaused && currentUpdate) currentUpdate(); 
         updateCameraFollow();
         renderer.render(scene, camera); 
     }
