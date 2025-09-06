@@ -9,12 +9,15 @@ date: 2025-08-27
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Physics & Chaos Explorer</title>
     
+    <!-- Plotly.js for interactive charts -->
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
     
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU07NsNEuj0/fYs97IOa7/ZbJx2CR51iDJStKZFsUZiQAI75Pdk6SOx" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+    <!-- KaTeX for LaTeX math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" xintegrity="sha384-n8MVd4RsNIU07NsNEuj0/fYs97IOa7/ZbJx2CR51iDJStKZFsUZiQAI75Pdk6SOx" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" xintegrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" xintegrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
 
+    <!-- Google Fonts for a clean look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -28,10 +31,10 @@ date: 2025-08-27
             --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.1);
 
             /* --- Improved Dark Mode Colors --- */
-            --bg-dark: #121212; /* Darker background */
-            --text-dark: #f0f0f0; /* Whiter text */
-            --card-bg-dark: #1e1e1e; /* Slightly lighter card background */
-            --border-dark: #444;
+            --bg-dark: #121212; 
+            --text-dark: #f0f0f0; 
+            --card-bg-dark: #1e1e1e; 
+            --border-dark: #555; /* Brighter border for better visibility */
             --shadow-dark: 0 4px 8px rgba(0, 0, 0, 0.25);
         }
 
@@ -42,16 +45,41 @@ date: 2025-08-27
             transition: background-color 0.3s, color 0.3s;
         }
 
-        /* --- Light Mode --- */
+        /* --- Theme-Specific Styles --- */
         body.light-mode {
             background-color: var(--bg-light);
             color: var(--text-light);
         }
-
-        /* --- Dark Mode --- */
         body.dark-mode {
             background-color: var(--bg-dark);
             color: var(--text-dark);
+        }
+
+        body.light-mode .plot-card {
+            background-color: var(--card-bg-light);
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--border-light);
+        }
+        body.dark-mode .plot-card {
+            background-color: var(--card-bg-dark);
+            box-shadow: var(--shadow-dark);
+            border: 1px solid var(--border-dark);
+        }
+        
+        body.light-mode .formula-box {
+            background-color: #f1f3f5;
+        }
+        body.dark-mode .formula-box {
+            background-color: #2c2f33;
+        }
+
+        body.light-mode #theme-switcher {
+            background-color: var(--text-light);
+            color: var(--bg-light);
+        }
+        body.dark-mode #theme-switcher {
+            background-color: var(--text-dark);
+            color: var(--bg-dark);
         }
 
         /* --- Layout & Containers --- */
@@ -69,11 +97,7 @@ date: 2025-08-27
             margin-bottom: 2rem;
         }
 
-        h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-        }
-        
+        h1 { font-size: 2.5rem; font-weight: 700; }
         h2 {
             margin-top: 0;
             font-size: 1.5rem;
@@ -88,18 +112,6 @@ date: 2025-08-27
             display: flex;
             flex-direction: column;
         }
-        
-        body.light-mode .plot-card {
-            background-color: var(--card-bg-light);
-            box-shadow: var(--shadow-light);
-            border: 1px solid var(--border-light);
-        }
-
-        body.dark-mode .plot-card {
-            background-color: var(--card-bg-dark);
-            box-shadow: var(--shadow-dark);
-            border: 1px solid var(--border-dark);
-        }
 
         .plot-container {
             width: 100%;
@@ -108,30 +120,20 @@ date: 2025-08-27
         }
         
         .formula-box { 
-            background-color: rgba(128, 128, 128, 0.1); 
             padding: 1rem; 
             border-radius: 8px; 
             margin-top: 1rem; 
             margin-bottom: 1rem;
             font-size: 1.1rem; 
             text-align: center; 
+            min-height: 50px;
+            transition: background-color 0.3s;
         }
 
         /* --- Interactive Elements --- */
-        .slider-container {
-            margin-top: 1rem;
-            text-align: center;
-        }
-        
-        input[type="range"] {
-            width: 80%;
-            cursor: pointer;
-        }
-
-        label {
-            font-weight: 600;
-        }
-
+        .slider-container { margin-top: 1rem; text-align: center; }
+        input[type="range"] { width: 80%; cursor: pointer; }
+        label { font-weight: 600; }
         #theme-switcher {
             position: fixed;
             top: 20px;
@@ -144,23 +146,13 @@ date: 2025-08-27
             transition: background-color 0.3s, color 0.3s;
             z-index: 1000;
         }
-
-        body.light-mode #theme-switcher {
-            background-color: var(--text-light);
-            color: var(--bg-light);
-        }
-
-        body.dark-mode #theme-switcher {
-            background-color: var(--text-dark);
-            color: var(--bg-dark);
-        }
         
+        /* --- Responsive Design --- */
         @media (max-width: 600px) {
             body { padding: 1rem 0.5rem; }
             .container { grid-template-columns: 1fr; }
             h1 { font-size: 2rem; }
         }
-
     </style>
 </head>
 <body class="dark-mode">
@@ -173,13 +165,15 @@ date: 2025-08-27
     </header>
 
     <div class="container">
+        <!-- Bekenstein-Hawking Information Limit Graph -->
         <div class="plot-card">
-            <h2>Cosmic Entropy & Bekenstein-Hawking Formula</h2>
-            <p>This bar chart visualizes cosmic entropy contributions on a log scale, showing the dominance of supermassive black holes. The entropy of a single black hole is given by the Bekenstein-Hawking formula.</p>
-            <div class="formula-box">$$ \frac{S_{\text{BH}}}{k_B} = \frac{4\pi G M^2}{\hbar c} $$</div>
-            <div id="entropyBarChart" class="plot-container"></div>
+            <h2>Bekenstein-Hawking Information Limit</h2>
+            <p>This plot shows how a black hole's maximum information content (in bits) grows with its mass. Because information scales with the area of the event horizon, it is proportional to the square of the mass.</p>
+            <div class="formula-box">$$ I_{\text{BH}} \propto M^2 $$</div>
+            <div id="bekensteinPlot" class="plot-container"></div>
         </div>
         
+        <!-- Advanced Bifurcation Diagram Plot -->
         <div class="plot-card">
             <h2>Advanced Bifurcation Diagram</h2>
             <p>This diagram uses a more complex "Verhulst-style" function to reveal intricate structures beyond the r=4 limit of the standard logistic map. Zoom in to explore the details.</p>
@@ -187,12 +181,14 @@ date: 2025-08-27
             <div id="bifurcationPlot" class="plot-container"></div>
         </div>
         
+        <!-- Lorentz Factor vs. Parabola Plot -->
         <div class="plot-card">
             <h2>Lorentz Factor vs. Parabola</h2>
             <p>Compares the asymptotic growth of the Lorentz factor in special relativity to the steady quadratic growth of a true parabola.</p>
             <div id="lorentzPlot" class="plot-container"></div>
         </div>
 
+        <!-- Cobweb Plot -->
         <div class="plot-card">
             <h2>Interactive Cobweb Plot</h2>
             <p>Shows how the population (x) evolves based on the growth rate (r) for the standard logistic map. The path seeks a stable state or becomes chaotic.</p>
@@ -203,6 +199,7 @@ date: 2025-08-27
             </div>
         </div>
         
+        <!-- Parabolas at Bifurcation Points Plot -->
         <div class="plot-card">
             <h2>Parabolas at Critical Points</h2>
             <p>Shows the subtle changes in the logistic map's shape at key bifurcation points and inside the period-3 stable window.</p>
@@ -217,8 +214,8 @@ date: 2025-08-27
             dark: {
                 plot_bgcolor: 'rgba(0,0,0,0)', paper_bgcolor: 'rgba(0,0,0,0)',
                 font: { color: '#e0e0e0' },
-                xaxis: { gridcolor: '#444', linecolor: '#444', zerolinecolor: '#555' },
-                yaxis: { gridcolor: '#444', linecolor: 'var(--border-dark)', zerolinecolor: '#555' }
+                xaxis: { gridcolor: '#555', linecolor: '#555', zerolinecolor: '#666' },
+                yaxis: { gridcolor: '#555', linecolor: '#555', zerolinecolor: '#666' }
             },
             light: {
                 plot_bgcolor: 'rgba(0,0,0,0)', paper_bgcolor: 'rgba(0,0,0,0)',
@@ -234,7 +231,7 @@ date: 2025-08-27
             legend: { x: 0.05, y: 0.95 }
         };
 
-        const plotDivIds = ['lorentzPlot', 'bifurcationPlot', 'cobwebPlot', 'parabolaShapesPlot', 'entropyBarChart'];
+        const plotDivIds = ['bekensteinPlot', 'lorentzPlot', 'bifurcationPlot', 'cobwebPlot', 'parabolaShapesPlot'];
 
         // --- Theme Switcher Logic ---
         const themeSwitcher = document.getElementById('theme-switcher');
@@ -248,15 +245,55 @@ date: 2025-08-27
 
         // --- Plotting Functions ---
 
-        // 1. Cosmic Entropy
-        function createEntropyBarChart() {
-            const data = { 
-                labels: ['Earth', 'Baryonic Matter', 'Relic Gravitons', 'Dark Matter', 'Neutrinos', 'CMB Photons', 'Sgr A*', 'M87*', 'Stellar BHs', 'TON 618', 'SMBH / Universe'], 
-                values: [66.4, 87.3, 87.8, 88.3, 89.7, 89.7, 90.3, 96.7, 97.8, 98.7, 104.5] 
+        // 1. Bekenstein-Hawking Information vs. Mass
+        function createBekensteinPlot() {
+            // Physical constants
+            const G = 6.67430e-11; // Gravitational constant
+            const hbar = 1.054571817e-34; // Reduced Planck constant
+            const c = 299792458; // Speed of light
+            const M_solar = 1.98847e30; // Solar mass in kg
+            const ln2 = Math.log(2);
+            
+            // Formula for information in bits: I = (4 * pi * G^2 * M^2) / (hbar * c * ln(2))
+            const constantFactor = (4 * Math.PI * G * G) / (hbar * c * ln2);
+
+            const masses_solar = [];
+            const information_bits = [];
+
+            // Generate mass values on a log scale, from 1 to 10^11 solar masses
+            for (let i = 0; i <= 110; i++) {
+                const exponent = i / 10;
+                const solar_mass = Math.pow(10, exponent);
+                masses_solar.push(solar_mass);
+                
+                const mass_kg = solar_mass * M_solar;
+                const bits = constantFactor * Math.pow(mass_kg, 2);
+                information_bits.push(bits);
+            }
+
+            const trace = {
+                x: masses_solar,
+                y: information_bits,
+                mode: 'lines',
+                type: 'scatter',
+                line: { color: 'rgb(0, 123, 255)', width: 3 }
             };
-            const trace = { x: data.labels, y: data.values, type: 'bar', marker: { color: 'rgb(0, 123, 255)' } };
-            const layout = { ...baseLayout, title: '', yaxis: { title: 'Log₁₀(Entropy / k_B)' }, xaxis: { tickangle: -45 }, showlegend: false };
-            Plotly.newPlot('entropyBarChart', [trace], layout, { responsive: true });
+
+            const layout = {
+                ...baseLayout,
+                showlegend: false,
+                xaxis: {
+                    title: 'Black Hole Mass (Solar Masses)',
+                    type: 'log',
+                    dtick: 'L1' // Tick at every power of 10
+                },
+                yaxis: {
+                    title: 'Information Content (Bits)',
+                    type: 'log'
+                }
+            };
+            
+            Plotly.newPlot('bekensteinPlot', [trace], layout, { responsive: true });
         }
         
         // 2. Advanced Bifurcation Diagram
@@ -361,24 +398,24 @@ date: 2025-08-27
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
+            renderMathInElement(document.body, {
+                delimiters: [ {left: '$$', right: '$$', display: true} ]
+            });
+
             currentTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
             themeSwitcher.textContent = currentTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
 
-            // Create all plots
-            createEntropyBarChart();
+            createBekensteinPlot();
             createLorentzPlot();
             createBifurcationPlot();
             createParabolaShapesPlot();
-            updateCobwebPlot(); // This also creates the initial plot
+            updateCobwebPlot();
             
-            // Apply the correct theme to all plots on initial load
             updateAllPlotsLayout();
-            
-            // Render LaTeX formulas
-            renderMathInElement(document.body, { delimiters: [ {left: '$$', right: '$$', display: true} ] });
         });
         
         window.addEventListener('resize', updateAllPlotsLayout);
     </script>
 </body>
 </html>
+
