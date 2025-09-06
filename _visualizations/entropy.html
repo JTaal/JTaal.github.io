@@ -1066,15 +1066,16 @@
     }
 
     function initBlackHole() {
-        const G = 1, c = 10, STAR_THRESHOLD = 3.0;
+        const G = 1, c = 10, STAR_THRESHOLD = 3.0, LOW_MASS_THRESHOLD = 0.1, HIGH_MASS_THRESHOLD = 0.5;
         let mass = 1.0;
         let time = 0;
         let entropyText, radiusText, kappaText, ratioText, lorentzText;
         let vectorFieldVisible = true;
         let lightRaysVisible = true;
         let geodesicLinesVisible = true;
+        let gridVisible = false;
 
-        const GRID_SIZE = 15;
+        const GRID_SIZE = 20;
         const GRID_SPACING = 5;
         const SIMULATION_RADIUS = GRID_SIZE * GRID_SPACING;
 
@@ -1102,7 +1103,7 @@
             for (let y = -GRID_SIZE; y <= GRID_SIZE; y++) {
                 for (let z = -GRID_SIZE; z <= GRID_SIZE; z++) {
                     const origin = new THREE.Vector3(x * GRID_SPACING, y * GRID_SPACING, z * GRID_SPACING);
-                    if (origin.length() < GRID_SPACING * 1.5) continue; 
+                    if (origin.length() < GRID_SPACING * 1.5 || Math.random() > 0.3) continue; 
                     const arrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, 2, 0x4b5563, 1, 0.5);
                     arrows.push(arrow);
                     vectorField.add(arrow);
@@ -1114,9 +1115,9 @@
         // --- Flowing Particles ---
         const flowingParticles = createParticles(particleCount, 0xffffff);
         flowingParticles.material.size = 0.08;
-
-        // --- Geodesic Lines ---
-        const geodesicGroup = new THREE.Group();
+        
+        // --- Geodesic Lines (Curved) ---
+        const curvedGeodesicGroup = new THREE.Group();
         const geodesicLines = [];
         const NUM_GEODESICS = 100;
         const GEO_POINTS = 200;
@@ -1139,11 +1140,50 @@
                case 4: startPos.set(coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS), SIMULATION_RADIUS); break;
                case 5: startPos.set(coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS), -SIMULATION_RADIUS); break;
             }
+            
+            const vecToCenter = startPos.clone().normalize().multiplyScalar(-1);
+            const randomVec = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize();
+            const tangentVec = vecToCenter.clone().cross(randomVec).normalize();
+            const initialVelocity = tangentVec.multiplyScalar(c * 0.05); 
 
-            geodesicLines.push({line, startPos});
-            geodesicGroup.add(line);
+            geodesicLines.push({line, startPos, initialVelocity});
+            curvedGeodesicGroup.add(line);
         }
-        activeSceneObjects.add(geodesicGroup);
+        activeSceneObjects.add(curvedGeodesicGroup);
+
+        // --- Static 3D Grid ---
+        const staticGridGroup = new THREE.Group();
+        const gridLineMaterial = new THREE.LineBasicMaterial({ color: 0x374151, transparent: true, opacity: 0.5 });
+        const GRID_LINE_COUNT = 15; 
+        const gridStep = (SIMULATION_RADIUS * 2) / (GRID_LINE_COUNT - 1);
+        staticGridGroup.userData.lines = [];
+
+        for (let i = 0; i < GRID_LINE_COUNT; i++) {
+            const current = -SIMULATION_RADIUS + i * gridStep;
+            // XY planes
+            for (let j = 0; j < GRID_LINE_COUNT; j++) {
+                const z = -SIMULATION_RADIUS + j * gridStep;
+                let points1 = [new THREE.Vector3(-SIMULATION_RADIUS, current, z), new THREE.Vector3(SIMULATION_RADIUS, current, z)];
+                let points2 = [new THREE.Vector3(current, -SIMULATION_RADIUS, z), new THREE.Vector3(current, SIMULATION_RADIUS, z)];
+                staticGridGroup.userData.lines.push({ points: points1 });
+                staticGridGroup.userData.lines.push({ points: points2 });
+            }
+             // XZ planes
+            for (let j = 0; j < GRID_LINE_COUNT; j++) {
+                const y = -SIMULATION_RADIUS + j * gridStep;
+                let points1 = [new THREE.Vector3(-SIMULATION_RADIUS, y, current), new THREE.Vector3(SIMULATION_RADIUS, y, current)];
+                 let points2 = [new THREE.Vector3(current, y, -SIMULATION_RADIUS), new THREE.Vector3(current, y, SIMULATION_RADIUS)];
+                staticGridGroup.userData.lines.push({ points: points1 });
+                staticGridGroup.userData.lines.push({ points: points2 });
+            }
+        }
+        staticGridGroup.userData.lines.forEach(data => {
+            let geom = new THREE.BufferGeometry().setFromPoints(data.points);
+            data.line = new THREE.Line(geom, gridLineMaterial.clone());
+            staticGridGroup.add(data.line);
+        });
+        activeSceneObjects.add(staticGridGroup);
+
 
         const resetParticle = (p) => {
             const gridX = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
@@ -1200,6 +1240,7 @@
                     <label class="text-sm font-medium">Mass (10^x Solar Masses): <span id="mass-value">1.00e+0</span></label>
                     <div class="flex items-center gap-2 flex-wrap justify-center">
                         <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
+                        <button id="grid-toggle" class="toggle-button text-xs p-2">Spacetime Grid: Off</button>
                         <button id="vector-field-toggle" class="toggle-button active text-xs p-2">Vectors: On</button>
                         <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
                         <button id="geodesic-toggle" class="toggle-button active text-xs p-2">Geodesics: On</button>
@@ -1227,6 +1268,7 @@
             const vectorFieldToggle = document.getElementById('vector-field-toggle');
             const lightRaysToggle = document.getElementById('light-rays-toggle');
             const geodesicToggle = document.getElementById('geodesic-toggle');
+            const gridToggle = document.getElementById('grid-toggle');
             const pauseButton = document.getElementById('pause-toggle');
             const resetButton = document.getElementById('reset-button');
 
@@ -1256,6 +1298,12 @@
                 geodesicLinesVisible = !geodesicLinesVisible;
                 e.target.textContent = `Geodesics: ${geodesicLinesVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', geodesicLinesVisible);
+            });
+
+            gridToggle.addEventListener('click', (e) => {
+                gridVisible = !gridVisible;
+                e.target.textContent = `Spacetime Grid: ${gridVisible ? 'On' : 'Off'}`;
+                e.target.classList.toggle('active', gridVisible);
             });
 
             pauseButton.addEventListener('click', (e) => {
@@ -1332,21 +1380,37 @@
             particlePositions.needsUpdate = true;
 
             // --- Update Geodesic Lines ---
-            geodesicGroup.visible = geodesicLinesVisible;
-            if(geodesicLinesVisible) {
+            curvedGeodesicGroup.visible = geodesicLinesVisible;
+            staticGridGroup.visible = gridVisible;
+            
+            if (geodesicLinesVisible) {
                 geodesicLines.forEach(item => {
                     const positions = item.line.geometry.attributes.position;
                     let currentPos = item.startPos.clone();
-                    for(let i=0; i<GEO_POINTS; i++) {
+                    let currentVel = item.initialVelocity.clone();
+                    const sim_dt = 0.2; 
+
+                    for (let i = 0; i < GEO_POINTS; i++) {
                         positions.setXYZ(i, currentPos.x, currentPos.y, currentPos.z);
+                        
                         const r = currentPos.length();
-                        if(r < objectRadius * 1.1) {
-                            for(let j=i; j<GEO_POINTS; j++) positions.setXYZ(j, currentPos.x, currentPos.y, currentPos.z);
+                        if (r < objectRadius * 1.05) {
+                            for (let j = i; j < GEO_POINTS; j++) positions.setXYZ(j, currentPos.x, currentPos.y, currentPos.z);
                             break;
                         }
+
+                        const gravitationalForce = -G * mass / (r * r);
+                        const acceleration = currentPos.clone().normalize().multiplyScalar(gravitationalForce);
+                        
                         const v_inflow_mag = Math.sqrt(rs / r) * c;
                         const inflow_velocity = currentPos.clone().normalize().multiplyScalar(-v_inflow_mag);
-                        currentPos.add(inflow_velocity.multiplyScalar(dt * 0.5));
+
+                        currentVel.add(acceleration.multiplyScalar(sim_dt));
+                        
+                        const posChangeFromVel = currentVel.clone().multiplyScalar(sim_dt);
+                        const posChangeFromInflow = inflow_velocity.multiplyScalar(sim_dt * 0.5); 
+                        
+                        currentPos.add(posChangeFromVel).add(posChangeFromInflow);
                     }
                     positions.needsUpdate = true;
                 });
