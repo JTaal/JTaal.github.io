@@ -155,11 +155,8 @@
         .surprisal-gradient {
             background-image: linear-gradient( to right, hsl(240, 90%, 60%), hsl(180, 90%, 60%), hsl(120, 90%, 60%), hsl(60, 90%, 60%), hsl(0, 90%, 60%) );
         }
-        #settings-button {
+        #settings-button, #fullscreen-button {
             position: absolute;
-            top: 80px;
-            right: 20px;
-            z-index: 10;
             background-color: rgba(55, 65, 81, 0.8);
             backdrop-filter: blur(5px);
             border: 1px solid rgba(75, 85, 99, 0.9);
@@ -169,9 +166,23 @@
             cursor: pointer;
             transition: all 0.3s;
         }
+        #settings-button {
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+        }
+        #fullscreen-button {
+            bottom: 120px;
+            right: 20px;
+            z-index: 11;
+        }
         #settings-button:hover {
             background-color: #4338ca;
             transform: translateY(-2px) rotate(45deg);
+        }
+        #fullscreen-button:hover {
+             background-color: #4338ca;
+            transform: translateY(-2px) scale(1.1);
         }
         #settings-panel {
             top: 80px;
@@ -181,8 +192,25 @@
             border-radius: 12px 0 0 12px;
             transform: translateX(100%);
             transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-            padding-top: 1rem;
-            padding-bottom: 2rem;
+            padding-right: 2rem; 
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 10;
+        }
+        #settings-panel::-webkit-scrollbar {
+            width: 12px;
+        }
+        #settings-panel::-webkit-scrollbar-track {
+            background: rgba(17, 24, 39, 0.1);
+        }
+        #settings-panel::-webkit-scrollbar-thumb {
+            background-color: #4f46e5;
+            border-radius: 10px;
+            border: 3px solid rgba(17, 24, 39, 0.85); 
+            background-clip: padding-box;
+        }
+        #settings-panel::-webkit-scrollbar-thumb:hover {
+            background-color: #6366f1;
         }
         #settings-panel.open {
             transform: translateX(0);
@@ -213,6 +241,29 @@
             border-radius: 8px;
             border: 1px solid #4b5563;
         }
+
+        body.fullscreen-active header,
+        body.fullscreen-active #info-panel,
+        body.fullscreen-active #controls-panel,
+        body.fullscreen-active #settings-button {
+            display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            header h1 { font-size: 1.125rem; }
+            #menu { flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+            .menu-button { padding: 6px 10px; font-size: 0.75rem; }
+            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #fullscreen-button { bottom: 100px; right: 10px; }
+            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
+            #controls-panel { padding: 0.75rem; gap: 0.75rem; justify-content: space-around; }
+            .control-group { gap: 0.25rem; }
+            #controls-panel .text-3xl { font-size: 1.5rem; }
+            #controls-panel label, #controls-panel .text-sm, #controls-panel .text-xs { font-size: 0.75rem; }
+            input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
+        }
     </style>
 </head>
 <body>
@@ -232,34 +283,42 @@
              <p id="info-description" class="text-gray-300"></p>
              <div id="info-formula" class="formula"></div>
              <div id="shannon-explanation-content">
-                 <h3 class="font-bold text-lg text-indigo-400 mt-4">Max Entropy vs. States</h3>
-                 <p class="text-sm text-gray-300">This chart shows the logarithmic growth of maximum possible entropy ($H_{max} = \log_2(N)$) as the number of states (N) increases. The red dot indicates the maximum entropy for the current number of states in the simulation.</p>
-                 <div class="chart-container">
-                     <canvas id="shannon-growth-chart"></canvas>
-                 </div>
-                  <h3 class="font-bold text-lg text-indigo-400 mt-4">The Classic Coin Flip</h3>
-                 <p class="text-sm text-gray-300">This graph shows the entropy of a single coin flip. Entropy is lowest (0) when the outcome is certain (an unfair coin that always lands on heads or tails). It reaches its maximum (1 bit) when the coin is fair (p=0.5), representing the highest uncertainty.</p>
-                 <div class="chart-container">
-                     <canvas id="coin-flip-chart"></canvas>
-                 </div>
+                  <h3 class="font-bold text-lg text-indigo-400 mt-4">Max Entropy vs. States</h3>
+                  <p class="text-sm text-gray-300">This chart shows the logarithmic growth of maximum possible entropy ($H_{max} = \log_2(N)$) as the number of states (N) increases. The red dot indicates the maximum entropy for the current number of states in the simulation.</p>
+                  <div class="chart-container">
+                       <canvas id="shannon-growth-chart"></canvas>
+                  </div>
+                   <h3 class="font-bold text-lg text-indigo-400 mt-4">The Classic Coin Flip</h3>
+                  <p class="text-sm text-gray-300">This graph shows the entropy of a single coin flip. Entropy is lowest (0) when the outcome is certain (an unfair coin that always lands on heads or tails). It reaches its maximum (1 bit) when the coin is fair (p=0.5), representing the highest uncertainty.</p>
+                  <div class="chart-container">
+                       <canvas id="coin-flip-chart"></canvas>
+                  </div>
              </div>
              <div id="differential-explanation-content">
-                 <h3 class="font-bold text-lg text-teal-400 mt-4">Probability Density (PDF)</h3>
-                 <p id="pdf-description" class="text-sm text-gray-300"></p>
-                  <div class="chart-container">
-                     <canvas id="differential-pdf-chart"></canvas>
-                 </div>
+                  <h3 class="font-bold text-lg text-teal-400 mt-4">Probability Density (PDF)</h3>
+                  <p id="pdf-description" class="text-sm text-gray-300"></p>
+                   <div class="chart-container">
+                       <canvas id="differential-pdf-chart"></canvas>
+                  </div>
              </div>
              <div id="blackhole-explanation-content">
-                 <h3 class="font-bold text-lg text-purple-400 mt-4">Visualizing Spacetime</h3>
-                 <p class="text-sm text-gray-300">The vector field represents the curvature of spacetime as dictated by Einstein's Field Equations. Each arrow shows the direction of the "geodesic," the straightest possible path an object can take through this curved space. The flowing particles represent matter ($T_{\mu\nu}$) following these paths.</p>
-                 <p class="text-sm text-gray-300 mt-2">Light rays are also bent by gravity. They appear blue (blueshifted) when falling towards the gravity well and lose energy, becoming red (redshifted) as they escape.</p>
+                  <h3 class="font-bold text-lg text-purple-400 mt-4">Visualizing Spacetime</h3>
+                  <p class="text-sm text-gray-300">The vector field represents the curvature of spacetime as dictated by Einstein's Field Equations. Each arrow shows the direction of the "geodesic," the straightest possible path an object can take through this curved space. The flowing particles represent matter ($T_{\mu\nu}$) following these paths.</p>
+                  <p class="text-sm text-gray-300 mt-2">Light rays are also bent by gravity. They appear blue (blueshifted) when falling towards the gravity well and lose energy, becoming red (redshifted) as they escape.</p>
              </div>
         </div>
     </div>
-    
+
     <div id="controls-panel" class="ui-panel"></div>
 
+    <button id="fullscreen-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+        </svg>
+    </button>
     <button id="settings-button" title="Settings">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
@@ -267,8 +326,8 @@
         </svg>
     </button>
     
-    <div id="settings-panel" class="ui-panel">
-        <div class="flex justify-between items-center mb-6">
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-inherit z-10 py-2">
             <h3 class="text-xl font-bold text-gray-200">Settings</h3>
             <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
         </div>
@@ -280,9 +339,9 @@
             <div class="control-group text-left w-full">
                 <label for="light-speed-slider" class="text-sm font-medium self-start w-full flex justify-between">
                     <span>Light Speed / Time Flow:</span>
-                    <span id="light-speed-value">1.0x</span>
+                    <span id="light-speed-value">999x</span>
                 </label>
-                <input id="light-speed-slider" type="range" min="0.1" max="1000" step="1" value="1.0" class="w-full">
+                <input id="light-speed-slider" type="range" min="0.1" max="1000" step="1" value="999" class="w-full">
             </div>
             <div class="control-group text-left w-full">
                 <label for="trace-length-slider" class="text-sm font-medium self-start w-full flex justify-between">
@@ -316,14 +375,14 @@
              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Grid Settings</h4>
              <div class="control-group text-left w-full">
                 <label for="grid-color-input" class="text-sm font-medium self-start w-full">Grid Color</label>
-                <input id="grid-color-input" type="color" value="#374151">
+                <input id="grid-color-input" type="color" value="#CCCCCC">
             </div>
             <div class="control-group text-left w-full">
                 <label for="grid-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
                     <span>Grid Scale:</span>
                     <span id="grid-scale-value">1.0x</span>
                 </label>
-                <input id="grid-scale-slider" type="range" min="0.1" max="3" step="0.1" value="1.0" class="w-full">
+                <input id="grid-scale-slider" type="range" min="0.1" max="1000" step="0.1" value="1.0" class="w-full">
             </div>
             <hr class="border-gray-600">
             <div class="control-group text-left w-full">
@@ -347,16 +406,16 @@
     let activeSceneObjects = new THREE.Group();
     let currentParticleSystem = null;
     let particles = [];
-    
+
     // --- Global Settings ---
     let particleCount = 5000;
     let particleSize = 0.1;
     let systemEnergy = 1.0;
-    let timeMultiplier = 1.0;
+    let timeMultiplier = 999;
     let lightRayRange = 40;
     let followMode = false;
     let isPaused = false;
-    let gridColor = '#374151';
+    let gridColor = '#CCCCCC';
     let gridScale = 1.0;
 
     let shannonGrowthChart, differentialInfoChart;
@@ -415,17 +474,18 @@
         createMenu();
         setupInfoPanelCharts();
         setupSettingsPanel();
+        setupFullscreen();
         switchConcept('shannon_entropy');
-        
+
         window.addEventListener('resize', onWindowResize, false);
         document.getElementById('info-panel').addEventListener('click', (e) => {
             if (e.target.closest('canvas') || e.target.closest('a')) return;
             e.currentTarget.classList.toggle('expanded');
         });
-        
+
         animate();
     }
-    
+
     let currentCleanup = () => {};
     let currentUpdate = () => {};
     let currentConceptKey = null;
@@ -449,7 +509,7 @@
             activeSceneObjects.remove(obj); 
         }
         document.getElementById('controls-panel').innerHTML = '';
-        
+
         const concept = concepts[key];
         document.getElementById('info-title').textContent = concept.title;
         document.getElementById('info-description').textContent = concept.description;
@@ -484,11 +544,58 @@
         });
     }
 
+    function setupFullscreen() {
+        const fullscreenButton = document.getElementById('fullscreen-button');
+        const enterIcon = document.getElementById('fullscreen-enter-icon');
+        const exitIcon = document.getElementById('fullscreen-exit-icon');
+        const body = document.body;
+
+        if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) {
+            fullscreenButton.style.display = 'none'; // Hide if not supported
+            return;
+        }
+
+        function openFullscreen() {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) { /* Safari */
+                document.documentElement.webkitRequestFullscreen();
+            }
+        }
+
+        function closeFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            }
+        }
+
+        fullscreenButton.addEventListener('click', () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                openFullscreen();
+            } else {
+                closeFullscreen();
+            }
+        });
+
+        const handleFullscreenChange = () => {
+            const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            enterIcon.classList.toggle('hidden', isFullscreen);
+            exitIcon.classList.toggle('hidden', !isFullscreen);
+            body.classList.toggle('fullscreen-active', isFullscreen);
+            setTimeout(onWindowResize, 100);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    }
+
     function setupSettingsPanel() {
         const settingsPanel = document.getElementById('settings-panel');
         const settingsButton = document.getElementById('settings-button');
         const closeSettingsButton = document.getElementById('close-settings');
-        
+
         const particleSlider = document.getElementById('particle-slider');
         const particleCountValue = document.getElementById('particle-count-value');
         const graphicsSlider = document.getElementById('graphics-slider');
@@ -505,46 +612,58 @@
         const gridColorInput = document.getElementById('grid-color-input');
         const gridScaleSlider = document.getElementById('grid-scale-slider');
         const gridScaleValue = document.getElementById('grid-scale-value');
-        
-        particleSlider.value = particleCount;
-        particleCountValue.textContent = particleCount;
 
+        function toggleSettingsPanel() {
+            const isOpen = settingsPanel.classList.contains('open');
+            if (isOpen) {
+                settingsPanel.classList.remove('open');
+            } else {
+                settingsPanel.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    settingsPanel.classList.add('open');
+                });
+            }
+        }
+
+        settingsButton.addEventListener('click', toggleSettingsPanel);
+        closeSettingsButton.addEventListener('click', () => {
+            settingsPanel.classList.remove('open');
+        });
+
+        settingsPanel.addEventListener('transitionend', (event) => {
+            if (event.propertyName !== 'transform') return;
+            if (!settingsPanel.classList.contains('open')) {
+                settingsPanel.classList.add('hidden');
+            }
+        });
 
         const initialPixelRatio = Math.min(window.devicePixelRatio, 2);
         graphicsSlider.value = initialPixelRatio;
         renderer.setPixelRatio(initialPixelRatio);
         updateGraphicsLabel(initialPixelRatio);
 
-        settingsButton.addEventListener('click', () => settingsPanel.classList.add('open'));
-        closeSettingsButton.addEventListener('click', () => settingsPanel.classList.remove('open'));
-        
         followToggle.addEventListener('click', (e) => {
             followMode = !followMode;
             e.target.textContent = followMode ? 'On' : 'Off';
             e.target.classList.toggle('active', followMode);
         });
-        
         lightSpeedSlider.addEventListener('input', (e) => {
             timeMultiplier = parseFloat(e.target.value);
             lightSpeedValue.textContent = `${timeMultiplier.toFixed(0)}x`;
         });
-
         traceLengthSlider.addEventListener('input', (e) => {
             lightRayRange = parseFloat(e.target.value);
             traceLengthValue.textContent = lightRayRange;
         });
-
         particleSlider.addEventListener('input', (e) => particleCountValue.textContent = e.target.value);
         particleSlider.addEventListener('change', (e) => {
             particleCount = parseInt(e.target.value, 10);
             resetCurrentConcept(); 
         });
-
         energySlider.addEventListener('input', (e) => {
             systemEnergy = parseFloat(e.target.value);
             energyValue.textContent = `${systemEnergy.toFixed(1)}x`;
         });
-        
         particleSizeSlider.addEventListener('input', (e) => {
             particleSize = parseFloat(e.target.value);
             particleSizeValue.textContent = particleSize.toFixed(2);
@@ -552,16 +671,13 @@
                 currentParticleSystem.material.size = particleSize;
             }
         });
-
         gridColorInput.addEventListener('input', (e) => {
             gridColor = e.target.value;
         });
-
         gridScaleSlider.addEventListener('input', (e) => {
             gridScale = parseFloat(e.target.value);
             gridScaleValue.textContent = `${gridScale.toFixed(1)}x`;
         });
-
         graphicsSlider.addEventListener('input', (e) => {
             const quality = parseFloat(e.target.value);
             renderer.setPixelRatio(quality);
@@ -585,7 +701,7 @@
             pauseButton.textContent = 'Pause';
             pauseButton.classList.remove('active');
         }
-        currentConceptKey = null; // Trick switchConcept into reloading
+        currentConceptKey = null;
         switchConcept(key);
     }
 
@@ -593,7 +709,7 @@
         const shannonCtx = document.getElementById('shannon-growth-chart').getContext('2d');
         const labels = Array.from({length: 1000}, (_, i) => i + 1);
         const data = labels.map(n => Math.log2(n));
-        
+
         shannonGrowthChart = new Chart(shannonCtx, {
             type: 'line',
             data: { labels: labels, datasets: [ { label: 'H_max = log2(N)', data: data, borderColor: '#818cf8', tension: 0.1, pointRadius: 0 }, { label: 'Current N', data: [], type: 'scatter', backgroundColor: '#ef4444', pointRadius: 5 } ] },
@@ -619,14 +735,14 @@
             type: 'line', data: { datasets: [] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false }}, scales: { x: { type: 'linear', min: -10, max: 10, ticks: { color: '#9ca3af' }}, y: { beginAtZero: true, ticks: { color: '#9ca3af' }}} }
         });
     }
-    
+
     function updateShannonGrowthChartMarker(numStates) {
         if (!shannonGrowthChart || numStates === undefined || numStates < 1) return;
         const maxEntropy = Math.log2(numStates);
         shannonGrowthChart.data.datasets[1].data = [{x: numStates, y: maxEntropy}];
         shannonGrowthChart.update();
     }
-    
+
     function createParticles(count, color = 0x818cf8) {
         particles = [];
         const geometry = new THREE.BufferGeometry();
@@ -683,7 +799,7 @@
                  particleIndex++;
              }
         }
-        
+
         function createControls(numStates) {
             const controlsDiv = document.getElementById('controls-panel');
             controlsDiv.innerHTML = `
@@ -716,7 +832,7 @@
             });
             createDistributionControls(numStates);
         }
-        
+
         function createDistributionControls(numStates) {
             const distControlsDiv = document.getElementById('dist-controls');
             distControlsDiv.innerHTML = '';
@@ -771,7 +887,7 @@
             const colors = particleSystem.geometry.attributes.color.array;
             let entropy = 0;
             const probs = new Array(attractors.length).fill(1e-9); 
-            
+
             particles.forEach(p => {
                 if (p.attractorIndex !== undefined && probs[p.attractorIndex] !== undefined) probs[p.attractorIndex]++;
             });
@@ -795,7 +911,7 @@
                 p.velocity.multiplyScalar(0.95);
                 p.position.add(p.velocity);
                 positions.set([p.position.x, p.position.y, p.position.z], i*3);
-                
+
                 if (surprisalMode) {
                     const surprisal = surprisals[p.attractorIndex] || 0;
                     const normalizedSurprisal = Math.min(surprisal / maxSurprisal, 1.0);
@@ -811,7 +927,7 @@
             particleSystem.geometry.attributes.position.needsUpdate = true;
             particleSystem.geometry.attributes.color.needsUpdate = true;
         }
-        
+
         createControls(2);
         setup(2);
         return { update, cleanup: () => {} };
@@ -850,7 +966,7 @@
             }
             differentialInfoChart.update();
         }
-        
+
         function createControls() {
             const controlsDiv = document.getElementById('controls-panel');
             controlsDiv.innerHTML = `
@@ -872,7 +988,7 @@
                 <div class="text-center text-3xl font-bold text-teal-400"><span id="entropy-value" class="text-white">9.97</span> bits</div>
             `;
             entropyText = document.getElementById('entropy-value');
-            
+
             document.querySelectorAll('#controls-panel .preset-button').forEach(b => b.addEventListener('click', (e) => {
                 mode = e.target.dataset.shape;
                 document.querySelectorAll('#controls-panel .preset-button').forEach(btn => btn.classList.remove('active'));
@@ -901,7 +1017,7 @@
             });
             updatePDFChart();
         }
-        
+
         function update() {
             if (isPaused) return;
              const positions = particleSystem.geometry.attributes.position.array;
@@ -925,7 +1041,7 @@
                 }
                 positions.set([p.position.x, p.position.y, p.position.z], i*3);
             });
-            
+
             let entropy = 0; if (mode === 'uniform') { const size = boundingBox.getSize(new THREE.Vector3()); const volume = size.x * size.y * size.z; entropy = Math.log2(volume); } else { entropy = 0.5 * Math.log2(Math.pow(2 * Math.PI * Math.E * variance, 3)); }
             if (entropyText) entropyText.textContent = entropy.toFixed(2);
             particleSystem.geometry.attributes.position.needsUpdate = true;
@@ -935,7 +1051,7 @@
         updatePDFChart();
         return { update, cleanup: () => {} };
     }
-    
+
     function initBoltzmann() {
         const BOX_SIZE = 10;
         const particleSystem = createParticles(particleCount, 0xffa500);
@@ -945,7 +1061,7 @@
         const barrierMat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.3, side: THREE.DoubleSide});
         const barrier = new THREE.Mesh(barrierGeo, barrierMat);
         barrier.rotation.x = Math.PI / 2;
-        
+
         const sphereGeo = new THREE.SphereGeometry(BOX_SIZE/2, 32, 32);
         const sphereMat = new THREE.MeshBasicMaterial({color: 0xffffff, wireframe: true, transparent: true, opacity: 0.3});
         const sphereHelper = new THREE.Mesh(sphereGeo, sphereMat);
@@ -985,7 +1101,7 @@
             const controlsDiv = document.getElementById('controls-panel');
             controlsDiv.innerHTML = `
                 <div class="control-group"> <div class="text-center text-3xl font-bold my-2 text-orange-400">&#916;S ~ <span id="entropy-value" class="text-white">0.00</span></div> </div>
-                <div class="flex gap-4"> 
+                <div class="flex gap-4 flex-wrap justify-center"> 
                     <button id="shape-toggle" class="toggle-button">Shape: Cube</button> 
                     <button id="gravity-toggle" class="toggle-button">Gravity: Off</button> 
                     <button id="collision-toggle" class="toggle-button">Collisions: Off</button>
@@ -1011,7 +1127,7 @@
                 sphericalBarrierRadius = parseFloat(e.target.value); sphericalBarrier.scale.set(sphericalBarrierRadius, sphericalBarrierRadius, sphericalBarrierRadius); radiusValueSpan.textContent = sphericalBarrierRadius.toFixed(1);
             });
         }
-        
+
         const onPointerDown = (e) => {
             if (shapeMode !== 'cube') return;
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -1062,7 +1178,7 @@
             if (collisionsMode) handleCollisions();
             const positions = particleSystem.geometry.attributes.position.array;
             const randomForce = 0.01 * systemEnergy;
-            
+
             particles.forEach((p, i) => {
                 if (!gravityMode) p.velocity.add(new THREE.Vector3((Math.random()-0.5)*randomForce, (Math.random()-0.5)*randomForce, (Math.random()-0.5)*randomForce));
                 else {
@@ -1071,12 +1187,12 @@
                 }
                 p.position.add(p.velocity);
                 const pos = p.position; const vel = p.velocity;
-                
+
                 if(shapeMode === 'cube') {
                     if (pos.x < -BOX_SIZE/2 || pos.x > BOX_SIZE/2) { vel.x *= -0.9; pos.x = Math.sign(pos.x) * BOX_SIZE/2; }
                     if (pos.y > BOX_SIZE/2) { vel.y *= -0.9; pos.y = BOX_SIZE/2; } 
                     if (pos.z < -BOX_SIZE/2 || pos.z > BOX_SIZE/2) { vel.z *= -0.9; pos.z = Math.sign(pos.z) * BOX_SIZE/2; }
-                    
+
                     const barrierY = barrier.position.y;
                     if (pos.y < barrierY) { vel.y *= -0.9; pos.y = barrierY; }
                 } else {
@@ -1085,7 +1201,7 @@
                 }
                 positions.set([pos.x, pos.y, pos.z], i*3);
             });
-            
+
             if (shapeMode === 'cube') {
                 const initialHeight = BOX_SIZE / 2;
                 const finalHeight = (BOX_SIZE / 2) - barrier.position.y;
@@ -1101,7 +1217,7 @@
             }
             particleSystem.geometry.attributes.position.needsUpdate = true;
         }
-        
+
         createControls();
         resetParticles();
         return { 
@@ -1178,7 +1294,7 @@
             const positions = new Float32Array(GEO_POINTS * 3);
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             const line = new THREE.Line(geometry, material);
-            
+
             const startPos = new THREE.Vector3();
             const face = Math.floor(Math.random() * 6);
             const coord = (val) => (Math.random() - 0.5) * 2 * val;
@@ -1190,7 +1306,7 @@
                case 4: startPos.set(coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS), SIMULATION_RADIUS); break;
                case 5: startPos.set(coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS), -SIMULATION_RADIUS); break;
             }
-            
+
             const vecToCenter = startPos.clone().normalize().multiplyScalar(-1);
             const randomVec = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize();
             const tangentVec = vecToCenter.clone().cross(randomVec).normalize();
@@ -1242,7 +1358,7 @@
             const gridX = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
             const gridY = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
             const gridZ = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
-            
+
             const axis = Math.floor(Math.random() * 3);
             const pos = new THREE.Vector3(gridX * GRID_SPACING, gridY * GRID_SPACING, gridZ * GRID_SPACING);
 
@@ -1269,7 +1385,7 @@
             rays.push({ line, position: new THREE.Vector3(), velocity: new THREE.Vector3(), prevDist: 0 });
         }
         activeSceneObjects.add(lightRayGroup);
-        
+
         function resetRay(ray) {
             const rs = (2 * G * mass) / (c * c);
             const startRadius = rs * 1.5 + Math.random() * 10;
@@ -1305,11 +1421,11 @@
                     <button id="reset-button" class="toggle-button text-sm p-2">Reset</button>
                 </div>
                 <div class="flex flex-wrap gap-x-6 gap-y-2 justify-center">
-                    <div class="control-group"> <div class="text-sm text-purple-400">Entropy (S/k<sub>B</sub>)</div> <div id="bh-entropy-value" class="text-lg font-bold">...</div> </div>
-                    <div class="control-group"> <div class="text-sm text-purple-400">Object Radius</div> <div id="rs-value" class="text-lg font-bold">...</div> </div>
-                    <div class="control-group"> <div class="text-sm text-purple-400">Surface Gravity (κ)</div> <div id="kappa-value" class="text-lg font-bold">...</div> </div>
-                    <div class="control-group"> <div class="text-sm text-purple-400">κ / c Ratio</div> <div id="ratio-value" class="text-lg font-bold">...</div> </div>
-                    <div class="control-group"> <div class="text-sm text-purple-400">Lorentz Factor (γ) at R<sub>S</sub></div> <div id="lorentz-value" class="text-lg font-bold">...</div> </div>
+                    <div class="control-group"> <div class="text-xs text-purple-400">Entropy (S/k<sub>B</sub>)</div> <div id="bh-entropy-value" class="text-lg font-bold">...</div> </div>
+                    <div class="control-group"> <div class="text-xs text-purple-400">Object Radius</div> <div id="rs-value" class="text-lg font-bold">...</div> </div>
+                    <div class="control-group"> <div class="text-xs text-purple-400">Surface Gravity (κ)</div> <div id="kappa-value" class="text-lg font-bold">...</div> </div>
+                    <div class="control-group"> <div class="text-xs text-purple-400">κ / c Ratio</div> <div id="ratio-value" class="text-lg font-bold">...</div> </div>
+                    <div class="control-group"> <div class="text-xs text-purple-400">Lorentz Factor (γ) at R<sub>S</sub></div> <div id="lorentz-value" class="text-lg font-bold">...</div> </div>
                 </div>
             `;
             entropyText = document.getElementById('bh-entropy-value');
@@ -1336,7 +1452,7 @@
                 mass = Math.pow(10, logMass);
                 massValueSpan.textContent = mass.toExponential(2);
             });
-            
+
             vectorFieldToggle.addEventListener('click', (e) => {
                 vectorFieldVisible = !vectorFieldVisible;
                 e.target.textContent = `Vectors: ${vectorFieldVisible ? 'On' : 'Off'}`;
@@ -1348,7 +1464,7 @@
                 e.target.textContent = `Light Rays: ${lightRaysVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', lightRaysVisible);
             });
-            
+
             geodesicToggle.addEventListener('click', (e) => {
                 geodesicLinesVisible = !geodesicLinesVisible;
                 e.target.textContent = `Geodesics: ${geodesicLinesVisible ? 'On' : 'Off'}`;
@@ -1376,13 +1492,13 @@
                 resetCurrentConcept();
             });
         }
-        
+
         function update() {
             if (isPaused) return;
 
             const dt = 0.016 * timeMultiplier;
             time += dt;
-            
+
             const isBlackHole = mass >= STAR_THRESHOLD;
             const rs = (2 * G * mass) / (c * c);
             const objectRadius = isBlackHole ? rs : Math.pow(mass, 1/3) * 0.5;
@@ -1391,7 +1507,7 @@
             horizonOutline.scale.setScalar(rs);
             horizonOutline.visible = isBlackHole;
             centralObject.material.color.set(isBlackHole ? 0x000000 : 0xffffdd);
-            
+
             const A = 4 * Math.PI * rs * rs;
             const kappa = (c**4) / (4 * G * mass);
             entropyText.textContent = (A / 4).toExponential(2);
@@ -1407,7 +1523,7 @@
                  const lorentzFactor = 1 / Math.sqrt(1 - v_over_c_sq);
                  lorentzText.textContent = lorentzFactor.toExponential(2);
             }
-            
+
             // --- Update Spacetime Vector Field ---
             vectorField.visible = vectorFieldVisible;
             if (vectorFieldVisible) {
@@ -1435,7 +1551,7 @@
                     }
 
                     if (p.position.length() < objectRadius * 1.1) {
-                         resetParticle(p);
+                        resetParticle(p);
                     }
                     particlePositions.setXYZ(i, p.position.x, p.position.y, p.position.z);
                 });
@@ -1453,7 +1569,7 @@
 
                     for (let i = 0; i < GEO_POINTS; i++) {
                         positions.setXYZ(i, currentPos.x, currentPos.y, currentPos.z);
-                        
+
                         const r = currentPos.length();
                         if (r < objectRadius * 1.05) {
                             for (let j = i; j < GEO_POINTS; j++) positions.setXYZ(j, currentPos.x, currentPos.y, currentPos.z);
@@ -1462,15 +1578,15 @@
 
                         const gravitationalForce = -G * mass / (r * r);
                         const acceleration = currentPos.clone().normalize().multiplyScalar(gravitationalForce);
-                        
+
                         const v_inflow_mag = Math.sqrt(rs / r) * c;
                         const inflow_velocity = currentPos.clone().normalize().multiplyScalar(-v_inflow_mag);
 
                         currentVel.add(acceleration.multiplyScalar(sim_dt));
-                        
+
                         const posChangeFromVel = currentVel.clone().multiplyScalar(sim_dt);
                         const posChangeFromInflow = inflow_velocity.multiplyScalar(sim_dt * 0.5); 
-                        
+
                         currentPos.add(posChangeFromVel).add(posChangeFromInflow);
                     }
                     positions.needsUpdate = true;
@@ -1481,7 +1597,7 @@
             if (gridVisible) {
                  staticGridGroup.scale.set(gridScale, gridScale, gridScale);
                  staticGridGroup.userData.lines.forEach(item => {
-                    item.line.material.color.set(gridColor);
+                     item.line.material.color.set(gridColor);
                     const positions = item.line.geometry.attributes.position;
                     for (let i = 0; i <= gridLineSegments; i++) {
                         let currentPos = item.originalVertices[i].clone();
@@ -1493,7 +1609,7 @@
                             currentPos.add(inflow_velocity.multiplyScalar(time * 0.05));
                         }
                          if(currentPos.length() * gridScale < objectRadius * 1.1) {
-                             currentPos.copy(item.originalVertices[i]);
+                              currentPos.copy(item.originalVertices[i]);
                          }
 
                         positions.setXYZ(i, currentPos.x, currentPos.y, currentPos.z);
@@ -1511,12 +1627,12 @@
                     if(r < objectRadius || r > lightRayRange) {
                         resetRay(ray);
                     }
-                    
+
                     const gravitationalForce = -G * mass / (r * r);
                     const acceleration = ray.position.clone().normalize().multiplyScalar(gravitationalForce);
                     ray.velocity.add(acceleration.multiplyScalar(dt * 20));
                     ray.position.add(ray.velocity.clone().multiplyScalar(dt * 20));
-                    
+
                     const positions = ray.line.geometry.attributes.position;
                     const direction = ray.velocity.clone().normalize();
                     let side = direction.clone().cross(new THREE.Vector3(0, 1, 0));
@@ -1554,22 +1670,26 @@
                 });
             }
         }
-        
+
         createControls();
         return { update, cleanup: () => {}, followTarget: centralObject };
     }
 
 
-    function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
-    
+    function onWindowResize() { 
+        camera.aspect = window.innerWidth / window.innerHeight; 
+        camera.updateProjectionMatrix(); 
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+    }
+
     function updateCameraFollow() {
         if(followMode && followObject) {
             const targetSize = followObject.scale.x;
             const distance = targetSize * 10 + 25;
-            
+
             const offset = controls.target.clone().sub(camera.position).normalize().multiplyScalar(distance);
             const targetPosition = followObject.position.clone().sub(offset);
-            
+
             camera.position.lerp(targetPosition, 0.1);
             controls.target.lerp(followObject.position, 0.1);
         }
