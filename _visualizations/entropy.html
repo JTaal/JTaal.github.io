@@ -195,6 +195,24 @@
             border: none;
             cursor: pointer;
         }
+        input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 40px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+        }
+        input[type="color"]::-moz-color-swatch {
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+        }
     </style>
 </head>
 <body>
@@ -294,6 +312,20 @@
                 </label>
                 <input id="particle-size-slider" type="range" min="0.02" max="0.5" step="0.01" value="0.1" class="w-full">
             </div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Grid Settings</h4>
+             <div class="control-group text-left w-full">
+                <label for="grid-color-input" class="text-sm font-medium self-start w-full">Grid Color</label>
+                <input id="grid-color-input" type="color" value="#374151">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="grid-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Grid Scale:</span>
+                    <span id="grid-scale-value">1.0x</span>
+                </label>
+                <input id="grid-scale-slider" type="range" min="0.1" max="3" step="0.1" value="1.0" class="w-full">
+            </div>
+            <hr class="border-gray-600">
             <div class="control-group text-left w-full">
                 <label for="graphics-slider" class="text-sm font-medium self-start w-full flex justify-between">
                     <span>Graphics Quality:</span>
@@ -324,6 +356,8 @@
     let lightRayRange = 40;
     let followMode = false;
     let isPaused = false;
+    let gridColor = '#374151';
+    let gridScale = 1.0;
 
     let shannonGrowthChart, differentialInfoChart;
     let followObject = null;
@@ -468,6 +502,9 @@
         const traceLengthSlider = document.getElementById('trace-length-slider');
         const traceLengthValue = document.getElementById('trace-length-value');
         const followToggle = document.getElementById('follow-toggle');
+        const gridColorInput = document.getElementById('grid-color-input');
+        const gridScaleSlider = document.getElementById('grid-scale-slider');
+        const gridScaleValue = document.getElementById('grid-scale-value');
         
         particleSlider.value = particleCount;
         particleCountValue.textContent = particleCount;
@@ -516,6 +553,15 @@
             }
         });
 
+        gridColorInput.addEventListener('input', (e) => {
+            gridColor = e.target.value;
+        });
+
+        gridScaleSlider.addEventListener('input', (e) => {
+            gridScale = parseFloat(e.target.value);
+            gridScaleValue.textContent = `${gridScale.toFixed(1)}x`;
+        });
+
         graphicsSlider.addEventListener('input', (e) => {
             const quality = parseFloat(e.target.value);
             renderer.setPixelRatio(quality);
@@ -535,7 +581,10 @@
         const key = currentConceptKey;
         isPaused = false;
         const pauseButton = document.getElementById('pause-toggle');
-        if (pauseButton) pauseButton.textContent = 'Pause';
+        if (pauseButton) {
+            pauseButton.textContent = 'Pause';
+            pauseButton.classList.remove('active');
+        }
         currentConceptKey = null; // Trick switchConcept into reloading
         switchConcept(key);
     }
@@ -1070,10 +1119,10 @@
         let mass = 1.0;
         let time = 0;
         let entropyText, radiusText, kappaText, ratioText, lorentzText;
-        let vectorFieldVisible = true;
+        let vectorFieldVisible = false;
         let lightRaysVisible = true;
-        let geodesicLinesVisible = true;
-        let gridVisible = false;
+        let geodesicLinesVisible = false;
+        let gridVisible = true;
         let particlesVisible = true;
 
         const GRID_SIZE = 20;
@@ -1155,7 +1204,7 @@
         // --- Static 3D Grid ---
         const staticGridGroup = new THREE.Group();
         staticGridGroup.userData.lines = [];
-        const gridLineMaterial = new THREE.LineBasicMaterial({ color: 0x374151, transparent: true, opacity: 0.5 });
+        const gridLineMaterial = new THREE.LineBasicMaterial({ color: new THREE.Color(gridColor), transparent: true, opacity: 0.5 });
         const GRID_LINE_COUNT = 15;
         const gridLineSegments = 50;
         const gridStep = (SIMULATION_RADIUS * 2) / (GRID_LINE_COUNT - 1);
@@ -1245,10 +1294,10 @@
                     <div class="flex items-center gap-2 flex-wrap justify-center">
                         <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
                         <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
-                        <button id="grid-toggle" class="toggle-button text-xs p-2">Spacetime Grid: Off</button>
-                        <button id="vector-field-toggle" class="toggle-button active text-xs p-2">Vectors: On</button>
+                        <button id="grid-toggle" class="toggle-button active text-xs p-2">Spacetime Grid: On</button>
+                        <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
                         <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
-                        <button id="geodesic-toggle" class="toggle-button active text-xs p-2">Geodesics: On</button>
+                        <button id="geodesic-toggle" class="toggle-button text-xs p-2">Geodesics: Off</button>
                     </div>
                 </div>
                  <div class="flex items-center gap-2 flex-wrap justify-center">
@@ -1311,8 +1360,7 @@
                 e.target.textContent = `Spacetime Grid: ${gridVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', gridVisible);
             });
-            
-            particleToggle.addEventListener('click', (e) => {
+             particleToggle.addEventListener('click', (e) => {
                 particlesVisible = !particlesVisible;
                 e.target.textContent = `Particles: ${particlesVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', particlesVisible);
@@ -1431,18 +1479,20 @@
              // --- Update Static Grid ---
             staticGridGroup.visible = gridVisible;
             if (gridVisible) {
-                staticGridGroup.userData.lines.forEach(item => {
+                 staticGridGroup.scale.set(gridScale, gridScale, gridScale);
+                 staticGridGroup.userData.lines.forEach(item => {
+                    item.line.material.color.set(gridColor);
                     const positions = item.line.geometry.attributes.position;
                     for (let i = 0; i <= gridLineSegments; i++) {
                         let currentPos = item.originalVertices[i].clone();
-                        let r = currentPos.length();
+                        let r = currentPos.length() * gridScale;
 
                         if (r > 0.01) {
                             const v_inflow_mag = Math.sqrt(rs / r) * c;
                             const inflow_velocity = currentPos.clone().normalize().multiplyScalar(-v_inflow_mag);
                             currentPos.add(inflow_velocity.multiplyScalar(time * 0.05));
                         }
-                         if(currentPos.length() < objectRadius * 1.1) {
+                         if(currentPos.length() * gridScale < objectRadius * 1.1) {
                              currentPos.copy(item.originalVertices[i]);
                          }
 
@@ -1451,6 +1501,7 @@
                     positions.needsUpdate = true;
                 });
             }
+
 
             // --- Update Light Rays ---
             lightRayGroup.visible = lightRaysVisible;
