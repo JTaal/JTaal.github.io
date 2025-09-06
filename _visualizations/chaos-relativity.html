@@ -8,10 +8,15 @@ date: 2025-08-27
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Physics & Chaos Explorer</title>
-    <!-- Plotly.js for interactive charts - Updated to a specific, newer version -->
+    
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
-    <!-- Google Fonts for a clean look -->
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU07NsNEuj0/fYs97IOa7/ZbJx2CR51iDJStKZFsUZiQAI75Pdk6SOx" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
     <style>
         /* --- Base Styles & Variables --- */
         :root {
@@ -80,6 +85,8 @@ date: 2025-08-27
             border-radius: 12px;
             padding: 1.5rem;
             transition: background-color 0.3s, box-shadow 0.3s, border-color 0.3s;
+            display: flex;
+            flex-direction: column;
         }
         
         body.light-mode .plot-card {
@@ -96,7 +103,18 @@ date: 2025-08-27
 
         .plot-container {
             width: 100%;
-            height: 450px;
+            min-height: 450px;
+            flex-grow: 1;
+        }
+        
+        .formula-box { 
+            background-color: rgba(128, 128, 128, 0.1); 
+            padding: 1rem; 
+            border-radius: 8px; 
+            margin-top: 1rem; 
+            margin-bottom: 1rem;
+            font-size: 1.1rem; 
+            text-align: center; 
         }
 
         /* --- Interactive Elements --- */
@@ -151,27 +169,33 @@ date: 2025-08-27
 
     <header>
         <h1>Interactive Physics & Chaos Explorer</h1>
-        <p>From Special Relativity to Chaos Theory</p>
+        <p>From Black Holes to Bifurcations</p>
     </header>
 
     <div class="container">
-        <!-- Lorentz Factor vs. Parabola Plot -->
+        <div class="plot-card">
+            <h2>Cosmic Entropy & Bekenstein-Hawking Formula</h2>
+            <p>This bar chart visualizes cosmic entropy contributions on a log scale, showing the dominance of supermassive black holes. The entropy of a single black hole is given by the Bekenstein-Hawking formula.</p>
+            <div class="formula-box">$$ \frac{S_{\text{BH}}}{k_B} = \frac{4\pi G M^2}{\hbar c} $$</div>
+            <div id="entropyBarChart" class="plot-container"></div>
+        </div>
+        
+        <div class="plot-card">
+            <h2>Advanced Bifurcation Diagram</h2>
+            <p>This diagram uses a more complex "Verhulst-style" function to reveal intricate structures beyond the r=4 limit of the standard logistic map. Zoom in to explore the details.</p>
+             <div class="formula-box" style="font-size: 1rem;">$$ x_{n+1} = r \cdot e^{-(x_n-0.5)^2} \cdot (1 + \sin(x_n-0.5)) $$</div>
+            <div id="bifurcationPlot" class="plot-container"></div>
+        </div>
+        
         <div class="plot-card">
             <h2>Lorentz Factor vs. Parabola</h2>
+            <p>Compares the asymptotic growth of the Lorentz factor in special relativity to the steady quadratic growth of a true parabola.</p>
             <div id="lorentzPlot" class="plot-container"></div>
-            <p>Compares the asymptotic growth of the Lorentz factor to the steady quadratic growth of a true parabola.</p>
         </div>
 
-        <!-- Bifurcation Diagram Plot -->
-        <div class="plot-card">
-            <h2>Bifurcation Diagram</h2>
-            <div id="bifurcationPlot" class="plot-container"></div>
-            <p>Shows the period-doubling route to chaos. Zoom and pan to explore its self-similar (fractal) nature.</p>
-        </div>
-
-        <!-- Cobweb Plot -->
         <div class="plot-card">
             <h2>Interactive Cobweb Plot</h2>
+            <p>Shows how the population (x) evolves based on the growth rate (r) for the standard logistic map. The path seeks a stable state or becomes chaotic.</p>
             <div id="cobwebPlot" class="plot-container"></div>
             <div class="slider-container">
                 <label for="rSlider">Growth Rate (r): <span id="rValue">3.5</span></label><br>
@@ -179,11 +203,10 @@ date: 2025-08-27
             </div>
         </div>
         
-        <!-- Parabolas at Bifurcation Points Plot -->
         <div class="plot-card">
             <h2>Parabolas at Critical Points</h2>
+            <p>Shows the subtle changes in the logistic map's shape at key bifurcation points and inside the period-3 stable window.</p>
             <div id="parabolaShapesPlot" class="plot-container"></div>
-            <p>Shows the subtle changes in the parabola's shape at each key bifurcation point and stable window.</p>
         </div>
     </div>
 
@@ -192,49 +215,74 @@ date: 2025-08-27
         let currentTheme = 'dark';
         const themes = {
             dark: {
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                font: { color: 'var(--text-dark)' },
-                xaxis: { gridcolor: 'var(--border-dark)', linecolor: 'var(--border-dark)' },
-                yaxis: { gridcolor: 'var(--border-dark)', linecolor: 'var(--border-dark)' }
+                plot_bgcolor: 'rgba(0,0,0,0)', paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#e0e0e0' },
+                xaxis: { gridcolor: '#444', linecolor: '#444', zerolinecolor: '#555' },
+                yaxis: { gridcolor: '#444', linecolor: 'var(--border-dark)', zerolinecolor: '#555' }
             },
             light: {
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                font: { color: 'var(--text-light)' },
-                xaxis: { gridcolor: 'var(--border-light)', linecolor: 'var(--border-light)' },
-                yaxis: { gridcolor: 'var(--border-light)', linecolor: 'var(--border-light)' }
+                plot_bgcolor: 'rgba(0,0,0,0)', paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#212529' },
+                xaxis: { gridcolor: '#dee2e6', linecolor: '#dee2e6', zerolinecolor: '#ccc' },
+                yaxis: { gridcolor: '#dee2e6', linecolor: '#dee2e6', zerolinecolor: '#ccc' }
             }
         };
 
         const baseLayout = {
-            margin: { l: 50, r: 20, b: 50, t: 40 },
-            xaxis: { zeroline: false },
-            yaxis: { zeroline: false },
+            margin: { l: 60, r: 20, b: 50, t: 40 },
             showlegend: true,
-            legend: { x: 0.05, y: 0.95 } // Reverted to original, non-responsive legend
+            legend: { x: 0.05, y: 0.95 }
         };
 
-        const plotDivIds = ['lorentzPlot', 'bifurcationPlot', 'cobwebPlot', 'parabolaShapesPlot'];
+        const plotDivIds = ['lorentzPlot', 'bifurcationPlot', 'cobwebPlot', 'parabolaShapesPlot', 'entropyBarChart'];
 
         // --- Theme Switcher Logic ---
         const themeSwitcher = document.getElementById('theme-switcher');
         themeSwitcher.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             document.body.classList.toggle('light-mode');
-            if (document.body.classList.contains('dark-mode')) {
-                currentTheme = 'dark';
-                themeSwitcher.textContent = 'Switch to Light Mode';
-            } else {
-                currentTheme = 'light';
-                themeSwitcher.textContent = 'Switch to Dark Mode';
-            }
+            currentTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+            themeSwitcher.textContent = currentTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
             updateAllPlotsLayout();
         });
 
         // --- Plotting Functions ---
 
-        // 1. Lorentz Factor vs. Parabola
+        // 1. Cosmic Entropy
+        function createEntropyBarChart() {
+            const data = { 
+                labels: ['Earth', 'Baryonic Matter', 'Relic Gravitons', 'Dark Matter', 'Neutrinos', 'CMB Photons', 'Sgr A*', 'M87*', 'Stellar BHs', 'TON 618', 'SMBH / Universe'], 
+                values: [66.4, 87.3, 87.8, 88.3, 89.7, 89.7, 90.3, 96.7, 97.8, 98.7, 104.5] 
+            };
+            const trace = { x: data.labels, y: data.values, type: 'bar', marker: { color: 'rgb(0, 123, 255)' } };
+            const layout = { ...baseLayout, title: '', yaxis: { title: 'Log₁₀(Entropy / k_B)' }, xaxis: { tickangle: -45 }, showlegend: false };
+            Plotly.newPlot('entropyBarChart', [trace], layout, { responsive: true });
+        }
+        
+        // 2. Advanced Bifurcation Diagram
+        function createBifurcationPlot() {
+            const r_min = 0.1, r_max = 10.0, steps = 4000;
+            const iteration_threshold = 300, iterations = 200;
+            const r_values = [], x_values = [];
+            const n = iteration_threshold + iterations;
+            const dr = (r_max - r_min) / steps;
+
+            for (let i = 0; i < steps; i++) {
+                const r = r_min + i * dr;
+                let x = 0.5;
+                for (let j = 0; j < n; j++) {
+                    x = Math.exp(-((x - 0.5) ** 2)) * r * (1 + Math.sin(x - 0.5));
+                    if (j > iteration_threshold) { r_values.push(r); x_values.push(x); }
+                }
+            }
+            
+            const markerColor = currentTheme === 'dark' ? '#e0e0e0' : '#212529';
+            const trace = { x: r_values, y: x_values, mode: 'markers', type: 'scattergl', marker: { size: 1, opacity: 0.5, color: markerColor } };
+            const layout = { ...baseLayout, title: '', xaxis: { title: 'Growth Rate (r)', range: [r_min, r_max] }, yaxis: { title: 'Attractor Value(s) (x)', range: [-1.5, 3.5] }, showlegend: false };
+            Plotly.newPlot('bifurcationPlot', [trace], layout, { responsive: true });
+        }
+        
+        // 3. Lorentz Factor vs. Parabola
         function createLorentzPlot() {
             const beta = Array.from({ length: 400 }, (_, i) => i * (0.999 / 399));
             const gamma = beta.map(b => 1 / Math.sqrt(1 - b * b));
@@ -244,30 +292,13 @@ date: 2025-08-27
             const traces = [{
                 x: beta, y: gamma, mode: 'lines', name: 'Lorentz Factor', line: { width: 3 }
             }, {
-                x: x_parabola, y: y_parabola, mode: 'lines', name: 'True Parabola', line: { width: 3, dash: 'dash' }
+                x: x_parabola, y: y_parabola, mode: 'lines', name: 'y = 1 + 9x²', line: { width: 3, dash: 'dash' }
             }];
-            const layout = { ...baseLayout, title: 'Lorentz Factor vs. Parabola', xaxis: { title: 'Velocity (β = v/c) or x-value' }, yaxis: { title: 'Value (γ) or y-value', range: [1, 20] } };
+            const layout = { ...baseLayout, title: '', xaxis: { title: 'Velocity (β = v/c) or x-value' }, yaxis: { title: 'Value (γ) or y-value', range: [1, 20] } };
             Plotly.newPlot('lorentzPlot', traces, layout);
         }
 
-        // 2. Bifurcation Diagram
-        function createBifurcationPlot() {
-            const r_min = 2.5, r_max = 4.0, steps = 2000, iterations = 1000, last = 100;
-            const r_values = [], x_values = [];
-            for (let i = 0; i < steps; i++) {
-                const r = r_min + (r_max - r_min) * i / (steps - 1);
-                let x = 0.2;
-                for (let j = 0; j < iterations; j++) {
-                    x = r * x * (1 - x);
-                    if (j >= (iterations - last)) { r_values.push(r); x_values.push(x); }
-                }
-            }
-            const trace = { x: r_values, y: x_values, mode: 'markers', type: 'scattergl', marker: { size: 1, opacity: 0.5 } };
-            const layout = { ...baseLayout, title: 'Bifurcation Diagram', xaxis: { title: 'Growth Rate (r)' }, yaxis: { title: 'Stable Population(s) (x)' }, showlegend: false };
-            Plotly.newPlot('bifurcationPlot', [trace], layout);
-        }
-
-        // 3. Interactive Cobweb Plot
+        // 4. Interactive Cobweb Plot
         const rSlider = document.getElementById('rSlider');
         const rValueSpan = document.getElementById('rValue');
         function updateCobwebPlot() {
@@ -288,13 +319,12 @@ date: 2025-08-27
                 x_n = y_n;
             }
             traces.push({ x: cobweb_x, y: cobweb_y, mode: 'lines', name: 'Cobweb Path', line: { color: '#d62728', width: 1 } });
-            const layout = { ...baseLayout, title: 'Cobweb Plot', xaxis: { title: 'State (x_n)', range: [0, 1] }, yaxis: { title: 'Next State (x_n+1)', range: [0, 1] } };
+            const layout = { ...baseLayout, title: '', xaxis: { title: 'State (xₙ)', range: [0, 1] }, yaxis: { title: 'Next State (xₙ₊₁)', range: [0, 1] } };
             Plotly.newPlot('cobwebPlot', traces, layout);
-            updatePlotLayout('cobwebPlot');
         }
         rSlider.addEventListener('input', updateCobwebPlot);
 
-        // 4. Parabolas at Bifurcation Points
+        // 5. Parabolas at Bifurcation Points
         function createParabolaShapesPlot() {
             const x = Array.from({ length: 500 }, (_, i) => i / 499);
             const critical_points = {
@@ -306,53 +336,49 @@ date: 2025-08-27
                 const y = x.map(val => r * val * (1 - val));
                 traces.push({ x: x, y: y, mode: 'lines', name: name, line: { width: 2.5 } });
             });
-            const layout = { ...baseLayout, title: 'Parabolas at Critical Points', xaxis: { title: 'Population (x)', range: [0, 1] }, yaxis: { title: 'Next Population (y)', range: [0, 1] } };
+            const layout = { ...baseLayout, title: '', xaxis: { title: 'Population (x)', range: [0, 1] }, yaxis: { title: 'Next Population (y)', range: [0, 1] } };
             Plotly.newPlot('parabolaShapesPlot', traces, layout);
         }
 
         // --- Layout and Theme Update Logic ---
         function updatePlotLayout(divId) {
+            const plotDiv = document.getElementById(divId);
+            if (!plotDiv || !plotDiv.data) return;
+            
             const theme = themes[currentTheme];
-            const update = { ...theme };
-
+            
             if (divId === 'bifurcationPlot') {
-                const markerColor = currentTheme === 'dark' ? 'var(--text-dark)' : 'var(--text-light)';
-                Plotly.restyle(divId, { 'marker.color': markerColor });
+                const markerColor = currentTheme === 'dark' ? '#e0e0e0' : '#212529';
+                Plotly.restyle(plotDiv, { 'marker.color': markerColor });
             }
 
-            Plotly.relayout(divId, update);
+            Plotly.relayout(plotDiv, { ...theme });
         }
 
         function updateAllPlotsLayout() {
-            plotDivIds.forEach(id => {
-                if (document.getElementById(id)) {
-                    updatePlotLayout(id);
-                }
-            });
+            plotDivIds.forEach(updatePlotLayout);
         }
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            if (document.body.classList.contains('dark-mode')) {
-                currentTheme = 'dark';
-                themeSwitcher.textContent = 'Switch to Light Mode';
-            } else {
-                document.body.classList.remove('dark-mode');
-                document.body.classList.add('light-mode');
-                currentTheme = 'light';
-                themeSwitcher.textContent = 'Switch to Dark Mode';
-            }
+            currentTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+            themeSwitcher.textContent = currentTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
 
+            // Create all plots
+            createEntropyBarChart();
             createLorentzPlot();
             createBifurcationPlot();
-            updateCobwebPlot();
             createParabolaShapesPlot();
+            updateCobwebPlot(); // This also creates the initial plot
+            
+            // Apply the correct theme to all plots on initial load
             updateAllPlotsLayout();
+            
+            // Render LaTeX formulas
+            renderMathInElement(document.body, { delimiters: [ {left: '$$', right: '$$', display: true} ] });
         });
         
-        // Update layout on window resize (for potential future responsive logic)
-        // window.addEventListener('resize', updateAllPlotsLayout);
-
+        window.addEventListener('resize', updateAllPlotsLayout);
     </script>
 </body>
 </html>
