@@ -88,6 +88,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            align-items: flex-end;
         }
         .settings-panel {
             background: rgba(40, 40, 40, 0.9);
@@ -97,13 +98,21 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            width: 220px;
+            width: 250px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             margin-top: 10px;
         }
-        .settings-panel h4 { margin: 0 0 10px 0; text-align: center; font-weight: bold; }
+        .settings-panel h4 { margin: 0 0 10px 0; text-align: center; font-weight: bold; border-bottom: 1px solid #555; padding-bottom: 8px;}
         .settings-panel div { display: flex; justify-content: space-between; align-items: center; font-size: 0.9em; }
         .settings-panel input[type="range"] { width: 110px; }
+        .settings-panel input[type="color"] { border: none; background: none; width: 30px; height: 30px; padding: 0; cursor: pointer; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #4a90e2; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
         #plotContainer {
             position: absolute;
             top: 0;
@@ -111,33 +120,14 @@
             width: 100%;
             height: 100%;
             background-color: #1a1a1a;
-            display: none; /* Initially hidden */
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
         }
-        #plotCanvas {
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-        #plotControls {
-            margin-top: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(40, 40, 40, 0.8);
-            padding: 10px;
-            border-radius: 8px;
-        }
-        #plotControls input {
-            width: 80px;
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #666;
-            background-color: #222;
-            color: #eee;
-            text-align: center;
-        }
+        #plotCanvas { border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #plotControls { margin-top: 15px; display: flex; align-items: center; gap: 10px; background: rgba(40, 40, 40, 0.8); padding: 10px; border-radius: 8px; }
+        #plotControls input { width: 80px; padding: 8px; border-radius: 5px; border: 1px solid #666; background-color: #222; color: #eee; text-align: center; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -147,10 +137,10 @@
         <details id="info3D" open>
             <summary>About the 3D Transformation</summary>
             <div class="content-box">
-                <p>This view shows the complex plane. The horizontal axis (Re) is for real numbers, and the depth axis (Im) is for imaginary numbers.</p>
-                <p>The highlighted region is the **Critical Strip** (real part between 0 and 1).</p>
-                <p>• **Transform:** Applies ζ(s) to each point, warping the plane.</p>
-                <p>• **Analytically Continue:** Extends the function to a larger domain. This is possible for 'holomorphic' functions—those that are differentiable everywhere in their domain—allowing us to define their values where the original infinite sum does not converge.</p>
+                <p>For Re(s) > 1, the zeta function is defined by the infinite sum:</p>
+                <p>$$ \zeta(s) = \sum_{n=1}^{\infty} \frac{1}{n^s} $$</p>
+                <p>This visualization uses analytic continuation to extend this definition. The highlighted region is the **Critical Strip**.</p>
+                <p><strong>Note on ζ(-1):</strong> You might notice that ζ(-1) is not zero. Through analytic continuation, its value is famously $$ \zeta(-1) = -1/12 $$. The function *is* zero at negative even integers (e.g., -2, -4,...), which are called the "trivial zeros".</p>
             </div>
         </details>
         <details id="infoZeros" class="hidden">
@@ -179,21 +169,62 @@
     </div>
 
     <div id="view3d-controls">
-        <button id="transformBtn">Transform</button>
-        <button id="continueBtn" class="hidden">Analytically Continue</button>
-        <button id="resetBtn" class="hidden">Reset</button>
-        <button id="settingsBtn">Settings</button>
+        <div>
+            <button id="transformBtn">Transform</button>
+            <button id="continueBtn" class="hidden">Analytically Continue</button>
+            <button id="resetBtn" class="hidden">Reset</button>
+            <button id="settingsBtn">Settings</button>
+        </div>
         <div id="settings-panel" class="settings-panel hidden">
             <h4>Grid Settings</h4>
             <div>
                 <label for="gridSize">Size:</label>
-                <input type="range" id="gridSize" min="10" max="100" value="30">
+                <input type="range" id="gridSize" min="10" max="400" value="30">
                 <span id="gridSizeValue">30</span>
             </div>
             <div>
                 <label for="gridDensity">Density:</label>
-                <input type="range" id="gridDensity" min="20" max="150" value="80">
+                <input type="range" id="gridDensity" min="20" max="500" value="80">
                 <span id="gridDensityValue">80</span>
+            </div>
+             <div>
+                <label for="animationSpeed">Speed (ms):</label>
+                <input type="range" id="animationSpeed" min="200" max="5000" value="2000">
+                <span id="animationSpeedValue">2000</span>
+            </div>
+            <div>
+                <label for="stripWidth">Strip Width:</label>
+                <input type="range" id="stripWidth" min="0.1" max="5.0" value="1.0" step="0.1">
+                <span id="stripWidthValue">1.0</span>
+            </div>
+            <h4>Color Settings</h4>
+             <div>
+                <label for="stripOnlyColor">Strip Only:</label>
+                <label class="switch">
+                    <input type="checkbox" id="stripOnlyColor">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div>
+                <label for="baseColor">Base Color:</label>
+                <input type="color" id="baseColor" value="#ffffff">
+            </div>
+            <div>
+                <label for="stripColor">Strip Color:</label>
+                <input type="color" id="stripColor" value="#ffd700">
+            </div>
+            <h4>Axis & Line Colors</h4>
+            <div>
+                <label for="boundaryColor">Boundary Color:</label>
+                <input type="color" id="boundaryColor" value="#ffd700">
+            </div>
+             <div>
+                <label for="realAxisColor">Real Axis:</label>
+                <input type="color" id="realAxisColor" value="#ff4444">
+            </div>
+            <div>
+                <label for="imagAxisColor">Imag Axis:</label>
+                <input type="color" id="imagAxisColor" value="#4444ff">
             </div>
         </div>
     </div>
@@ -206,14 +237,30 @@
             }
         }
     </script>
+    
+    <!-- MathJax for LaTeX -->
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: {
+          fontCache: 'global'
+        }
+      };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+
 
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- GLOBAL STATE & SETUP ---
         let scene, camera, renderer, controls;
-        let plane, originalPositions, transformedPositions, axesLabels = [];
+        let plane, customAxes, originalPositions, transformedPositions, axesLabels = [];
         let currentAnimation;
         let isTransformed = false;
         let isContinued = false;
@@ -225,92 +272,95 @@
         const tRange = 50;
         const knownZeros = [14.1347, 21.0220, 25.0108, 30.4248, 32.9350, 37.5861, 40.9187, 43.3270, 48.0051, 49.7738, 52.9703, 56.4462, 59.3470, 60.8317, 65.0858, 67.0798, 69.5464, 72.0671, 75.7046, 77.1448, 79.3373, 82.9103, 84.7354, 87.4252, 88.8091, 92.4918, 94.6513, 95.8706, 98.8311, 101.3178, 103.7255, 105.4466, 107.1686, 111.0295, 111.8746, 114.3202, 116.2266, 118.7907, 121.3701, 122.9472, 124.2568, 127.5166, 129.5787, 131.0876, 133.4977, 134.7565, 138.0583, 139.7211, 141.1237, 143.1118];
 
-        // --- COMPLEX NUMBER & MATH FUNCTIONS ---
-        class Complex { /* ... same as before ... */ 
-            constructor(re = 0, im = 0) { this.re = re; this.im = im; }
-            add(c) { return new Complex(this.re + c.re, this.im + c.im); }
-            sub(c) { return new Complex(this.re - c.re, this.im - c.im); }
-            mul(c) { return new Complex(this.re * c.re - this.im * c.im, this.re * c.im + this.im * c.re); }
-            div(c) { const d = c.re * c.re + c.im * c.im; if (d === 0) return new Complex(Infinity, Infinity); return new Complex((this.re * c.re + this.im * c.im) / d, (this.im * c.re - this.re * c.im) / d); }
-            static fromPolar(r, theta) { return new Complex(r * Math.cos(theta), r * Math.sin(theta)); }
-            magnitude() { return Math.sqrt(this.re * this.re + this.im * this.im); }
-            phase() { return Math.atan2(this.im, this.re); }
-        }
-        const g = 7;
-        const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
-        function gamma(z) { /* ... same as before ... */ 
-            if (z.re < 0.5) { const pi = new Complex(Math.PI, 0); const one = new Complex(1, 0); const sinPiZ = sin(pi.mul(z)); if (sinPiZ.magnitude() < 1e-9) return new Complex(Infinity, Infinity); return pi.div(sin(pi.mul(z)).mul(gamma(one.sub(z)))); } else { z = z.sub(new Complex(1, 0)); let x = new Complex(p[0], 0); for (let i = 1; i < g + 2; i++) { x = x.add(new Complex(p[i], 0).div(z.add(new Complex(i, 0)))); } const t = z.add(new Complex(g + 0.5, 0)); const sqrt2pi = new Complex(Math.sqrt(2 * Math.PI), 0); let term1 = pow(t, z.add(new Complex(0.5, 0))); let term2 = exp(t.mul(new Complex(-1, 0))); return sqrt2pi.mul(term1).mul(term2).mul(x); }
-        }
-        function zeta(s) { /* ... same as before ... */
-            if (Math.abs(s.re - 1) < 1e-9 && Math.abs(s.im) < 1e-9) return new Complex(Infinity, Infinity);
-            if (s.re < 0) { const one = new Complex(1, 0); const two = new Complex(2, 0); const pi = new Complex(Math.PI, 0); const reflected_s = one.sub(s); const term1 = pow(two, s); const term2 = pow(pi, s.sub(one)); const term3 = sin(pi.mul(s).div(two)); const term4 = gamma(one.sub(s)); const term5 = zeta(reflected_s); return term1.mul(term2).mul(term3).mul(term4).mul(term5); }
-            const one = new Complex(1, 0); const two = new Complex(2, 0); const prefactor = one.div(one.sub(pow(two, one.sub(s)))); let eta_sum = new Complex(0, 0); for (let i = 1; i <= 1000; i++) { const term = pow(new Complex(i, 0), s.mul(new Complex(-1,0))); if (i % 2 === 1) { eta_sum = eta_sum.add(term); } else { eta_sum = eta_sum.sub(term); } } return prefactor.mul(eta_sum);
-        }
-        function pow(base, exp) { /* ... same as before ... */ if (base.magnitude() === 0) return new Complex(0,0); const logBase = new Complex(Math.log(base.magnitude()), base.phase()); const z = logBase.mul(exp); return Complex.fromPolar(Math.exp(z.re), z.im); }
+        class Complex { constructor(re = 0, im = 0) { this.re = re; this.im = im; } add(c) { return new Complex(this.re + c.re, this.im + c.im); } sub(c) { return new Complex(this.re - c.re, this.im - c.im); } mul(c) { return new Complex(this.re * c.re - this.im * c.im, this.re * c.im + this.im * c.re); } div(c) { const d = c.re * c.re + c.im * c.im; if (d === 0) return new Complex(Infinity, Infinity); return new Complex((this.re * c.re + this.im * c.im) / d, (this.im * c.re - this.re * c.im) / d); } static fromPolar(r, theta) { return new Complex(r * Math.cos(theta), r * Math.sin(theta)); } magnitude() { return Math.sqrt(this.re * this.re + this.im * this.im); } phase() { return Math.atan2(this.im, this.re); } }
+        const g = 7; const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+        function gamma(z) { if (z.re < 0.5) { const pi = new Complex(Math.PI, 0); const one = new Complex(1, 0); const sinPiZ = sin(pi.mul(z)); if (sinPiZ.magnitude() < 1e-9) return new Complex(Infinity, Infinity); return pi.div(sin(pi.mul(z)).mul(gamma(one.sub(z)))); } else { z = z.sub(new Complex(1, 0)); let x = new Complex(p[0], 0); for (let i = 1; i < g + 2; i++) { x = x.add(new Complex(p[i], 0).div(z.add(new Complex(i, 0)))); } const t = z.add(new Complex(g + 0.5, 0)); const sqrt2pi = new Complex(Math.sqrt(2 * Math.PI), 0); let term1 = pow(t, z.add(new Complex(0.5, 0))); let term2 = exp(t.mul(new Complex(-1, 0))); return sqrt2pi.mul(term1).mul(term2).mul(x); } }
+        function zeta(s) { if (Math.abs(s.re - 1) < 1e-9 && Math.abs(s.im) < 1e-9) return new Complex(Infinity, Infinity); if (s.re < 0) { const one = new Complex(1, 0); const two = new Complex(2, 0); const pi = new Complex(Math.PI, 0); const reflected_s = one.sub(s); const term1 = pow(two, s); const term2 = pow(pi, s.sub(one)); const term3 = sin(pi.mul(s).div(two)); const term4 = gamma(one.sub(s)); const term5 = zeta(reflected_s); return term1.mul(term2).mul(term3).mul(term4).mul(term5); } const one = new Complex(1, 0); const two = new Complex(2, 0); const prefactor = one.div(one.sub(pow(two, one.sub(s)))); let eta_sum = new Complex(0, 0); for (let i = 1; i <= 1000; i++) { const term = pow(new Complex(i, 0), s.mul(new Complex(-1,0))); if (i % 2 === 1) { eta_sum = eta_sum.add(term); } else { eta_sum = eta_sum.sub(term); } } return prefactor.mul(eta_sum); }
+        function pow(base, exp) { if (base.magnitude() === 0) return new Complex(0,0); const logBase = new Complex(Math.log(base.magnitude()), base.phase()); const z = logBase.mul(exp); return Complex.fromPolar(Math.exp(z.re), z.im); }
         function exp(c) { return Complex.fromPolar(Math.exp(c.re), c.im); }
         function sin(c) { const ez = exp(new Complex(-c.im, c.re)); const e_iz = exp(new Complex(c.im, -c.re)); return ez.sub(e_iz).div(new Complex(0, 2)); }
-       
-        // --- 3D VISUALIZATION ---
-        function makeTextSprite(message, position) { /* ... same as before ... */
+
+        function makeTextSprite(message, options = {}) {
+            const { fontsize = 32, scale = [1.8, 0.9, 1.0] } = options;
             const canvas = document.createElement('canvas'); const context = canvas.getContext('2d');
-            context.font = 'Bold 40px Arial'; context.fillStyle = 'rgba(255, 255, 255, 0.9)'; context.fillText(message, 0, 40);
+            canvas.width = 128; canvas.height = 64;
+            context.font = `Bold ${fontsize}px Arial`; context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            context.textAlign = 'center'; context.textBaseline = 'middle';
+            context.fillText(message, canvas.width / 2, canvas.height / 2);
             const texture = new THREE.CanvasTexture(canvas); const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-            const sprite = new THREE.Sprite(spriteMaterial); sprite.scale.set(5, 2.5, 1.0); sprite.position.copy(position); return sprite;
+            const sprite = new THREE.Sprite(spriteMaterial); sprite.scale.set(...scale);
+            sprite.position.copy(options.position || new THREE.Vector3()); return sprite;
         }
 
-        function createPlane(width, height, segmentsW, segmentsH) {
+        function createPlane(width, height, segmentsW, segmentsH, stripWidth) {
             const geometry = new THREE.PlaneGeometry(width, height, segmentsW, segmentsH);
+            const boundaries = new Float32Array(geometry.attributes.position.count);
+            const positions = geometry.attributes.position.array;
+            const epsilon = (width / segmentsW) * 0.5;
+            for (let i = 0; i < positions.length / 3; i++) {
+                const x = positions[i * 3];
+                if (Math.abs(x - 0.0) < epsilon || Math.abs(x - stripWidth) < epsilon) { boundaries[i] = 1.0; } 
+                else { boundaries[i] = 0.0; }
+            }
+            geometry.setAttribute('isBoundary', new THREE.BufferAttribute(boundaries, 1));
+
             const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    stripOnly: { value: 0.0 }, baseColor: { value: new THREE.Color(0xffffff) },
+                    stripColor: { value: new THREE.Color(0xffd700) }, boundaryColor: { value: new THREE.Color(0xff00ff) },
+                    stripWidth: { value: 1.0 }
+                },
                 vertexShader: `
-                    varying vec3 vColor;
+                    attribute float isBoundary; varying vec3 vColor; varying float vIsBoundary;
+                    uniform float stripOnly; uniform vec3 baseColor; uniform vec3 stripColor;
+                    uniform float stripWidth;
                     vec3 hsv2rgb(vec3 c) { vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0); vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www); return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y); }
                     void main() {
-                        float angle = atan(position.y, position.x); float hue = (angle + 3.14159) / (2.0 * 3.14159);
-                        float saturation = 0.7; float value = 0.9;
-                        if (position.x > 0.0 && position.x < 1.0) { saturation = 1.0; value = 1.0; }
-                        vColor = hsv2rgb(vec3(hue, saturation, value));
+                        vIsBoundary = isBoundary;
+                        float isStrip = step(0.0, position.x) * (1.0 - step(stripWidth, position.x));
+                        if (stripOnly > 0.5) { vColor = mix(baseColor, stripColor, isStrip); } 
+                        else { float angle = atan(position.y, position.x); float hue = (angle + 3.14159) / (2.0 * 3.14159); float saturation = 0.7 + 0.3 * isStrip; float value = 0.9 + 0.1 * isStrip; vColor = hsv2rgb(vec3(hue, saturation, value)); }
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                `,
-                fragmentShader: `varying vec3 vColor; void main() { gl_FragColor = vec4(vColor, 1.0); }`,
+                    }`,
+                fragmentShader: `
+                    varying vec3 vColor; varying float vIsBoundary; uniform vec3 boundaryColor;
+                    void main() { 
+                        if (vIsBoundary > 0.5) { gl_FragColor = vec4(boundaryColor, 1.0); } 
+                        else { gl_FragColor = vec4(vColor, 1.0); }
+                    }`,
                 side: THREE.DoubleSide, wireframe: true
             });
-            const newPlane = new THREE.Mesh(geometry, material);
-            newPlane.rotation.x = -Math.PI / 2;
-            return newPlane;
+            const newPlane = new THREE.Mesh(geometry, material); newPlane.rotation.x = -Math.PI / 2; return newPlane;
         }
 
-        function calculateTransformedPositions(positions) { /* ... same as before ... */
+        function calculateTransformedPositions(positions, isContinuation) {
             const newPositions = new Float32Array(positions.length);
+            const transformBoundary = 0.5;
             for (let i = 0; i < positions.length; i += 3) {
-                let s = new Complex(positions[i], positions[i + 1]);
-                let z_s = zeta(s);
-                let u = z_s.re; let v = z_s.im;
-                const clampValue = 40;
-                if (isFinite(u) && isFinite(v)) {
-                    newPositions[i] = Math.max(-clampValue, Math.min(clampValue, u));
-                    newPositions[i+1] = Math.max(-clampValue, Math.min(clampValue, v));
-                    newPositions[i+2] = 0;
+                const re = positions[i];
+                if (isContinuation || re > transformBoundary) {
+                    let s = new Complex(re, positions[i + 1]);
+                    let z_s = zeta(s); let u = z_s.re; let v = z_s.im;
+                    const clampValue = 40;
+                    if (isFinite(u) && isFinite(v)) { newPositions[i] = Math.max(-clampValue, Math.min(clampValue, u)); newPositions[i+1] = Math.max(-clampValue, Math.min(clampValue, v)); newPositions[i+2] = 0; } 
+                    else { newPositions[i] = clampValue * Math.sign(u || 0); newPositions[i+1] = clampValue * Math.sign(v || 0); newPositions[i+2] = 0; }
                 } else {
-                    newPositions[i] = clampValue * Math.sign(u || 0);
-                    newPositions[i+1] = clampValue * Math.sign(v || 0);
-                    newPositions[i+2] = 0;
+                    newPositions[i] = re;
+                    newPositions[i+1] = positions[i+1];
+                    newPositions[i+2] = positions[i+2];
                 }
             }
             return newPositions;
         }
 
-        function animateTransformation(startPos, endPos, duration) { /* ... same as before ... */
+        function animateTransformation(startPos, endPos, duration) {
             if (currentAnimation) cancelAnimationFrame(currentAnimation);
             const startTime = performance.now();
             const positions = plane.geometry.attributes.position.array;
             function animate() {
-                const elapsed = performance.now() - startTime;
-                let progress = Math.min(elapsed / duration, 1.0);
+                const elapsed = performance.now() - startTime; let progress = Math.min(elapsed / duration, 1.0);
                 progress = progress * progress * (3 - 2 * progress);
-                for (let i = 0; i < positions.length; i++) {
-                    positions[i] = startPos[i] + (endPos[i] - startPos[i]) * progress;
-                }
+                for (let i = 0; i < positions.length; i++) { positions[i] = startPos[i] + (endPos[i] - startPos[i]) * progress; }
                 plane.geometry.attributes.position.needsUpdate = true;
                 if (progress < 1) { currentAnimation = requestAnimationFrame(animate); }
             }
@@ -318,26 +368,75 @@
         }
 
         function regenerateGrid() {
-            const newSize = parseInt(document.getElementById('gridSize').value);
-            const newDensity = parseInt(document.getElementById('gridDensity').value);
+            const size = parseInt(document.getElementById('gridSize').value);
+            const density = parseInt(document.getElementById('gridDensity').value);
+            const stripWidth = parseFloat(document.getElementById('stripWidth').value);
             
-            if (plane) {
-                const oldPlane = plane;
-                scene.remove(oldPlane);
-                oldPlane.geometry.dispose();
-                oldPlane.material.dispose();
-            }
-
-            plane = createPlane(newSize, newSize, newDensity, newDensity);
+            if (plane) { scene.remove(plane); plane.geometry.dispose(); plane.material.dispose(); }
+            
+            plane = createPlane(size, size, density, density, stripWidth);
+            
+            updateColors();
             scene.add(plane);
-            
             originalPositions = new Float32Array(plane.geometry.attributes.position.array);
-            transformedPositions = calculateTransformedPositions(originalPositions);
+            // Initial transform only applies above 0.5
+            transformedPositions = calculateTransformedPositions(originalPositions, false);
 
             if (isTransformed) {
                  plane.geometry.attributes.position.copyArray(transformedPositions);
                  plane.geometry.attributes.position.needsUpdate = true;
             }
+            
+            regenerateAxesAndLabels();
+        }
+
+        function regenerateAxesAndLabels() {
+            const size = parseInt(document.getElementById('gridSize').value);
+            if (customAxes) scene.remove(customAxes);
+            customAxes = createCustomAxes(size, size);
+            scene.add(customAxes); updateColors();
+            
+            axesLabels.forEach(label => scene.remove(label)); axesLabels = [];
+            axesLabels.push(makeTextSprite("Re", { position: new THREE.Vector3(size/2 + 3, 0, 0) }));
+            axesLabels.push(makeTextSprite("Im", { position: new THREE.Vector3(0, 0, size/2 + 3) }));
+
+            const labelLimit = Math.min(40, Math.floor(size / 2));
+            for (let i = -labelLimit; i <= labelLimit; i++) {
+                const commonOptions = { fontsize: 28, scale: [1.5, 0.75, 1.0] };
+                if (i !== 0) {
+                    axesLabels.push(makeTextSprite(`${i}i`, { ...commonOptions, position: new THREE.Vector3(0, 0, i) }));
+                    axesLabels.push(makeTextSprite(`${i}`, { ...commonOptions, position: new THREE.Vector3(i, 0, 0) }));
+                } else {
+                    axesLabels.push(makeTextSprite("0", { ...commonOptions, position: new THREE.Vector3(-0.5, 0, -0.5) }));
+                }
+            }
+            axesLabels.forEach(label => scene.add(label));
+        }
+        
+        function createCustomAxes(width, height) {
+            const group = new THREE.Group(); const halfWidth = width / 2; const halfHeight = height / 2;
+            const realMaterial = new THREE.LineBasicMaterial();
+            const realPoints = [new THREE.Vector3(-halfWidth, 0, 0), new THREE.Vector3(halfWidth, 0, 0)];
+            const realGeometry = new THREE.BufferGeometry().setFromPoints(realPoints);
+            const realAxis = new THREE.Line(realGeometry, realMaterial); realAxis.name = 'realAxis';
+            const imagMaterial = new THREE.LineBasicMaterial();
+            const imagPoints = [new THREE.Vector3(0, 0, -halfHeight), new THREE.Vector3(0, 0, halfHeight)];
+            const imagGeometry = new THREE.BufferGeometry().setFromPoints(imagPoints);
+            const imagAxis = new THREE.Line(imagGeometry, imagMaterial); imagAxis.name = 'imagAxis';
+            group.add(realAxis); group.add(imagAxis); return group;
+        }
+
+        function updateColors() {
+            if (!plane || !customAxes) return;
+            const stripOnly = document.getElementById('stripOnlyColor').checked;
+            plane.material.uniforms.stripOnly.value = stripOnly ? 1.0 : 0.0;
+            plane.material.uniforms.baseColor.value.set(document.getElementById('baseColor').value);
+            plane.material.uniforms.stripColor.value.set(document.getElementById('stripColor').value);
+            plane.material.uniforms.boundaryColor.value.set(document.getElementById('boundaryColor').value);
+            plane.material.uniforms.stripWidth.value = parseFloat(document.getElementById('stripWidth').value);
+            const realAxis = customAxes.getObjectByName('realAxis'); const imagAxis = customAxes.getObjectByName('imagAxis');
+            if(realAxis) realAxis.material.color.set(document.getElementById('realAxisColor').value);
+            if(imagAxis) imagAxis.material.color.set(document.getElementById('imagAxisColor').value);
         }
 
         function init3D() {
@@ -347,170 +446,63 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.insertBefore(renderer.domElement, document.body.firstChild);
             controls = new OrbitControls(camera, renderer.domElement);
-            camera.position.set(0, 20, 30);
-            
-            const axesHelper = new THREE.AxesHelper( 5 );
-            scene.add( axesHelper );
-            axesLabels.forEach(label => scene.remove(label));
-            axesLabels = [
-                makeTextSprite("Re", new THREE.Vector3(6, 0, 0)),
-                makeTextSprite("Im", new THREE.Vector3(0, 0, 6))
-            ];
-            axesLabels.forEach(label => scene.add(label));
-
-            regenerateGrid();
-            
-            animate3D();
+            camera.position.set(0, 25, 35);
+            regenerateGrid(); animate3D();
         }
         
         function animate3D() { requestAnimationFrame(animate3D); controls.update(); renderer.render(scene, camera); }
         
-        // --- 2D ZEROS PLOT ---
-        function drawZerosPlot(t_offset = 0) { /* ... same as before ... */ 
-            plotContainer.style.display = 'flex';
-            if (renderer) renderer.domElement.style.display = 'none';
-            const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.8, 600);
-            plotCanvas.width = width; plotCanvas.height = height;
-            const tMin = t_offset, tMax = t_offset + tRange; const yMin = -4, yMax = 4; const padding = 60;
-            const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding;
-            function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; }
-            function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; }
-            plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height);
-            plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1;
-            plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(toScreenX(tMin), padding); plotCtx.lineTo(toScreenX(tMin), height - padding); plotCtx.stroke();
-            plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top';
-            for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) { plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5); }
-            plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width/2, height - 25);
-            plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle';
-            for (let y = yMin; y <= yMax; y += 1) { if(y!==0) plotCtx.fillText(y, padding - 10, toScreenY(y)); }
-            plotCtx.lineWidth = 2;
-            ['#4a90e2', '#f5a623'].forEach((color, index) => { plotCtx.strokeStyle = color; plotCtx.beginPath(); let first = true; for (let t = tMin; t < tMax; t += 0.1) { const s = new Complex(0.5, t); const z = zeta(s); const val = (index === 0) ? z.re : z.im; if (isFinite(val)) { if (first) { plotCtx.moveTo(toScreenX(t), toScreenY(val)); first = false; } else { plotCtx.lineTo(toScreenX(t), toScreenY(val)); } } } plotCtx.stroke(); });
-            plotCtx.fillStyle = 'red'; plotCtx.font = 'bold 12px Arial';
-            knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => { const x = toScreenX(t); plotCtx.beginPath(); plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI); plotCtx.fill(); plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15); });
-            plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(width - padding - 100, padding, 10, 10);
-            plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5);
-            plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10);
-            plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25);
-        }
+        function drawZerosPlot(t_offset = 0) { /* ... same as before ... */ plotContainer.style.display = 'flex'; if (renderer) renderer.domElement.style.display = 'none'; const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.8, 600); plotCanvas.width = width; plotCanvas.height = height; const tMin = t_offset, tMax = t_offset + tRange; const yMin = -4, yMax = 4; const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding; function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; } function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; } plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height); plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(toScreenX(tMin), padding); plotCtx.lineTo(toScreenX(tMin), height - padding); plotCtx.stroke(); plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top'; for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) { plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5); } plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width/2, height - 25); plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle'; for (let y = yMin; y <= yMax; y += 1) { if(y!==0) plotCtx.fillText(y, padding - 10, toScreenY(y)); } plotCtx.lineWidth = 2; ['#4a90e2', '#f5a623'].forEach((color, index) => { plotCtx.strokeStyle = color; plotCtx.beginPath(); let first = true; for (let t = tMin; t < tMax; t += 0.1) { const s = new Complex(0.5, t); const z = zeta(s); const val = (index === 0) ? z.re : z.im; if (isFinite(val)) { if (first) { plotCtx.moveTo(toScreenX(t), toScreenY(val)); first = false; } else { plotCtx.lineTo(toScreenX(t), toScreenY(val)); } } } plotCtx.stroke(); }); plotCtx.fillStyle = 'red'; plotCtx.font = 'bold 12px Arial'; knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => { const x = toScreenX(t); plotCtx.beginPath(); plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI); plotCtx.fill(); plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15); }); plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(width - padding - 100, padding, 10, 10); plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5); plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10); plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25); }
 
-        // --- UI and EVENT LISTENERS ---
-        const transformViewBtn = document.getElementById('transformViewBtn');
-        const zerosViewBtn = document.getElementById('zerosViewBtn');
-        const view3dControls = document.getElementById('view3d-controls');
-        const info3D = document.getElementById('info3D');
-        const infoZeros = document.getElementById('infoZeros');
-        const settingsPanel = document.getElementById('settings-panel');
-        const settingsBtn = document.getElementById('settingsBtn');
+        document.getElementById('transformViewBtn').addEventListener('click', () => { plotContainer.style.display = 'none'; renderer.domElement.style.display = 'block'; view3dControls.style.display = 'flex'; info3D.classList.remove('hidden'); infoZeros.classList.add('hidden'); });
+        document.getElementById('zerosViewBtn').addEventListener('click', () => { plotContainer.style.display = 'flex'; renderer.domElement.style.display = 'none'; view3dControls.style.display = 'none'; info3D.classList.add('hidden'); infoZeros.classList.remove('hidden'); drawZerosPlot(tOffset); });
+        
         const transformBtn = document.getElementById('transformBtn');
         const continueBtn = document.getElementById('continueBtn');
         const resetBtn = document.getElementById('resetBtn');
 
-        transformViewBtn.addEventListener('click', () => { plotContainer.style.display = 'none'; renderer.domElement.style.display = 'block'; view3dControls.style.display = 'flex'; info3D.classList.remove('hidden'); infoZeros.classList.add('hidden'); });
-        zerosViewBtn.addEventListener('click', () => { plotContainer.style.display = 'flex'; renderer.domElement.style.display = 'none'; view3dControls.style.display = 'none'; info3D.classList.add('hidden'); infoZeros.classList.remove('hidden'); drawZerosPlot(tOffset); });
-        
         transformBtn.addEventListener('click', () => {
-            animateTransformation(originalPositions, transformedPositions, 2000);
+            const speed = parseInt(document.getElementById('animationSpeed').value);
+            animateTransformation(originalPositions, transformedPositions, speed);
+            isTransformed = true;
             transformBtn.classList.add('hidden');
             continueBtn.classList.remove('hidden');
             resetBtn.classList.remove('hidden');
-            isTransformed = true;
         });
-
+        
         continueBtn.addEventListener('click', () => {
-            const oldPlane = plane;
-            const startPositions = new Float32Array(oldPlane.geometry.attributes.position.array);
-
-            const oldParams = oldPlane.geometry.parameters;
-            const newWidth = oldParams.width * 2;
-            const newHeight = oldParams.height * 1.5;
-            const newSegW = Math.round(oldParams.widthSegments * 1.75);
-            const newSegH = Math.round(oldParams.heightSegments * 1.5);
-            
-            const newPlane = createPlane(newWidth, newHeight, newSegW, newSegH);
-            const endPositions = calculateTransformedPositions(newPlane.geometry.attributes.position.array);
-            
-            // Map old positions to the center of the new grid for a smooth start
-            const mappedStartPositions = new Float32Array(endPositions.length);
-            const pos = newPlane.geometry.attributes.position;
-            for(let i = 0; i < pos.count; i++) {
-                let x = pos.getX(i);
-                let y = pos.getY(i);
-                if (Math.abs(x) < oldParams.width/2 && Math.abs(y) < oldParams.height/2) {
-                    // This vertex was in the old grid, find its old position
-                     let normalizedX = (x + oldParams.width/2) / oldParams.width;
-                     let normalizedY = (y + oldParams.height/2) / oldParams.height;
-                     let oldI = Math.floor(normalizedY * (oldParams.heightSegments + 1)) * (oldParams.widthSegments + 1) + Math.floor(normalizedX * (oldParams.widthSegments + 1));
-                     if(startPositions[oldI*3] !== undefined) {
-                        mappedStartPositions[i*3] = startPositions[oldI*3];
-                        mappedStartPositions[i*3+1] = startPositions[oldI*3+1];
-                        mappedStartPositions[i*3+2] = startPositions[oldI*3+2];
-                     } else {
-                        mappedStartPositions[i*3] = x;
-                        mappedStartPositions[i*3+1] = y;
-                        mappedStartPositions[i*3+2] = pos.getZ(i);
-                     }
-                } else {
-                    // This is a new vertex, start from its original flat position
-                    mappedStartPositions[i*3] = x;
-                    mappedStartPositions[i*3+1] = y;
-                    mappedStartPositions[i*3+2] = pos.getZ(i);
-                }
-            }
-
-            scene.remove(oldPlane);
-            oldPlane.geometry.dispose();
-            oldPlane.material.dispose();
-
-            plane = newPlane;
-            scene.add(plane);
-            plane.geometry.attributes.position.copyArray(mappedStartPositions);
-
-            animateTransformation(mappedStartPositions, endPositions, 2000);
-            
+            const speed = parseInt(document.getElementById('animationSpeed').value);
+            const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
+            const continuedPositions = calculateTransformedPositions(originalPositions, true); // Recalculate for the whole plane
+            animateTransformation(currentPositions, continuedPositions, speed);
             continueBtn.classList.add('hidden');
             isContinued = true;
         });
 
         resetBtn.addEventListener('click', () => {
-            if (isContinued) {
-                // If continued, we need to regenerate the original grid and then animate it
-                regenerateGrid();
-                isContinued = false;
-            } else {
-                // Otherwise, just animate the current grid back
-                const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
-                animateTransformation(currentPositions, originalPositions, 2000);
-            }
+            const speed = parseInt(document.getElementById('animationSpeed').value);
+            const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
+            animateTransformation(currentPositions, originalPositions, speed);
+            isTransformed = false;
+            isContinued = false;
             transformBtn.classList.remove('hidden');
             continueBtn.classList.add('hidden');
             resetBtn.classList.add('hidden');
-            isTransformed = false;
         });
         
-        // Settings panel logic
-        settingsBtn.addEventListener('click', () => settingsPanel.classList.toggle('hidden'));
+        document.getElementById('settingsBtn').addEventListener('click', () => document.getElementById('settings-panel').classList.toggle('hidden'));
+        document.getElementById('gridSize').addEventListener('input', (e) => { document.getElementById('gridSizeValue').textContent = e.target.value; regenerateGrid(); });
+        document.getElementById('gridDensity').addEventListener('input', (e) => { document.getElementById('gridDensityValue').textContent = e.target.value; regenerateGrid(); });
+        document.getElementById('animationSpeed').addEventListener('input', (e) => { document.getElementById('animationSpeedValue').textContent = e.target.value; });
+        document.getElementById('stripWidth').addEventListener('input', (e) => { document.getElementById('stripWidthValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
+        ['stripOnlyColor', 'baseColor', 'stripColor', 'boundaryColor', 'realAxisColor', 'imagAxisColor'].forEach(id => { document.getElementById(id).addEventListener('input', updateColors); });
         
-        const gridSizeSlider = document.getElementById('gridSize');
-        const gridDensitySlider = document.getElementById('gridDensity');
-        const gridSizeValue = document.getElementById('gridSizeValue');
-        const gridDensityValue = document.getElementById('gridDensityValue');
-
-        gridSizeSlider.addEventListener('input', () => {
-            gridSizeValue.textContent = gridSizeSlider.value;
-            regenerateGrid();
-        });
-        gridDensitySlider.addEventListener('input', () => {
-            gridDensityValue.textContent = gridDensitySlider.value;
-            regenerateGrid();
-        });
-        
-        // Listeners for 2D plot
         const tOffsetInput = document.getElementById('tOffsetInput');
         tOffsetInput.addEventListener('keyup', (event) => { if (event.key === 'Enter') { document.getElementById('goBtn').click(); } });
         document.getElementById('nextBtn').addEventListener('click', () => { tOffset += tRange; tOffsetInput.value = tOffset; drawZerosPlot(tOffset); });
         document.getElementById('prevBtn').addEventListener('click', () => { tOffset = Math.max(0, tOffset - tRange); tOffsetInput.value = tOffset; drawZerosPlot(tOffset); });
         document.getElementById('goBtn').addEventListener('click', () => { const val = parseFloat(tOffsetInput.value); if (!isNaN(val)) { tOffset = Math.max(0, val); drawZerosPlot(tOffset); } });
-        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); if (plotContainer.style.display !== 'none') { drawZerosPlot(tOffset); } });
+        window.addEventListener('resize', () => { if(camera) { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); } if(renderer) { renderer.setSize(window.innerWidth, window.innerHeight); } if (plotContainer.style.display !== 'none') { drawZerosPlot(tOffset); } });
 
         init3D();
     </script>
