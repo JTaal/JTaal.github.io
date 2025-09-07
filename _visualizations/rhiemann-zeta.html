@@ -51,6 +51,37 @@
             font-size: 0.9em;
             line-height: 1.5;
         }
+        .content-box h4 {
+             margin-top: 20px;
+             padding-top: 15px;
+             border-top: 1px solid #444;
+        }
+        .calculator-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .calculator-container input {
+            width: 55px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #666;
+            background-color: #222;
+            color: #eee;
+            text-align: center;
+        }
+        .calculator-container button {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        #zetaResult {
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #4a90e2;
+            text-align: center;
+        }
         .controls {
             position: absolute;
             bottom: 20px;
@@ -141,6 +172,17 @@
                 <p>$$ \zeta(s) = \sum_{n=1}^{\infty} \frac{1}{n^s} $$</p>
                 <p>This visualization uses analytic continuation to extend this definition. The highlighted region is the **Critical Strip**.</p>
                 <p><strong>Note on ζ(-1):</strong> You might notice that ζ(-1) is not zero. Through analytic continuation, its value is famously $$ \zeta(-1) = -1/12 $$. The function *is* zero at negative even integers (e.g., -2, -4,...), which are called the "trivial zeros".</p>
+                
+                <h4>Interactive Calculator</h4>
+                <div class="calculator-container">
+                    <span>ζ(</span>
+                    <input type="number" id="zetaRealInput" value="-1" step="0.1">
+                    <span> + </span>
+                    <input type="number" id="zetaImagInput" value="0" step="0.1">
+                    <span>i )</span>
+                    <button id="calculateZetaBtn">Calculate</button>
+                </div>
+                <div id="zetaResult"></div>
             </div>
         </details>
         <details id="infoZeros" class="hidden">
@@ -179,22 +221,22 @@
             <h4>Grid Settings</h4>
             <div>
                 <label for="gridSize">Size:</label>
-                <input type="range" id="gridSize" min="10" max="400" value="30">
+                <input type="range" id="gridSize" min="10" max="500" value="30">
                 <span id="gridSizeValue">30</span>
             </div>
             <div>
                 <label for="gridDensity">Density:</label>
-                <input type="range" id="gridDensity" min="20" max="500000" value="80">
+                <input type="range" id="gridDensity" min="20" max="600" value="80">
                 <span id="gridDensityValue">80</span>
             </div>
              <div>
-                <label for="animationSpeed">Duration (ms):</label>
-                <input type="range" id="animationSpeed" min="200" max="20000" value="2000">
+                <label for="animationSpeed">Speed (ms):</label>
+                <input type="range" id="animationSpeed" min="200" max="6000" value="2000">
                 <span id="animationSpeedValue">2000</span>
             </div>
             <div>
                 <label for="stripWidth">Strip Width:</label>
-                <input type="range" id="stripWidth" min="0.0000001" max="10.0" value="1.0" step="0.01">
+                <input type="range" id="stripWidth" min="0.1" max="5.0" value="1.0" step="0.1">
                 <span id="stripWidthValue">1.0</span>
             </div>
             <div>
@@ -478,7 +520,9 @@
             document.body.insertBefore(renderer.domElement, document.body.firstChild);
             controls = new OrbitControls(camera, renderer.domElement);
             camera.position.set(0, 25, 35);
-            regenerateGrid(); animate3D();
+            regenerateGrid(); 
+            calculateAndDisplayZeta(); // Initial calculation for default values
+            animate3D();
         }
         
         function animate3D() { requestAnimationFrame(animate3D); controls.update(); renderer.render(scene, camera); }
@@ -537,6 +581,23 @@
             resetBtn.classList.add('hidden');
         });
         
+        function calculateAndDisplayZeta() {
+            const re = parseFloat(document.getElementById('zetaRealInput').value) || 0;
+            const im = parseFloat(document.getElementById('zetaImagInput').value) || 0;
+            const s = new Complex(re, im);
+            const result = zeta(s);
+            const resultDiv = document.getElementById('zetaResult');
+
+            if (!isFinite(result.re) || !isFinite(result.im)) {
+                resultDiv.textContent = "Result is infinite (pole at s=1)";
+            } else {
+                const realPart = result.re.toFixed(4);
+                const imagPart = result.im.toFixed(4);
+                resultDiv.textContent = `${realPart} ${imagPart >= 0 ? '+' : '-'} ${Math.abs(imagPart)}i`;
+            }
+        }
+
+        document.getElementById('calculateZetaBtn').addEventListener('click', calculateAndDisplayZeta);
         document.getElementById('settingsBtn').addEventListener('click', () => document.getElementById('settings-panel').classList.toggle('hidden'));
         document.getElementById('gridSize').addEventListener('input', (e) => { document.getElementById('gridSizeValue').textContent = e.target.value; regenerateGrid(); });
         document.getElementById('gridDensity').addEventListener('input', (e) => { document.getElementById('gridDensityValue').textContent = e.target.value; regenerateGrid(); });
