@@ -197,6 +197,13 @@
                 <input type="range" id="stripWidth" min="0.1" max="5.0" value="1.0" step="0.1">
                 <span id="stripWidthValue">1.0</span>
             </div>
+            <div>
+                <label for="zDisplacementToggle">3D Displacement:</label>
+                <label class="switch">
+                    <input type="checkbox" id="zDisplacementToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
             <h4>Color Settings</h4>
              <div>
                 <label for="stripOnlyColor">Strip Only:</label>
@@ -268,6 +275,9 @@
         const plotContainer = document.getElementById('plotContainer');
         const plotCanvas = document.getElementById('plotCanvas');
         const plotCtx = plotCanvas.getContext('2d');
+        const view3dControls = document.getElementById('view3d-controls');
+        const info3D = document.getElementById('info3D');
+        const infoZeros = document.getElementById('infoZeros');
         let tOffset = 0;
         const tRange = 50;
         const knownZeros = [14.1347, 21.0220, 25.0108, 30.4248, 32.9350, 37.5861, 40.9187, 43.3270, 48.0051, 49.7738, 52.9703, 56.4462, 59.3470, 60.8317, 65.0858, 67.0798, 69.5464, 72.0671, 75.7046, 77.1448, 79.3373, 82.9103, 84.7354, 87.4252, 88.8091, 92.4918, 94.6513, 95.8706, 98.8311, 101.3178, 103.7255, 105.4466, 107.1686, 111.0295, 111.8746, 114.3202, 116.2266, 118.7907, 121.3701, 122.9472, 124.2568, 127.5166, 129.5787, 131.0876, 133.4977, 134.7565, 138.0583, 139.7211, 141.1237, 143.1118];
@@ -333,20 +343,36 @@
             const newPlane = new THREE.Mesh(geometry, material); newPlane.rotation.x = -Math.PI / 2; return newPlane;
         }
 
-        function calculateTransformedPositions(positions, isContinuation) {
+        function calculateTransformedPositions(positions, isContinuation, useZDisplacement) {
             const newPositions = new Float32Array(positions.length);
             const transformBoundary = 0.5;
             for (let i = 0; i < positions.length; i += 3) {
                 const re = positions[i];
+                const im = positions[i + 1];
+
                 if (isContinuation || re > transformBoundary) {
-                    let s = new Complex(re, positions[i + 1]);
+                    let s = new Complex(re, im);
                     let z_s = zeta(s); let u = z_s.re; let v = z_s.im;
                     const clampValue = 40;
-                    if (isFinite(u) && isFinite(v)) { newPositions[i] = Math.max(-clampValue, Math.min(clampValue, u)); newPositions[i+1] = Math.max(-clampValue, Math.min(clampValue, v)); newPositions[i+2] = 0; } 
-                    else { newPositions[i] = clampValue * Math.sign(u || 0); newPositions[i+1] = clampValue * Math.sign(v || 0); newPositions[i+2] = 0; }
+                    if (isFinite(u) && isFinite(v)) { 
+                        newPositions[i] = Math.max(-clampValue, Math.min(clampValue, u)); 
+                        newPositions[i+1] = Math.max(-clampValue, Math.min(clampValue, v)); 
+                    } else { 
+                        newPositions[i] = clampValue * Math.sign(u || 0); 
+                        newPositions[i+1] = clampValue * Math.sign(v || 0); 
+                    }
+                    if (useZDisplacement) {
+                        const dx = newPositions[i] - re;
+                        const dy = newPositions[i + 1] - im;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        newPositions[i + 2] = distance * 0.2; // Scaling factor for visual appeal
+                    } else {
+                         newPositions[i + 2] = 0;
+                    }
+
                 } else {
                     newPositions[i] = re;
-                    newPositions[i+1] = positions[i+1];
+                    newPositions[i+1] = im;
                     newPositions[i+2] = positions[i+2];
                 }
             }
@@ -371,6 +397,7 @@
             const size = parseInt(document.getElementById('gridSize').value);
             const density = parseInt(document.getElementById('gridDensity').value);
             const stripWidth = parseFloat(document.getElementById('stripWidth').value);
+            const useZDisplacement = document.getElementById('zDisplacementToggle').checked;
             
             if (plane) { scene.remove(plane); plane.geometry.dispose(); plane.material.dispose(); }
             
@@ -379,13 +406,17 @@
             updateColors();
             scene.add(plane);
             originalPositions = new Float32Array(plane.geometry.attributes.position.array);
-            // Initial transform only applies above 0.5
-            transformedPositions = calculateTransformedPositions(originalPositions, false);
-
-            if (isTransformed) {
-                 plane.geometry.attributes.position.copyArray(transformedPositions);
-                 plane.geometry.attributes.position.needsUpdate = true;
+            
+            let targetState;
+            if (isContinued) {
+                targetState = calculateTransformedPositions(originalPositions, true, useZDisplacement);
+            } else if (isTransformed) {
+                targetState = calculateTransformedPositions(originalPositions, false, useZDisplacement);
+            } else {
+                targetState = originalPositions;
             }
+             plane.geometry.attributes.position.copyArray(targetState);
+             plane.geometry.attributes.position.needsUpdate = true;
             
             regenerateAxesAndLabels();
         }
@@ -454,8 +485,21 @@
         
         function drawZerosPlot(t_offset = 0) { /* ... same as before ... */ plotContainer.style.display = 'flex'; if (renderer) renderer.domElement.style.display = 'none'; const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.8, 600); plotCanvas.width = width; plotCanvas.height = height; const tMin = t_offset, tMax = t_offset + tRange; const yMin = -4, yMax = 4; const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding; function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; } function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; } plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height); plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(toScreenX(tMin), padding); plotCtx.lineTo(toScreenX(tMin), height - padding); plotCtx.stroke(); plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top'; for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) { plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5); } plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width/2, height - 25); plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle'; for (let y = yMin; y <= yMax; y += 1) { if(y!==0) plotCtx.fillText(y, padding - 10, toScreenY(y)); } plotCtx.lineWidth = 2; ['#4a90e2', '#f5a623'].forEach((color, index) => { plotCtx.strokeStyle = color; plotCtx.beginPath(); let first = true; for (let t = tMin; t < tMax; t += 0.1) { const s = new Complex(0.5, t); const z = zeta(s); const val = (index === 0) ? z.re : z.im; if (isFinite(val)) { if (first) { plotCtx.moveTo(toScreenX(t), toScreenY(val)); first = false; } else { plotCtx.lineTo(toScreenX(t), toScreenY(val)); } } } plotCtx.stroke(); }); plotCtx.fillStyle = 'red'; plotCtx.font = 'bold 12px Arial'; knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => { const x = toScreenX(t); plotCtx.beginPath(); plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI); plotCtx.fill(); plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15); }); plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(width - padding - 100, padding, 10, 10); plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5); plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10); plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25); }
 
-        document.getElementById('transformViewBtn').addEventListener('click', () => { plotContainer.style.display = 'none'; renderer.domElement.style.display = 'block'; view3dControls.style.display = 'flex'; info3D.classList.remove('hidden'); infoZeros.classList.add('hidden'); });
-        document.getElementById('zerosViewBtn').addEventListener('click', () => { plotContainer.style.display = 'flex'; renderer.domElement.style.display = 'none'; view3dControls.style.display = 'none'; info3D.classList.add('hidden'); infoZeros.classList.remove('hidden'); drawZerosPlot(tOffset); });
+        document.getElementById('transformViewBtn').addEventListener('click', () => {
+            plotContainer.style.display = 'none';
+            renderer.domElement.style.display = 'block';
+            view3dControls.style.display = 'flex';
+            info3D.classList.remove('hidden');
+            infoZeros.classList.add('hidden');
+        });
+        document.getElementById('zerosViewBtn').addEventListener('click', () => {
+            plotContainer.style.display = 'flex';
+            renderer.domElement.style.display = 'none';
+            view3dControls.style.display = 'none';
+            info3D.classList.add('hidden');
+            infoZeros.classList.remove('hidden');
+            drawZerosPlot(tOffset);
+        });
         
         const transformBtn = document.getElementById('transformBtn');
         const continueBtn = document.getElementById('continueBtn');
@@ -463,7 +507,9 @@
 
         transformBtn.addEventListener('click', () => {
             const speed = parseInt(document.getElementById('animationSpeed').value);
-            animateTransformation(originalPositions, transformedPositions, speed);
+            const useZ = document.getElementById('zDisplacementToggle').checked;
+            const targetPositions = calculateTransformedPositions(originalPositions, false, useZ);
+            animateTransformation(originalPositions, targetPositions, speed);
             isTransformed = true;
             transformBtn.classList.add('hidden');
             continueBtn.classList.remove('hidden');
@@ -472,8 +518,9 @@
         
         continueBtn.addEventListener('click', () => {
             const speed = parseInt(document.getElementById('animationSpeed').value);
+            const useZ = document.getElementById('zDisplacementToggle').checked;
             const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
-            const continuedPositions = calculateTransformedPositions(originalPositions, true); // Recalculate for the whole plane
+            const continuedPositions = calculateTransformedPositions(originalPositions, true, useZ); // Recalculate for the whole plane
             animateTransformation(currentPositions, continuedPositions, speed);
             continueBtn.classList.add('hidden');
             isContinued = true;
@@ -495,6 +542,21 @@
         document.getElementById('gridDensity').addEventListener('input', (e) => { document.getElementById('gridDensityValue').textContent = e.target.value; regenerateGrid(); });
         document.getElementById('animationSpeed').addEventListener('input', (e) => { document.getElementById('animationSpeedValue').textContent = e.target.value; });
         document.getElementById('stripWidth').addEventListener('input', (e) => { document.getElementById('stripWidthValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
+        
+        document.getElementById('zDisplacementToggle').addEventListener('input', () => {
+            if (!isTransformed && !isContinued) return;
+            const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
+            const useZ = document.getElementById('zDisplacementToggle').checked;
+            const speed = parseInt(document.getElementById('animationSpeed').value);
+            let targetPositions;
+            if (isContinued) {
+                targetPositions = calculateTransformedPositions(originalPositions, true, useZ);
+            } else {
+                targetPositions = calculateTransformedPositions(originalPositions, false, useZ);
+            }
+            animateTransformation(currentPositions, targetPositions, speed);
+        });
+
         ['stripOnlyColor', 'baseColor', 'stripColor', 'boundaryColor', 'realAxisColor', 'imagAxisColor'].forEach(id => { document.getElementById(id).addEventListener('input', updateColors); });
         
         const tOffsetInput = document.getElementById('tOffsetInput');
