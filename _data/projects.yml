@@ -82,6 +82,12 @@
   visualization_url: /visualizations/complex-waves-combined-low.html
   description: A short description goes here.
 
+- title: Rhiemann Zeta
+  author: Jasper Taal
+  thumbnail: /assets/images/rhiemann-zeta.png
+  visualization_url: /visualizations/rhiemann-zeta.html
+  description: A short description goes here.
+
 - title: Multivariate Gaussian
   author: Jasper Taal
   thumbnail: /assets/images/multivariate-gaussian.png
