@@ -1097,6 +1097,8 @@
         const primeChartCanvas = document.getElementById('primeChartCanvas');
         let primes = [];
         const MAX_PRIME = 5000;
+        let primeSet = new Set();
+
 
         function sieve(n) {
             const isPrime = new Array(n + 1).fill(true);
@@ -1110,6 +1112,7 @@
             for (let i = 2; i <= n; i++) {
                 if (isPrime[i]) primeNumbers.push(i);
             }
+            primeSet = new Set(primeNumbers);
             return primeNumbers;
         }
 
@@ -1173,7 +1176,11 @@
                 liData.push(li_x);
                 
                 if (isInfinity) {
-                    riemannData.push(pi_x);
+                    if (primeSet.has(x)) {
+                        riemannData.push(pi_x - 0.5);
+                    } else {
+                        riemannData.push(pi_x);
+                    }
                 } else {
                     let correction = 0;
                     for(let i=0; i < numZeros; i++) {
