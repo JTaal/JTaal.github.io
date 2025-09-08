@@ -241,8 +241,15 @@
             <h4>Grid Settings</h4>
             <div>
                 <label for="gridSize">Size:</label>
-                <input type="range" id="gridSize" min="10" max="500" value="30">
+                <input type="range" id="gridSize" min="10" max="5000" value="30">
                 <span id="gridSizeValue">30</span>
+            </div>
+             <div>
+                <label for="gridSizeLogToggle">Log Scale:</label>
+                <label class="switch">
+                    <input type="checkbox" id="gridSizeLogToggle">
+                    <span class="slider"></span>
+                </label>
             </div>
             <div>
                 <label for="gridDensity">Density:</label>
@@ -389,15 +396,17 @@
         // --- Slider Log Scale Helpers ---
         const MIN_STRIP_WIDTH = 0.1;
         const MAX_STRIP_WIDTH = 10000.0;
+        const MIN_GRID_SIZE = 10;
+        const MAX_GRID_SIZE = 5000;
         function linearToLog(value, min, max, sliderMax) {
-            if (value <= 0) return min;
+            if (value <= min) return min; // Use slider min, not range min
             if (value >= sliderMax) return max;
-            return min * Math.pow(max / min, value / sliderMax);
+            return min * Math.pow(max / min, (value - min) / (sliderMax - min));
         }
         function logToLinear(value, min, max, sliderMax) {
-            if (value <= min) return 0;
+            if (value <= min) return min;
             if (value >= max) return sliderMax;
-            return sliderMax * Math.log(value / min) / Math.log(max / min);
+            return (sliderMax - min) * Math.log(value / min) / Math.log(max / min) + min;
         }
 
         // --- THREE.js Scene Setup ---
@@ -507,7 +516,7 @@
         }
 
         function regenerateGrid() {
-            const size = parseInt(document.getElementById('gridSize').value);
+            const size = parseInt(document.getElementById('gridSizeValue').textContent);
             const density = parseInt(document.getElementById('gridDensity').value);
             const stripWidth = parseFloat(document.getElementById('stripWidthValue').textContent);
             const stripStart = parseFloat(document.getElementById('stripStart').value);
@@ -537,7 +546,7 @@
         }
 
         function regenerateAxesAndLabels() {
-            const size = parseInt(document.getElementById('gridSize').value);
+            const size = parseInt(document.getElementById('gridSizeValue').textContent);
             if (customAxes) scene.remove(customAxes);
             customAxes = createCustomAxes(size, size);
             scene.add(customAxes); updateColors();
@@ -629,7 +638,7 @@
             const zeroSize = parseFloat(document.getElementById('zeroSizeSlider').value);
             const zeroMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
             const zeroGeometry = new THREE.SphereGeometry(zeroSize, 16, 16);
-            const size = parseInt(document.getElementById('gridSize').value);
+            const size = parseInt(document.getElementById('gridSizeValue').textContent);
             const halfSize = size / 2;
 
             const allZeroTs = [];
@@ -674,7 +683,7 @@
             const zeroSize = parseFloat(document.getElementById('trivialZeroSizeSlider').value);
             const zeroMaterial = new THREE.MeshBasicMaterial({ color: 0x4444ff });
             const zeroGeometry = new THREE.SphereGeometry(zeroSize, 16, 16);
-            const size = parseInt(document.getElementById('gridSize').value);
+            const size = parseInt(document.getElementById('gridSizeValue').textContent);
             const halfSize = size / 2;
 
             for (let i = -2; i >= -halfSize; i -= 2) {
@@ -862,7 +871,38 @@
 
         document.getElementById('calculateZetaBtn').addEventListener('click', calculateAndDisplayZeta);
         document.getElementById('settingsBtn').addEventListener('click', () => document.getElementById('settings-panel').classList.toggle('hidden'));
-        document.getElementById('gridSize').addEventListener('input', (e) => { document.getElementById('gridSizeValue').textContent = e.target.value; regenerateGrid(); });
+        
+        document.getElementById('gridSize').addEventListener('input', (e) => {
+            const slider = e.target;
+            const sliderValue = parseInt(slider.value);
+            const useLog = document.getElementById('gridSizeLogToggle').checked;
+            let newSize;
+
+            if (useLog) {
+                newSize = linearToLog(sliderValue, MIN_GRID_SIZE, MAX_GRID_SIZE, parseInt(slider.max));
+            } else {
+                newSize = sliderValue;
+            }
+            
+            document.getElementById('gridSizeValue').textContent = Math.round(newSize);
+            regenerateGrid(); 
+        });
+
+         document.getElementById('gridSizeLogToggle').addEventListener('input', (e) => {
+            const useLog = e.target.checked;
+            const sizeSpan = document.getElementById('gridSizeValue');
+            const sizeSlider = document.getElementById('gridSize');
+            let currentSize = parseInt(sizeSpan.textContent);
+
+            if (useLog) {
+                sizeSlider.value = logToLinear(currentSize, MIN_GRID_SIZE, MAX_GRID_SIZE, parseInt(sizeSlider.max));
+            } else {
+                if(currentSize < MIN_GRID_SIZE) currentSize = MIN_GRID_SIZE;
+                if(currentSize > MAX_GRID_SIZE) currentSize = MAX_GRID_SIZE;
+                sizeSlider.value = currentSize;
+            }
+        });
+
         document.getElementById('gridDensity').addEventListener('input', (e) => { document.getElementById('gridDensityValue').textContent = e.target.value; regenerateGrid(); });
         document.getElementById('animationSpeed').addEventListener('input', (e) => { document.getElementById('animationSpeedValue').textContent = e.target.value; });
         
@@ -924,6 +964,4 @@
     </script>
 </body>
 </html>
-
-
 
