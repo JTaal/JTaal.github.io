@@ -148,7 +148,7 @@
         input:checked + .slider { background-color: #4a90e2; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        #plotContainer {
+        #plotContainer, #primeCountingContainer {
             position: absolute;
             top: 0;
             left: 0;
@@ -159,10 +159,16 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            gap: 15px;
+            padding-bottom: 80px;
+            box-sizing: border-box;
         }
         #plotCanvas { border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #plotControls { margin-top: 15px; display: flex; align-items: center; gap: 10px; background: rgba(40, 40, 40, 0.8); padding: 10px; border-radius: 8px; }
+        #plotControls, #prime-controls { 
+            display: flex; align-items: center; gap: 10px; background: rgba(40, 40, 40, 0.8); padding: 10px; border-radius: 8px; flex-wrap: wrap; justify-content: center;
+        }
         #plotControls input { width: 80px; padding: 8px; border-radius: 5px; border: 1px solid #666; background-color: #222; color: #eee; text-align: center; }
+        #prime-controls div { display: flex; align-items: center; gap: 5px; }
         .hidden { display: none !important; }
 
         /* Custom Scrollbar */
@@ -212,6 +218,22 @@
                 <p>A "zero" occurs where both lines cross the horizontal axis at the same time (marked with red dots).</p>
             </div>
         </details>
+        <details id="infoPrime" class="hidden">
+            <summary>About Prime Counting</summary>
+            <div class="content-box">
+                <p>This chart shows how the prime-counting function, $\pi(x)$, is approximated by Riemann's formula.</p>
+                <ol>
+                    <li><strong>$\pi(x)$ (Green):</strong> The true count of primes up to $x$. It's a step function.</li>
+                    <li><strong>$\operatorname{Li}(x)$ (Blue):</strong> The logarithmic integral, a smooth approximation for $\pi(x)$.</li>
+                    <li><strong>Riemann Approx. (Red):</strong> A refined approximation that subtracts oscillatory waves from $\operatorname{Li}(x)$. Each wave corresponds to a non-trivial zero of the Zeta function.</li>
+                </ol>
+                <p>As you add more zeros using the slider, the red line gets closer to the true green step function, perfectly sculpting it when all zeros are included.</p>
+                <h4>Key Formulas</h4>
+                <p>Logarithmic Integral: $$\\operatorname{Li}(x) = \\int_2^x \\frac{dt}{\\ln t}$$</p>
+                <p>Riemann's Approximation: $$\\pi(x) \\approx \\operatorname{Li}(x) - \\sum_{\\rho} \\operatorname{Li}(x^\\rho)$$</p>
+                <p>Where the sum is over the non-trivial zeros $\rho$. Each zero contributes an oscillating wave to refine the smooth $\operatorname{Li}(x)$ curve.</p>
+            </div>
+        </details>
     </div>
 
     <div id="plotContainer">
@@ -225,9 +247,35 @@
         </div>
     </div>
 
+    <div id="primeCountingContainer">
+         <div style="width: 95%; height: 85%; max-width: 1200px; position: relative; background-color: #1a1a1a; border-radius: 8px;">
+            <canvas id="primeChartCanvas"></canvas>
+         </div>
+         <div id="prime-controls">
+            <div>
+                <label for="xMaxSlider">Max x:</label>
+                <input type="range" id="xMaxSlider" min="10" max="5000" value="100">
+                <span id="xMaxLabel">100</span>
+            </div>
+            <div>
+                <label for="numZerosSlider">Zeros:</label>
+                <input type="range" id="numZerosSlider" min="0" max="400" value="0">
+                <span id="numZerosLabel">0</span>
+            </div>
+            <div>
+                <label for="logScaleToggle">Log Scale:</label>
+                 <label class="switch">
+                    <input type="checkbox" id="logScaleToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+         </div>
+    </div>
+
     <div class="controls">
         <button id="transformViewBtn">3D Transformation</button>
         <button id="zerosViewBtn">Zeros on Critical Line</button>
+        <button id="primeCountingViewBtn">Prime Counting</button>
     </div>
 
     <div id="view3d-controls">
@@ -236,6 +284,7 @@
             <button id="continueBtn" class="hidden">Analytically Continue</button>
             <button id="resetBtn" class="hidden">Reset</button>
             <button id="settingsBtn">Settings</button>
+            <button id="toggleViewBtn">2D View</button>
         </div>
         <div id="settings-panel" class="settings-panel hidden">
             <h4>Grid Settings</h4>
@@ -360,29 +409,36 @@
     <script type="text/javascript" id="MathJax-script" async
       src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
     </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        let scene, camera, renderer, controls;
+        // --- Global variables ---
+        let scene, camera, perspectiveCamera, orthographicCamera, renderer, controls;
         let plane, customAxes, blackHole, originalPositions, transformedPositions, axesLabels = [];
         let nonTrivialZerosGroup, originalNonTrivialZeroPositions = [], nonTrivialZeroMeshes = [];
         let trivialZerosGroup, originalTrivialZeroPositions = [], trivialZeroMeshes = [];
         let currentAnimation;
         let isTransformed = false;
         let isContinued = false;
+        let is3DView = true;
+        let primeChart;
 
         const plotContainer = document.getElementById('plotContainer');
+        const primeCountingContainer = document.getElementById('primeCountingContainer');
         const plotCanvas = document.getElementById('plotCanvas');
         const plotCtx = plotCanvas.getContext('2d');
         const view3dControls = document.getElementById('view3d-controls');
         const info3D = document.getElementById('info3D');
         const infoZeros = document.getElementById('infoZeros');
+        const infoPrime = document.getElementById('infoPrime');
         let tOffset = 0;
         const tRange = 50;
-        const knownZeros = [14.1347, 21.0220, 25.0108, 30.4248, 32.9350, 37.5861, 40.9187, 43.3270, 48.0051, 49.7738, 52.9703, 56.4462, 59.3470, 60.8317, 65.0858, 67.0798, 69.5464, 72.0671, 75.7046, 77.1448, 79.3373, 82.9103, 84.7354, 87.4252, 88.8091, 92.4918, 94.6513, 95.8706, 98.8311, 101.3178, 103.7255, 105.4466, 107.1686, 111.0295, 111.8746, 114.3202, 116.2266, 118.7907, 121.3701, 122.9472, 124.2568, 127.5166, 129.5787, 131.0876, 133.4977, 134.7565, 138.0583, 139.7211, 141.1237, 143.1118, 146.0653, 147.4223, 150.0535, 153.0247, 154.9351, 157.0396, 158.8499, 161.0772, 163.0767, 165.5123, 167.3164, 169.1499, 171.3479, 173.4118, 175.2163, 176.4411, 178.9662, 181.0224, 182.7237, 184.8106, 186.9303, 189.0830, 191.0114, 192.3533, 195.0640, 196.8329, 198.5342, 201.0767, 202.4936, 204.3724, 206.1833, 207.8326, 210.3703, 212.1154, 213.9318, 215.7538, 217.3994, 219.7915, 221.3268, 222.8213, 224.9754, 227.0093, 228.6183, 231.0631, 232.5181, 233.9248, 236.5861, 238.1132, 239.8653, 241.0223, 243.1499, 244.9703, 246.5925, 248.8184, 250.6288, 252.3214, 254.1082, 255.8368, 257.6534, 259.3518, 260.8252, 262.8988, 265.0454, 266.9037, 268.4284, 270.5284, 272.3386, 273.7441, 275.9818, 277.5632, 279.1764, 281.0286, 282.8533, 284.7333, 286.0429, 288.1345, 289.9293, 291.5401, 293.4259, 295.3414, 297.0250, 298.3498, 300.5898, 302.2037, 304.2017, 305.8342, 307.2796, 308.8328, 310.8354, 312.3333, 313.9511, 315.7199, 317.5878, 319.4239, 320.9160, 322.6806, 324.4784, 326.1116, 327.9304, 329.5841, 331.0759, 332.9642, 334.8692, 336.3138, 337.8063, 339.7533, 341.5170, 343.1118, 344.8258, 346.5684, 348.1303, 349.7925, 351.4643, 353.1518, 354.7437, 356.1248, 357.9424, 359.5411, 360.9149, 362.8361, 364.5583, 366.1130, 367.6253, 369.2154, 370.9328, 372.5448, 374.0202, 375.4982, 377.1983, 378.8870, 380.4076, 382.1624, 383.9162, 385.4199];
+        const knownZeros = [14.1347, 21.0220, 25.0108, 30.4248, 32.9350, 37.5861, 40.9187, 43.3270, 48.0051, 49.7738, 52.9703, 56.4462, 59.3470, 60.8317, 65.0858, 67.0798, 69.5464, 72.0671, 75.7046, 77.1448, 79.3373, 82.9103, 84.7354, 87.4252, 88.8091, 92.4918, 94.6513, 95.8706, 98.8311, 101.3178, 103.7255, 105.4446, 107.1686, 111.0295, 111.8746, 114.3202, 116.2266, 118.7907, 121.3701, 122.9472, 124.2568, 127.5166, 129.5787, 131.0876, 133.4977, 134.7565, 138.0583, 139.7211, 141.1237, 143.1118, 146.0653, 147.4223, 150.0535, 153.0247, 154.9351, 157.0396, 158.8499, 161.0772, 163.0767, 165.5123, 167.3164, 169.1499, 171.3479, 173.4118, 175.2163, 176.4411, 178.9662, 181.0224, 182.7237, 184.8106, 186.9303, 189.0830, 191.0114, 192.3533, 195.0640, 196.8329, 198.5342, 201.0767, 202.4936, 204.3724, 206.1833, 207.8326, 210.3703, 212.1154, 213.9318, 215.7538, 217.3994, 219.7915, 221.3268, 222.8213, 224.9754, 227.0093, 228.6183, 231.0631, 232.5181, 233.9248, 236.5861, 238.1132, 239.8653, 241.0223, 243.1499, 244.9703, 246.5925, 248.8184, 250.6288, 252.3214, 254.1082, 255.8368, 257.6534, 259.3518, 260.8252, 262.8988, 265.0454, 266.9037, 268.4284, 270.5284, 272.3386, 273.7441, 275.9818, 277.5632, 279.1764, 281.0286, 282.8533, 284.7333, 286.0429, 288.1345, 289.9293, 291.5401, 293.4259, 295.3414, 297.0250, 298.3498, 300.5898, 302.2037, 304.2017, 305.8342, 307.2796, 308.8328, 310.8354, 312.3333, 313.9511, 315.7199, 317.5878, 319.4239, 320.9160, 322.6806, 324.4784, 326.1116, 327.9304, 329.5841, 331.0759, 332.9642, 334.8692, 336.3138, 337.8063, 339.7533, 341.5170, 343.1118, 344.8258, 346.5684, 348.1303, 349.7925, 351.4643, 353.1518, 354.7437, 356.1248, 357.9424, 359.5411, 360.9149, 362.8361, 364.5583, 366.1130, 367.6253, 369.2154, 370.9328, 372.5448, 374.0202, 375.4982, 377.1983, 378.8870, 380.4076, 382.1624, 383.9162, 385.4199, 387.2343, 388.5833, 390.4939, 392.1791, 393.7383, 395.7329, 397.3512, 399.0353, 400.6725, 402.2272, 403.9518, 405.8118, 407.4116, 409.0863, 410.6019, 412.3112, 414.0772, 415.7018, 417.4393, 418.9481, 420.7381, 422.4632, 424.0853, 425.8643, 427.5088, 429.0645, 430.8282, 432.5312, 434.1957, 435.9183, 437.5688, 439.3131, 441.0422, 442.6688, 444.4079, 446.1232, 447.8031, 449.5293, 451.2188, 452.9368, 454.6199, 456.3262, 458.0039, 459.6953, 461.3732, 463.0725, 464.7161, 466.4255, 468.0872, 469.7643, 471.4293, 473.0903, 474.7433, 476.4023, 478.0493, 479.7123, 481.3533, 483.0043, 484.6463, 486.2993, 487.9393, 489.5893, 491.2293, 492.8713, 494.5053, 496.1483, 497.7813, 499.4183, 501.0493, 502.6813, 504.3093, 505.9403, 507.5643, 509.1943, 510.8173, 512.4413, 514.0593, 515.6803, 517.2943, 518.9103, 520.5223, 522.1333, 523.7403, 525.3483, 526.9533, 528.5533, 530.1523, 531.7483, 533.3423, 534.9313, 536.5203, 538.1053, 539.6873, 541.2673, 542.8443, 544.4193, 545.9903, 547.5583, 549.1243, 550.6863, 552.2463, 553.8033, 555.3573, 556.9093, 558.4573, 560.0023, 561.5453, 563.0843, 564.6223, 566.1553, 567.6863, 569.2133, 570.7383, 572.2603, 573.7793, 575.2953, 576.8093, 578.3203, 579.8283, 581.3333, 582.8363, 584.3353, 585.8323, 587.3263, 588.8173, 590.3063, 591.7913, 593.2743, 594.7553, 596.2323, 597.7073, 599.1793, 600.6483, 602.1153, 603.5793, 605.0403, 606.4993, 607.9553, 609.4093, 610.8603, 612.3083, 613.7543, 615.1973, 616.6383, 618.0753, 619.5103, 620.9433, 622.3733, 623.8003, 625.2253, 626.6473, 628.0673, 629.4843, 630.8983, 632.3103, 633.7193, 635.1263, 636.5303, 637.9313, 639.3303, 640.7263, 642.1203, 643.5113, 644.8993, 646.2853, 647.6693, 649.0493, 650.4283, 651.8033, 653.1763, 654.5463, 655.9143, 657.2793, 658.6413, 659.9993, 661.3563, 662.7103, 664.0613, 665.4103, 666.7563, 668.0993, 669.4403, 670.7783, 672.1133, 673.4453, 674.7753, 676.1033, 677.4273, 678.7493, 680.0693, 681.3863, 682.7003, 684.0123, 685.3213, 686.6283, 687.9323, 689.2343, 690.5333, 691.8293, 693.1233, 694.4153, 695.7043, 696.9903, 698.2743, 699.5553, 700.8343, 702.1103, 703.3843, 704.6553, 705.9243, 707.1913, 708.4553, 709.7163, 710.9753, 712.2323, 713.4863, 714.7383, 715.9873, 717.2343, 718.4793, 719.7213, 720.9613];
 
         // --- Complex Number and Zeta Function Math ---
         class Complex { constructor(re = 0, im = 0) { this.re = re; this.im = im; } add(c) { return new Complex(this.re + c.re, this.im + c.im); } sub(c) { return new Complex(this.re - c.re, this.im - c.im); } mul(c) { return new Complex(this.re * c.re - this.im * c.im, this.re * c.im + this.im * c.re); } div(c) { const d = c.re * c.re + c.im * c.im; if (d === 0) return new Complex(Infinity, Infinity); return new Complex((this.re * c.re + this.im * c.im) / d, (this.im * c.re - this.re * c.im) / d); } static fromPolar(r, theta) { return new Complex(r * Math.cos(theta), r * Math.sin(theta)); } magnitude() { return Math.sqrt(this.re * this.re + this.im * this.im); } phase() { return Math.atan2(this.im, this.re); } }
@@ -543,6 +599,15 @@
             
             regenerateAxesAndLabels();
             regenerateAllZeros();
+
+            // Update orthographic camera on grid resize
+            const aspect = window.innerWidth / window.innerHeight;
+            const frustumSize = size * 1.2;
+            orthographicCamera.left = frustumSize * aspect / -2;
+            orthographicCamera.right = frustumSize * aspect / 2;
+            orthographicCamera.top = frustumSize / 2;
+            orthographicCamera.bottom = frustumSize / -2;
+            orthographicCamera.updateProjectionMatrix();
         }
 
         function regenerateAxesAndLabels() {
@@ -752,7 +817,18 @@
 
         function init3D() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            // Create both perspective and orthographic cameras
+            perspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            const initialSize = parseInt(document.getElementById('gridSize').value);
+            const frustumSize = initialSize * 1.2;
+            const aspect = window.innerWidth / window.innerHeight;
+            orthographicCamera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0.1, 1000);
+            orthographicCamera.position.set(0, 50, 0);
+
+            camera = perspectiveCamera; // Set the active camera
+
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.insertBefore(renderer.domElement, document.body.firstChild);
@@ -763,7 +839,8 @@
             scene.add(blackHole);
 
             controls = new OrbitControls(camera, renderer.domElement);
-            camera.position.set(0, 25, 35);
+            perspectiveCamera.position.set(0, 25, 35);
+            
             regenerateGrid(); 
             calculateAndDisplayZeta();
             animate3D();
@@ -771,7 +848,7 @@
         
         function animate3D() { requestAnimationFrame(animate3D); controls.update(); renderer.render(scene, camera); }
         
-        function drawZerosPlot(t_offset = 0) { plotContainer.style.display = 'flex'; if (renderer) renderer.domElement.style.display = 'none'; const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.8, 600); plotCanvas.width = width; plotCanvas.height = height; const tMin = t_offset, tMax = t_offset + tRange; const yMin = -4, yMax = 4; const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding; function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; } function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; } plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height); plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(toScreenX(tMin), padding); plotCtx.lineTo(toScreenX(tMin), height - padding); plotCtx.stroke(); plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top'; for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) { plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5); } plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width/2, height - 25); plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle'; for (let y = yMin; y <= yMax; y += 1) { if(y!==0) plotCtx.fillText(y, padding - 10, toScreenY(y)); } plotCtx.lineWidth = 2; ['#4a90e2', '#f5a623'].forEach((color, index) => { plotCtx.strokeStyle = color; plotCtx.beginPath(); let first = true; for (let t = tMin; t < tMax; t += 0.1) { const s = new Complex(0.5, t); const z = zeta(s); const val = (index === 0) ? z.re : z.im; if (isFinite(val)) { if (first) { plotCtx.moveTo(toScreenX(t), toScreenY(val)); first = false; } else { plotCtx.lineTo(toScreenX(t), toScreenY(val)); } } } plotCtx.stroke(); }); plotCtx.fillStyle = 'red'; plotCtx.font = 'bold 12px Arial'; knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => { const x = toScreenX(t); plotCtx.beginPath(); plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI); plotCtx.fill(); plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15); }); plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(width - padding - 100, padding, 10, 10); plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5); plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10); plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25); }
+        function drawZerosPlot(t_offset = 0) { plotContainer.style.display = 'flex'; if (renderer) renderer.domElement.style.display = 'none'; primeCountingContainer.style.display = 'none'; const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.7, 550); plotCanvas.width = width; plotCanvas.height = height; const tMin = t_offset, tMax = t_offset + tRange; const yMin = -4, yMax = 4; const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding; function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; } function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; } plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height); plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(toScreenX(tMin), padding); plotCtx.lineTo(toScreenX(tMin), height - padding); plotCtx.stroke(); plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top'; for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) { plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5); } plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width/2, height - 25); plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle'; for (let y = yMin; y <= yMax; y += 1) { if(y!==0) plotCtx.fillText(y, padding - 10, toScreenY(y)); } plotCtx.lineWidth = 2; ['#4a90e2', '#f5a623'].forEach((color, index) => { plotCtx.strokeStyle = color; plotCtx.beginPath(); let first = true; for (let t = tMin; t < tMax; t += 0.1) { const s = new Complex(0.5, t); const z = zeta(s); const val = (index === 0) ? z.re : z.im; if (isFinite(val)) { if (first) { plotCtx.moveTo(toScreenX(t), toScreenY(val)); first = false; } else { plotCtx.lineTo(toScreenX(t), toScreenY(val)); } } } plotCtx.stroke(); }); plotCtx.fillStyle = 'red'; plotCtx.font = 'bold 12px Arial'; knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => { const x = toScreenX(t); plotCtx.beginPath(); plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI); plotCtx.fill(); plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15); }); plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(width - padding - 100, padding, 10, 10); plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5); plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10); plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25); }
 
         function setInitialSliderValues() {
             document.getElementById('gridSizeValue').textContent = document.getElementById('gridSize').value;
@@ -790,18 +867,32 @@
 
         document.getElementById('transformViewBtn').addEventListener('click', () => {
             plotContainer.style.display = 'none';
+            primeCountingContainer.style.display = 'none';
             renderer.domElement.style.display = 'block';
             view3dControls.style.display = 'flex';
             info3D.classList.remove('hidden');
             infoZeros.classList.add('hidden');
+            infoPrime.classList.add('hidden');
         });
         document.getElementById('zerosViewBtn').addEventListener('click', () => {
             plotContainer.style.display = 'flex';
+            primeCountingContainer.style.display = 'none';
             renderer.domElement.style.display = 'none';
             view3dControls.style.display = 'none';
             info3D.classList.add('hidden');
             infoZeros.classList.remove('hidden');
+            infoPrime.classList.add('hidden');
             drawZerosPlot(tOffset);
+        });
+        document.getElementById('primeCountingViewBtn').addEventListener('click', () => {
+            primeCountingContainer.style.display = 'flex';
+            plotContainer.style.display = 'none';
+            renderer.domElement.style.display = 'none';
+            view3dControls.style.display = 'none';
+            info3D.classList.add('hidden');
+            infoZeros.classList.add('hidden');
+            infoPrime.classList.remove('hidden');
+            updatePrimeChart();
         });
         
         const transformBtn = document.getElementById('transformBtn');
@@ -956,12 +1047,186 @@
         document.getElementById('nextBtn').addEventListener('click', () => { tOffset += tRange; tOffsetInput.value = tOffset; drawZerosPlot(tOffset); });
         document.getElementById('prevBtn').addEventListener('click', () => { tOffset = Math.max(0, tOffset - tRange); tOffsetInput.value = tOffset; drawZerosPlot(tOffset); });
         document.getElementById('goBtn').addEventListener('click', () => { const val = parseFloat(tOffsetInput.value); if (!isNaN(val)) { tOffset = Math.max(0, val); drawZerosPlot(tOffset); } });
-        window.addEventListener('resize', () => { if(camera) { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); } if(renderer) { renderer.setSize(window.innerWidth, window.innerHeight); } if (plotContainer.style.display !== 'none') { drawZerosPlot(tOffset); } });
+        
+        document.getElementById('toggleViewBtn').addEventListener('click', () => {
+            is3DView = !is3DView;
+            const btn = document.getElementById('toggleViewBtn');
+
+            if (is3DView) {
+                camera = perspectiveCamera;
+                controls.object = camera;
+                camera.position.set(0, 25, 35);
+                controls.target.set(0, 0, 0);
+                controls.enableRotate = true;
+                controls.update();
+                btn.textContent = '2D View';
+            } else {
+                camera = orthographicCamera;
+                controls.object = camera;
+                camera.position.set(0, 50, 0); // Look down from above
+                camera.lookAt(scene.position);
+                camera.zoom = 1;
+                camera.updateProjectionMatrix();
+                controls.target.set(0, 0, 0);
+                controls.enableRotate = false; // Disable rotation for 2D top-down view
+                controls.update();
+                btn.textContent = '3D View';
+            }
+        });
+
+        // --- Prime Counting Chart Logic ---
+        const primeChartCanvas = document.getElementById('primeChartCanvas');
+        let primes = [];
+        const MAX_PRIME = 5000;
+
+        function sieve(n) {
+            const isPrime = new Array(n + 1).fill(true);
+            isPrime[0] = isPrime[1] = false;
+            for (let p = 2; p * p <= n; p++) {
+                if (isPrime[p]) {
+                    for (let i = p * p; i <= n; i += p) isPrime[i] = false;
+                }
+            }
+            const primeNumbers = [];
+            for (let i = 2; i <= n; i++) {
+                if (isPrime[i]) primeNumbers.push(i);
+            }
+            return primeNumbers;
+        }
+
+        function primePi(x, primeList) {
+            let count = 0;
+            for (const p of primeList) {
+                if (p <= x) count++;
+                else break;
+            }
+            return count;
+        }
+        
+        function logIntegral(x, steps = 1000) {
+            if (x < 2) return 0;
+            let sum = 0;
+            const h = (x - 2) / steps;
+            for (let i = 0; i < steps; i++) {
+                const t = 2 + i * h;
+                if (t > 1) sum += 1 / Math.log(t);
+            }
+            return sum * h;
+        }
+
+        function riemannTerm(x, gamma) {
+            const logX = Math.log(x);
+            const term = (0.5 * Math.cos(gamma * logX) + gamma * Math.sin(gamma * logX)) / (0.25 + gamma * gamma);
+            return -2 * Math.sqrt(x) / logX * term;
+        }
+
+        function updatePrimeChart() {
+            const xMax = parseInt(document.getElementById('xMaxSlider').value);
+            const numZerosSlider = document.getElementById('numZerosSlider');
+            const numZeros = parseInt(numZerosSlider.value);
+            const isInfinity = numZeros === parseInt(numZerosSlider.max);
+            const useLogScale = document.getElementById('logScaleToggle').checked;
+            
+            document.getElementById('xMaxLabel').textContent = xMax;
+            document.getElementById('numZerosLabel').textContent = isInfinity ? 'Infinity' : numZeros;
+
+            if (xMax > primes[primes.length - 1]) {
+                primes = sieve(xMax + 10);
+            }
+
+            const labels = [];
+            const piData = [];
+            const liData = [];
+            const riemannData = [];
+            
+            const step = xMax > 200 ? Math.ceil(xMax / 200) : 1;
+            for (let x = 2; x <= xMax; x+=step) {
+                labels.push(x);
+                const pi_x = primePi(x, primes);
+                piData.push(pi_x);
+                const li_x = logIntegral(x);
+                liData.push(li_x);
+                
+                if (isInfinity) {
+                    riemannData.push(pi_x);
+                } else {
+                    let correction = 0;
+                    for(let i=0; i < numZeros; i++) {
+                       correction += riemannTerm(x, knownZeros[i]);
+                    }
+                    riemannData.push(li_x + correction);
+                }
+            }
+
+            primeChart.data.labels = labels;
+            primeChart.data.datasets[0].data = piData;
+            primeChart.data.datasets[1].data = liData;
+            primeChart.data.datasets[2].data = riemannData;
+            primeChart.options.scales.x.type = useLogScale ? 'logarithmic' : 'linear';
+            primeChart.update();
+        }
+
+        function initPrimeCountingView() {
+            primes = sieve(MAX_PRIME);
+            const ctx = primeChartCanvas.getContext('2d');
+            primeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'π(x)', data: [], borderColor: 'rgba(75, 192, 192, 1)', fill: false, borderWidth: 2, pointRadius: 0, stepped: 'before' },
+                        { label: 'Li(x)', data: [], borderColor: 'rgba(54, 162, 235, 1)', fill: false, borderWidth: 2, pointRadius: 0 },
+                        { label: 'Riemann Approx.', data: [], borderColor: 'rgba(255, 99, 132, 1)', fill: false, borderWidth: 2.5, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { type: 'linear', title: { display: true, text: 'x', color: '#ccc' }, ticks: { color: '#ccc' }, grid: { color: '#444' } },
+                        y: { title: { display: true, text: 'Count', color: '#ccc' }, ticks: { color: '#ccc' }, grid: { color: '#444' } }
+                    },
+                    plugins: { legend: { labels: { color: '#ccc' } } }
+                }
+            });
+            
+            document.getElementById('xMaxSlider').addEventListener('input', updatePrimeChart);
+            document.getElementById('numZerosSlider').addEventListener('input', updatePrimeChart);
+            document.getElementById('logScaleToggle').addEventListener('input', updatePrimeChart);
+            updatePrimeChart();
+        }
+
+
+        window.addEventListener('resize', () => {
+            if(!renderer) return;
+            
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+            const aspect = window.innerWidth / window.innerHeight;
+
+            // Update perspective camera
+            perspectiveCamera.aspect = aspect;
+            perspectiveCamera.updateProjectionMatrix();
+
+            // Update orthographic camera
+            const size = parseInt(document.getElementById('gridSizeValue').textContent);
+            const frustumSize = size * 1.2;
+            orthographicCamera.left = frustumSize * aspect / -2;
+            orthographicCamera.right = frustumSize * aspect / 2;
+            orthographicCamera.top = frustumSize / 2;
+            orthographicCamera.bottom = frustumSize / -2;
+            orthographicCamera.updateProjectionMatrix();
+
+            if (plotContainer.style.display !== 'none') { drawZerosPlot(tOffset); }
+        });
 
         init3D();
         setInitialSliderValues();
+        initPrimeCountingView();
 
     </script>
 </body>
 </html>
+
+
+
 
