@@ -82,12 +82,6 @@
   visualization_url: /visualizations/complex-waves-combined-low.html
   description: A short description goes here.
 
-- title: Rhiemann Zeta
-  author: Jasper Taal
-  thumbnail: /assets/images/rhiemann-zeta.png
-  visualization_url: /visualizations/rhiemann-zeta.html
-  description: A short description goes here.
-
 - title: Multivariate Gaussian
   author: Jasper Taal
   thumbnail: /assets/images/multivariate-gaussian.png
@@ -98,6 +92,12 @@
   author: Jasper Taal
   thumbnail: /assets/images/evolutionary-algorithms.png
   visualization_url: /visualizations/evolutionary-algorithms.html
+  description: A short description goes here.
+
+- title: Riemann Zeta
+  author: Jasper Taal
+  thumbnail: /assets/images/riemann-zeta.png
+  visualization_url: /visualizations/riemann-zeta.html
   description: A short description goes here.
 
 - title: Rotary Positional Embedding
