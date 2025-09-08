@@ -274,6 +274,17 @@
                     <span class="slider"></span>
                 </label>
             </div>
+            <div>
+                <label for="showWavesToggle">Show Waves:</label>
+                 <label class="switch">
+                    <input type="checkbox" id="showWavesToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div>
+                <button id="playMusicBtn">Play Music</button>
+                <button id="stopMusicBtn" class="hidden">Stop Music</button>
+            </div>
          </div>
     </div>
 
@@ -416,6 +427,7 @@
     </script>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 
 
     <script type="module">
@@ -432,6 +444,8 @@
         let isContinued = false;
         let is3DView = true;
         let primeChart;
+        let synth;
+        let isMusicPlaying = false;
 
         const plotContainer = document.getElementById('plotContainer');
         const primeCountingContainer = document.getElementById('primeCountingContainer');
@@ -1121,6 +1135,7 @@
 
         function riemannTerm(x, gamma) {
             const logX = Math.log(x);
+            if (logX === 0) return 0; // Avoid division by zero
             const term = (0.5 * Math.cos(gamma * logX) + gamma * Math.sin(gamma * logX)) / (0.25 + gamma * gamma);
             return -2 * Math.sqrt(x) / logX * term;
         }
@@ -1131,9 +1146,14 @@
             const numZeros = parseInt(numZerosSlider.value);
             const isInfinity = numZeros === parseInt(numZerosSlider.max);
             const useLogScale = document.getElementById('logScaleToggle').checked;
+            const showWaves = document.getElementById('showWavesToggle').checked;
             
             document.getElementById('xMaxLabel').textContent = xMax;
             document.getElementById('numZerosLabel').textContent = isInfinity ? 'Infinity' : numZeros;
+
+            if(isMusicPlaying) {
+                updateMusic(numZeros, isInfinity);
+            }
 
             if (xMax > primes[primes.length - 1]) {
                 primes = sieve(xMax + 10);
@@ -1144,7 +1164,7 @@
             const liData = [];
             const riemannData = [];
             
-            const step = xMax > 200 ? Math.ceil(xMax / 200) : 1;
+            const step = xMax > 500 ? Math.ceil(xMax / 500) : 1;
             for (let x = 2; x <= xMax; x+=step) {
                 labels.push(x);
                 const pi_x = primePi(x, primes);
@@ -1164,12 +1184,66 @@
             }
 
             primeChart.data.labels = labels;
-            primeChart.data.datasets[0].data = piData;
-            primeChart.data.datasets[1].data = liData;
-            primeChart.data.datasets[2].data = riemannData;
+
+            const newDatasets = [
+                { label: 'π(x)', data: piData, borderColor: 'rgba(75, 192, 192, 1)', fill: false, borderWidth: 2, pointRadius: 0, stepped: 'before', yAxisID: 'y' },
+                { label: 'Li(x)', data: liData, borderColor: 'rgba(54, 162, 235, 1)', fill: false, borderWidth: 2, pointRadius: 0, yAxisID: 'y' },
+                { label: 'Riemann Approx.', data: riemannData, borderColor: 'rgba(255, 99, 132, 1)', fill: false, borderWidth: 2.5, pointRadius: 0, yAxisID: 'y' }
+            ];
+
+            if (showWaves && !isInfinity && numZeros > 0) {
+                for (let j = 0; j < numZeros; j++) {
+                    const waveData = labels.map(x => riemannTerm(x, knownZeros[j]));
+                    newDatasets.push({
+                        data: waveData,
+                        borderColor: 'rgba(200, 200, 200, 0.35)',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        yAxisID: 'y-waves'
+                    });
+                }
+                primeChart.options.plugins.legend.display = false;
+            } else {
+                primeChart.options.plugins.legend.display = true;
+            }
+            
+            primeChart.data.datasets = newDatasets;
             primeChart.options.scales.x.type = useLogScale ? 'logarithmic' : 'linear';
-            primeChart.update();
+            primeChart.update('none');
         }
+
+        function zeroToFrequency(gamma) {
+            // Map the first zero (14.13) to a low note like C3 (approx 130 Hz)
+            const baseFreq = 130.81;
+            const baseGamma = 14.1347;
+            // Use a logarithmic scale (like musical octaves) which sounds more natural
+            return baseFreq * Math.pow(2, Math.log2(gamma / baseGamma));
+        }
+
+        function updateMusic(numZeros, isInfinity) {
+            if (!synth) return;
+
+            // Stop any currently playing notes
+            synth.releaseAll();
+            
+            if (numZeros === 0 && !isInfinity) return;
+
+            const notesToPlay = [];
+            let limit = isInfinity ? knownZeros.length : numZeros;
+
+            for (let i = 0; i < limit; i++) {
+                const freq = zeroToFrequency(knownZeros[i]);
+                // Only play notes within a reasonable audible and non-muddy range
+                if (freq > 80 && freq < 4000) {
+                    notesToPlay.push(freq);
+                }
+            }
+
+            if (notesToPlay.length > 0) {
+                synth.triggerAttack(notesToPlay, Tone.now());
+            }
+        }
+
 
         function initPrimeCountingView() {
             primes = sieve(MAX_PRIME);
@@ -1178,26 +1252,47 @@
                 type: 'line',
                 data: {
                     labels: [],
-                    datasets: [
-                        { label: 'π(x)', data: [], borderColor: 'rgba(75, 192, 192, 1)', fill: false, borderWidth: 2, pointRadius: 0, stepped: 'before' },
-                        { label: 'Li(x)', data: [], borderColor: 'rgba(54, 162, 235, 1)', fill: false, borderWidth: 2, pointRadius: 0 },
-                        { label: 'Riemann Approx.', data: [], borderColor: 'rgba(255, 99, 132, 1)', fill: false, borderWidth: 2.5, pointRadius: 0 }
-                    ]
+                    datasets: []
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: false,
                     scales: {
                         x: { type: 'linear', title: { display: true, text: 'x', color: '#ccc' }, ticks: { color: '#ccc' }, grid: { color: '#444' } },
-                        y: { title: { display: true, text: 'Count', color: '#ccc' }, ticks: { color: '#ccc' }, grid: { color: '#444' } }
+                        y: { 
+                            position: 'left',
+                            title: { display: true, text: 'Count', color: '#ccc' }, 
+                            ticks: { color: '#ccc' }, 
+                            grid: { color: '#444' }
+                        },
+                        'y-waves': {
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false, // only show axis and ticks
+                            },
+                            ticks: {
+                                color: 'rgba(200, 200, 200, 0.7)',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Correction Value',
+                                color: 'rgba(200, 200, 200, 0.7)',
+                            }
+                        }
                     },
-                    plugins: { legend: { labels: { color: '#ccc' } } }
+                    plugins: { 
+                        legend: { labels: { color: '#ccc' } },
+                        tooltip: { enabled: false },
+                        decimation: { enabled: true, algorithm: 'lttb', samples: 500 }
+                     }
                 }
             });
             
             document.getElementById('xMaxSlider').addEventListener('input', updatePrimeChart);
             document.getElementById('numZerosSlider').addEventListener('input', updatePrimeChart);
             document.getElementById('logScaleToggle').addEventListener('input', updatePrimeChart);
+            document.getElementById('showWavesToggle').addEventListener('input', updatePrimeChart);
             updatePrimeChart();
         }
 
@@ -1224,6 +1319,31 @@
             if (plotContainer.style.display !== 'none') { drawZerosPlot(tOffset); }
         });
 
+        document.getElementById('playMusicBtn').addEventListener('click', async () => {
+            if (!synth) { // Initialize on first click
+                await Tone.start();
+                synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.2, decay: 0.1, sustain: 0.8, release: 0.5 }
+                }).toDestination();
+                synth.volume.value = -15; // Set a reasonable volume
+                 console.log('Audio context started, synth created.');
+            }
+            isMusicPlaying = true;
+            document.getElementById('playMusicBtn').classList.add('hidden');
+            document.getElementById('stopMusicBtn').classList.remove('hidden');
+            updatePrimeChart(); // Trigger music update
+        });
+
+        document.getElementById('stopMusicBtn').addEventListener('click', () => {
+            isMusicPlaying = false;
+            document.getElementById('stopMusicBtn').classList.add('hidden');
+            document.getElementById('playMusicBtn').classList.remove('hidden');
+            if (synth) {
+                synth.releaseAll();
+            }
+        });
+
         init3D();
         setInitialSliderValues();
         initPrimeCountingView();
@@ -1231,9 +1351,4 @@
     </script>
 </body>
 </html>
-
-
-
-
-
 
