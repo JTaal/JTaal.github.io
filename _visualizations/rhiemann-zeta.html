@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-g">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Riemann Zeta Function Visualization</title>
     <style>
@@ -50,6 +50,8 @@
             border-top: 1px solid #555;
             font-size: 0.9em;
             line-height: 1.5;
+            max-height: 50vh;
+            overflow-y: auto;
         }
         .content-box h4 {
              margin-top: 20px;
@@ -132,8 +134,10 @@
             width: 250px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             margin-top: 10px;
+            max-height: 80vh;
+            overflow-y: auto;
         }
-        .settings-panel h4 { margin: 0 0 10px 0; text-align: center; font-weight: bold; border-bottom: 1px solid #555; padding-bottom: 8px;}
+        .settings-panel h4 { margin: 15px 0 10px 0; text-align: center; font-weight: bold; border-bottom: 1px solid #555; padding-bottom: 8px;}
         .settings-panel div { display: flex; justify-content: space-between; align-items: center; font-size: 0.9em; }
         .settings-panel input[type="range"] { width: 110px; }
         .settings-panel input[type="color"] { border: none; background: none; width: 30px; height: 30px; padding: 0; cursor: pointer; }
@@ -160,6 +164,22 @@
         #plotControls { margin-top: 15px; display: flex; align-items: center; gap: 10px; background: rgba(40, 40, 40, 0.8); padding: 10px; border-radius: 8px; }
         #plotControls input { width: 80px; padding: 8px; border-radius: 5px; border: 1px solid #666; background-color: #222; color: #eee; text-align: center; }
         .hidden { display: none !important; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(20, 20, 20, 0.5);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
     </style>
 </head>
 <body>
@@ -169,9 +189,9 @@
             <summary>About the 3D Transformation</summary>
             <div class="content-box">
                 <p>For Re(s) > 1, the zeta function is defined by the infinite sum:</p>
-                <p>$$ \zeta(s) = \sum_{n=1}^{\infty} \frac{1}{n^s} $$</p>
+                <p>$$\zeta(s) = \sum_{n=1}^{\infty} \frac{1}{n^s}$$</p>
                 <p>This visualization uses analytic continuation to extend this definition. The highlighted region is the **Critical Strip**.</p>
-                <p><strong>Note on ζ(-1):</strong> You might notice that ζ(-1) is not zero. Through analytic continuation, its value is famously $$ \zeta(-1) = -1/12 $$. The function *is* zero at negative even integers (e.g., -2, -4,...), which are called the "trivial zeros".</p>
+                <p>The red dots on the line Re(s) = 0.5 represent the **non-trivial zeros**. The blue dots on the negative real axis are the **trivial zeros**. When transformed, they all map to the origin.</p>
                 
                 <h4>Interactive Calculator</h4>
                 <div class="calculator-container">
@@ -230,14 +250,19 @@
                 <span id="gridDensityValue">80</span>
             </div>
              <div>
-                <label for="animationSpeed">duration (ms):</label>
+                <label for="animationSpeed">Duration (ms):</label>
                 <input type="range" id="animationSpeed" min="200" max="20000" value="2000">
                 <span id="animationSpeedValue">2000</span>
             </div>
             <div>
                 <label for="stripWidth">Strip Width:</label>
-                <input type="range" id="stripWidth" min="0.1" max="500.0" value="1.0" step="10">
+                <input type="range" id="stripWidth" min="0" max="100" value="20" step="1">
                 <span id="stripWidthValue">1.0</span>
+            </div>
+            <div>
+                <label for="stripStart">Strip Start:</label>
+                <input type="range" id="stripStart" min="-10" max="10" value="0" step="0.1">
+                <span id="stripStartValue">0.0</span>
             </div>
             <div>
                 <label for="zDisplacementToggle">3D Displacement:</label>
@@ -245,6 +270,32 @@
                     <input type="checkbox" id="zDisplacementToggle">
                     <span class="slider"></span>
                 </label>
+            </div>
+             <h4>Non-Trivial Zeros</h4>
+             <div>
+                <label for="showZerosToggle">Show Zeros:</label>
+                <label class="switch">
+                    <input type="checkbox" id="showZerosToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+             <div>
+                <label for="zeroSizeSlider">Zero Size:</label>
+                <input type="range" id="zeroSizeSlider" min="0.05" max="0.5" value="0.15" step="0.01">
+                <span id="zeroSizeValue">0.15</span>
+            </div>
+            <h4>Trivial Zeros</h4>
+             <div>
+                <label for="showTrivialZerosToggle">Show Zeros:</label>
+                <label class="switch">
+                    <input type="checkbox" id="showTrivialZerosToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+             <div>
+                <label for="trivialZeroSizeSlider">Zero Size:</label>
+                <input type="range" id="trivialZeroSizeSlider" min="0.05" max="0.5" value="0.15" step="0.01">
+                <span id="trivialZeroSizeValue">0.15</span>
             </div>
             <h4>Color Settings</h4>
              <div>
@@ -309,7 +360,9 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         let scene, camera, renderer, controls;
-        let plane, customAxes, originalPositions, transformedPositions, axesLabels = [];
+        let plane, customAxes, blackHole, originalPositions, transformedPositions, axesLabels = [];
+        let nonTrivialZerosGroup, originalNonTrivialZeroPositions = [], nonTrivialZeroMeshes = [];
+        let trivialZerosGroup, originalTrivialZeroPositions = [], trivialZeroMeshes = [];
         let currentAnimation;
         let isTransformed = false;
         let isContinued = false;
@@ -324,6 +377,7 @@
         const tRange = 50;
         const knownZeros = [14.1347, 21.0220, 25.0108, 30.4248, 32.9350, 37.5861, 40.9187, 43.3270, 48.0051, 49.7738, 52.9703, 56.4462, 59.3470, 60.8317, 65.0858, 67.0798, 69.5464, 72.0671, 75.7046, 77.1448, 79.3373, 82.9103, 84.7354, 87.4252, 88.8091, 92.4918, 94.6513, 95.8706, 98.8311, 101.3178, 103.7255, 105.4466, 107.1686, 111.0295, 111.8746, 114.3202, 116.2266, 118.7907, 121.3701, 122.9472, 124.2568, 127.5166, 129.5787, 131.0876, 133.4977, 134.7565, 138.0583, 139.7211, 141.1237, 143.1118];
 
+        // --- Complex Number and Zeta Function Math ---
         class Complex { constructor(re = 0, im = 0) { this.re = re; this.im = im; } add(c) { return new Complex(this.re + c.re, this.im + c.im); } sub(c) { return new Complex(this.re - c.re, this.im - c.im); } mul(c) { return new Complex(this.re * c.re - this.im * c.im, this.re * c.im + this.im * c.re); } div(c) { const d = c.re * c.re + c.im * c.im; if (d === 0) return new Complex(Infinity, Infinity); return new Complex((this.re * c.re + this.im * c.im) / d, (this.im * c.re - this.re * c.im) / d); } static fromPolar(r, theta) { return new Complex(r * Math.cos(theta), r * Math.sin(theta)); } magnitude() { return Math.sqrt(this.re * this.re + this.im * this.im); } phase() { return Math.atan2(this.im, this.re); } }
         const g = 7; const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
         function gamma(z) { if (z.re < 0.5) { const pi = new Complex(Math.PI, 0); const one = new Complex(1, 0); const sinPiZ = sin(pi.mul(z)); if (sinPiZ.magnitude() < 1e-9) return new Complex(Infinity, Infinity); return pi.div(sin(pi.mul(z)).mul(gamma(one.sub(z)))); } else { z = z.sub(new Complex(1, 0)); let x = new Complex(p[0], 0); for (let i = 1; i < g + 2; i++) { x = x.add(new Complex(p[i], 0).div(z.add(new Complex(i, 0)))); } const t = z.add(new Complex(g + 0.5, 0)); const sqrt2pi = new Complex(Math.sqrt(2 * Math.PI), 0); let term1 = pow(t, z.add(new Complex(0.5, 0))); let term2 = exp(t.mul(new Complex(-1, 0))); return sqrt2pi.mul(term1).mul(term2).mul(x); } }
@@ -332,6 +386,21 @@
         function exp(c) { return Complex.fromPolar(Math.exp(c.re), c.im); }
         function sin(c) { const ez = exp(new Complex(-c.im, c.re)); const e_iz = exp(new Complex(c.im, -c.re)); return ez.sub(e_iz).div(new Complex(0, 2)); }
 
+        // --- Slider Log Scale Helpers ---
+        const MIN_STRIP_WIDTH = 0.1;
+        const MAX_STRIP_WIDTH = 10000.0;
+        function linearToLog(value, min, max, sliderMax) {
+            if (value <= 0) return min;
+            if (value >= sliderMax) return max;
+            return min * Math.pow(max / min, value / sliderMax);
+        }
+        function logToLinear(value, min, max, sliderMax) {
+            if (value <= min) return 0;
+            if (value >= max) return sliderMax;
+            return sliderMax * Math.log(value / min) / Math.log(max / min);
+        }
+
+        // --- THREE.js Scene Setup ---
         function makeTextSprite(message, options = {}) {
             const { fontsize = 32, scale = [1.8, 0.9, 1.0] } = options;
             const canvas = document.createElement('canvas'); const context = canvas.getContext('2d');
@@ -344,14 +413,14 @@
             sprite.position.copy(options.position || new THREE.Vector3()); return sprite;
         }
 
-        function createPlane(width, height, segmentsW, segmentsH, stripWidth) {
+        function createPlane(width, height, segmentsW, segmentsH, stripWidth, stripStart) {
             const geometry = new THREE.PlaneGeometry(width, height, segmentsW, segmentsH);
             const boundaries = new Float32Array(geometry.attributes.position.count);
             const positions = geometry.attributes.position.array;
             const epsilon = (width / segmentsW) * 0.5;
             for (let i = 0; i < positions.length / 3; i++) {
                 const x = positions[i * 3];
-                if (Math.abs(x - 0.0) < epsilon || Math.abs(x - stripWidth) < epsilon) { boundaries[i] = 1.0; } 
+                if (Math.abs(x - stripStart) < epsilon || Math.abs(x - (stripStart + stripWidth)) < epsilon) { boundaries[i] = 1.0; } 
                 else { boundaries[i] = 0.0; }
             }
             geometry.setAttribute('isBoundary', new THREE.BufferAttribute(boundaries, 1));
@@ -360,16 +429,18 @@
                 uniforms: {
                     stripOnly: { value: 0.0 }, baseColor: { value: new THREE.Color(0xffffff) },
                     stripColor: { value: new THREE.Color(0xffd700) }, boundaryColor: { value: new THREE.Color(0xff00ff) },
-                    stripWidth: { value: 1.0 }
+                    stripWidth: { value: 1.0 },
+                    stripStart: { value: 0.0 }
                 },
                 vertexShader: `
                     attribute float isBoundary; varying vec3 vColor; varying float vIsBoundary;
                     uniform float stripOnly; uniform vec3 baseColor; uniform vec3 stripColor;
                     uniform float stripWidth;
+                    uniform float stripStart;
                     vec3 hsv2rgb(vec3 c) { vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0); vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www); return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y); }
                     void main() {
                         vIsBoundary = isBoundary;
-                        float isStrip = step(0.0, position.x) * (1.0 - step(stripWidth, position.x));
+                        float isStrip = step(stripStart, position.x) * (1.0 - step(stripStart + stripWidth, position.x));
                         if (stripOnly > 0.5) { vColor = mix(baseColor, stripColor, isStrip); } 
                         else { float angle = atan(position.y, position.x); float hue = (angle + 3.14159) / (2.0 * 3.14159); float saturation = 0.7 + 0.3 * isStrip; float value = 0.9 + 0.1 * isStrip; vColor = hsv2rgb(vec3(hue, saturation, value)); }
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -407,7 +478,7 @@
                         const dx = newPositions[i] - re;
                         const dy = newPositions[i + 1] - im;
                         const distance = Math.sqrt(dx * dx + dy * dy);
-                        newPositions[i + 2] = distance * 0.2; // Scaling factor for visual appeal
+                        newPositions[i + 2] = distance * 0.2;
                     } else {
                          newPositions[i + 2] = 0;
                     }
@@ -438,12 +509,13 @@
         function regenerateGrid() {
             const size = parseInt(document.getElementById('gridSize').value);
             const density = parseInt(document.getElementById('gridDensity').value);
-            const stripWidth = parseFloat(document.getElementById('stripWidth').value);
+            const stripWidth = parseFloat(document.getElementById('stripWidthValue').textContent);
+            const stripStart = parseFloat(document.getElementById('stripStart').value);
             const useZDisplacement = document.getElementById('zDisplacementToggle').checked;
             
             if (plane) { scene.remove(plane); plane.geometry.dispose(); plane.material.dispose(); }
             
-            plane = createPlane(size, size, density, density, stripWidth);
+            plane = createPlane(size, size, density, density, stripWidth, stripStart);
             
             updateColors();
             scene.add(plane);
@@ -461,6 +533,7 @@
              plane.geometry.attributes.position.needsUpdate = true;
             
             regenerateAxesAndLabels();
+            regenerateAllZeros();
         }
 
         function regenerateAxesAndLabels() {
@@ -487,16 +560,169 @@
         }
         
         function createCustomAxes(width, height) {
-            const group = new THREE.Group(); const halfWidth = width / 2; const halfHeight = height / 2;
+            const group = new THREE.Group();
+            const halfWidth = width / 2;
+            const halfHeight = height / 2;
+            const tickSize = 0.2;
+            const labelLimit = Math.min(40, Math.floor(width / 2));
+
             const realMaterial = new THREE.LineBasicMaterial();
+            const imagMaterial = new THREE.LineBasicMaterial();
+
             const realPoints = [new THREE.Vector3(-halfWidth, 0, 0), new THREE.Vector3(halfWidth, 0, 0)];
             const realGeometry = new THREE.BufferGeometry().setFromPoints(realPoints);
-            const realAxis = new THREE.Line(realGeometry, realMaterial); realAxis.name = 'realAxis';
-            const imagMaterial = new THREE.LineBasicMaterial();
+            const realAxis = new THREE.Line(realGeometry, realMaterial);
+            realAxis.name = 'realAxis';
+            group.add(realAxis);
+
             const imagPoints = [new THREE.Vector3(0, 0, -halfHeight), new THREE.Vector3(0, 0, halfHeight)];
             const imagGeometry = new THREE.BufferGeometry().setFromPoints(imagPoints);
-            const imagAxis = new THREE.Line(imagGeometry, imagMaterial); imagAxis.name = 'imagAxis';
-            group.add(realAxis); group.add(imagAxis); return group;
+            const imagAxis = new THREE.Line(imagGeometry, imagMaterial);
+            imagAxis.name = 'imagAxis';
+            group.add(imagAxis);
+            
+            for (let i = -labelLimit; i <= labelLimit; i++) {
+                if (i === 0) continue;
+                const realTickPoints = [new THREE.Vector3(i, 0, -tickSize), new THREE.Vector3(i, 0, tickSize)];
+                const realTickGeom = new THREE.BufferGeometry().setFromPoints(realTickPoints);
+                group.add(new THREE.Line(realTickGeom, realMaterial));
+
+                const imagTickPoints = [new THREE.Vector3(-tickSize, 0, i), new THREE.Vector3(tickSize, 0, i)];
+                const imagTickGeom = new THREE.BufferGeometry().setFromPoints(imagTickPoints);
+                group.add(new THREE.Line(imagTickGeom, imagMaterial));
+            }
+            
+            const halfTickSize = tickSize / 2;
+            for (let i = -labelLimit + 0.5; i < labelLimit; i++) {
+                const realTickPoints = [new THREE.Vector3(i, 0, -halfTickSize), new THREE.Vector3(i, 0, halfTickSize)];
+                const realTickGeom = new THREE.BufferGeometry().setFromPoints(realTickPoints);
+                group.add(new THREE.Line(realTickGeom, realMaterial));
+
+                const imagTickPoints = [new THREE.Vector3(-halfTickSize, 0, i), new THREE.Vector3(halfTickSize, 0, i)];
+                const imagTickGeom = new THREE.BufferGeometry().setFromPoints(imagTickPoints);
+                group.add(new THREE.Line(imagTickGeom, imagMaterial));
+            }
+
+            return group;
+        }
+
+        function regenerateAllZeros() {
+            regenerateNonTrivialZeros();
+            regenerateTrivialZeros();
+        }
+
+        function regenerateNonTrivialZeros() {
+            if (nonTrivialZerosGroup) {
+                scene.remove(nonTrivialZerosGroup);
+                nonTrivialZeroMeshes.forEach(mesh => {
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                });
+            }
+            
+            if (!document.getElementById('showZerosToggle').checked) return;
+
+            nonTrivialZerosGroup = new THREE.Group();
+            nonTrivialZeroMeshes = [];
+            originalNonTrivialZeroPositions = [];
+            
+            const zeroSize = parseFloat(document.getElementById('zeroSizeSlider').value);
+            const zeroMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const zeroGeometry = new THREE.SphereGeometry(zeroSize, 16, 16);
+            const size = parseInt(document.getElementById('gridSize').value);
+            const halfSize = size / 2;
+
+            const allZeroTs = [];
+            knownZeros.forEach(t => {
+                if (t < halfSize) allZeroTs.push(t);
+                if (-t > -halfSize) allZeroTs.push(-t);
+            });
+
+            allZeroTs.forEach(t => {
+                const mesh = new THREE.Mesh(zeroGeometry.clone(), zeroMaterial.clone());
+                const startPos = new THREE.Vector3(0.5, 0, t);
+                mesh.position.copy(startPos);
+                
+                nonTrivialZerosGroup.add(mesh);
+                nonTrivialZeroMeshes.push(mesh);
+                originalNonTrivialZeroPositions.push(startPos);
+            });
+            scene.add(nonTrivialZerosGroup);
+
+            if (isTransformed || isContinued) {
+                const useZ = document.getElementById('zDisplacementToggle').checked;
+                const targetPositions = calculateZeroTargetPositions(originalNonTrivialZeroPositions, useZ);
+                nonTrivialZeroMeshes.forEach((mesh, i) => mesh.position.copy(targetPositions[i]));
+            }
+        }
+
+        function regenerateTrivialZeros() {
+            if (trivialZerosGroup) {
+                scene.remove(trivialZerosGroup);
+                trivialZeroMeshes.forEach(mesh => {
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                });
+            }
+            
+            if (!document.getElementById('showTrivialZerosToggle').checked) return;
+
+            trivialZerosGroup = new THREE.Group();
+            trivialZeroMeshes = [];
+            originalTrivialZeroPositions = [];
+            
+            const zeroSize = parseFloat(document.getElementById('trivialZeroSizeSlider').value);
+            const zeroMaterial = new THREE.MeshBasicMaterial({ color: 0x4444ff });
+            const zeroGeometry = new THREE.SphereGeometry(zeroSize, 16, 16);
+            const size = parseInt(document.getElementById('gridSize').value);
+            const halfSize = size / 2;
+
+            for (let i = -2; i >= -halfSize; i -= 2) {
+                 const mesh = new THREE.Mesh(zeroGeometry.clone(), zeroMaterial.clone());
+                 const startPos = new THREE.Vector3(i, 0, 0);
+                 mesh.position.copy(startPos);
+                 trivialZerosGroup.add(mesh);
+                 trivialZeroMeshes.push(mesh);
+                 originalTrivialZeroPositions.push(startPos);
+            }
+            scene.add(trivialZerosGroup);
+
+            if (isTransformed || isContinued) {
+                const useZ = document.getElementById('zDisplacementToggle').checked;
+                const targetPositions = calculateZeroTargetPositions(originalTrivialZeroPositions, useZ);
+                trivialZeroMeshes.forEach((mesh, i) => mesh.position.copy(targetPositions[i]));
+            }
+        }
+
+        function calculateZeroTargetPositions(originalPositions, useZDisplacement) {
+            return originalPositions.map(startPos => {
+                if (useZDisplacement) {
+                    const re = startPos.x;
+                    const im = startPos.z;
+                    const distance = Math.sqrt(Math.pow(0 - re, 2) + Math.pow(0 - im, 2));
+                    return new THREE.Vector3(0, distance * 0.2, 0); 
+                } else {
+                    return new THREE.Vector3(0, 0, 0);
+                }
+            });
+        }
+
+        function animateAllZeros(targets, duration) {
+            const startTime = performance.now();
+            const startNonTrivial = nonTrivialZeroMeshes.map(mesh => mesh.position.clone());
+            const startTrivial = trivialZeroMeshes.map(mesh => mesh.position.clone());
+
+            function animate() {
+                const elapsed = performance.now() - startTime;
+                let progress = Math.min(elapsed / duration, 1.0);
+                progress = progress * progress * (3 - 2 * progress);
+
+                if(targets.nonTrivial) nonTrivialZeroMeshes.forEach((mesh, i) => mesh.position.lerpVectors(startNonTrivial[i], targets.nonTrivial[i], progress));
+                if(targets.trivial) trivialZeroMeshes.forEach((mesh, i) => mesh.position.lerpVectors(startTrivial[i], targets.trivial[i], progress));
+
+                if (progress < 1) requestAnimationFrame(animate);
+            }
+            requestAnimationFrame(animate);
         }
 
         function updateColors() {
@@ -506,10 +732,13 @@
             plane.material.uniforms.baseColor.value.set(document.getElementById('baseColor').value);
             plane.material.uniforms.stripColor.value.set(document.getElementById('stripColor').value);
             plane.material.uniforms.boundaryColor.value.set(document.getElementById('boundaryColor').value);
-            plane.material.uniforms.stripWidth.value = parseFloat(document.getElementById('stripWidth').value);
-            const realAxis = customAxes.getObjectByName('realAxis'); const imagAxis = customAxes.getObjectByName('imagAxis');
-            if(realAxis) realAxis.material.color.set(document.getElementById('realAxisColor').value);
-            if(imagAxis) imagAxis.material.color.set(document.getElementById('imagAxisColor').value);
+            plane.material.uniforms.stripWidth.value = parseFloat(document.getElementById('stripWidthValue').textContent);
+            plane.material.uniforms.stripStart.value = parseFloat(document.getElementById('stripStart').value);
+            
+            const realAxisMaterial = customAxes.getObjectByName('realAxis').material;
+            const imagAxisMaterial = customAxes.getObjectByName('imagAxis').material;
+            realAxisMaterial.color.set(document.getElementById('realAxisColor').value);
+            imagAxisMaterial.color.set(document.getElementById('imagAxisColor').value);
         }
 
         function init3D() {
@@ -518,16 +747,37 @@
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.insertBefore(renderer.domElement, document.body.firstChild);
+            
+            const bhGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+            const bhMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            blackHole = new THREE.Mesh(bhGeometry, bhMaterial);
+            scene.add(blackHole);
+
             controls = new OrbitControls(camera, renderer.domElement);
             camera.position.set(0, 25, 35);
             regenerateGrid(); 
-            calculateAndDisplayZeta(); // Initial calculation for default values
+            calculateAndDisplayZeta();
             animate3D();
         }
         
         function animate3D() { requestAnimationFrame(animate3D); controls.update(); renderer.render(scene, camera); }
         
-        function drawZerosPlot(t_offset = 0) { /* ... same as before ... */ plotContainer.style.display = 'flex'; if (renderer) renderer.domElement.style.display = 'none'; const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.8, 600); plotCanvas.width = width; plotCanvas.height = height; const tMin = t_offset, tMax = t_offset + tRange; const yMin = -4, yMax = 4; const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding; function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; } function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; } plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height); plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(toScreenX(tMin), padding); plotCtx.lineTo(toScreenX(tMin), height - padding); plotCtx.stroke(); plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top'; for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) { plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5); } plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width/2, height - 25); plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle'; for (let y = yMin; y <= yMax; y += 1) { if(y!==0) plotCtx.fillText(y, padding - 10, toScreenY(y)); } plotCtx.lineWidth = 2; ['#4a90e2', '#f5a623'].forEach((color, index) => { plotCtx.strokeStyle = color; plotCtx.beginPath(); let first = true; for (let t = tMin; t < tMax; t += 0.1) { const s = new Complex(0.5, t); const z = zeta(s); const val = (index === 0) ? z.re : z.im; if (isFinite(val)) { if (first) { plotCtx.moveTo(toScreenX(t), toScreenY(val)); first = false; } else { plotCtx.lineTo(toScreenX(t), toScreenY(val)); } } } plotCtx.stroke(); }); plotCtx.fillStyle = 'red'; plotCtx.font = 'bold 12px Arial'; knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => { const x = toScreenX(t); plotCtx.beginPath(); plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI); plotCtx.fill(); plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15); }); plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(width - padding - 100, padding, 10, 10); plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5); plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10); plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25); }
+        function drawZerosPlot(t_offset = 0) { plotContainer.style.display = 'flex'; if (renderer) renderer.domElement.style.display = 'none'; const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.8, 600); plotCanvas.width = width; plotCanvas.height = height; const tMin = t_offset, tMax = t_offset + tRange; const yMin = -4, yMax = 4; const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding; function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; } function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; } plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height); plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(toScreenX(tMin), padding); plotCtx.lineTo(toScreenX(tMin), height - padding); plotCtx.stroke(); plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top'; for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) { plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5); } plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width/2, height - 25); plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle'; for (let y = yMin; y <= yMax; y += 1) { if(y!==0) plotCtx.fillText(y, padding - 10, toScreenY(y)); } plotCtx.lineWidth = 2; ['#4a90e2', '#f5a623'].forEach((color, index) => { plotCtx.strokeStyle = color; plotCtx.beginPath(); let first = true; for (let t = tMin; t < tMax; t += 0.1) { const s = new Complex(0.5, t); const z = zeta(s); const val = (index === 0) ? z.re : z.im; if (isFinite(val)) { if (first) { plotCtx.moveTo(toScreenX(t), toScreenY(val)); first = false; } else { plotCtx.lineTo(toScreenX(t), toScreenY(val)); } } } plotCtx.stroke(); }); plotCtx.fillStyle = 'red'; plotCtx.font = 'bold 12px Arial'; knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => { const x = toScreenX(t); plotCtx.beginPath(); plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI); plotCtx.fill(); plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15); }); plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(width - padding - 100, padding, 10, 10); plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5); plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10); plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25); }
+
+        function setInitialSliderValues() {
+            document.getElementById('gridSizeValue').textContent = document.getElementById('gridSize').value;
+            document.getElementById('gridDensityValue').textContent = document.getElementById('gridDensity').value;
+            document.getElementById('animationSpeedValue').textContent = document.getElementById('animationSpeed').value;
+            document.getElementById('stripStartValue').textContent = parseFloat(document.getElementById('stripStart').value).toFixed(1);
+            document.getElementById('zeroSizeValue').textContent = parseFloat(document.getElementById('zeroSizeSlider').value).toFixed(2);
+            document.getElementById('trivialZeroSizeValue').textContent = parseFloat(document.getElementById('trivialZeroSizeSlider').value).toFixed(2);
+
+            const stripWidthSlider = document.getElementById('stripWidth');
+            const stripWidthValueSpan = document.getElementById('stripWidthValue');
+            const initialStripWidth = 1.0;
+            stripWidthSlider.value = logToLinear(initialStripWidth, MIN_STRIP_WIDTH, MAX_STRIP_WIDTH, 100);
+            stripWidthValueSpan.textContent = parseFloat(initialStripWidth.toPrecision(4));
+        }
 
         document.getElementById('transformViewBtn').addEventListener('click', () => {
             plotContainer.style.display = 'none';
@@ -554,6 +804,11 @@
             const useZ = document.getElementById('zDisplacementToggle').checked;
             const targetPositions = calculateTransformedPositions(originalPositions, false, useZ);
             animateTransformation(originalPositions, targetPositions, speed);
+            
+            const nonTrivialTargets = calculateZeroTargetPositions(originalNonTrivialZeroPositions, useZ);
+            const trivialTargets = calculateZeroTargetPositions(originalTrivialZeroPositions, useZ);
+            animateAllZeros({ nonTrivial: nonTrivialTargets, trivial: trivialTargets }, speed);
+
             isTransformed = true;
             transformBtn.classList.add('hidden');
             continueBtn.classList.remove('hidden');
@@ -564,8 +819,13 @@
             const speed = parseInt(document.getElementById('animationSpeed').value);
             const useZ = document.getElementById('zDisplacementToggle').checked;
             const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
-            const continuedPositions = calculateTransformedPositions(originalPositions, true, useZ); // Recalculate for the whole plane
+            const continuedPositions = calculateTransformedPositions(originalPositions, true, useZ);
             animateTransformation(currentPositions, continuedPositions, speed);
+            
+            const nonTrivialTargets = calculateZeroTargetPositions(originalNonTrivialZeroPositions, useZ);
+            const trivialTargets = calculateZeroTargetPositions(originalTrivialZeroPositions, useZ);
+            animateAllZeros({ nonTrivial: nonTrivialTargets, trivial: trivialTargets }, speed);
+
             continueBtn.classList.add('hidden');
             isContinued = true;
         });
@@ -574,6 +834,9 @@
             const speed = parseInt(document.getElementById('animationSpeed').value);
             const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
             animateTransformation(currentPositions, originalPositions, speed);
+
+            animateAllZeros({ nonTrivial: originalNonTrivialZeroPositions, trivial: originalTrivialZeroPositions }, speed);
+
             isTransformed = false;
             isContinued = false;
             transformBtn.classList.remove('hidden');
@@ -602,20 +865,48 @@
         document.getElementById('gridSize').addEventListener('input', (e) => { document.getElementById('gridSizeValue').textContent = e.target.value; regenerateGrid(); });
         document.getElementById('gridDensity').addEventListener('input', (e) => { document.getElementById('gridDensityValue').textContent = e.target.value; regenerateGrid(); });
         document.getElementById('animationSpeed').addEventListener('input', (e) => { document.getElementById('animationSpeedValue').textContent = e.target.value; });
-        document.getElementById('stripWidth').addEventListener('input', (e) => { document.getElementById('stripWidthValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
+        
+        document.getElementById('stripWidth').addEventListener('input', (e) => {
+            const linearValue = parseFloat(e.target.value);
+            const logValue = linearToLog(linearValue, MIN_STRIP_WIDTH, MAX_STRIP_WIDTH, 100);
+            document.getElementById('stripWidthValue').textContent = parseFloat(logValue.toPrecision(4));
+            regenerateGrid();
+        });
+
+        document.getElementById('stripStart').addEventListener('input', (e) => {
+            document.getElementById('stripStartValue').textContent = parseFloat(e.target.value).toFixed(1);
+            regenerateGrid();
+        });
         
         document.getElementById('zDisplacementToggle').addEventListener('input', () => {
             if (!isTransformed && !isContinued) return;
-            const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
+            const currentGridPositions = new Float32Array(plane.geometry.attributes.position.array);
             const useZ = document.getElementById('zDisplacementToggle').checked;
             const speed = parseInt(document.getElementById('animationSpeed').value);
-            let targetPositions;
+            
+            let targetGridPositions;
             if (isContinued) {
-                targetPositions = calculateTransformedPositions(originalPositions, true, useZ);
-            } else {
-                targetPositions = calculateTransformedPositions(originalPositions, false, useZ);
+                targetGridPositions = calculateTransformedPositions(originalPositions, true, useZ);
+            } else { 
+                targetGridPositions = calculateTransformedPositions(originalPositions, false, useZ);
             }
-            animateTransformation(currentPositions, targetPositions, speed);
+            animateTransformation(currentGridPositions, targetGridPositions, speed);
+            
+            const nonTrivialTargets = calculateZeroTargetPositions(originalNonTrivialZeroPositions, useZ);
+            const trivialTargets = calculateZeroTargetPositions(originalTrivialZeroPositions, useZ);
+            animateAllZeros({ nonTrivial: nonTrivialTargets, trivial: trivialTargets }, speed);
+        });
+
+        document.getElementById('showZerosToggle').addEventListener('input', regenerateAllZeros);
+        document.getElementById('zeroSizeSlider').addEventListener('input', (e) => {
+             document.getElementById('zeroSizeValue').textContent = parseFloat(e.target.value).toFixed(2);
+             regenerateNonTrivialZeros();
+        });
+        
+        document.getElementById('showTrivialZerosToggle').addEventListener('input', regenerateAllZeros);
+        document.getElementById('trivialZeroSizeSlider').addEventListener('input', (e) => {
+             document.getElementById('trivialZeroSizeValue').textContent = parseFloat(e.target.value).toFixed(2);
+             regenerateTrivialZeros();
         });
 
         ['stripOnlyColor', 'baseColor', 'stripColor', 'boundaryColor', 'realAxisColor', 'imagAxisColor'].forEach(id => { document.getElementById(id).addEventListener('input', updateColors); });
@@ -628,6 +919,8 @@
         window.addEventListener('resize', () => { if(camera) { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); } if(renderer) { renderer.setSize(window.innerWidth, window.innerHeight); } if (plotContainer.style.display !== 'none') { drawZerosPlot(tOffset); } });
 
         init3D();
+        setInitialSliderValues();
+
     </script>
 </body>
 </html>
