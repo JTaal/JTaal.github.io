@@ -229,9 +229,14 @@
                 </ol>
                 <p>As you add more zeros using the slider, the red line gets closer to the true green step function, perfectly sculpting it when all zeros are included.</p>
                 <h4>Key Formulas</h4>
-                <p>Logarithmic Integral: $$\\operatorname{Li}(x) = \\int_2^x \\frac{dt}{\\ln t}$$</p>
-                <p>Riemann's Approximation: $$\\pi(x) \\approx \\operatorname{Li}(x) - \\sum_{\\rho} \\operatorname{Li}(x^\\rho)$$</p>
+                <p>Logarithmic Integral: $$\operatorname{Li}(x) = \int_2^x \frac{dt}{\ln t}$$</p>
+                <p>Riemann's Approximation: $$\pi(x) \approx \operatorname{Li}(x) - \sum_{\rho} \operatorname{Li}(x^\rho)$$</p>
                 <p>Where the sum is over the non-trivial zeros $\rho$. Each zero contributes an oscillating wave to refine the smooth $\operatorname{Li}(x)$ curve.</p>
+                <h4>Deeper Dive</h4>
+                <p><b>1. Why $\operatorname{Li}(x)$ is not enough:</b> It is a smooth function, but $\pi(x)$ is a step function. To reconstruct the exact prime locations, we need oscillatory corrections from the non-trivial zeros.</p>
+                <p><b>2. Zeros as “frequencies”:</b> Each non-trivial zero $\rho = 1/2 + i\gamma$ contributes a term that behaves like a wave:</p>
+                <p>$$-\operatorname{Li}(x^\rho) \sim -\frac{x^{1/2}e^{i \gamma \ln x}}{\rho \ln x}$$</p>
+                <p>In the space of $\ln x$, this is effectively a wave with frequency $\gamma$. Summing these waves over all zeros is what refines the smooth curve into the precise step function.</p>
             </div>
         </details>
     </div>
@@ -1226,6 +1231,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 
