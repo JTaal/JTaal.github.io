@@ -497,6 +497,15 @@
     let currentParticleSystem = null;
     let particles = [];
 
+    // --- VR Input State Manager ---
+    const vrInputs = {
+        left: { grip: { pressed: false }, trigger: { pressed: false }, thumbstick: { x: 0, y: 0 } },
+        right: { grip: { pressed: false }, trigger: { pressed: false }, thumbstick: { x: 0, y: 0 } },
+        isZooming: false,
+        initialZoomDistance: 0,
+        initialDollyScale: new THREE.Vector3()
+    };
+
     // --- Global Settings ---
     let particleCount = 1500; // Lowered for initial performance
     let particleSize = 0.1;
@@ -512,7 +521,7 @@
 
     let shannonGrowthChart, differentialInfoChart;
     let followObject = null;
-
+    
     const concepts = {
         shannon_entropy: {
             title: 'Shannon Entropy',
@@ -810,15 +819,19 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M2 12.3C2 7.8 5.8 4 10.3 4s8.3 3.8 8.3 8.3-3.5 8.3-8.3 8.3S2 16.8 2 12.3z"/>
                                 <path d="M12.3 4a8.3 8.3 0 0 1 8.3 8.3 8.3 8.3 0 0 1-8.3 8.3"/>
-                            </span>
+                            </svg>
+                            <span>Exit VR</span>
                         `;
                         vrButton.classList.add('active');
                     });
                     renderer.xr.addEventListener('sessionend', () => {
                         // When exiting VR, move camera back to dolly's position and reset dolly
                         camera.position.copy(playerDolly.position);
+                        // Also reset scale
+                        camera.scale.copy(playerDolly.scale);
                         playerDolly.position.set(0, 0, 0);
                         playerDolly.quaternion.identity();
+                        playerDolly.scale.set(1, 1, 1);
                         controls.enabled = true;
 
                         vrButton.innerHTML = `
@@ -1786,7 +1799,7 @@
             });
         }
 
-        function update() {
+        function update(delta) {
             if (isPaused) return;
 
             const dt = 0.016 * timeMultiplier;
@@ -2008,7 +2021,7 @@
         createControls();
         return { update, cleanup: () => {}, followTarget: centralObject };
     }
-
+    
 
     function onWindowResize() { 
         camera.aspect = window.innerWidth / window.innerHeight; 
@@ -2034,54 +2047,100 @@
         }
     }
 
+    function updateVRInputs() {
+        if (!renderer.xr.isPresenting) return;
+
+        const deadzone = 0.15;
+
+        // Helper to update one controller's state
+        const updateControllerState = (controller, state) => {
+            if (controller && controller.gamepad) {
+                const gamepad = controller.gamepad;
+                // Quest 3 Mapping:
+                // buttons[0] = trigger
+                // buttons[1] = grip
+                // axes[2] = thumbstick X
+                // axes[3] = thumbstick Y
+                state.trigger.pressed = gamepad.buttons[0] && gamepad.buttons[0].pressed;
+                state.grip.pressed = gamepad.buttons[1] && gamepad.buttons[1].pressed;
+                state.thumbstick.x = Math.abs(gamepad.axes[2]) > deadzone ? gamepad.axes[2] : 0;
+                state.thumbstick.y = Math.abs(gamepad.axes[3]) > deadzone ? gamepad.axes[3] : 0;
+            }
+        };
+
+        updateControllerState(controller1, vrInputs.left);
+        updateControllerState(controller2, vrInputs.right);
+    }
+
     function handleVRControllers(delta) {
         if (renderer.xr.isPresenting) {
             const speed = 3.0;
             const turnSpeed = 1.5;
-            const moveDirection = new THREE.Vector3();
+            
             const cameraDirection = new THREE.Quaternion();
             camera.getWorldQuaternion(cameraDirection);
 
-            // Use the left controller's thumbstick for movement (strafe/forward)
-            if (controller1 && controller1.gamepad && controller1.gamepad.axes.length >= 4) {
-                const axes = controller1.gamepad.axes;
-                // axes[2] for left/right strafe
-                moveDirection.x = axes[2];
-                // axes[3] for forward/backward
-                moveDirection.z = axes[3];
-
-                if (moveDirection.length() > 0.1) {
-                    moveDirection.normalize().multiplyScalar(speed * delta);
-                    // Apply movement relative to the camera's direction
-                    moveDirection.applyQuaternion(cameraDirection);
-                    playerDolly.position.add(moveDirection);
-                }
+            // --- Movement (Left Thumbstick) ---
+            const moveDirection = new THREE.Vector3(vrInputs.left.thumbstick.x, 0, vrInputs.left.thumbstick.y);
+            if (moveDirection.length() > 0.1) {
+                moveDirection.normalize().multiplyScalar(speed * delta);
+                // Apply movement relative to the camera's direction (Y component is ignored for ground movement)
+                const flatCameraQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), new THREE.Euler().setFromQuaternion(cameraDirection).y);
+                moveDirection.applyQuaternion(flatCameraQuaternion);
+                playerDolly.position.add(moveDirection);
             }
 
-            // Use the right controller's thumbstick for turning
-            if (controller2 && controller2.gamepad && controller2.gamepad.axes.length >= 4) {
-                 const turnAmount = controller2.gamepad.axes[2];
-                 // Deadzone to prevent drift
-                 if (Math.abs(turnAmount) > 0.15) {
-                     playerDolly.rotation.y -= turnAmount * turnSpeed * delta;
-                 }
+            // --- Turning & Vertical Movement (Right Thumbstick) ---
+            if (Math.abs(vrInputs.right.thumbstick.x) > 0.1) {
+                 playerDolly.rotation.y -= vrInputs.right.thumbstick.x * turnSpeed * delta;
+            }
+             if (Math.abs(vrInputs.right.thumbstick.y) > 0.1) {
+                 playerDolly.position.y -= vrInputs.right.thumbstick.y * speed * delta;
+            }
+
+            // --- Grab and Pull Zoom (Both Grips) ---
+            const bothGripsPressed = vrInputs.left.grip.pressed && vrInputs.right.grip.pressed;
+
+            if (bothGripsPressed && !vrInputs.isZooming) {
+                // Start zooming
+                vrInputs.isZooming = true;
+                vrInputs.initialZoomDistance = controllerGrip1.position.distanceTo(controllerGrip2.position);
+                vrInputs.initialDollyScale.copy(playerDolly.scale);
+            } else if (bothGripsPressed && vrInputs.isZooming) {
+                // Continue zooming
+                const currentDistance = controllerGrip1.position.distanceTo(controllerGrip2.position);
+                if (vrInputs.initialZoomDistance > 0.01) {
+                    const scaleFactor = currentDistance / vrInputs.initialZoomDistance;
+                    const newScale = vrInputs.initialDollyScale.clone().multiplyScalar(scaleFactor);
+                    // Clamp scale to avoid issues
+                    newScale.clampScalar(0.1, 10.0);
+                    playerDolly.scale.copy(newScale);
+                }
+            } else if (!bothGripsPressed && vrInputs.isZooming) {
+                // Stop zooming
+                vrInputs.isZooming = false;
             }
         }
     }
 
     function animate() { 
         const delta = clock.getDelta();
+        
+        updateVRInputs();
+
         if (!renderer.xr.isPresenting) {
             controls.update(); 
         }
+        
         if(!isPaused && currentUpdate) currentUpdate(delta); 
+        
         handleVRControllers(delta);
         updateCameraFollow();
         renderer.render(scene, camera); 
     }
+    
     init();
 </script>
 </body>
 </html>
-
 
