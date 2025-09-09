@@ -412,6 +412,13 @@
                 </label>
                 <input id="trace-length-slider" type="range" min="5" max="100" step="1" value="40" class="w-full">
             </div>
+            <div id="blackhole-spin-control" class="control-group text-left w-full hidden">
+                <label for="spin-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Black Hole Spin:</span>
+                    <span id="spin-value">0.00</span>
+                </label>
+                <input id="spin-slider" type="range" min="0" max="0.99" step="0.01" value="0.0" class="w-full">
+            </div>
             <div class="control-group text-left w-full">
                 <label for="particle-slider" class="text-sm font-medium self-start w-full flex justify-between">
                     <span>Particle Count:</span>
@@ -477,7 +484,7 @@
     let particles = [];
 
     // --- Global Settings ---
-    let particleCount = 5000;
+    let particleCount = 1500; // Lowered for initial performance
     let particleSize = 0.1;
     let systemEnergy = 1.0;
     let timeMultiplier = 999;
@@ -487,6 +494,7 @@
     let gridColor = '#CCCCCC';
     let gridScale = 1.0;
     let gridLineCount = 15;
+    let blackHoleSpin = 0.0;
 
     let shannonGrowthChart, differentialInfoChart;
     let followObject = null;
@@ -521,7 +529,6 @@
     function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        //camera.position.set(0, 40, 100);
         camera.position.set(0, 4, 15);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -616,6 +623,9 @@
         if (result.followTarget) {
             followObject = result.followTarget;
         }
+
+        // Show/hide context-specific settings
+        document.getElementById('blackhole-spin-control').classList.toggle('hidden', key !== 'blackhole_entropy');
     }
 
     function createMenu() {
@@ -761,7 +771,8 @@
                             const session = renderer.xr.getSession();
                             if (session) session.end();
                         } else {
-                            const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking', 'layers' ] };
+                            // Simplified the request for better compatibility
+                            const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor' ] };
                             navigator.xr.requestSession('immersive-vr', sessionInit).then((session) => {
                                 renderer.xr.setSession(session);
                             });
@@ -817,6 +828,8 @@
         const lightSpeedValue = document.getElementById('light-speed-value');
         const traceLengthSlider = document.getElementById('trace-length-slider');
         const traceLengthValue = document.getElementById('trace-length-value');
+        const spinSlider = document.getElementById('spin-slider');
+        const spinValue = document.getElementById('spin-value');
         const followToggle = document.getElementById('follow-toggle');
         const gridColorInput = document.getElementById('grid-color-input');
         const gridScaleSlider = document.getElementById('grid-scale-slider');
@@ -848,7 +861,7 @@
             }
         });
 
-        const initialPixelRatio = Math.min(window.devicePixelRatio, 2);
+        const initialPixelRatio = 1.0; // Set to native resolution for better performance on Quest
         graphicsSlider.value = initialPixelRatio;
         renderer.setPixelRatio(initialPixelRatio);
         updateGraphicsLabel(initialPixelRatio);
@@ -865,6 +878,10 @@
         traceLengthSlider.addEventListener('input', (e) => {
             lightRayRange = parseFloat(e.target.value);
             traceLengthValue.textContent = lightRayRange;
+        });
+        spinSlider.addEventListener('input', (e) => {
+            blackHoleSpin = parseFloat(e.target.value);
+            spinValue.textContent = blackHoleSpin.toFixed(2);
         });
         particleSlider.addEventListener('input', (e) => particleCountValue.textContent = e.target.value);
         particleSlider.addEventListener('change', (e) => {
@@ -1717,29 +1734,42 @@
             time += dt;
 
             const isBlackHole = mass >= STAR_THRESHOLD;
-            const rs = (2 * G * mass) / (c * c);
-            const objectRadius = isBlackHole ? rs : Math.pow(mass, 1/3) * 0.5;
+            const M_geom = (G * mass) / (c * c);
+            const a = blackHoleSpin * M_geom; // Spin parameter
+            
+            let rs, objectRadius;
+
+            if (a > M_geom) { // Naked singularity, not physically expected
+                 rs = 0;
+                 objectRadius = 0.1; // small placeholder
+            } else {
+                 rs = M_geom + Math.sqrt(M_geom * M_geom - a * a); // Outer event horizon
+                 objectRadius = isBlackHole ? rs : Math.pow(mass, 1/3) * 0.5;
+            }
+
 
             centralObject.scale.setScalar(objectRadius);
             horizonOutline.scale.setScalar(rs);
             horizonOutline.visible = isBlackHole;
             centralObject.material.color.set(isBlackHole ? 0x000000 : 0xffffdd);
 
-            const A = 4 * Math.PI * rs * rs;
-            const kappa = (c**4) / (4 * G * mass);
+            const A = 4 * Math.PI * (rs * rs + a * a);
+            const kappa_num = Math.sqrt(M_geom * M_geom - a * a);
+            const kappa_den = 2 * M_geom * (M_geom + Math.sqrt(M_geom * M_geom - a * a)) - 2*a*a;
+            const kappa = kappa_den > 1e-9 ? (c**4 / (G)) * (kappa_num / kappa_den) : 0;
+
             entropyText.textContent = (A / 4).toExponential(2);
             radiusText.textContent = objectRadius.toFixed(2);
-            kappaText.textContent = kappa.toExponential(2);
-            ratioText.textContent = (kappa / c).toExponential(2);
+            kappaText.textContent = isFinite(kappa) ? kappa.toExponential(2) : 'N/A';
+            ratioText.textContent = isFinite(kappa) ? (kappa / c).toExponential(2) : 'N/A';
 
-            const v_at_rs = Math.sqrt(rs / rs) * c; // v = c at the event horizon
-            const v_over_c_sq = (v_at_rs*v_at_rs) / (c*c);
-            if (v_over_c_sq >= 1) {
-                lorentzText.innerHTML = "&infin;";
-            } else {
-                 const lorentzFactor = 1 / Math.sqrt(1 - v_over_c_sq);
-                 lorentzText.textContent = lorentzFactor.toExponential(2);
-            }
+            const v_at_rs = c; // Velocity at EH is c
+            const v_over_c_sq = 1;
+            lorentzText.innerHTML = "&infin;";
+
+
+            // --- Frame-dragging calculation ---
+            const spinAxis = new THREE.Vector3(0, 1, 0);
 
             // --- Update Spacetime Vector Field ---
             vectorField.visible = vectorFieldVisible;
@@ -1764,6 +1794,13 @@
                     if (r > 0.01) {
                         const v_inflow_mag = Math.sqrt(rs / r) * c;
                         const inflow_velocity = p.position.clone().normalize().multiplyScalar(-v_inflow_mag);
+                        
+                        // Frame-dragging
+                        const frameDragTerm = (2 * G * mass * a) / (r * r * r * c);
+                        const tangentDir = spinAxis.clone().cross(p.position).normalize();
+                        const frameDragVel = tangentDir.multiplyScalar(frameDragTerm * systemEnergy * 10);
+                        inflow_velocity.add(frameDragVel);
+
                         p.position.add(inflow_velocity.multiplyScalar(dt * 0.2 * systemEnergy));
                     }
 
@@ -1799,6 +1836,13 @@
                         const v_inflow_mag = Math.sqrt(rs / r) * c;
                         const inflow_velocity = currentPos.clone().normalize().multiplyScalar(-v_inflow_mag);
 
+                        // Frame-dragging on Geodesics
+                        const frameDragTerm = (2 * G * mass * a) / (r * r * r * c);
+                        const tangentDir = spinAxis.clone().cross(currentPos).normalize();
+                        const frameDragVel = tangentDir.multiplyScalar(frameDragTerm * 1000); // Enhanced effect for visibility
+                        currentVel.add(frameDragVel);
+
+
                         currentVel.add(acceleration.multiplyScalar(sim_dt));
 
                         const posChangeFromVel = currentVel.clone().multiplyScalar(sim_dt);
@@ -1823,6 +1867,13 @@
                         if (r > 0.01) {
                             const v_inflow_mag = Math.sqrt(rs / r) * c;
                             const inflow_velocity = currentPos.clone().normalize().multiplyScalar(-v_inflow_mag);
+
+                            // Frame-dragging on grid
+                            const frameDragTerm = (2 * G * mass * a) / (r * r * r * c);
+                            const tangentDir = spinAxis.clone().cross(currentPos).normalize();
+                            const frameDragVel = tangentDir.multiplyScalar(frameDragTerm * time * 50); // time makes it "wind up"
+                            inflow_velocity.add(frameDragVel);
+
                             currentPos.add(inflow_velocity.multiplyScalar(time * 0.05));
                         }
                          if(currentPos.length() * gridScale < objectRadius * 1.1) {
@@ -1847,6 +1898,13 @@
 
                     const gravitationalForce = -G * mass / (r * r);
                     const acceleration = ray.position.clone().normalize().multiplyScalar(gravitationalForce);
+                    
+                     // Frame-dragging on light
+                    const frameDragTerm = (2 * G * mass * a) / (r * r * r * c);
+                    const tangentDir = spinAxis.clone().cross(ray.position).normalize();
+                    const frameDragVel = tangentDir.multiplyScalar(frameDragTerm * 100);
+                    acceleration.add(frameDragVel);
+                    
                     ray.velocity.add(acceleration.multiplyScalar(dt * 20));
                     ray.position.add(ray.velocity.clone().multiplyScalar(dt * 20));
 
@@ -1923,4 +1981,6 @@
 </script>
 </body>
 </html>
+
+
 
