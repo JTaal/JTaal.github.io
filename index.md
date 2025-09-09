@@ -2,6 +2,7 @@
 layout: default
 title: Jasper Taal | Visualizations & Projects
 ---
+
 <style>
   body {
     background-color: #111827;
@@ -16,14 +17,14 @@ title: Jasper Taal | Visualizations & Projects
   #dna-strip-container {
     width: 100%;
     height: 80px;
-    background-color: #000;
+    background: black;
     overflow: hidden;
     position: relative;
   }
-  #bg-canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+  #dna-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
   }
   #gene-info {
     width: 100%;
@@ -34,7 +35,6 @@ title: Jasper Taal | Visualizations & Projects
     font-family: "Courier New", monospace;
     font-size: 0.9rem;
     border-bottom: 1px solid #374151;
-    z-index: 10;
   }
   .card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -48,7 +48,9 @@ title: Jasper Taal | Visualizations & Projects
 </style>
 
 <!-- DNA strip -->
-<div id="dna-strip-container"><canvas id="bg-canvas"></canvas></div>
+<div id="dna-strip-container">
+  <canvas id="dna-canvas"></canvas>
+</div>
 <div id="gene-info">Fetching gene data...</div>
 
 <!-- Hero -->
@@ -56,7 +58,9 @@ title: Jasper Taal | Visualizations & Projects
   <div class="px-4 py-5 my-5 text-center">
     <h1 class="display-4 fw-bold">Visualizations & Projects</h1>
     <div class="col-lg-6 mx-auto">
-      <p class="lead mb-4">A collection of interactive experiments and creative coding projects. Explore the intersection of data, art, and technology.</p>
+      <p class="lead mb-4">
+        Our sky tells the story of infinite possibility constrained to reality.
+      </p>
     </div>
   </div>
 </div>
@@ -130,109 +134,80 @@ title: Jasper Taal | Visualizations & Projects
 
 <!-- Scripts -->
 <script>
-  const container = document.getElementById('dna-strip-container');
-  const geneInfoDiv = document.getElementById('gene-info');
-  let scene, camera, renderer, letters=[], dnaSeq="", dnaIndex=0;
-  const bases = ['A','T','C','G'];
-  const colors = {A:"red",T:"blue",C:"gold",G:"violet"};
+const canvas = document.getElementById("dna-canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = canvas.offsetWidth;
+canvas.height = canvas.offsetHeight;
 
-  async function fetchGene() {
+const bases = ["A","T","C","G"];
+const colors = { A: "red", T: "blue", C: "gold", G: "violet" };
+
+let dnaSeq = "";
+let dnaIndex = 0;
+let letters = [];
+
+// fetch gene or fallback
+async function fetchGene() {
+  try {
     const genes=[{id:"NM_007294.4",sym:"BRCA1"},{id:"NM_000546.6",sym:"TP53"}];
-    try {
-      const g=genes[Math.floor(Math.random()*genes.length)];
-      geneInfoDiv.textContent=`Fetching: ${g.sym}...`;
-      const url=`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=${g.id}&rettype=fasta&retmode=text`;
-      const r=await fetch(url);
-      if(!r.ok) throw new Error();
-      const fasta=await r.text();
-      dnaSeq=fasta.split("\n").slice(1).join("").replace(/[^ATCG]/g,"");
-      geneInfoDiv.textContent=`Visualizing ${g.sym}`;
-    } catch {
-      dnaSeq=Array.from({length:5000},()=>bases[Math.floor(Math.random()*4)]).join("");
-      geneInfoDiv.textContent="Fallback: Random DNA";
-    }
+    const g=genes[Math.floor(Math.random()*genes.length)];
+    document.getElementById("gene-info").textContent=`Fetching ${g.sym}...`;
+    const url=`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=${g.id}&rettype=fasta&retmode=text`;
+    const r=await fetch(url);
+    if(!r.ok) throw new Error();
+    const fasta=await r.text();
+    dnaSeq=fasta.split("\n").slice(1).join("").replace(/[^ATCG]/g,"");
+    document.getElementById("gene-info").textContent=`Visualizing ${g.sym}`;
+  } catch {
+    dnaSeq=Array.from({length:1000},()=>bases[Math.floor(Math.random()*4)]).join("");
+    document.getElementById("gene-info").textContent="Fallback: Random DNA";
   }
+}
 
-  function makeSprite(base){
-    const c=document.createElement("canvas");
-    c.width=c.height=64;
-    const ctx=c.getContext("2d");
-    ctx.fillStyle=colors[base];
-    ctx.font="bold 48px monospace";
-    ctx.textAlign="center"; ctx.textBaseline="middle";
-    ctx.fillText(base,32,32);
-    const tex=new THREE.CanvasTexture(c);
-    tex.needsUpdate=true;
-    return new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true}));
-  }
+function nextBase() {
+  return dnaSeq[dnaIndex++ % dnaSeq.length];
+}
 
-  function setBase(top){
-    if(!dnaSeq) return;
-    const b=dnaSeq[dnaIndex++%dnaSeq.length];
-    const pair={A:"T",T:"A",C:"G",G:"C"}[b];
-    updateSprite(top,b);
-    updateSprite(top.userData.pair,pair);
-  }
+function spawnLetter() {
+  const b = nextBase();
+  const pair = {A:"T",T:"A",C:"G",G:"C"}[b];
+  const x = canvas.width + 20;
+  letters.push({base:b, x, y:20, color:colors[b]});
+  letters.push({base:pair, x, y:60, color:colors[pair]});
+}
 
-  function updateSprite(sprite, base){
-    const c=document.createElement("canvas");
-    c.width=c.height=64;
-    const ctx=c.getContext("2d");
-    ctx.fillStyle=colors[base];
-    ctx.font="bold 48px monospace";
-    ctx.textAlign="center"; ctx.textBaseline="middle";
-    ctx.fillText(base,32,32);
-    sprite.material.map=new THREE.CanvasTexture(c);
-    sprite.material.map.needsUpdate=true;
-  }
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.font="bold 28px monospace";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  letters.forEach(l=>{
+    ctx.fillStyle=l.color;
+    ctx.fillText(l.base,l.x,l.y);
+    l.x -= 2; // speed
+  });
+  letters = letters.filter(l=>l.x > -20);
+}
 
-  function initScene(){
-    scene=new THREE.Scene();
-    const w=container.clientWidth,h=container.clientHeight;
-    camera=new THREE.OrthographicCamera(-w/2,w/2,h/2,-h/2,1,1000);
-    camera.position.z=10;
-    renderer=new THREE.WebGLRenderer({canvas:document.getElementById("bg-canvas"),alpha:true});
-    renderer.setSize(w,h);
-    const spacing=35, count=Math.ceil(w/spacing)+10;
-    for(let i=0;i<count;i++){
-      const top=makeSprite("A"), bottom=makeSprite("T");
-      const x=i*spacing-(count*spacing/2);
-      top.position.set(x,15,0); bottom.position.set(x,-15,0);
-      top.userData.pair=bottom; bottom.userData.pair=top;
-      setBase(top);
-      scene.add(top,bottom);
-      letters.push(top,bottom);
-    }
-    animate();
-  }
+function animate() {
+  if (Math.random()<0.1) spawnLetter();
+  draw();
+  requestAnimationFrame(animate);
+}
 
-  function animate(){
-    requestAnimationFrame(animate);
-    const w=container.clientWidth, spacing=35,total=(letters.length/2)*spacing;
-    letters.forEach(l=>{
-      l.position.x-=0.4;
-      if(l.position.x<-w/2-spacing){
-        l.position.x+=total;
-        if(l.position.y>0) setBase(l);
-      }
-    });
-    renderer.render(scene,camera);
-  }
-
-  fetchGene().then(initScene);
+fetchGene().then(()=> animate());
 </script>
 
-
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const search=document.getElementById("search");
-    const cards=document.querySelectorAll("#custom-cards .card");
-    search.addEventListener("input",function(){
-      const q=this.value.toLowerCase();
-      cards.forEach(card=>{
-        const text=card.innerText.toLowerCase();
-        card.parentElement.style.display=text.includes(q)?"":"none";
-      });
+document.addEventListener("DOMContentLoaded", function () {
+  const search=document.getElementById("search");
+  const cards=document.querySelectorAll("#custom-cards .card");
+  search.addEventListener("input",function(){
+    const q=this.value.toLowerCase();
+    cards.forEach(card=>{
+      const text=card.innerText.toLowerCase();
+      card.parentElement.style.display=text.includes(q)?"":"none";
     });
   });
+});
 </script>
