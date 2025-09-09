@@ -5,16 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Interactive Entropy Explorer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
-                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
-            }
-        }
-    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -484,15 +478,7 @@
 
 
 <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-    import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
-    import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
-
-    let scene, camera, renderer, controls, raycaster, mouse, clock;
-    let playerDolly; // For VR movement
-    let controller1, controller2, controllerGrip1, controllerGrip2;
-    let hand1, hand2;
+    let scene, camera, renderer, controls, raycaster, mouse;
     let activeSceneObjects = new THREE.Group();
     let currentParticleSystem = null;
     let particles = [];
@@ -541,21 +527,15 @@
     };
 
     function init() {
-        clock = new THREE.Clock();
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        
-        // VR Dolly for movement
-        playerDolly = new THREE.Group();
-        playerDolly.position.set(0, 0, 15); // Start position adjusted for VR comfort
-        playerDolly.add(camera);
-        scene.add(playerDolly);
+        camera.position.set(0, 4, 15);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        controls = new OrbitControls(camera, renderer.domElement);
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
 
@@ -576,7 +556,7 @@
         setupInfoPanelCharts();
         setupSettingsPanel();
         setupFullscreen();
-        setupVR();
+        setupVRButton();
         switchConcept('shannon_entropy');
 
         window.addEventListener('resize', onWindowResize, false);
@@ -697,7 +677,90 @@
         });
     }
 
-    function setupVR() {
+    function setupFullscreen() {
+        const fullscreenButton = document.getElementById('fullscreen-button');
+        const enterIcon = document.getElementById('fullscreen-enter-icon');
+        const exitIcon = document.getElementById('fullscreen-exit-icon');
+        const body = document.body;
+
+        if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) {
+            fullscreenButton.style.display = 'none'; // Hide if not supported
+            return;
+        }
+
+        function openFullscreen() {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) { /* Safari */
+                document.documentElement.webkitRequestFullscreen();
+            }
+        }
+
+        function closeFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) { /* Safari */
+                document.webkitExitFullscreen();
+            }
+        }
+
+        fullscreenButton.addEventListener('click', () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                openFullscreen();
+            } else {
+                closeFullscreen();
+            }
+        });
+
+        const handleFullscreenChange = () => {
+            const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            enterIcon.classList.toggle('hidden', isFullscreen);
+            exitIcon.classList.toggle('hidden', !isFullscreen);
+            body.classList.toggle('fullscreen-active', isFullscreen);
+            // When exiting fullscreen, remove any lingering hover classes
+            if (!isFullscreen) {
+                 document.querySelectorAll('.show-on-hover').forEach(el => el.classList.remove('show-on-hover'));
+            }
+            setTimeout(onWindowResize, 100);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+        // --- Hover Logic for Fullscreen ---
+        let hideTimer = null;
+        window.addEventListener('mousemove', (e) => {
+            if (!body.classList.contains('fullscreen-active')) return;
+
+            const hotzoneHeight = 120; // Active area in pixels from top or bottom
+
+            const isNearTop = e.clientY < hotzoneHeight;
+            const isNearBottom = window.innerHeight - e.clientY < hotzoneHeight;
+            
+            const controlsPanel = document.getElementById('controls-panel');
+            const settingsButton = document.getElementById('settings-button');
+            const fsButton = document.getElementById('fullscreen-button');
+
+            clearTimeout(hideTimer);
+
+            const showElements = (elements) => elements.forEach(el => el.classList.add('show-on-hover'));
+            const hideElements = (elements) => elements.forEach(el => el.classList.remove('show-on-hover'));
+            
+            if (isNearTop) {
+                showElements([settingsButton]);
+                hideElements([controlsPanel, fsButton]);
+            } else if (isNearBottom) {
+                showElements([controlsPanel, fsButton]);
+                hideElements([settingsButton]);
+            } else {
+                hideTimer = setTimeout(() => {
+                    hideElements([settingsButton, controlsPanel, fsButton]);
+                }, 500);
+            }
+        });
+    }
+
+    function setupVRButton() {
         const vrButton = document.getElementById('vr-button');
 
         if ('xr' in navigator) {
@@ -708,7 +771,8 @@
                             const session = renderer.xr.getSession();
                             if (session) session.end();
                         } else {
-                            const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking' ] };
+                            // Simplified the request for better compatibility
+                            const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor' ] };
                             navigator.xr.requestSession('immersive-vr', sessionInit).then((session) => {
                                 renderer.xr.setSession(session);
                             });
@@ -745,34 +809,6 @@
              vrButton.disabled = true;
              vrButton.textContent = 'VR Not Supported';
         }
-
-        // --- Controllers & Hands Setup ---
-        controller1 = renderer.xr.getController(0);
-        playerDolly.add(controller1);
-
-        controller2 = renderer.xr.getController(1);
-        playerDolly.add(controller2);
-
-        const controllerModelFactory = new XRControllerModelFactory();
-        const handModelFactory = new XRHandModelFactory();
-
-        // Controller Grips
-        controllerGrip1 = renderer.xr.getControllerGrip(0);
-        controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
-        playerDolly.add(controllerGrip1);
-
-        controllerGrip2 = renderer.xr.getControllerGrip(1);
-        controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
-        playerDolly.add(controllerGrip2);
-
-        // Hand Models
-        hand1 = renderer.xr.getHand(0);
-        hand1.add(handModelFactory.createHandModel(hand1));
-        playerDolly.add(hand1);
-
-        hand2 = renderer.xr.getHand(1);
-        hand2.add(handModelFactory.createHandModel(hand2));
-        playerDolly.add(hand2);
     }
 
     function setupSettingsPanel() {
@@ -1928,55 +1964,16 @@
 
             const offset = controls.target.clone().sub(camera.position).normalize().multiplyScalar(distance);
             const targetPosition = followObject.position.clone().sub(offset);
-            
-            // In VR, we move the dolly, not the camera directly
-            const targetContainer = renderer.xr.isPresenting ? playerDolly : camera;
-            targetContainer.position.lerp(targetPosition, 0.1);
-            
+
+            camera.position.lerp(targetPosition, 0.1);
             controls.target.lerp(followObject.position, 0.1);
         }
     }
 
-    function handleVRControllers(delta) {
-        if (renderer.xr.isPresenting) {
-            const speed = 3.0;
-            const turnSpeed = 1.5;
-            const moveDirection = new THREE.Vector3();
-            const cameraDirection = new THREE.Quaternion();
-            camera.getWorldQuaternion(cameraDirection);
-
-            // Use the left controller's thumbstick for movement (strafe/forward)
-            if (controller1 && controller1.gamepad && controller1.gamepad.axes.length >= 4) {
-                const axes = controller1.gamepad.axes;
-                // axes[2] for left/right strafe
-                moveDirection.x = axes[2];
-                // axes[3] for forward/backward
-                moveDirection.z = axes[3];
-
-                if (moveDirection.length() > 0.1) {
-                    moveDirection.normalize().multiplyScalar(speed * delta);
-                    // Apply movement relative to the camera's direction
-                    moveDirection.applyQuaternion(cameraDirection);
-                    playerDolly.position.add(moveDirection);
-                }
-            }
-
-            // Use the right controller's thumbstick for turning
-            if (controller2 && controller2.gamepad && controller2.gamepad.axes.length >= 4) {
-                 const turnAmount = controller2.gamepad.axes[2];
-                 // Deadzone to prevent drift
-                 if (Math.abs(turnAmount) > 0.15) {
-                     playerDolly.rotation.y -= turnAmount * turnSpeed * delta;
-                 }
-            }
-        }
-    }
-
     function animate() { 
-        const delta = clock.getDelta();
+        // requestAnimationFrame(animate); // This is now handled by setAnimationLoop
         controls.update(); 
-        if(!isPaused && currentUpdate) currentUpdate(delta); 
-        handleVRControllers(delta);
+        if(!isPaused && currentUpdate) currentUpdate(); 
         updateCameraFollow();
         renderer.render(scene, camera); 
     }
@@ -1984,4 +1981,5 @@
 </script>
 </body>
 </html>
+
 
