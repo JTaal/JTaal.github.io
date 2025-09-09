@@ -9,7 +9,7 @@ title: Jasper Taal | Visualizations & Projects
     background-position: center;
   }
   .card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   .card:hover {
     transform: translateY(-4px);
@@ -22,6 +22,7 @@ title: Jasper Taal | Visualizations & Projects
     font-size: 0.85rem;
     color: #ddd;
   }
+  
 </style>
 
 <div class="hero-section text-white">
@@ -35,6 +36,21 @@ title: Jasper Taal | Visualizations & Projects
 
 <div class="container px-4 py-5" id="custom-cards">
   <h2 class="pb-2 border-bottom">Projects</h2>
+  <input id="search" class="form-control my-4" placeholder="Search projects or visualisations...">
+
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const search = document.getElementById("search");
+    const cards = document.querySelectorAll("#custom-cards .card");
+    search.addEventListener("input", function () {
+      const q = this.value.toLowerCase();
+      cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        card.parentElement.style.display = text.includes(q) ? "" : "none";
+      });
+    });
+  });
+  </script>
 
   <div class="row row-cols-1 row-cols-lg-2 align-items-stretch g-4 py-5">
     {% for post in site.data.posts %}
