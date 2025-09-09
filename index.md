@@ -129,7 +129,6 @@ title: Jasper Taal | Visualizations & Projects
 </div>
 
 <!-- Scripts -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
   const container = document.getElementById('dna-strip-container');
   const geneInfoDiv = document.getElementById('gene-info');
@@ -153,44 +152,64 @@ title: Jasper Taal | Visualizations & Projects
       geneInfoDiv.textContent="Fallback: Random DNA";
     }
   }
-  function sprite(base){
-    const c=document.createElement("canvas"),ctx=c.getContext("2d");
-    c.width=c.height=64; ctx.fillStyle=colors[base]; ctx.font="bold 48px monospace"; 
-    ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(base,32,32);
-    return new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c)}));
+
+  function makeSprite(base){
+    const c=document.createElement("canvas");
+    c.width=c.height=64;
+    const ctx=c.getContext("2d");
+    ctx.fillStyle=colors[base];
+    ctx.font="bold 48px monospace";
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(base,32,32);
+    const tex=new THREE.CanvasTexture(c);
+    tex.needsUpdate=true;
+    return new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true}));
   }
+
+  function setBase(top){
+    if(!dnaSeq) return;
+    const b=dnaSeq[dnaIndex++%dnaSeq.length];
+    const pair={A:"T",T:"A",C:"G",G:"C"}[b];
+    updateSprite(top,b);
+    updateSprite(top.userData.pair,pair);
+  }
+
+  function updateSprite(sprite, base){
+    const c=document.createElement("canvas");
+    c.width=c.height=64;
+    const ctx=c.getContext("2d");
+    ctx.fillStyle=colors[base];
+    ctx.font="bold 48px monospace";
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(base,32,32);
+    sprite.material.map=new THREE.CanvasTexture(c);
+    sprite.material.map.needsUpdate=true;
+  }
+
   function initScene(){
     scene=new THREE.Scene();
     const w=container.clientWidth,h=container.clientHeight;
-    camera=new THREE.OrthographicCamera(-w/2,w/2,h/2,-h/2,1,1000); camera.position.z=10;
+    camera=new THREE.OrthographicCamera(-w/2,w/2,h/2,-h/2,1,1000);
+    camera.position.z=10;
     renderer=new THREE.WebGLRenderer({canvas:document.getElementById("bg-canvas"),alpha:true});
     renderer.setSize(w,h);
     const spacing=35, count=Math.ceil(w/spacing)+10;
     for(let i=0;i<count;i++){
-      const top=sprite("A"), bottom=sprite("T");
+      const top=makeSprite("A"), bottom=makeSprite("T");
       const x=i*spacing-(count*spacing/2);
       top.position.set(x,15,0); bottom.position.set(x,-15,0);
       top.userData.pair=bottom; bottom.userData.pair=top;
-      setBase(top); scene.add(top,bottom); letters.push(top,bottom);
+      setBase(top);
+      scene.add(top,bottom);
+      letters.push(top,bottom);
     }
     animate();
   }
-  function setBase(top){
-    if(!dnaSeq) return;
-    const b=dnaSeq[dnaIndex++%dnaSeq.length], pair={A:"T",T:"A",C:"G",G:"C"}[b];
-    update(top,b); update(top.userData.pair,pair);
-  }
-  function update(s,b){
-    const tex=s.material.map.image.getContext?null:null;
-    const c=document.createElement("canvas"),ctx=c.getContext("2d");
-    c.width=c.height=64; ctx.fillStyle=colors[b]; ctx.font="bold 48px monospace";
-    ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(b,32,32);
-    s.material.map=new THREE.CanvasTexture(c);
-  }
+
   function animate(){
     requestAnimationFrame(animate);
     const w=container.clientWidth, spacing=35,total=(letters.length/2)*spacing;
-    letters.forEach((l,i)=>{
+    letters.forEach(l=>{
       l.position.x-=0.4;
       if(l.position.x<-w/2-spacing){
         l.position.x+=total;
@@ -199,8 +218,10 @@ title: Jasper Taal | Visualizations & Projects
     });
     renderer.render(scene,camera);
   }
+
   fetchGene().then(initScene);
 </script>
+
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
