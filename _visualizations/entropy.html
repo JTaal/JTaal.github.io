@@ -244,10 +244,25 @@
         }
 
         body.fullscreen-active header,
-        body.fullscreen-active #info-panel,
-        body.fullscreen-active #controls-panel,
-        body.fullscreen-active #settings-button {
+        body.fullscreen-active #info-panel {
             display: none !important;
+        }
+
+        body.fullscreen-active #controls-panel,
+        body.fullscreen-active #settings-button,
+        body.fullscreen-active #fullscreen-button {
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        
+        body.fullscreen-active #controls-panel.show-on-hover,
+        body.fullscreen-active #settings-button.show-on-hover,
+        body.fullscreen-active #fullscreen-button.show-on-hover {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
         }
         
         /* Add these new styles for the mobile dropdown items */
@@ -670,11 +685,47 @@
             enterIcon.classList.toggle('hidden', isFullscreen);
             exitIcon.classList.toggle('hidden', !isFullscreen);
             body.classList.toggle('fullscreen-active', isFullscreen);
+            // When exiting fullscreen, remove any lingering hover classes
+            if (!isFullscreen) {
+                 document.querySelectorAll('.show-on-hover').forEach(el => el.classList.remove('show-on-hover'));
+            }
             setTimeout(onWindowResize, 100);
         };
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+        // --- Hover Logic for Fullscreen ---
+        let hideTimer = null;
+        window.addEventListener('mousemove', (e) => {
+            if (!body.classList.contains('fullscreen-active')) return;
+
+            const hotzoneHeight = 120; // Active area in pixels from top or bottom
+
+            const isNearTop = e.clientY < hotzoneHeight;
+            const isNearBottom = window.innerHeight - e.clientY < hotzoneHeight;
+            
+            const controlsPanel = document.getElementById('controls-panel');
+            const settingsButton = document.getElementById('settings-button');
+            const fsButton = document.getElementById('fullscreen-button');
+
+            clearTimeout(hideTimer);
+
+            const showElements = (elements) => elements.forEach(el => el.classList.add('show-on-hover'));
+            const hideElements = (elements) => elements.forEach(el => el.classList.remove('show-on-hover'));
+            
+            if (isNearTop) {
+                showElements([settingsButton]);
+                hideElements([controlsPanel, fsButton]);
+            } else if (isNearBottom) {
+                showElements([controlsPanel, fsButton]);
+                hideElements([settingsButton]);
+            } else {
+                hideTimer = setTimeout(() => {
+                    hideElements([settingsButton, controlsPanel, fsButton]);
+                }, 500);
+            }
+        });
     }
 
     function setupSettingsPanel() {
@@ -1792,6 +1843,7 @@
 </script>
 </body>
 </html>
+
 
 
 
