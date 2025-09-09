@@ -372,7 +372,7 @@
         </svg>
     </button>
     <button id="settings-button" title="Settings">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
             <circle cx="12" cy="12" r="3"></circle>
         </svg>
@@ -384,6 +384,16 @@
             <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
         </div>
         <div class="space-y-6">
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">VR Mode</label>
+                <button id="vr-button" title="Enter VR Mode" class="toggle-button w-full flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12.3C2 7.8 5.8 4 10.3 4s8.3 3.8 8.3 8.3-3.5 8.3-8.3 8.3S2 16.8 2 12.3z"/>
+                        <path d="M12.3 4a8.3 8.3 0 0 1 8.3 8.3 8.3 8.3 0 0 1-8.3 8.3"/>
+                    </svg>
+                    <span>Enter VR</span>
+                </button>
+            </div>
             <div class="control-group text-left w-full">
                 <label class="text-sm font-medium self-start w-full">Follow Object</label>
                 <button id="follow-toggle" class="toggle-button">Off</button>
@@ -503,7 +513,7 @@
     function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        // camera.position.set(0, 40, 100);
+        //camera.position.set(0, 40, 100);
         camera.position.set(0, 4, 15);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -513,6 +523,8 @@
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
+
+        renderer.xr.enabled = true;
 
         raycaster = new THREE.Raycaster();
         mouse = new THREE.Vector2();
@@ -529,6 +541,7 @@
         setupInfoPanelCharts();
         setupSettingsPanel();
         setupFullscreen();
+        setupVRButton();
         switchConcept('shannon_entropy');
 
         window.addEventListener('resize', onWindowResize, false);
@@ -537,7 +550,7 @@
             e.currentTarget.classList.toggle('expanded');
         });
 
-        animate();
+        renderer.setAnimationLoop(animate);
     }
 
     let currentCleanup = () => {};
@@ -727,6 +740,56 @@
                 }, 500);
             }
         });
+    }
+
+    function setupVRButton() {
+        const vrButton = document.getElementById('vr-button');
+
+        if ('xr' in navigator) {
+            navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                if (supported) {
+                    vrButton.addEventListener('click', () => {
+                        if (renderer.xr.isPresenting) {
+                            const session = renderer.xr.getSession();
+                            if (session) session.end();
+                        } else {
+                            const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking', 'layers' ] };
+                            navigator.xr.requestSession('immersive-vr', sessionInit).then((session) => {
+                                renderer.xr.setSession(session);
+                            });
+                        }
+                    });
+
+                    renderer.xr.addEventListener('sessionstart', () => {
+                        vrButton.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 12.3C2 7.8 5.8 4 10.3 4s8.3 3.8 8.3 8.3-3.5 8.3-8.3 8.3S2 16.8 2 12.3z"/>
+                                <path d="M12.3 4a8.3 8.3 0 0 1 8.3 8.3 8.3 8.3 0 0 1-8.3 8.3"/>
+                            </svg>
+                            <span>Exit VR</span>
+                        `;
+                        vrButton.classList.add('active');
+                    });
+                    renderer.xr.addEventListener('sessionend', () => {
+                        vrButton.innerHTML = `
+                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 12.3C2 7.8 5.8 4 10.3 4s8.3 3.8 8.3 8.3-3.5 8.3-8.3 8.3S2 16.8 2 12.3z"/>
+                                <path d="M12.3 4a8.3 8.3 0 0 1 8.3 8.3 8.3 8.3 0 0 1-8.3 8.3"/>
+                            </svg>
+                            <span>Enter VR</span>
+                        `;
+                        vrButton.classList.remove('active');
+                    });
+
+                } else {
+                    vrButton.disabled = true;
+                    vrButton.textContent = 'VR Not Supported';
+                }
+            });
+        } else {
+             vrButton.disabled = true;
+             vrButton.textContent = 'VR Not Supported';
+        }
     }
 
     function setupSettingsPanel() {
@@ -1544,26 +1607,26 @@
             const controlsDiv = document.getElementById('controls-panel');
             controlsDiv.innerHTML = `
                  <div class="control-group">
-                     <label class="text-sm font-medium">Mass (10^x Solar Masses): <span id="mass-value">1.00e+0</span></label>
-                     <div class="flex items-center gap-2 flex-wrap justify-center">
-                         <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
-                         <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
-                         <button id="grid-toggle" class="toggle-button active text-xs p-2">Spacetime Grid: On</button>
-                         <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
-                         <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
-                         <button id="geodesic-toggle" class="toggle-button text-xs p-2">Geodesics: Off</button>
-                     </div>
+                      <label class="text-sm font-medium">Mass (10^x Solar Masses): <span id="mass-value">1.00e+0</span></label>
+                      <div class="flex items-center gap-2 flex-wrap justify-center">
+                          <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
+                          <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
+                          <button id="grid-toggle" class="toggle-button active text-xs p-2">Spacetime Grid: On</button>
+                          <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
+                          <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
+                          <button id="geodesic-toggle" class="toggle-button text-xs p-2">Geodesics: Off</button>
+                      </div>
                  </div>
                  <div class="flex items-center gap-2 flex-wrap justify-center">
-                     <button id="pause-toggle" class="toggle-button text-sm p-2">Pause</button>
-                     <button id="reset-button" class="toggle-button text-sm p-2">Reset</button>
+                      <button id="pause-toggle" class="toggle-button text-sm p-2">Pause</button>
+                      <button id="reset-button" class="toggle-button text-sm p-2">Reset</button>
                  </div>
                  <div class="flex flex-wrap gap-x-6 gap-y-2 justify-center">
-                     <div class="control-group"> <div class="text-xs text-purple-400">Entropy (S/k<sub>B</sub>)</div> <div id="bh-entropy-value" class="text-lg font-bold">...</div> </div>
-                     <div class="control-group"> <div class="text-xs text-purple-400">Object Radius</div> <div id="rs-value" class="text-lg font-bold">...</div> </div>
-                     <div class="control-group"> <div class="text-xs text-purple-400">Surface Gravity (κ)</div> <div id="kappa-value" class="text-lg font-bold">...</div> </div>
-                     <div class="control-group"> <div class="text-xs text-purple-400">κ / c Ratio</div> <div id="ratio-value" class="text-lg font-bold">...</div> </div>
-                     <div class="control-group"> <div class="text-xs text-purple-400">Lorentz Factor (γ) at R<sub>S</sub></div> <div id="lorentz-value" class="text-lg font-bold">...</div> </div>
+                      <div class="control-group"> <div class="text-xs text-purple-400">Entropy (S/k<sub>B</sub>)</div> <div id="bh-entropy-value" class="text-lg font-bold">...</div> </div>
+                      <div class="control-group"> <div class="text-xs text-purple-400">Object Radius</div> <div id="rs-value" class="text-lg font-bold">...</div> </div>
+                      <div class="control-group"> <div class="text-xs text-purple-400">Surface Gravity (κ)</div> <div id="kappa-value" class="text-lg font-bold">...</div> </div>
+                      <div class="control-group"> <div class="text-xs text-purple-400">κ / c Ratio</div> <div id="ratio-value" class="text-lg font-bold">...</div> </div>
+                      <div class="control-group"> <div class="text-xs text-purple-400">Lorentz Factor (γ) at R<sub>S</sub></div> <div id="lorentz-value" class="text-lg font-bold">...</div> </div>
                  </div>
             `;
             entropyText = document.getElementById('bh-entropy-value');
@@ -1735,7 +1798,7 @@
             if (gridVisible) {
                  staticGridGroup.scale.set(gridScale, gridScale, gridScale);
                  staticGridGroup.userData.lines.forEach(item => {
-                     item.line.material.color.set(gridColor);
+                      item.line.material.color.set(gridColor);
                     const positions = item.line.geometry.attributes.position;
                     for (let i = 0; i <= gridLineSegments; i++) {
                         let currentPos = item.originalVertices[i].clone();
@@ -1834,7 +1897,7 @@
     }
 
     function animate() { 
-        requestAnimationFrame(animate); 
+        // requestAnimationFrame(animate); // This is now handled by setAnimationLoop
         controls.update(); 
         if(!isPaused && currentUpdate) currentUpdate(); 
         updateCameraFollow();
