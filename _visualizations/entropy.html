@@ -439,12 +439,19 @@
                 <label for="grid-color-input" class="text-sm font-medium self-start w-full">Grid Color</label>
                 <input id="grid-color-input" type="color" value="#CCCCCC">
             </div>
-            <div class="control-group text-left w-full">
+             <div class="control-group text-left w-full">
                 <label for="grid-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
                     <span>Grid Scale:</span>
                     <span id="grid-scale-value">1.0x</span>
                 </label>
                 <input id="grid-scale-slider" type="range" min="0.1" max="1000" step="0.1" value="1.0" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="grid-lines-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Grid Line Count:</span>
+                    <span id="grid-lines-value">15</span>
+                </label>
+                <input id="grid-lines-slider" type="range" min="5" max="50" step="1" value="15" class="w-full">
             </div>
             <hr class="border-gray-600">
             <div class="control-group text-left w-full">
@@ -479,6 +486,7 @@
     let isPaused = false;
     let gridColor = '#CCCCCC';
     let gridScale = 1.0;
+    let gridLineCount = 15;
 
     let shannonGrowthChart, differentialInfoChart;
     let followObject = null;
@@ -813,6 +821,8 @@
         const gridColorInput = document.getElementById('grid-color-input');
         const gridScaleSlider = document.getElementById('grid-scale-slider');
         const gridScaleValue = document.getElementById('grid-scale-value');
+        const gridLinesSlider = document.getElementById('grid-lines-slider');
+        const gridLinesValue = document.getElementById('grid-lines-value');
 
         function toggleSettingsPanel() {
             const isOpen = settingsPanel.classList.contains('open');
@@ -878,6 +888,13 @@
         gridScaleSlider.addEventListener('input', (e) => {
             gridScale = parseFloat(e.target.value);
             gridScaleValue.textContent = `${gridScale.toFixed(1)}x`;
+        });
+        gridLinesSlider.addEventListener('input', (e) => {
+            gridLinesValue.textContent = e.target.value;
+        });
+        gridLinesSlider.addEventListener('change', (e) => {
+            gridLineCount = parseInt(e.target.value, 10);
+            resetCurrentConcept();
         });
         graphicsSlider.addEventListener('input', (e) => {
             const quality = parseFloat(e.target.value);
@@ -1522,20 +1539,19 @@
         const staticGridGroup = new THREE.Group();
         staticGridGroup.userData.lines = [];
         const gridLineMaterial = new THREE.LineBasicMaterial({ color: new THREE.Color(gridColor), transparent: true, opacity: 0.5 });
-        const GRID_LINE_COUNT = 15;
         const gridLineSegments = 50;
-        const gridStep = (SIMULATION_RADIUS * 2) / (GRID_LINE_COUNT - 1);
+        const gridStep = (SIMULATION_RADIUS * 2) / (gridLineCount - 1);
 
-        for (let i = 0; i < GRID_LINE_COUNT; i++) {
+        for (let i = 0; i < gridLineCount; i++) {
             const current = -SIMULATION_RADIUS + i * gridStep;
             // XY plane lines
-            for (let j = 0; j < GRID_LINE_COUNT; j++) {
+            for (let j = 0; j < gridLineCount; j++) {
                 const z = -SIMULATION_RADIUS + j * gridStep;
                 staticGridGroup.userData.lines.push({ start: new THREE.Vector3(-SIMULATION_RADIUS, current, z), end: new THREE.Vector3(SIMULATION_RADIUS, current, z) });
                 staticGridGroup.userData.lines.push({ start: new THREE.Vector3(current, -SIMULATION_RADIUS, z), end: new THREE.Vector3(current, SIMULATION_RADIUS, z) });
             }
              // XZ planes
-            for (let j = 0; j < GRID_LINE_COUNT; j++) {
+            for (let j = 0; j < gridLineCount; j++) {
                  const y = -SIMULATION_RADIUS + j * gridStep;
                 staticGridGroup.userData.lines.push({ start: new THREE.Vector3(-SIMULATION_RADIUS, y, current), end: new THREE.Vector3(SIMULATION_RADIUS, y, current) });
                 staticGridGroup.userData.lines.push({ start: new THREE.Vector3(current, y, -SIMULATION_RADIUS), end: new THREE.Vector3(current, y, SIMULATION_RADIUS) });
@@ -1907,7 +1923,4 @@
 </script>
 </body>
 </html>
-
-
-
 
