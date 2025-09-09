@@ -391,6 +391,10 @@
         </div>
         <div class="space-y-6">
             <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">Diagnostics</label>
+                <button id="run-tests-button" class="toggle-button">Run Integrity Checks</button>
+            </div>
+            <div class="control-group text-left w-full">
                 <label class="text-sm font-medium self-start w-full">VR Mode</label>
                 <button id="vr-button" title="Enter VR Mode" class="toggle-button w-full flex items-center justify-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -451,6 +455,17 @@
              <div class="control-group text-left w-full">
                 <label for="grid-color-input" class="text-sm font-medium self-start w-full">Grid Color</label>
                 <input id="grid-color-input" type="color" value="#CCCCCC">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="grid-slice-button" class="text-sm font-medium self-start w-full">Grid View</label>
+                <button id="grid-slice-button" class="toggle-button w-full">3D Full</button>
+            </div>
+            <div id="grid-thickness-control" class="control-group text-left w-full hidden">
+                <label for="grid-thickness-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Slice Thickness:</span>
+                    <span id="grid-thickness-value">0 layers</span>
+                </label>
+                <input id="grid-thickness-slider" type="range" min="0" max="5" step="1" value="0" class="w-full">
             </div>
              <div class="control-group text-left w-full">
                 <label for="grid-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
@@ -517,6 +532,8 @@
     let gridColor = '#CCCCCC';
     let gridScale = 1.0;
     let gridLineCount = 15;
+    let gridSliceMode = '3d'; // '3d', 'x', 'y', 'z'
+    let gridSliceThickness = 0; // In layers
     let blackHoleSpin = 0.0;
 
     let shannonGrowthChart, differentialInfoChart;
@@ -600,6 +617,130 @@
     let currentCleanup = () => {};
     let currentUpdate = () => {};
     let currentConceptKey = null;
+
+    // --- UNIT TESTING FRAMEWORK --- //
+    const TestRunner = {
+        run: async function() {
+            console.clear();
+            console.log('%c[TESTING] Starting integrity checks...', 'color: #f59e0b; font-weight: bold;');
+            const testSuites = [
+                this.testInitialization,
+                this.testConceptSwitching,
+                this.testShannonControls,
+                this.testDifferentialControls,
+                this.testBoltzmannControls,
+                this.testBlackHoleControls,
+                this.testSettingsPanel,
+            ];
+            let passed = 0;
+            let failed = 0;
+
+            for (const testSuite of testSuites) {
+                try {
+                    await testSuite();
+                    console.log(`%c  ✓ PASS: ${testSuite.name}`, 'color: #22c55e;');
+                    passed++;
+                } catch (error) {
+                    console.error(`%c  ✗ FAIL: ${testSuite.name}`, 'color: #ef4444; font-weight: bold;');
+                    console.error('    Reason:', error.message);
+                    failed++;
+                }
+            }
+            
+            console.log('%c[TESTING] Checks complete.', 'color: #f59e0b; font-weight: bold;');
+            console.log(`%c  Passed: ${passed}`, 'color: #22c55e;');
+            console.log(`%c  Failed: ${failed}`, failed > 0 ? 'color: #ef4444;' : 'color: #9ca3af;');
+            
+            // Reset to a known good state
+            console.log('[TESTING] Resetting simulation to initial state.');
+            resetCurrentConcept();
+        },
+
+        assert: function(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        },
+        
+        // Individual Test Suites
+        testInitialization: function() {
+            TestRunner.assert(scene, 'Scene should be initialized.');
+            TestRunner.assert(camera, 'Camera should be initialized.');
+            TestRunner.assert(renderer, 'Renderer should be initialized.');
+            TestRunner.assert(Object.keys(concepts).length === 4, 'Should have 4 concepts loaded.');
+        },
+
+        testConceptSwitching: async function() {
+            for (const key of Object.keys(concepts)) {
+                switchConcept(key);
+                // A minimal delay to allow any async operations or transitions to start
+                await new Promise(resolve => setTimeout(resolve, 50));
+                TestRunner.assert(currentConceptKey === key, `Switching to ${key} failed.`);
+                TestRunner.assert(activeSceneObjects.children.length > 0, `${key} did not initialize any scene objects.`);
+            }
+        },
+
+        testShannonControls: function() {
+            switchConcept('shannon_entropy');
+            const statesInput = document.getElementById('states-input');
+            TestRunner.assert(statesInput, 'Shannon states input not found.');
+            statesInput.value = 5;
+            statesInput.dispatchEvent(new Event('input', { bubbles:true }));
+            // Direct access to attractors is tricky as it's scoped, but we can check if controls were created
+             const distControls = document.getElementById('dist-controls');
+            TestRunner.assert(distControls.querySelectorAll('.dist-slider').length === 4, 'Should create 4 distribution sliders for 5 states.');
+        },
+
+        testDifferentialControls: function() {
+            switchConcept('differential_entropy');
+            const sizeSlider = document.getElementById('size-slider');
+            TestRunner.assert(sizeSlider, 'Differential size slider not found.');
+            sizeSlider.value = 8;
+            sizeSlider.dispatchEvent(new Event('input', { bubbles:true }));
+            // Cannot directly check boundingBox size easily, but we know the control exists and fires.
+            const gaussianButton = document.querySelector('button[data-shape=\"gaussian\"]');
+            gaussianButton.click();
+            TestRunner.assert(document.getElementById('gaussian-controls').classList.contains('hidden') === false, 'Gaussian controls should be visible after click.');
+        },
+
+        testBoltzmannControls: function() {
+            switchConcept('boltzmann_entropy');
+            const shapeToggle = document.getElementById('shape-toggle');
+            TestRunner.assert(shapeToggle, 'Boltzmann shape toggle not found.');
+            shapeToggle.click(); // Switch to sphere
+            TestRunner.assert(shapeToggle.textContent.includes('Sphere'), 'Shape toggle text did not update to Sphere.');
+            const sphereControls = document.getElementById('sphere-barrier-controls');
+            TestRunner.assert(!sphereControls.classList.contains('hidden'), 'Sphere controls should be visible.');
+        },
+        
+        testBlackHoleControls: function() {
+            switchConcept('blackhole_entropy');
+            const massSlider = document.getElementById('mass-slider');
+            TestRunner.assert(massSlider, 'Black hole mass slider not found.');
+            massSlider.value = 5;
+            massSlider.dispatchEvent(new Event('input', { bubbles:true }));
+            TestRunner.assert(mass > 1000, 'Global mass variable was not updated correctly.');
+            const pauseButton = document.getElementById('pause-toggle');
+            pauseButton.click();
+            TestRunner.assert(isPaused === true, 'Pause toggle did not set isPaused to true.');
+            pauseButton.click();
+            TestRunner.assert(isPaused === false, 'Pause toggle did not set isPaused to false.');
+        },
+        
+        testSettingsPanel: function() {
+            const particleSlider = document.getElementById('particle-slider');
+            particleSlider.value = 12345;
+            // We test the 'change' event which triggers the reset
+            particleSlider.dispatchEvent(new Event('change', { bubbles:true }));
+            TestRunner.assert(particleCount === 12345, 'Global particleCount was not updated.');
+
+            const energySlider = document.getElementById('energy-slider');
+            energySlider.value = 4.2;
+            energySlider.dispatchEvent(new Event('input', { bubbles:true }));
+            TestRunner.assert(systemEnergy === 4.2, 'Global systemEnergy was not updated.');
+        },
+    };
+
 
     function switchConcept(key) {
         if (key === currentConceptKey) return;
@@ -908,6 +1049,42 @@
         const gridScaleValue = document.getElementById('grid-scale-value');
         const gridLinesSlider = document.getElementById('grid-lines-slider');
         const gridLinesValue = document.getElementById('grid-lines-value');
+        const gridSliceButton = document.getElementById('grid-slice-button');
+        const gridThicknessControl = document.getElementById('grid-thickness-control');
+        const gridThicknessSlider = document.getElementById('grid-thickness-slider');
+        const gridThicknessValue = document.getElementById('grid-thickness-value');
+        const runTestsButton = document.getElementById('run-tests-button');
+
+        runTestsButton.addEventListener('click', () => {
+            TestRunner.run();
+            // Close the panel to show the console
+            if (settingsPanel.classList.contains('open')) {
+                toggleSettingsPanel();
+            }
+        });
+
+        const sliceModes = ['3d', 'x', 'y', 'z'];
+        let currentSliceIndex = 0;
+        gridSliceButton.addEventListener('click', () => {
+            currentSliceIndex = (currentSliceIndex + 1) % sliceModes.length;
+            gridSliceMode = sliceModes[currentSliceIndex];
+            
+            const modeText = {
+                '3d': '3D Full',
+                'x': 'Slice: YZ Plane',
+                'y': 'Slice: XZ Plane',
+                'z': 'Slice: XY Plane'
+            };
+            gridSliceButton.textContent = modeText[gridSliceMode];
+            
+            const isSlice = gridSliceMode !== '3d';
+            gridThicknessControl.classList.toggle('hidden', !isSlice);
+        });
+
+        gridThicknessSlider.addEventListener('input', e => {
+            gridSliceThickness = parseInt(e.target.value, 10);
+            gridThicknessValue.textContent = `${gridSliceThickness} layer${gridSliceThickness === 1 ? '' : 's'}`;
+        });
 
         function toggleSettingsPanel() {
             const isOpen = settingsPanel.classList.contains('open');
@@ -1928,8 +2105,44 @@
              // --- Update Static Grid ---
             staticGridGroup.visible = gridVisible;
             if (gridVisible) {
+                const step = (SIMULATION_RADIUS * 2) / (gridLineCount - 1);
+                const tolerance = gridSliceThickness * step;
+
+                staticGridGroup.userData.lines.forEach(item => {
+                    let isVisible = false;
+                    const s = item.start;
+                    const e = item.end;
+                    
+                    switch (gridSliceMode) {
+                        case '3d':
+                            isVisible = true;
+                            break;
+                        case 'x': // Show YZ plane at x=0
+                            // Line is parallel to Y
+                            if (s.x === e.x && s.z === e.z && Math.abs(s.x) <= tolerance) isVisible = true;
+                            // Line is parallel to Z
+                            if (s.x === e.x && s.y === e.y && Math.abs(s.x) <= tolerance) isVisible = true;
+                            break;
+                        case 'y': // Show XZ plane at y=0
+                            // Line is parallel to X
+                            if (s.y === e.y && s.z === e.z && Math.abs(s.y) <= tolerance) isVisible = true;
+                            // Line is parallel to Z
+                            if (s.x === e.x && s.y === e.y && Math.abs(s.y) <= tolerance) isVisible = true;
+                            break;
+                        case 'z': // Show XY plane at z=0
+                            // Line is parallel to X
+                            if (s.y === e.y && s.z === e.z && Math.abs(s.z) <= tolerance) isVisible = true;
+                            // Line is parallel to Y
+                            if (s.x === e.x && s.z === e.z && Math.abs(s.z) <= tolerance) isVisible = true;
+                            break;
+                    }
+                    item.line.visible = isVisible;
+                });
+
                  staticGridGroup.scale.set(gridScale, gridScale, gridScale);
                  staticGridGroup.userData.lines.forEach(item => {
+                    if (!item.line.visible) return; // Skip updates for hidden lines
+
                       item.line.material.color.set(gridColor);
                     const positions = item.line.geometry.attributes.position;
                     for (let i = 0; i <= gridLineSegments; i++) {
