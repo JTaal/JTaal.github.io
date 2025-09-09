@@ -1,60 +1,8 @@
 ---
-# layout: default
+layout: index
 title: Jasper Taal | Visualizations & Projects
 ---
 
-<!-- 
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page.title | default: site.title }}</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    
-    <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-</head>
-<body class="bg-body-tertiary">
-    <main>
-        {{ content }}
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-</body>
-</html>
-
- -->
-
-
-<!-- Chosen Palette: Deep Space Dark -->
-<!-- Application Structure Plan: A single-page vertical scroll layout was chosen for its intuitive user flow, ideal for a portfolio. The structure begins with an immersive animated GIF header to set a high-tech tone, followed by a clean, grid-based content area for projects and visualizations, which includes an integrated live search for easy filtering. The page concludes with a unique, theme-reinforcing DNA animation and a standard footer. This design balances visual "wow" factor with clear, functional navigation, allowing users to quickly grasp the creator's skills and browse their work efficiently. -->
-<!-- Visualization & Content Choices: 
-- Report Info: Project/Visualization Showcase -> Goal: Inform/Compare -> Viz/Presentation Method: Interactive Cards (HTML/CSS) -> Interaction: Hover effects and clickable links -> Justification: Cards are a highly effective and standard UI pattern for portfolio items; hover effects improve usability.
-- Report Info: Content Filtering -> Goal: Organize/Filter -> Viz/Presentation Method: Search Input Field (HTML/CSS) -> Interaction: Live filtering of cards (Vanilla JS) -> Justification: Live search is a user-friendly feature that allows for quick exploration of content.
-- Report Info: Thematic Animation -> Goal: Engagement/Wow Factor -> Viz/Presentation Method: DNA Helix Animation (HTML Canvas) -> Interaction: Automated animation with random "glitch" effects to 0s and 1s -> Justification: Creates a unique, memorable, and thematically relevant visual element that showcases technical skill. -> Library/Method: Vanilla JS with HTML5 Canvas API.
--->
-<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jasper Taal | Visualizations & Projects</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
-    
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
 <style>
 :root {
@@ -444,6 +392,5 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 </script>
-</body>
-</html>
+
 
