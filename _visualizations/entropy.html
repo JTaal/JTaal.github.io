@@ -243,18 +243,44 @@
             border: 1px solid #4b5563;
         }
 
-        body.fullscreen-active header,
         body.fullscreen-active #info-panel,
         body.fullscreen-active #controls-panel,
         body.fullscreen-active #settings-button {
             display: none !important;
         }
         
+        /* Add these new styles for the mobile dropdown items */
+        .mobile-menu-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 10px 16px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .mobile-menu-item:hover {
+            background-color: #4338ca;
+        }
+        .mobile-menu-item.active {
+            background-color: #4f46e5;
+            font-weight: bold;
+        }
+        /* This style will hide the mobile menu on larger screens by default */
+        #mobile-menu-container {
+            display: none;
+        }
+
         @media (max-width: 768px) {
             header { padding: 0.75rem 1rem; }
             header h1 { font-size: 1.125rem; }
-            #menu { flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
-            .menu-button { padding: 6px 10px; font-size: 0.75rem; }
+            #menu { 
+                display: none !important;
+            }
+            #mobile-menu-container {
+                display: block;
+            }
             #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
             #settings-button { top: 70px; right: 10px; }
             #fullscreen-button { bottom: 100px; right: 10px; }
@@ -271,6 +297,15 @@
     <header>
         <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Entropy Explorer</h1>
         <div id="menu"></div>
+
+        <div id="mobile-menu-container" class="relative">
+            <button id="mobile-menu-button" class="menu-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <span id="mobile-menu-label">Views</span>
+            </button>
+            <div id="mobile-menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-30">
+            </div>
+        </div>
     </header>
 
     <div id="info-panel" class="ui-panel">
@@ -473,6 +508,7 @@
         scene.add(activeSceneObjects);
 
         createMenu();
+        setupMobileMenu(); // Setup dropdown logic
         setupInfoPanelCharts();
         setupSettingsPanel();
         setupFullscreen();
@@ -521,8 +557,19 @@
 
         document.getElementById('info-panel').classList.remove('expanded');
 
-        if (currentConceptKey) document.getElementById(`btn-${currentConceptKey}`).classList.remove('active');
+        // Update active states for BOTH menus
+        if (currentConceptKey) {
+            document.getElementById(`btn-${currentConceptKey}`).classList.remove('active');
+            const mobileBtn = document.getElementById(`mobile-btn-${currentConceptKey}`);
+            if (mobileBtn) mobileBtn.classList.remove('active');
+        }
         document.getElementById(`btn-${key}`).classList.add('active');
+        const newMobileBtn = document.getElementById(`mobile-btn-${key}`);
+        if(newMobileBtn) newMobileBtn.classList.add('active');
+
+        // Update the mobile menu's main button label
+        document.getElementById('mobile-menu-label').textContent = concepts[key].title.split('(')[0].trim();
+
 
         currentConceptKey = key;
         const result = concept.init();
@@ -535,13 +582,50 @@
 
     function createMenu() {
         const menuDiv = document.getElementById('menu');
+        const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+        
+        // Clear any existing buttons
+        menuDiv.innerHTML = '';
+        mobileMenuDropdown.innerHTML = '';
+
         Object.keys(concepts).forEach(key => {
-            const button = document.createElement('button');
-            button.id = `btn-${key}`;
-            button.className = 'menu-button';
-            button.textContent = concepts[key].title.split('(')[0].trim();
-            button.onclick = () => switchConcept(key);
-            menuDiv.appendChild(button);
+            const conceptTitle = concepts[key].title.split('(')[0].trim();
+
+            // 1. Create button for the desktop menu
+            const desktopButton = document.createElement('button');
+            desktopButton.id = `btn-${key}`;
+            desktopButton.className = 'menu-button';
+            desktopButton.textContent = conceptTitle;
+            desktopButton.onclick = () => switchConcept(key);
+            menuDiv.appendChild(desktopButton);
+
+            // 2. Create button for the mobile dropdown
+            const mobileButton = document.createElement('button');
+            mobileButton.id = `mobile-btn-${key}`;
+            mobileButton.className = 'mobile-menu-item text-white'; // Use new class
+            mobileButton.textContent = conceptTitle;
+            mobileButton.onclick = () => {
+                switchConcept(key);
+                mobileMenuDropdown.classList.add('hidden'); // Close dropdown on selection
+            };
+            mobileMenuDropdown.appendChild(mobileButton);
+        });
+    }
+
+    function setupMobileMenu() {
+        const menuButton = document.getElementById('mobile-menu-button');
+        const dropdown = document.getElementById('mobile-menu-dropdown');
+
+        menuButton.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevents the window click listener from firing
+            dropdown.classList.toggle('hidden');
+        });
+
+        // Add a listener to the whole window to close the dropdown
+        window.addEventListener('click', () => {
+            if (!dropdown.classList.contains('hidden')) {
+                dropdown.classList.add('hidden');
+            }
         });
     }
 
@@ -1407,27 +1491,27 @@
             const controlsDiv = document.getElementById('controls-panel');
             controlsDiv.innerHTML = `
                  <div class="control-group">
-                    <label class="text-sm font-medium">Mass (10^x Solar Masses): <span id="mass-value">1.00e+0</span></label>
-                    <div class="flex items-center gap-2 flex-wrap justify-center">
-                        <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
-                        <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
-                        <button id="grid-toggle" class="toggle-button active text-xs p-2">Spacetime Grid: On</button>
-                        <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
-                        <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
-                        <button id="geodesic-toggle" class="toggle-button text-xs p-2">Geodesics: Off</button>
-                    </div>
-                </div>
+                     <label class="text-sm font-medium">Mass (10^x Solar Masses): <span id="mass-value">1.00e+0</span></label>
+                     <div class="flex items-center gap-2 flex-wrap justify-center">
+                         <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
+                         <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
+                         <button id="grid-toggle" class="toggle-button active text-xs p-2">Spacetime Grid: On</button>
+                         <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
+                         <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
+                         <button id="geodesic-toggle" class="toggle-button text-xs p-2">Geodesics: Off</button>
+                     </div>
+                 </div>
                  <div class="flex items-center gap-2 flex-wrap justify-center">
-                    <button id="pause-toggle" class="toggle-button text-sm p-2">Pause</button>
-                    <button id="reset-button" class="toggle-button text-sm p-2">Reset</button>
-                </div>
-                <div class="flex flex-wrap gap-x-6 gap-y-2 justify-center">
-                    <div class="control-group"> <div class="text-xs text-purple-400">Entropy (S/k<sub>B</sub>)</div> <div id="bh-entropy-value" class="text-lg font-bold">...</div> </div>
-                    <div class="control-group"> <div class="text-xs text-purple-400">Object Radius</div> <div id="rs-value" class="text-lg font-bold">...</div> </div>
-                    <div class="control-group"> <div class="text-xs text-purple-400">Surface Gravity (κ)</div> <div id="kappa-value" class="text-lg font-bold">...</div> </div>
-                    <div class="control-group"> <div class="text-xs text-purple-400">κ / c Ratio</div> <div id="ratio-value" class="text-lg font-bold">...</div> </div>
-                    <div class="control-group"> <div class="text-xs text-purple-400">Lorentz Factor (γ) at R<sub>S</sub></div> <div id="lorentz-value" class="text-lg font-bold">...</div> </div>
-                </div>
+                     <button id="pause-toggle" class="toggle-button text-sm p-2">Pause</button>
+                     <button id="reset-button" class="toggle-button text-sm p-2">Reset</button>
+                 </div>
+                 <div class="flex flex-wrap gap-x-6 gap-y-2 justify-center">
+                     <div class="control-group"> <div class="text-xs text-purple-400">Entropy (S/k<sub>B</sub>)</div> <div id="bh-entropy-value" class="text-lg font-bold">...</div> </div>
+                     <div class="control-group"> <div class="text-xs text-purple-400">Object Radius</div> <div id="rs-value" class="text-lg font-bold">...</div> </div>
+                     <div class="control-group"> <div class="text-xs text-purple-400">Surface Gravity (κ)</div> <div id="kappa-value" class="text-lg font-bold">...</div> </div>
+                     <div class="control-group"> <div class="text-xs text-purple-400">κ / c Ratio</div> <div id="ratio-value" class="text-lg font-bold">...</div> </div>
+                     <div class="control-group"> <div class="text-xs text-purple-400">Lorentz Factor (γ) at R<sub>S</sub></div> <div id="lorentz-value" class="text-lg font-bold">...</div> </div>
+                 </div>
             `;
             entropyText = document.getElementById('bh-entropy-value');
             radiusText = document.getElementById('rs-value');
@@ -1707,4 +1791,5 @@
 </script>
 </body>
 </html>
+
 
