@@ -64,6 +64,12 @@
   visualization_url: /visualizations/chirp-up-and-down.html
   description: A short description goes here.
 
+- title: Quantum
+  author: Jasper Taal
+  thumbnail: /assets/images/quantum.png
+  visualization_url: /visualizations/quantum.html
+  description: A short description goes here.
+
 - title: Pipe Harmonics
   author: Jasper Taal
   thumbnail: /assets/images/pipe-harmonics.png
@@ -80,6 +86,12 @@
   author: Jasper Taal
   thumbnail: /assets/images/support-vector-machine.png
   visualization_url: /visualizations/support-vector-machine.html
+  description: A short description goes here.
+
+- title: Universe
+  author: Jasper Taal
+  thumbnail: /assets/images/universe.png
+  visualization_url: /visualizations/universe.html
   description: A short description goes here.
 
 - title: Complex Waves Combined Low
