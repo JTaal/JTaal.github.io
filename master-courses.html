@@ -154,6 +154,59 @@
             lightIcon.classList.toggle('hidden');
         });
 
+        // --- VISUALIZATION MAPPING ---
+        const visualizationMap = {
+            'reinforcement learning': [
+                { title: 'Reinforcement Learning Visualization', url: 'https://jtaal.github.io/visualizations/reinforcement-learning.html' }
+            ],
+            'evolutionary algorithms': [
+                { title: 'Evolutionary Algorithms Visualization', url: 'https://jtaal.github.io/visualizations/evolutionary-algorithms.html' }
+            ],
+            'advances in data mining': [
+                { title: 'Machine Learning Optimizers', url: 'https://jtaal.github.io/visualizations/machine-learning-optimizers.html' },
+                { title: 'Support Vector Machine', url: 'https://jtaal.github.io/visualizations/support-vector-machine.html' }
+            ],
+            'introduction to deep learning': [
+                { title: 'Diffusion Modeling', url: 'https://jtaal.github.io/visualizations/diffusion-modeling.html' },
+                { title: 'Rotary Positional Embedding', url: 'https://jtaal.github.io/visualizations/rotary-positional-embedding.html' }
+            ],
+            'high-dimensional data analysis': [
+                { title: 'Dimensionality Reduction', url: 'https://jtaal.github.io/visualizations/dimensionality-reduction.html' },
+                { title: 'Multivariate Gaussian', url: 'https://jtaal.github.io/visualizations/multivariate-gaussian.html' }
+            ],
+            'computational imaging and tomography': [
+                { title: 'Complex Chirp Visualization', url: 'https://jtaal.github.io/visualizations/complex-chirp.html' },
+                { title: '4D Complex Chirp Project', url: 'https://jtaal.github.io/2025/08/27/complex-chirp-explained.html' }
+            ],
+            'calculus 2': [
+                { title: 'Mandlebrot Julia Analysis', url: 'https://jtaal.github.io/visualizations/mandlebrot-julia-analysis.html' },
+                { title: 'Riemann Zeta Visualization', url: 'https://jtaal.github.io/visualizations/riemann-zeta.html' }
+            ],
+            'linear algebra for computer science 2': [
+                { title: 'Quaternions Visualization', url: 'https://jtaal.github.io/visualizations/quaternions.html' },
+                { title: '3D Basis Vectors', url: 'https://jtaal.github.io/visualizations/3D-basis-vectors.html' }
+            ],
+            'image analysis with applications in microscopy': [
+                 { title: 'Chirp Up And Down', url: 'https://jtaal.github.io/visualizations/chirp-up-and-down.html' },
+                 { title: 'Pipe Harmonics', url: 'https://jtaal.github.io/visualizations/pipe-harmonics.html' }
+            ],
+             'bio-modeling': [
+                 { title: 'Entropy Visualization', url: 'https://jtaal.github.io/visualizations/entropy.html' },
+                 { title: 'Chaos Relativity', url: 'https://jtaal.github.io/visualizations/chaos-relativity.html' }
+            ],
+            'biological and biomedical informatics': [
+                 { title: 'Blackhole Entropy', url: 'https://jtaal.github.io/visualizations/blackhole-entropy.html' },
+                 { title: 'Quantum Visualization', url: 'https://jtaal.github.io/visualizations/quantum.html' }
+            ],
+            'algorithms and data structures': [
+                 { title: 'Universe Visualization', url: 'https://jtaal.github.io/visualizations/universe.html' }
+            ],
+            'databases 6 ec': [
+                 { title: 'Complex Waves Combined Low', url: 'https://jtaal.github.io/visualizations/complex-waves-combined-low.html' },
+                 { title: 'Complex Waves Combined High', url: 'https://jtaal.github.io/visualizations/complex-waves-combined-high.html' },
+            ]
+        };
+
         // --- COURSE RENDERING LOGIC ---
         const createCourseCard = (course) => {
             const container = document.createElement('div');
@@ -162,6 +215,21 @@
             const card = document.createElement('div');
             card.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md course-card overflow-hidden';
             
+            const courseKey = course.name.toLowerCase();
+            const visualizations = visualizationMap[courseKey];
+            let learningGoalsHTML = '';
+
+            if (visualizations && visualizations.length > 0) {
+                visualizations.forEach(vis => {
+                    learningGoalsHTML += `<li><a href="${vis.url}" class="text-blue-600 dark:text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">${vis.title}</a></li>`;
+                });
+            } else {
+                learningGoalsHTML = `
+                    <li><a href="#" class="text-blue-600 dark:text-blue-400 hover:underline">Placeholder: Key concepts</a></li>
+                    <li><a href="#" class="text-blue-600 dark:text-blue-400 hover:underline">Placeholder: Project link</a></li>
+                `;
+            }
+
             card.innerHTML = `
                 <div class="course-card-clickable p-6">
                     <div class="flex items-start justify-between">
@@ -188,10 +256,9 @@
                 </div>
                 <div class="learning-goals overflow-hidden max-h-0">
                     <div class="px-6 pb-6 pt-0 ml-14 border-t border-gray-200 dark:border-gray-700 pt-4">
-                        <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Learning Goals:</h4>
+                        <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Learning Goals & Projects:</h4>
                         <ul class="list-disc list-inside text-gray-600 dark:text-gray-400 space-y-1 text-sm">
-                            <li><a href="#" class="text-blue-600 dark:text-blue-400 hover:underline">Understand the fundamental principles of the subject.</a></li>
-                            <li><a href="#" class="text-blue-600 dark:text-blue-400 hover:underline">Apply key algorithms and techniques to solve practical problems.</a></li>
+                           ${learningGoalsHTML}
                         </ul>
                     </div>
                 </div>
@@ -258,9 +325,9 @@
             scene.add(directionalLight);
 
             const animatedObjects = [];
-            const spawnZ = 8;
-            const despawnZ = -40;
-            const spawnBox = {x: 4, y: 4, z: 2};
+            const spawnZ = 9; 
+            const despawnDistance = 40; 
+            const spawnRadius = 2;
             const baseScale = 0.5;
 
             // --- Helper for Digitized Version ---
@@ -273,13 +340,12 @@
                         blending: THREE.AdditiveBlending
                     })
                 );
-                // Can't render text in this environment, so we just use green blocks
                 return sprite;
             };
 
             const createDigitizedVersion = (boundingSphere) => {
                 const group = new THREE.Group();
-                const count = 30; // Number of 0s and 1s
+                const count = 30;
                 for (let i = 0; i < count; i++) {
                     const sprite = makeTextSprite(Math.random() > 0.5 ? '1' : '0', {});
                     sprite.position.set(
@@ -292,149 +358,6 @@
                 }
                 return group;
             };
-
-
-            class Helix {
-                constructor(scene) {
-                    this.scene = scene;
-                    this.length = 20 + Math.floor(Math.random() * 20);
-                    this.isRNA = Math.random() > 0.5;
-                    this.group = new THREE.Group();
-                    this.segments = [];
-
-                    const baseColors = {
-                        'A': new THREE.MeshStandardMaterial({ color: 0xff6363, roughness: 0.5 }),
-                        'T': new THREE.MeshStandardMaterial({ color: 0x63aeff, roughness: 0.5 }),
-                        'U': new THREE.MeshStandardMaterial({ color: 0xbf63ff, roughness: 0.5 }),
-                        'G': new THREE.MeshStandardMaterial({ color: 0x63ff84, roughness: 0.5 }),
-                        'C': new THREE.MeshStandardMaterial({ color: 0xf6ff63, roughness: 0.5 }),
-                    };
-                    const rungMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.8 });
-                    const baseGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-                    const rungGeom = new THREE.CylinderGeometry(0.02, 0.02, 1, 6);
-
-                    for (let i = 0; i < this.length; i++) {
-                        const segmentGroup = new THREE.Group();
-                        const angle = (i / 10) * Math.PI * 2;
-                        const purines = ['A', 'G'];
-                        const base1Type = purines[Math.floor(Math.random() * purines.length)];
-                        let base2Type = (base1Type === 'A') ? (this.isRNA ? 'U' : 'T') : 'C';
-
-                        const base1 = new THREE.Mesh(baseGeometry, baseColors[base1Type]);
-                        const base2 = new THREE.Mesh(baseGeometry, baseColors[base2Type]);
-                        base1.position.x = 0.5;
-                        base2.position.x = -0.5;
-
-                        const rung = new THREE.Mesh(rungGeom, rungMaterial);
-                        rung.rotation.z = Math.PI / 2;
-                        
-                        segmentGroup.add(base1, base2, rung);
-                        segmentGroup.rotation.y = angle;
-                        segmentGroup.position.y = (i - this.length / 2) * 0.34;
-                        this.segments.push(segmentGroup);
-                        this.group.add(segmentGroup);
-                    }
-                    
-                    this.group.scale.set(baseScale, baseScale, baseScale);
-                    this.boundingSphere = new THREE.Sphere(new THREE.Vector3(), this.length * 0.34 * baseScale / 2);
-
-                    this.digitizedGroup = createDigitizedVersion(this.boundingSphere);
-                    this.digitizedGroup.scale.set(baseScale, baseScale, baseScale);
-
-                    this.wavePhase = Math.random() * Math.PI * 2;
-                    this.waveAmplitude = 0.3 + Math.random() * 0.7;
-                    this.waveFrequency = 0.1 + Math.random() * 0.1;
-                    this.velocity = new THREE.Vector3();
-
-                    this.scene.add(this.group);
-                    this.scene.add(this.digitizedGroup);
-                    this.reset();
-                }
-                
-                reset() {
-                    this.group.position.set( (Math.random() - 0.5) * spawnBox.x, (Math.random() - 0.5) * spawnBox.y, spawnZ - (Math.random() * spawnBox.z) );
-                    this.group.rotation.set( Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI * 2 );
-                    this.wavePhase = Math.random() * Math.PI * 2;
-                    
-                    const speed = 0.015 + Math.random() * 0.01;
-                    const trajectory = new THREE.Vector3( (Math.random() - 0.5), (Math.random() - 0.5), -1 ).normalize();
-                    this.velocity.copy(trajectory).multiplyScalar(speed);
-
-                    this.isDigitized = Math.random() < 0.1; // 10% chance to be digitized
-                }
-
-                update(time) {
-                    this.group.visible = !this.isDigitized;
-                    this.digitizedGroup.visible = this.isDigitized;
-
-                    const currentGroup = this.isDigitized ? this.digitizedGroup : this.group;
-                    
-                    currentGroup.position.add(this.velocity);
-                    this.boundingSphere.center.copy(currentGroup.position);
-
-                    if (this.isDigitized) {
-                        this.digitizedGroup.rotation.y += 0.01;
-                        this.digitizedGroup.children.forEach(sprite => {
-                           sprite.material.rotation += 0.05;
-                           sprite.position.y += Math.sin(time * 2 + sprite.position.x) * 0.005;
-                        });
-                    } else {
-                        this.group.rotation.y += this.velocity.z * 0.5;
-                        this.group.rotation.x += this.velocity.z * 0.25;
-                        this.segments.forEach((segment, i) => {
-                            segment.position.x = Math.sin(time * 0.5 + i * this.waveFrequency + this.wavePhase) * this.waveAmplitude;
-                        });
-                    }
-                    
-                    if (currentGroup.position.z < despawnZ) {
-                        this.reset();
-                    }
-                }
-            }
-            
-            // Simplified classes for Protein, Antibody, Virus to include digitization
-            class BioObject {
-                constructor(scene, createGroupFn, scale, boundingRadius, speedRange) {
-                    this.scene = scene;
-                    this.group = createGroupFn();
-                    this.group.scale.set(scale, scale, scale);
-                    this.boundingSphere = new THREE.Sphere(new THREE.Vector3(), boundingRadius * scale);
-                    
-                    this.digitizedGroup = createDigitizedVersion(this.boundingSphere);
-                    this.digitizedGroup.scale.set(scale, scale, scale);
-                    
-                    this.velocity = new THREE.Vector3();
-                    this.speedRange = speedRange;
-
-                    this.scene.add(this.group);
-                    this.scene.add(this.digitizedGroup);
-                    this.reset();
-                }
-
-                reset() {
-                    this.group.position.set( (Math.random() - 0.5) * spawnBox.x, (Math.random() - 0.5) * spawnBox.y, spawnZ - (Math.random() * spawnBox.z) );
-                    this.group.rotation.set( Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI * 2 );
-                    const speed = this.speedRange[0] + Math.random() * (this.speedRange[1] - this.speedRange[0]);
-                    const trajectory = new THREE.Vector3( (Math.random() - 0.5), (Math.random() - 0.5), -1 ).normalize();
-                    this.velocity.copy(trajectory).multiplyScalar(speed);
-                    this.isDigitized = Math.random() < 0.1;
-                }
-
-                update(time) {
-                    this.group.visible = !this.isDigitized;
-                    this.digitizedGroup.visible = this.isDigitized;
-
-                    const currentGroup = this.isDigitized ? this.digitizedGroup : this.group;
-                    currentGroup.position.add(this.velocity);
-                    currentGroup.rotation.y += this.velocity.z;
-
-                    this.boundingSphere.center.copy(currentGroup.position);
-                    
-                    if (currentGroup.position.z < despawnZ) {
-                        this.reset();
-                    }
-                }
-            }
 
             // --- Object Creation Functions ---
             const createProteinGroup = () => {
@@ -454,16 +377,19 @@
             const createAntibodyGroup = () => {
                  const group = new THREE.Group();
                  const material = new THREE.MeshStandardMaterial({color: 0x75e2d3, roughness: 0.4});
-                 const geom = new THREE.CylinderGeometry(0.08, 0.08, 1.2, 8);
-                 const stem = new THREE.Mesh(geom, material);
-                 stem.position.y = -0.5;
-                 const arm1 = new THREE.Mesh(geom, material);
-                 arm1.position.set(-0.3, 0.4, 0);
-                 arm1.rotation.z = Math.PI / 4;
-                 const arm2 = new THREE.Mesh(geom, material);
-                 arm2.position.set(0.3, 0.4, 0);
-                 arm2.rotation.z = -Math.PI / 4;
-                 group.add(stem, arm1, arm2);
+                 const sphereGeom = new THREE.SphereGeometry(0.12, 8, 8);
+                 for(let i=0; i<8; i++) {
+                     const sphere = new THREE.Mesh(sphereGeom, material);
+                     sphere.position.y = -i * 0.15;
+                     group.add(sphere);
+                 }
+                 for(let i=1; i<6; i++) {
+                     const sphere1 = new THREE.Mesh(sphereGeom, material);
+                     const sphere2 = new THREE.Mesh(sphereGeom, material);
+                     sphere1.position.set(-i * 0.1, i * 0.1, 0);
+                     sphere2.position.set(i * 0.1, i * 0.1, 0);
+                     group.add(sphere1, sphere2);
+                 }
                  return group;
             };
 
@@ -486,25 +412,340 @@
                 return group;
             };
 
-            for (let i = 0; i < 35; i++) animatedObjects.push(new Helix(scene));
-            for (let i = 0; i < 35; i++) animatedObjects.push(new BioObject(scene, createProteinGroup, baseScale, 1.5, [0.01, 0.02]));
-            for (let i = 0; i < 20; i++) animatedObjects.push(new BioObject(scene, createAntibodyGroup, baseScale, 1.2, [0.012, 0.022]));
-            for (let i = 0; i < 8; i++) animatedObjects.push(new BioObject(scene, createVirusGroup, baseScale * 0.5, 1.0, [0.01, 0.015]));
+            // --- BioObject Base Class ---
+            class BioObject {
+                constructor(scene, createGroupFn, scale, boundingRadius, speedRange) {
+                    this.scene = scene;
+                    this.isOccluded = false;
+                    this.group = createGroupFn();
+                    this.group.scale.set(scale, scale, scale);
+                    this.boundingSphere = new THREE.Sphere(new THREE.Vector3(), boundingRadius * scale);
+                    
+                    this.digitizedGroup = createDigitizedVersion(this.boundingSphere);
+                    this.digitizedGroup.scale.set(scale, scale, scale);
+                    
+                    this.velocity = new THREE.Vector3();
+                    this.speedRange = speedRange;
+                    this.isAttached = false; 
+
+                    this.scene.add(this.group);
+                    this.scene.add(this.digitizedGroup);
+                    this.reset();
+                }
+
+                reset() {
+                    this.isOccluded = false;
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = spawnRadius * Math.sqrt(Math.random());
+                    this.group.position.set( Math.cos(angle) * radius, Math.sin(angle) * radius, spawnZ );
+                    this.group.rotation.set( Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI * 2 );
+                    
+                    const speed = this.speedRange[0] + Math.random() * (this.speedRange[1] - this.speedRange[0]);
+                    const trajectory = new THREE.Vector3(
+                        (Math.random() - 0.5) * 2, 
+                        (Math.random() - 0.5) * 2, 
+                        -(0.5 + Math.random() * 0.5)
+                    ).normalize();
+                    this.velocity.copy(trajectory).multiplyScalar(speed);
+                    this.isDigitized = Math.random() < 0.1;
+                }
+
+                update(time) {
+                    if (this.isOccluded) {
+                        this.reset();
+                        return;
+                    }
+                    this.group.visible = !this.isDigitized;
+                    this.digitizedGroup.visible = this.isDigitized;
+
+                    const currentGroup = this.isDigitized ? this.digitizedGroup : this.group;
+                    currentGroup.position.add(this.velocity);
+                    currentGroup.rotation.y += this.velocity.z;
+
+                    this.boundingSphere.center.copy(currentGroup.position);
+                    
+                    if (this.group.position.length() > despawnDistance) {
+                        this.reset();
+                    }
+                }
+            }
+            
+            class Helix extends BioObject {
+                constructor(scene) {
+                    // This function is passed to the super constructor. It cannot use `this`.
+                    const createHelixGroup = () => {
+                        const group = new THREE.Group();
+                        this.length = 20 + Math.floor(Math.random() * 20);
+                        this.isRNA = Math.random() > 0.5;
+                        this.segments = [];
+                        const baseColors = {
+                            'A': new THREE.MeshStandardMaterial({ color: 0xff6363, roughness: 0.5 }),
+                            'T': new THREE.MeshStandardMaterial({ color: 0x63aeff, roughness: 0.5 }),
+                            'U': new THREE.MeshStandardMaterial({ color: 0xbf63ff, roughness: 0.5 }),
+                            'G': new THREE.MeshStandardMaterial({ color: 0x63ff84, roughness: 0.5 }),
+                            'C': new THREE.MeshStandardMaterial({ color: 0xf6ff63, roughness: 0.5 }),
+                        };
+                        const rungMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.8 });
+                        const baseGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                        const rungGeom = new THREE.CylinderGeometry(0.02, 0.02, 1, 6);
+                        for (let i = 0; i < this.length; i++) {
+                            const segmentGroup = new THREE.Group();
+                            const angle = (i / 10) * Math.PI * 2;
+                            const purines = ['A', 'G'];
+                            const base1Type = purines[Math.floor(Math.random() * purines.length)];
+                            let base2Type = (base1Type === 'A') ? (this.isRNA ? 'U' : 'T') : 'C';
+                            const base1 = new THREE.Mesh(baseGeometry, baseColors[base1Type]);
+                            const base2 = new THREE.Mesh(baseGeometry, baseColors[base2Type]);
+                            base1.position.x = 0.5;
+                            base2.position.x = -0.5;
+                            const rung = new THREE.Mesh(rungGeom, rungMaterial);
+                            rung.rotation.z = Math.PI / 2;
+                            segmentGroup.add(base1, base2, rung);
+                            segmentGroup.rotation.y = angle;
+                            segmentGroup.position.y = (i - this.length / 2) * 0.34;
+                            this.segments.push(segmentGroup);
+                            group.add(segmentGroup);
+                        }
+                        return group;
+                    };
+
+                    // Call super with the function, but the properties it needs are defined on `this` inside of it.
+                    // This is the source of the error. We must refactor.
+                    
+                    // Define properties needed for group creation as local variables FIRST.
+                    const length = 20 + Math.floor(Math.random() * 20);
+                    const isRNA = Math.random() > 0.5;
+                    const segments = [];
+
+                    // Now define the creator function, but have it use the local variables.
+                    const createGroupFn = () => {
+                        const group = new THREE.Group();
+                         const baseColors = {
+                            'A': new THREE.MeshStandardMaterial({ color: 0xff6363, roughness: 0.5 }),
+                            'T': new THREE.MeshStandardMaterial({ color: 0x63aeff, roughness: 0.5 }),
+                            'U': new THREE.MeshStandardMaterial({ color: 0xbf63ff, roughness: 0.5 }),
+                            'G': new THREE.MeshStandardMaterial({ color: 0x63ff84, roughness: 0.5 }),
+                            'C': new THREE.MeshStandardMaterial({ color: 0xf6ff63, roughness: 0.5 }),
+                        };
+                        const rungMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.8 });
+                        const baseGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                        const rungGeom = new THREE.CylinderGeometry(0.02, 0.02, 1, 6);
+                        for (let i = 0; i < length; i++) {
+                            const segmentGroup = new THREE.Group();
+                            const angle = (i / 10) * Math.PI * 2;
+                            const purines = ['A', 'G'];
+                            const base1Type = purines[Math.floor(Math.random() * purines.length)];
+                            let base2Type = (base1Type === 'A') ? (isRNA ? 'U' : 'T') : 'C';
+                            const base1 = new THREE.Mesh(baseGeometry, baseColors[base1Type]);
+                            const base2 = new THREE.Mesh(baseGeometry, baseColors[base2Type]);
+                            base1.position.x = 0.5;
+                            base2.position.x = -0.5;
+                            const rung = new THREE.Mesh(rungGeom, rungMaterial);
+                            rung.rotation.z = Math.PI / 2;
+                            segmentGroup.add(base1, base2, rung);
+                            segmentGroup.rotation.y = angle;
+                            segmentGroup.position.y = (i - length / 2) * 0.34;
+                            segments.push(segmentGroup);
+                            group.add(segmentGroup);
+                        }
+                        return group;
+                    };
+
+
+                    super(scene, createGroupFn, baseScale, length * 0.34 * baseScale / 2, [0.008, 0.015]);
+
+                    // Now that super() is done, we can safely assign properties to `this`.
+                    this.length = length;
+                    this.isRNA = isRNA;
+                    this.segments = segments;
+                    this.wavePhase = Math.random() * Math.PI * 2;
+                    this.waveAmplitude = 0.3 + Math.random() * 0.7;
+                    this.waveFrequency = 0.1 + Math.random() * 0.1;
+                }
+                
+                reset() {
+                    super.reset();
+                    this.wavePhase = Math.random() * Math.PI * 2;
+                }
+
+                update(time) {
+                    if (this.isOccluded) {
+                        this.reset();
+                        return;
+                    }
+                    if (!this.isDigitized) {
+                        this.group.rotation.y += this.velocity.z * 0.5;
+                        this.group.rotation.x += this.velocity.z * 0.25;
+                        this.segments.forEach((segment, i) => {
+                            segment.position.x = Math.sin(time * 0.5 + i * this.waveFrequency + this.wavePhase) * this.waveAmplitude;
+                        });
+                    }
+                    super.update(time); // Handles movement, visibility, despawn
+                }
+            }
+            
+            class Protein extends BioObject {
+                constructor(scene) {
+                    super(scene, createProteinGroup, baseScale, 1.5, [0.005, 0.01]);
+                    this.isBound = false;
+                }
+                 reset() {
+                    super.reset();
+                    this.isBound = false;
+                     animatedObjects.forEach(obj => {
+                        if(obj instanceof Antibody && obj.attachedTo === this) obj.reset();
+                    });
+                }
+            }
+
+            class Antibody extends BioObject {
+                 constructor(scene) {
+                    super(scene, createAntibodyGroup, baseScale, 1.2, [0.006, 0.011]);
+                    this.attachedTo = null;
+                    this.attachmentOffset = null;
+                 }
+                 reset() {
+                    super.reset();
+                    if(this.attachedTo) this.attachedTo.isBound = false;
+                    this.isAttached = false;
+                    this.attachedTo = null;
+                    this.attachmentOffset = null;
+                 }
+                update(time) {
+                    if (this.isAttached && this.attachedTo) {
+                        if (this.isOccluded) {
+                            this.reset();
+                            return;
+                        }
+                        if (this.attachedTo.isDigitized || this.isDigitized) { 
+                            this.reset();
+                            return;
+                        }
+                        this.group.position.copy(this.attachedTo.group.position).add(this.attachmentOffset);
+                        this.group.rotation.copy(this.attachedTo.group.rotation);
+                        this.boundingSphere.center.copy(this.group.position);
+                         if (this.group.position.length() > despawnDistance) {
+                            this.reset();
+                        }
+                    } else {
+                       super.update(time);
+                    }
+                }
+            }
+
+            class Virus extends BioObject {
+                 constructor(scene) {
+                    super(scene, createVirusGroup, baseScale * 0.5, 1.0, [0.005, 0.008]);
+                    this.isBound = false;
+                 }
+                  reset() {
+                    super.reset();
+                    this.isBound = false;
+                     animatedObjects.forEach(obj => {
+                        if(obj instanceof Antibody && obj.attachedTo === this) obj.reset();
+                    });
+                }
+            }
+
+            const allProteins = [];
+            const allAntibodies = [];
+            const allViruses = [];
+
+            for (let i = 0; i < 15; i++) animatedObjects.push(new Helix(scene));
+            for (let i = 0; i < 15; i++) {
+                const p = new Protein(scene);
+                animatedObjects.push(p);
+                allProteins.push(p);
+            }
+            for (let i = 0; i < 10; i++) {
+                const a = new Antibody(scene);
+                animatedObjects.push(a);
+                allAntibodies.push(a);
+            }
+            for (let i = 0; i < 4; i++) {
+                const v = new Virus(scene);
+                animatedObjects.push(v);
+                allViruses.push(v);
+            }
             
             const clock = new THREE.Clock();
+            let frameCount = 0;
             const animate = () => {
                 requestAnimationFrame(animate);
                 const elapsedTime = clock.getElapsedTime();
+                frameCount++;
                 
+                // --- Occlusion Culling (run every 6 frames) ---
+                if (frameCount % 6 === 0) {
+                    for (let i = 0; i < animatedObjects.length; i++) {
+                        const obj1 = animatedObjects[i];
+                        if (!obj1 || !obj1.boundingSphere) continue;
+                        obj1.isOccluded = false; 
+
+                        if (obj1.isAttached) continue; 
+
+                        const dist1 = camera.position.distanceTo(obj1.boundingSphere.center);
+
+                        for (let j = 0; j < animatedObjects.length; j++) {
+                            if (i === j) continue;
+                            const obj2 = animatedObjects[j];
+                            if (!obj2 || !obj2.boundingSphere) continue;
+
+                            const dist2 = camera.position.distanceTo(obj2.boundingSphere.center);
+                            if (dist2 >= dist1) continue; 
+
+                            const vecTo1 = obj1.boundingSphere.center.clone().sub(camera.position);
+                            const vecTo2 = obj2.boundingSphere.center.clone().sub(camera.position);
+
+                            const angleBetween = vecTo1.angleTo(vecTo2);
+                            const angularRadius2 = Math.atan(obj2.boundingSphere.radius / dist2);
+
+                            if (angularRadius2 > angleBetween) {
+                                const angularRadius1 = Math.atan(obj1.boundingSphere.radius / dist1);
+                                if (angularRadius2 > angleBetween + angularRadius1) {
+                                    obj1.isOccluded = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // --- Interaction Logic ---
+                allAntibodies.forEach(antibody => {
+                    if(antibody.isAttached || antibody.isDigitized) return;
+                    
+                    const targets = [...allViruses, ...allProteins];
+
+                    for(const target of targets) {
+                         if(target.isBound || target.isDigitized) continue;
+                        const distance = antibody.boundingSphere.center.distanceTo(target.boundingSphere.center);
+                        if(distance < antibody.boundingSphere.radius + target.boundingSphere.radius) {
+                            antibody.isAttached = true;
+                            antibody.attachedTo = target;
+                            target.isBound = true;
+                            const offset = new THREE.Vector3().subVectors(antibody.group.position, target.group.position);
+                            antibody.attachmentOffset = offset;
+                            return; 
+                        }
+                    }
+                });
+
+                // --- General Collision ---
                 for(let i = 0; i < animatedObjects.length; i++) {
                     for(let j = i + 1; j < animatedObjects.length; j++) {
                         const obj1 = animatedObjects[i];
                         const obj2 = animatedObjects[j];
+                        if (!obj1 || !obj2) continue;
+
                         if(obj1.boundingSphere.intersectsSphere(obj2.boundingSphere)) {
-                            const normal = new THREE.Vector3().subVectors(obj1.group.position, obj2.group.position).normalize();
+                            const normal = new THREE.Vector3().subVectors(
+                                obj1.boundingSphere.center, 
+                                obj2.boundingSphere.center
+                            ).normalize();
                             const pushStrength = 0.002;
-                            obj1.group.position.add(normal.clone().multiplyScalar(pushStrength));
-                            obj2.group.position.add(normal.clone().multiplyScalar(-pushStrength));
+                            if (!obj1.isAttached) obj1.group.position.add(normal.clone().multiplyScalar(pushStrength));
+                            if (!obj2.isAttached) obj2.group.position.add(normal.clone().multiplyScalar(-pushStrength));
                         }
                     }
                 }
