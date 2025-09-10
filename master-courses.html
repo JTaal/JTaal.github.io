@@ -39,11 +39,22 @@
         .course-card-container.is-expanded .course-title {
             -webkit-line-clamp: initial;
         }
+        #header-container {
+            background: #111827;
+        }
+        .header-overlay {
+            background-color: rgba(0, 0, 0, 0.15);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+        }
+        html.dark .header-overlay {
+             background-color: rgba(0, 0, 0, 0.4);
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
     <!-- Dark Mode Toggle -->
-    <div class="absolute top-4 right-4 z-10">
+    <div class="absolute top-4 right-4 z-20">
         <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
             <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
             <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
@@ -51,16 +62,20 @@
     </div>
 
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-
-        <!-- Header Section -->
-        <header class="text-center mb-12">
-            <div class="mb-6">
-                 <img src="https://huisstijl.universiteitleiden.nl/images/elements/Logo-UniversiteitLeiden-blue-RGB.png" alt="Leiden University Logo" class="h-20 mx-auto dark:hidden">
-                 <img src="https://huisstijl.universiteitleiden.nl/images/elements/Logo-UniversiteitLeiden-white-RGB.png" alt="Leiden University Logo" class="h-20 mx-auto hidden dark:block">
+        
+        <!-- Header Section with 3D Background -->
+        <div id="header-container" class="relative rounded-xl overflow-hidden mb-12 shadow-2xl">
+            <canvas id="bio-viewer-canvas" class="absolute top-0 left-0 w-full h-full z-0"></canvas>
+            <div class="header-overlay relative z-10 p-8 md:p-12">
+                <header class="text-center">
+                    <div class="mb-6">
+                         <img src="https://huisstijl.universiteitleiden.nl/images/elements/Logo-UniversiteitLeiden-white-RGB.png" alt="Leiden University Logo" class="h-20 mx-auto">
+                    </div>
+                    <h1 class="text-4xl sm:text-5xl font-bold text-white">Academic Portfolio</h1>
+                    <p class="mt-2 text-lg text-gray-200">Courses followed at Leiden University</p>
+                </header>
             </div>
-            <h1 class="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white">Academic Portfolio</h1>
-            <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">Courses followed at Leiden University</p>
-        </header>
+        </div>
 
         <!-- Master Courses Section -->
         <section id="master-courses">
@@ -79,7 +94,8 @@
         </section>
 
     </div>
-
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // --- DATA ---
         const courses = [
@@ -109,7 +125,7 @@
             { level: 'Bachelor', code: 'INF 4031DABA6T', name: 'Databases 6 EC TEN', ec: 6 }, 
             { level: 'Bachelor', code: 'INF 4031DABA6Y', name: 'Databases 6 EC', ec: 6 },
             { level: 'Bachelor', code: 'SCIENCE 4031ALGDSY', name: 'Algorithms and Data Structures', ec: 6 },
-            { level: 'Bachelor', code: 'INF 4031LACS2T', name: 'Linear Algebra for Computer Science 2 - T', ec: 6 }, 
+            { level: 'Bachelor', 'code': 'INF 4031LACS2T', name: 'Linear Algebra for Computer Science 2 - T', ec: 6 }, 
             { level: 'Bachelor', code: 'INF 4031LACS2Y', name: 'Linear Algebra for Computer Science 2', ec: 6 },
         ];
 
@@ -122,27 +138,18 @@
         const htmlEl = document.documentElement;
 
         // --- DARK MODE LOGIC ---
-        // On page load, set the theme based on localStorage or system preference
         if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             htmlEl.classList.add('dark');
-            lightIcon.classList.remove('hidden'); // Show the sun icon
+            lightIcon.classList.remove('hidden');
         } else {
             htmlEl.classList.remove('dark');
-            darkIcon.classList.remove('hidden'); // Show the moon icon
+            darkIcon.classList.remove('hidden');
         }
 
-        // Add the click event listener for the toggle button
         themeToggleButton.addEventListener('click', function() {
-            // Toggle the 'dark' class on the <html> element
             htmlEl.classList.toggle('dark');
-
-            // Check if 'dark' class is now present
             const isDarkMode = htmlEl.classList.contains('dark');
-
-            // Update localStorage with the new theme preference
             localStorage.setItem('color-theme', isDarkMode ? 'dark' : 'light');
-
-            // Toggle the visibility of the sun/moon icons
             darkIcon.classList.toggle('hidden');
             lightIcon.classList.toggle('hidden');
         });
@@ -191,11 +198,9 @@
             `;
             
             container.appendChild(card);
-
             const clickableArea = card.querySelector('.course-card-clickable');
             const learningGoals = card.querySelector('.learning-goals');
             const icon = card.querySelector('.toggle-icon');
-
             clickableArea.addEventListener('click', () => {
                 container.classList.toggle('is-expanded');
                 if (learningGoals.style.maxHeight) {
@@ -206,7 +211,6 @@
                     icon.classList.add('rotate-45');
                 }
             });
-
             return container;
         };
 
@@ -230,6 +234,297 @@
                 bachelorGrid.appendChild(card);
             }
         });
+
+        // --- 3D Background Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('header-container');
+            if (!container) return;
+
+            const canvas = document.getElementById('bio-viewer-canvas');
+            if (!canvas) return;
+            
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 8; 
+
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 7.5);
+            scene.add(directionalLight);
+
+            const animatedObjects = [];
+            const spawnZ = 8;
+            const despawnZ = -40;
+            const spawnBox = {x: 4, y: 4, z: 2};
+            const baseScale = 0.5;
+
+            // --- Helper for Digitized Version ---
+            const makeTextSprite = (message, parameters) => {
+                const fontface = parameters.fontface || 'monospace';
+                const fontsize = 32;
+                const sprite = new THREE.Sprite(
+                    new THREE.SpriteMaterial({
+                        color: 0x00ff00,
+                        blending: THREE.AdditiveBlending
+                    })
+                );
+                // Can't render text in this environment, so we just use green blocks
+                return sprite;
+            };
+
+            const createDigitizedVersion = (boundingSphere) => {
+                const group = new THREE.Group();
+                const count = 30; // Number of 0s and 1s
+                for (let i = 0; i < count; i++) {
+                    const sprite = makeTextSprite(Math.random() > 0.5 ? '1' : '0', {});
+                    sprite.position.set(
+                        (Math.random() - 0.5) * boundingSphere.radius * 2,
+                        (Math.random() - 0.5) * boundingSphere.radius * 2,
+                        (Math.random() - 0.5) * boundingSphere.radius * 2
+                    );
+                    sprite.scale.set(0.2, 0.2, 0.2);
+                    group.add(sprite);
+                }
+                return group;
+            };
+
+
+            class Helix {
+                constructor(scene) {
+                    this.scene = scene;
+                    this.length = 20 + Math.floor(Math.random() * 20);
+                    this.isRNA = Math.random() > 0.5;
+                    this.group = new THREE.Group();
+                    this.segments = [];
+
+                    const baseColors = {
+                        'A': new THREE.MeshStandardMaterial({ color: 0xff6363, roughness: 0.5 }),
+                        'T': new THREE.MeshStandardMaterial({ color: 0x63aeff, roughness: 0.5 }),
+                        'U': new THREE.MeshStandardMaterial({ color: 0xbf63ff, roughness: 0.5 }),
+                        'G': new THREE.MeshStandardMaterial({ color: 0x63ff84, roughness: 0.5 }),
+                        'C': new THREE.MeshStandardMaterial({ color: 0xf6ff63, roughness: 0.5 }),
+                    };
+                    const rungMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.8 });
+                    const baseGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                    const rungGeom = new THREE.CylinderGeometry(0.02, 0.02, 1, 6);
+
+                    for (let i = 0; i < this.length; i++) {
+                        const segmentGroup = new THREE.Group();
+                        const angle = (i / 10) * Math.PI * 2;
+                        const purines = ['A', 'G'];
+                        const base1Type = purines[Math.floor(Math.random() * purines.length)];
+                        let base2Type = (base1Type === 'A') ? (this.isRNA ? 'U' : 'T') : 'C';
+
+                        const base1 = new THREE.Mesh(baseGeometry, baseColors[base1Type]);
+                        const base2 = new THREE.Mesh(baseGeometry, baseColors[base2Type]);
+                        base1.position.x = 0.5;
+                        base2.position.x = -0.5;
+
+                        const rung = new THREE.Mesh(rungGeom, rungMaterial);
+                        rung.rotation.z = Math.PI / 2;
+                        
+                        segmentGroup.add(base1, base2, rung);
+                        segmentGroup.rotation.y = angle;
+                        segmentGroup.position.y = (i - this.length / 2) * 0.34;
+                        this.segments.push(segmentGroup);
+                        this.group.add(segmentGroup);
+                    }
+                    
+                    this.group.scale.set(baseScale, baseScale, baseScale);
+                    this.boundingSphere = new THREE.Sphere(new THREE.Vector3(), this.length * 0.34 * baseScale / 2);
+
+                    this.digitizedGroup = createDigitizedVersion(this.boundingSphere);
+                    this.digitizedGroup.scale.set(baseScale, baseScale, baseScale);
+
+                    this.wavePhase = Math.random() * Math.PI * 2;
+                    this.waveAmplitude = 0.3 + Math.random() * 0.7;
+                    this.waveFrequency = 0.1 + Math.random() * 0.1;
+                    this.velocity = new THREE.Vector3();
+
+                    this.scene.add(this.group);
+                    this.scene.add(this.digitizedGroup);
+                    this.reset();
+                }
+                
+                reset() {
+                    this.group.position.set( (Math.random() - 0.5) * spawnBox.x, (Math.random() - 0.5) * spawnBox.y, spawnZ - (Math.random() * spawnBox.z) );
+                    this.group.rotation.set( Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI * 2 );
+                    this.wavePhase = Math.random() * Math.PI * 2;
+                    
+                    const speed = 0.015 + Math.random() * 0.01;
+                    const trajectory = new THREE.Vector3( (Math.random() - 0.5), (Math.random() - 0.5), -1 ).normalize();
+                    this.velocity.copy(trajectory).multiplyScalar(speed);
+
+                    this.isDigitized = Math.random() < 0.1; // 10% chance to be digitized
+                }
+
+                update(time) {
+                    this.group.visible = !this.isDigitized;
+                    this.digitizedGroup.visible = this.isDigitized;
+
+                    const currentGroup = this.isDigitized ? this.digitizedGroup : this.group;
+                    
+                    currentGroup.position.add(this.velocity);
+                    this.boundingSphere.center.copy(currentGroup.position);
+
+                    if (this.isDigitized) {
+                        this.digitizedGroup.rotation.y += 0.01;
+                        this.digitizedGroup.children.forEach(sprite => {
+                           sprite.material.rotation += 0.05;
+                           sprite.position.y += Math.sin(time * 2 + sprite.position.x) * 0.005;
+                        });
+                    } else {
+                        this.group.rotation.y += this.velocity.z * 0.5;
+                        this.group.rotation.x += this.velocity.z * 0.25;
+                        this.segments.forEach((segment, i) => {
+                            segment.position.x = Math.sin(time * 0.5 + i * this.waveFrequency + this.wavePhase) * this.waveAmplitude;
+                        });
+                    }
+                    
+                    if (currentGroup.position.z < despawnZ) {
+                        this.reset();
+                    }
+                }
+            }
+            
+            // Simplified classes for Protein, Antibody, Virus to include digitization
+            class BioObject {
+                constructor(scene, createGroupFn, scale, boundingRadius, speedRange) {
+                    this.scene = scene;
+                    this.group = createGroupFn();
+                    this.group.scale.set(scale, scale, scale);
+                    this.boundingSphere = new THREE.Sphere(new THREE.Vector3(), boundingRadius * scale);
+                    
+                    this.digitizedGroup = createDigitizedVersion(this.boundingSphere);
+                    this.digitizedGroup.scale.set(scale, scale, scale);
+                    
+                    this.velocity = new THREE.Vector3();
+                    this.speedRange = speedRange;
+
+                    this.scene.add(this.group);
+                    this.scene.add(this.digitizedGroup);
+                    this.reset();
+                }
+
+                reset() {
+                    this.group.position.set( (Math.random() - 0.5) * spawnBox.x, (Math.random() - 0.5) * spawnBox.y, spawnZ - (Math.random() * spawnBox.z) );
+                    this.group.rotation.set( Math.random() * Math.PI * 2, Math.random() * Math.PI * 2, Math.random() * Math.PI * 2 );
+                    const speed = this.speedRange[0] + Math.random() * (this.speedRange[1] - this.speedRange[0]);
+                    const trajectory = new THREE.Vector3( (Math.random() - 0.5), (Math.random() - 0.5), -1 ).normalize();
+                    this.velocity.copy(trajectory).multiplyScalar(speed);
+                    this.isDigitized = Math.random() < 0.1;
+                }
+
+                update(time) {
+                    this.group.visible = !this.isDigitized;
+                    this.digitizedGroup.visible = this.isDigitized;
+
+                    const currentGroup = this.isDigitized ? this.digitizedGroup : this.group;
+                    currentGroup.position.add(this.velocity);
+                    currentGroup.rotation.y += this.velocity.z;
+
+                    this.boundingSphere.center.copy(currentGroup.position);
+                    
+                    if (currentGroup.position.z < despawnZ) {
+                        this.reset();
+                    }
+                }
+            }
+
+            // --- Object Creation Functions ---
+            const createProteinGroup = () => {
+                const group = new THREE.Group();
+                const material = new THREE.MeshStandardMaterial({color: 0x9d80e2, roughness: 0.6});
+                const geom = new THREE.SphereGeometry(0.15, 8, 8);
+                let currentPos = new THREE.Vector3();
+                for(let i = 0; i < 30; i++) {
+                    const mesh = new THREE.Mesh(geom, material);
+                    mesh.position.copy(currentPos);
+                    group.add(mesh);
+                    currentPos.add(new THREE.Vector3( (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5 ));
+                }
+                return group;
+            };
+
+            const createAntibodyGroup = () => {
+                 const group = new THREE.Group();
+                 const material = new THREE.MeshStandardMaterial({color: 0x75e2d3, roughness: 0.4});
+                 const geom = new THREE.CylinderGeometry(0.08, 0.08, 1.2, 8);
+                 const stem = new THREE.Mesh(geom, material);
+                 stem.position.y = -0.5;
+                 const arm1 = new THREE.Mesh(geom, material);
+                 arm1.position.set(-0.3, 0.4, 0);
+                 arm1.rotation.z = Math.PI / 4;
+                 const arm2 = new THREE.Mesh(geom, material);
+                 arm2.position.set(0.3, 0.4, 0);
+                 arm2.rotation.z = -Math.PI / 4;
+                 group.add(stem, arm1, arm2);
+                 return group;
+            };
+
+            const createVirusGroup = () => {
+                const group = new THREE.Group();
+                const bodyMat = new THREE.MeshStandardMaterial({color: 0xff8c61, roughness: 0.7});
+                const spikeMat = new THREE.MeshStandardMaterial({color: 0xff5733, roughness: 0.5});
+                const bodyGeom = new THREE.IcosahedronGeometry(0.8, 0);
+                const body = new THREE.Mesh(bodyGeom, bodyMat);
+                group.add(body);
+                const spikeGeom = new THREE.SphereGeometry(0.1, 6, 6);
+                const positions = bodyGeom.attributes.position;
+                const vertex = new THREE.Vector3();
+                for (let i = 0; i < positions.count; i++){
+                    vertex.fromBufferAttribute(positions, i);
+                    const spike = new THREE.Mesh(spikeGeom, spikeMat);
+                    spike.position.copy(vertex);
+                    group.add(spike);
+                }
+                return group;
+            };
+
+            for (let i = 0; i < 35; i++) animatedObjects.push(new Helix(scene));
+            for (let i = 0; i < 35; i++) animatedObjects.push(new BioObject(scene, createProteinGroup, baseScale, 1.5, [0.01, 0.02]));
+            for (let i = 0; i < 20; i++) animatedObjects.push(new BioObject(scene, createAntibodyGroup, baseScale, 1.2, [0.012, 0.022]));
+            for (let i = 0; i < 8; i++) animatedObjects.push(new BioObject(scene, createVirusGroup, baseScale * 0.5, 1.0, [0.01, 0.015]));
+            
+            const clock = new THREE.Clock();
+            const animate = () => {
+                requestAnimationFrame(animate);
+                const elapsedTime = clock.getElapsedTime();
+                
+                for(let i = 0; i < animatedObjects.length; i++) {
+                    for(let j = i + 1; j < animatedObjects.length; j++) {
+                        const obj1 = animatedObjects[i];
+                        const obj2 = animatedObjects[j];
+                        if(obj1.boundingSphere.intersectsSphere(obj2.boundingSphere)) {
+                            const normal = new THREE.Vector3().subVectors(obj1.group.position, obj2.group.position).normalize();
+                            const pushStrength = 0.002;
+                            obj1.group.position.add(normal.clone().multiplyScalar(pushStrength));
+                            obj2.group.position.add(normal.clone().multiplyScalar(-pushStrength));
+                        }
+                    }
+                }
+                
+                animatedObjects.forEach(item => item.update(elapsedTime));
+                renderer.render(scene, camera);
+            };
+            animate();
+
+            const onResize = () => {
+                if(container.clientWidth > 0 && container.clientHeight > 0) {
+                    camera.aspect = container.clientWidth / container.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                }
+            };
+            window.addEventListener('resize', onResize, false);
+            onResize(); 
+        });
+
     </script>
 </body>
 </html>
