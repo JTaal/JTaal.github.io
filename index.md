@@ -228,7 +228,23 @@ window.addEventListener('resize', resizeCanvas, false);
 resizeCanvas();
 
 const bases = ["A","T","C","G"];
-const colors = { A: "#ef4444", T: "#3b82f6", C: "#f59e0b", G: "#8b5cf6" };
+
+const dnaColorThemes = {
+    classic: { A: "#ef4444", T: "#3b82f6", C: "#f59e0b", G: "#8b5cf6" },
+    synthwave: { A: "#ff00cc", T: "#00c6ff", C: "#f8b500", G: "#76ff03" },
+    forest: { A: "#65a30d", T: "#16a34a", C: "#f59e0b", G: "#78350f" },
+    pastel: { A: "#fecaca", T: "#bfdbfe", C: "#fed7aa", G: "#d8b4fe" },
+    monochrome: { A: "#f3f4f6", T: "#9ca3af", C: "#6b7280", G: "#374151" }
+};
+
+// --- DNA COLOR THEMES (Uncomment one to activate) ---
+let colors = dnaColorThemes.classic;
+// let colors = dnaColorThemes.synthwave;
+// let colors = dnaColorThemes.forest;
+// let colors = dnaColorThemes.pastel;
+// let colors = dnaColorThemes.monochrome;
+
+
 const NUCLEOTIDE_SPACING = 5;
 let dnaSeq = "";
 let dnaIndex = 0;
