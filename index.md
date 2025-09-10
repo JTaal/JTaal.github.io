@@ -19,11 +19,11 @@ body {
 }
 #three-container {
     position: relative;
-    width: 100%;
+    width: 106%;
     height: 60vh;
     background-image: url('https://JTaal.github.io/assets/images/gif/diffraction_pattern_parachute_2560p_side_view_transparant.gif');
-    background-size: cover;
-    background-position: center;
+    background-size: 165%;
+    background-position: center 10%;
     overflow: hidden;
     color: white;
     display: flex;
@@ -39,8 +39,8 @@ body {
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    background: rgba(0,0,0,0.2);
-    backdrop-filter: blur(2px);
+    /* background: rgba(0,0,0,0.2); */
+    /* backdrop-filter: blur(2px); */
     border-radius: 1rem;
 }
 #logo-placeholder {
@@ -59,12 +59,73 @@ body {
     font-family: 'Orbitron', sans-serif;
     font-weight: 700;
     text-transform: uppercase;
-    background: linear-gradient(45deg, #ff8a00, #e52e71, #9c27b0);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 0 0 15px rgba(255, 107, 0, 0.5), 0 0 25px var(--skytales-pink);
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.3), 0 0 25px var(--skytales-pink);
     margin: 0;
+    
+    /* --- COLOR THEMES (Uncomment one to activate) --- */
+    
+    /* 1. Cool Blues (Active) */
+    background: linear-gradient(45deg, #00c6ff, #0072ff);
+    
+    /* 2. Fiery Gradient */
+    /* background: linear-gradient(45deg, #ff8a00, #e52e71, #9c27b0); */
+    
+    /* 3. Electric Green */
+    /* background: linear-gradient(45deg, #76ff03, #00e676); */
+    
+    /* 4. Sunset Orange */
+    /* background: linear-gradient(45deg, #ff9966, #ff5e62); */
+    
+    /* 5. Royal Purple */
+    /* background: linear-gradient(45deg, #8e2de2, #4a00e0); */
+    
+    /* 6. Golden Hour */
+    /* background: linear-gradient(45deg, #fceabb, #f8b500); */
+    
+    /* 7. Cosmic Plasma */
+    /* background: linear-gradient(45deg, #ff00cc, #333399); */
+    
+    /* 8. Minty Fresh */
+    /* background: linear-gradient(45deg, #43e97b, #38f9d7); */
+    
+    /* 9. Ruby Red */
+    /* background: linear-gradient(45deg, #d53369, #daae51); */
+    
+    /* 10. Ocean Deep */
+    /* background: linear-gradient(45deg, #2193b0, #6dd5ed); */
+    
+    /* 11. Lush Meadow */
+    /* background: linear-gradient(45deg, #00b09b, #96c93d); */
+    
+    /* 12. Amethyst Gem */
+    /* background: linear-gradient(45deg, #654ea3, #eaafc8); */
+    
+    /* 13. Warm Sand */
+    /* background: linear-gradient(45deg, #ffb199, #ff0844); */
+    
+    /* 14. Cyberpunk Neon */
+    /* background: linear-gradient(45deg, #f857a6, #ff5858); */
+    
+    /* 15. Soft Peach */
+    /* background: linear-gradient(45deg, #f8cdda, #1d2b64); */
+    
+    /* 16. Steel Gray */
+    /* background: linear-gradient(45deg, #bdc3c7, #2c3e50); */
+    
+    /* 17. Volcanic Ash */
+    /* background: linear-gradient(45deg, #ff512f, #dd2476); */
+    
+    /* 18. Spring Blossom */
+    /* background: linear-gradient(45deg, #f9a8d4, #f472b6); */
+    
+    /* 19. Deep Forest */
+    /* background: linear-gradient(45deg, #134e5e, #71b280); */
+    
+    /* 20. Arctic Dawn */
+    /* background: linear-gradient(45deg, #83a4d4, #b6fbff); */
 }
 @media (max-width: 768px) {
     #skytales-title {
