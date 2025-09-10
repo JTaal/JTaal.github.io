@@ -326,38 +326,8 @@
 
             const animatedObjects = [];
             const spawnZ = 9; 
-            const despawnDistance = 40; 
             const spawnRadius = 2;
             const baseScale = 0.5;
-
-            // --- Helper for Digitized Version ---
-            const makeTextSprite = (message, parameters) => {
-                const fontface = parameters.fontface || 'monospace';
-                const fontsize = 32;
-                const sprite = new THREE.Sprite(
-                    new THREE.SpriteMaterial({
-                        color: 0x00ff00,
-                        blending: THREE.AdditiveBlending
-                    })
-                );
-                return sprite;
-            };
-
-            const createDigitizedVersion = (boundingSphere) => {
-                const group = new THREE.Group();
-                const count = 30;
-                for (let i = 0; i < count; i++) {
-                    const sprite = makeTextSprite(Math.random() > 0.5 ? '1' : '0', {});
-                    sprite.position.set(
-                        (Math.random() - 0.5) * boundingSphere.radius * 2,
-                        (Math.random() - 0.5) * boundingSphere.radius * 2,
-                        (Math.random() - 0.5) * boundingSphere.radius * 2
-                    );
-                    sprite.scale.set(0.2, 0.2, 0.2);
-                    group.add(sprite);
-                }
-                return group;
-            };
 
             // --- Object Creation Functions ---
             const createProteinGroup = () => {
@@ -421,15 +391,11 @@
                     this.group.scale.set(scale, scale, scale);
                     this.boundingSphere = new THREE.Sphere(new THREE.Vector3(), boundingRadius * scale);
                     
-                    this.digitizedGroup = createDigitizedVersion(this.boundingSphere);
-                    this.digitizedGroup.scale.set(scale, scale, scale);
-                    
                     this.velocity = new THREE.Vector3();
                     this.speedRange = speedRange;
                     this.isAttached = false; 
 
                     this.scene.add(this.group);
-                    this.scene.add(this.digitizedGroup);
                     this.reset();
                 }
 
@@ -447,7 +413,6 @@
                         -(0.5 + Math.random() * 0.5)
                     ).normalize();
                     this.velocity.copy(trajectory).multiplyScalar(speed);
-                    this.isDigitized = Math.random() < 0.1;
                 }
 
                 update(time) {
@@ -455,72 +420,23 @@
                         this.reset();
                         return;
                     }
-                    this.group.visible = !this.isDigitized;
-                    this.digitizedGroup.visible = this.isDigitized;
-
-                    const currentGroup = this.isDigitized ? this.digitizedGroup : this.group;
-                    currentGroup.position.add(this.velocity);
-                    currentGroup.rotation.y += this.velocity.z;
-
-                    this.boundingSphere.center.copy(currentGroup.position);
                     
-                    if (this.group.position.length() > despawnDistance) {
-                        this.reset();
-                    }
+                    this.group.position.add(this.velocity);
+                    this.group.rotation.y += this.velocity.z;
+
+                    this.boundingSphere.center.copy(this.group.position);
                 }
             }
             
             class Helix extends BioObject {
                 constructor(scene) {
-                    // This function is passed to the super constructor. It cannot use `this`.
-                    const createHelixGroup = () => {
-                        const group = new THREE.Group();
-                        this.length = 20 + Math.floor(Math.random() * 20);
-                        this.isRNA = Math.random() > 0.5;
-                        this.segments = [];
-                        const baseColors = {
-                            'A': new THREE.MeshStandardMaterial({ color: 0xff6363, roughness: 0.5 }),
-                            'T': new THREE.MeshStandardMaterial({ color: 0x63aeff, roughness: 0.5 }),
-                            'U': new THREE.MeshStandardMaterial({ color: 0xbf63ff, roughness: 0.5 }),
-                            'G': new THREE.MeshStandardMaterial({ color: 0x63ff84, roughness: 0.5 }),
-                            'C': new THREE.MeshStandardMaterial({ color: 0xf6ff63, roughness: 0.5 }),
-                        };
-                        const rungMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.8 });
-                        const baseGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-                        const rungGeom = new THREE.CylinderGeometry(0.02, 0.02, 1, 6);
-                        for (let i = 0; i < this.length; i++) {
-                            const segmentGroup = new THREE.Group();
-                            const angle = (i / 10) * Math.PI * 2;
-                            const purines = ['A', 'G'];
-                            const base1Type = purines[Math.floor(Math.random() * purines.length)];
-                            let base2Type = (base1Type === 'A') ? (this.isRNA ? 'U' : 'T') : 'C';
-                            const base1 = new THREE.Mesh(baseGeometry, baseColors[base1Type]);
-                            const base2 = new THREE.Mesh(baseGeometry, baseColors[base2Type]);
-                            base1.position.x = 0.5;
-                            base2.position.x = -0.5;
-                            const rung = new THREE.Mesh(rungGeom, rungMaterial);
-                            rung.rotation.z = Math.PI / 2;
-                            segmentGroup.add(base1, base2, rung);
-                            segmentGroup.rotation.y = angle;
-                            segmentGroup.position.y = (i - this.length / 2) * 0.34;
-                            this.segments.push(segmentGroup);
-                            group.add(segmentGroup);
-                        }
-                        return group;
-                    };
-
-                    // Call super with the function, but the properties it needs are defined on `this` inside of it.
-                    // This is the source of the error. We must refactor.
-                    
-                    // Define properties needed for group creation as local variables FIRST.
                     const length = 20 + Math.floor(Math.random() * 20);
                     const isRNA = Math.random() > 0.5;
                     const segments = [];
 
-                    // Now define the creator function, but have it use the local variables.
                     const createGroupFn = () => {
                         const group = new THREE.Group();
-                         const baseColors = {
+                        const baseColors = {
                             'A': new THREE.MeshStandardMaterial({ color: 0xff6363, roughness: 0.5 }),
                             'T': new THREE.MeshStandardMaterial({ color: 0x63aeff, roughness: 0.5 }),
                             'U': new THREE.MeshStandardMaterial({ color: 0xbf63ff, roughness: 0.5 }),
@@ -551,10 +467,8 @@
                         return group;
                     };
 
-
                     super(scene, createGroupFn, baseScale, length * 0.34 * baseScale / 2, [0.008, 0.015]);
 
-                    // Now that super() is done, we can safely assign properties to `this`.
                     this.length = length;
                     this.isRNA = isRNA;
                     this.segments = segments;
@@ -573,14 +487,12 @@
                         this.reset();
                         return;
                     }
-                    if (!this.isDigitized) {
-                        this.group.rotation.y += this.velocity.z * 0.5;
-                        this.group.rotation.x += this.velocity.z * 0.25;
-                        this.segments.forEach((segment, i) => {
-                            segment.position.x = Math.sin(time * 0.5 + i * this.waveFrequency + this.wavePhase) * this.waveAmplitude;
-                        });
-                    }
-                    super.update(time); // Handles movement, visibility, despawn
+                    this.group.rotation.y += this.velocity.z * 0.5;
+                    this.group.rotation.x += this.velocity.z * 0.25;
+                    this.segments.forEach((segment, i) => {
+                        segment.position.x = Math.sin(time * 0.5 + i * this.waveFrequency + this.wavePhase) * this.waveAmplitude;
+                    });
+                    super.update(time);
                 }
             }
             
@@ -617,16 +529,9 @@
                             this.reset();
                             return;
                         }
-                        if (this.attachedTo.isDigitized || this.isDigitized) { 
-                            this.reset();
-                            return;
-                        }
                         this.group.position.copy(this.attachedTo.group.position).add(this.attachmentOffset);
                         this.group.rotation.copy(this.attachedTo.group.rotation);
                         this.boundingSphere.center.copy(this.group.position);
-                         if (this.group.position.length() > despawnDistance) {
-                            this.reset();
-                        }
                     } else {
                        super.update(time);
                     }
@@ -675,7 +580,6 @@
                 const elapsedTime = clock.getElapsedTime();
                 frameCount++;
                 
-                // --- Occlusion Culling (run every 6 frames) ---
                 if (frameCount % 6 === 0) {
                     for (let i = 0; i < animatedObjects.length; i++) {
                         const obj1 = animatedObjects[i];
@@ -711,14 +615,13 @@
                     }
                 }
                 
-                // --- Interaction Logic ---
                 allAntibodies.forEach(antibody => {
-                    if(antibody.isAttached || antibody.isDigitized) return;
+                    if(antibody.isAttached) return;
                     
                     const targets = [...allViruses, ...allProteins];
 
                     for(const target of targets) {
-                         if(target.isBound || target.isDigitized) continue;
+                         if(target.isBound) continue;
                         const distance = antibody.boundingSphere.center.distanceTo(target.boundingSphere.center);
                         if(distance < antibody.boundingSphere.radius + target.boundingSphere.radius) {
                             antibody.isAttached = true;
@@ -731,7 +634,6 @@
                     }
                 });
 
-                // --- General Collision ---
                 for(let i = 0; i < animatedObjects.length; i++) {
                     for(let j = i + 1; j < animatedObjects.length; j++) {
                         const obj1 = animatedObjects[i];
