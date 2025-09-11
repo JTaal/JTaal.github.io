@@ -508,7 +508,7 @@
         let isWireframe = true;
         let isReturnTrip = false;
         let metrics = { arc: 0, chord: 0, area: 0 };
-        let minkowskiParams = { c: 1, v: 0.5, coneDistance: -20 };
+        let minkowskiParams = { c: 0.5, v: 0.25, coneDistance: 0 };
         let velocityProportion = minkowskiParams.v / minkowskiParams.c;
         let coneRadialSegments = 32;
 
@@ -570,40 +570,28 @@
         }
 
         function updateMinkowskiCone(c) {
-            // Cleanup previous cones
-            while (minkowskiCone.children.length > 0) {
+            while(minkowskiCone.children.length > 0) {
                 const child = minkowskiCone.children[0];
                 minkowskiCone.remove(child);
                 if (child.geometry) child.geometry.dispose();
                 if (child.material) child.material.dispose();
             }
-
             const coneHeight = 10;
-            const coneRadius = coneHeight / c;
+            const coneRadius = coneHeight / c; 
             const coneGeom = new THREE.ConeGeometry(coneRadius, coneHeight, coneRadialSegments, 1, true);
-            const coneMat = new THREE.MeshBasicMaterial({
-                color: 0xfca311,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.5,
-                side: THREE.DoubleSide
-            });
+            const coneMat = new THREE.MeshBasicMaterial({ color: 0xfca311, wireframe: true, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
 
             const futureCone = new THREE.Mesh(coneGeom, coneMat);
             const pastCone = new THREE.Mesh(coneGeom, coneMat);
 
-            // --- Cone distance logic ---
             const offset = minkowskiParams.coneDistance / 2;
-            const futureConeY = (coneHeight / 2) + offset;
-            const pastConeY   = -(coneHeight / 2) - offset;
-
-            futureCone.position.y = futureConeY;
-            pastCone.position.y   = pastConeY;
-            pastCone.rotation.x   = Math.PI;
+            
+            futureCone.position.y = (coneHeight / 2) + offset;
+            pastCone.position.y = (-coneHeight/2) + offset;
+            pastCone.rotation.x = Math.PI;
 
             minkowskiCone.add(futureCone, pastCone);
         }
-
 
         function updateWorldLine(v, c) {
              if (v >= c) v = c - 0.0000000001; // Prevent division by zero
@@ -705,16 +693,16 @@
             </div>
             <div id="minkowski-controls-group" class="flex items-center gap-4 flex-wrap justify-center">
                  <div class="control-group w-52">
-                    <label for="c-slider" class="text-sm font-medium flex justify-between w-full"><span>Speed of Light (c)</span><span id="c-value">1</span></label>
-                    <input id="c-slider" type="range" min="0.000000001" max="1" step="0.000000001" value="1" class="w-full">
+                    <label for="c-slider" class="text-sm font-medium flex justify-between w-full"><span>Speed of Light (c)</span><span id="c-value">0.5</span></label>
+                    <input id="c-slider" type="range" min="0.000000001" max="1" step="0.000000001" value="0.5" class="w-full">
                 </div>
                 <div class="control-group w-52">
                     <label for="v-slider" class="text-sm font-medium flex justify-between w-full"><span>Velocity (v)</span><span id="v-value">0.25</span></label>
                     <input id="v-slider" type="range" min="0" max="1.0" step="0.000000001" value="0.25" class="w-full">
                 </div>
                 <div class="control-group w-52">
-                    <label for="cone-distance-slider" class="text-sm font-medium flex justify-between w-full"><span>Cone Distance</span><span id="cone-distance-value">-20</span></label>
-                    <input id="cone-distance-slider" type="range" min="-20" max="0" step="1" value="-20" class="w-full">
+                    <label for="cone-distance-slider" class="text-sm font-medium flex justify-between w-full"><span>Cone Distance</span><span id="cone-distance-value">0.0</span></label>
+                    <input id="cone-distance-slider" type="range" min="-10" max="0" step="1" value="0" class="w-full">
                 </div>
                  <div class="control-group w-52">
                     <label for="cone-lines-slider" class="text-sm font-medium flex justify-between w-full"><span>Cone Lines</span><span id="cone-lines-value">32</span></label>
@@ -925,10 +913,6 @@
             sphereMatWire.dispose();
             sphereMatSolid.dispose();
         }
-
-        minkowskiToggleButton.click(); 
-        updateMinkowskiCone(minkowskiParams.c);
-        updateWorldLine(minkowskiParams.v, minkowskiParams.c);
 
         return { update, cleanup, followTarget: sphereMesh };
     }

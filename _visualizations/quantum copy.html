@@ -34,6 +34,11 @@
             backdrop-filter: blur(5px);
             border-bottom: 1px solid rgba(55, 65, 81, 0.7);
         }
+        #views-menu {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
         .view-button {
             background-color: rgba(55, 65, 81, 0.8);
             border: 1px solid rgba(75, 85, 99, 0.9);
@@ -61,7 +66,7 @@
             padding: 1.25rem;
             border: 1px solid rgba(55, 65, 81, 0.7);
             border-radius: 12px;
-            z-index: 10;
+            z-index: 11;
         }
         #controls-panel {
             bottom: 20px;
@@ -112,27 +117,47 @@
             position: absolute;
             top: 80px;
             left: 20px;
-            max-width: 350px;
+            width: 350px;
+            max-width: 90vw;
             transition: max-height 0.5s ease-in-out;
-            max-height: 140px; /* Collapsed height */
+            max-height: 58px; /* Collapsed height */
             overflow: hidden;
+            cursor: pointer;
+            z-index: 14;
         }
         #title-panel.expanded {
-            max-height: 500px; /* Expanded height */
+            max-height: 90vh; /* Expanded height */
+            cursor: default;
+            overflow-y: auto;
         }
+         #info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #toggle-icon {
+            transition: transform 0.3s;
+        }
+        #title-panel.expanded #toggle-icon {
+            transform: rotate(180deg);
+        }
+        .explanation-text { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #374151; }
+        .explanation-text h3 { font-weight: bold; color: #a5b4fc; }
+        .explanation-text p { font-size: 0.875rem; color: #d1d5db; }
+        dt { font-weight: 500; color: #e5e7eb; margin-top: 0.5rem; }
+        dd { font-size: 0.8rem; color: #9ca3af; padding-left: 1rem; }
+
 
         #state-display {
             font-size: 1.5rem;
             font-weight: 700;
             color: #c7d2fe;
             text-shadow: 0 0 10px rgba(165, 180, 252, 0.5);
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
         }
 
-        #settings-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 21;
+        .header-button {
             background-color: rgba(55, 65, 81, 0.8);
             border: 1px solid rgba(75, 85, 99, 0.9);
             color: white;
@@ -141,11 +166,11 @@
             cursor: pointer;
             transition: all 0.3s;
         }
-         #settings-button:hover {
+         .header-button:hover {
             background-color: #4338ca;
             transform: rotate(45deg);
         }
-        #settings-panel {
+        #settings-panel, #graph-panel {
             top: 80px;
             right: 0;
             width: 300px;
@@ -154,8 +179,20 @@
             z-index: 12;
             padding-right: 2rem;
         }
-        #settings-panel.open {
-            transform: translateX(-20px);
+        #graph-panel {
+            right: auto;
+            bottom: 20px;
+            top: auto;
+            left: auto;
+            width: auto;
+            transform: translateY(200%);
+            z-index: 13;
+        }
+        #settings-panel.open { 
+            transform: translateX(-20px); 
+        }
+        #graph-panel.open { 
+            transform: translateY(-20px); 
         }
         .toggle-switch, .toggle-button {
             position: relative;
@@ -227,8 +264,8 @@
         }
         
         #radius-chart-container {
-            margin-top: 1rem;
-            height: 200px;
+            height: 220px;
+            width: 350px;
         }
 
         .hidden { display: none; }
@@ -236,6 +273,7 @@
         @media (max-width: 768px) {
              header { padding: 0.75rem 1rem; }
              header h1 { font-size: 1rem; }
+             #views-menu { display: none; } /* Hide for mobile for simplicity */
             #controls-panel {
                 flex-direction: column;
                 bottom: 10px;
@@ -264,30 +302,51 @@
              <button id="btn-mesh" class="view-button">Orbital Mesh</button>
              <button id="btn-wave" class="view-button">Energy Wave</button>
         </div>
-         <button id="settings-button" title="Settings">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        </button>
+        <div class="flex items-center gap-3">
+             <button id="graph-button" title="Show Graph" class="header-button hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+             </button>
+             <button id="settings-button" title="Settings" class="header-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+        </div>
     </header>
 
     <div id="title-panel" class="ui-panel">
-        <h1 id="view-title" class="text-xl font-bold text-gray-200 tracking-wider">Particle Cloud</h1>
-        <p id="view-description" class="text-sm text-gray-400 mt-1">Each point represents a possible electron location, forming a probability cloud.</p>
-        <div id="state-display-container">
-            <div id="state-display">n=1, l=0, m=0</div>
+        <div id="info-header">
+            <h1 id="view-title" class="text-xl font-bold text-gray-200 tracking-wider">Particle Cloud</h1>
+            <div id="toggle-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
         </div>
-        <div id="radius-chart-container">
-            <canvas id="radius-chart"></canvas>
+        <p id="view-description" class="text-sm text-gray-400 mt-1">Each point represents a possible electron location, forming a probability cloud.</p>
+        
+        <div class="explanation-text">
+            <h3>About This Visualization</h3>
+            <p>This simulation shows the probable locations of an electron in a hydrogen atom. According to quantum mechanics, we can't know an electron's exact position, only the likelihood of finding it in a particular region. This region of probability is called an **orbital**.</p>
+            <h3>Quantum Numbers</h3>
+            <div id="state-display-container">
+                 <div id="state-display">n=1, l=0, m=0</div>
+            </div>
+            <dl>
+                <dt>n - Principal Quantum Number</dt>
+                <dd>Determines the electron's energy level and average distance from the nucleus. Higher numbers mean higher energy and a larger orbital.</dd>
+                <dt>l - Azimuthal Quantum Number</dt>
+                <dd>Describes the shape of the orbital (s, p, d, f...). It can be any integer from 0 to n-1.</dd>
+                <dt>m - Magnetic Quantum Number</dt>
+                <dd>Determines the orientation of the orbital in 3D space. It can be any integer from -l to +l.</dd>
+            </dl>
         </div>
     </div>
     
-    <div id="settings-panel" class="ui-panel">
+    <div id="settings-panel" class="ui-panel hidden">
         <h2 class="text-lg font-bold mb-4">Display Settings</h2>
         <div id="particle-settings" class="space-y-4">
             <div class="control-group w-full items-start">
                 <label for="particle-count-slider" class="mb-2 w-full flex justify-between">
                     <span>Particle Count</span><span id="particle-count-value">50k</span>
                 </label>
-                <input id="particle-count-slider" type="range" min="1000" max="200000" step="1000" value="50000" class="w-full">
+                <input id="particle-count-slider" type="range" min="1000" max="300000" step="1000" value="50000" class="w-full">
             </div>
              <div class="flex justify-between items-center">
                 <label for="energy-toggle">Energy Field Colors</label>
@@ -308,13 +367,13 @@
                 <label for="particle-size-slider" class="mb-2 w-full flex justify-between">
                     <span>Particle Size</span><span id="particle-size-value">0.3</span>
                 </label>
-                <input id="particle-size-slider" type="range" min="0.1" max="2.0" step="0.05" value="0.3" class="w-full">
+                <input id="particle-size-slider" type="range" min="0.05" max="5.0" step="0.05" value="0.3" class="w-full">
             </div>
              <div class="control-group w-full items-start">
                 <label for="particle-scale-slider" class="mb-2 w-full flex justify-between">
                     <span>Cloud Scale</span><span id="particle-scale-value">1.0</span>
                 </label>
-                <input id="particle-scale-slider" type="range" min="0.1" max="3.0" step="0.1" value="1.0" class="w-full">
+                <input id="particle-scale-slider" type="range" min="0.1" max="5.0" step="0.1" value="1.0" class="w-full">
             </div>
         </div>
          <div id="mesh-settings" class="hidden space-y-4">
@@ -322,7 +381,7 @@
                 <label for="mesh-scale-slider" class="mb-2 w-full flex justify-between">
                     <span>Shape Scale</span><span id="mesh-scale-value">30</span>
                 </label>
-                <input id="mesh-scale-slider" type="range" min="5" max="100" step="1" value="30" class="w-full">
+                <input id="mesh-scale-slider" type="range" min="5" max="150" step="1" value="30" class="w-full">
             </div>
              <div class="control-group w-full items-start">
                 <label for="mesh-resolution-slider" class="mb-2 w-full flex justify-between">
@@ -336,18 +395,25 @@
                 <label for="wave-speed-slider" class="mb-2 w-full flex justify-between">
                     <span>Wave Speed</span><span id="wave-speed-value">1.0</span>
                 </label>
-                <input id="wave-speed-slider" type="range" min="0.1" max="5" step="0.1" value="1" class="w-full">
+                <input id="wave-speed-slider" type="range" min="0.1" max="10" step="0.1" value="1" class="w-full">
             </div>
              <div class="control-group w-full items-start">
                 <label for="wave-intensity-slider" class="mb-2 w-full flex justify-between">
                     <span>Wave Intensity</span><span id="wave-intensity-value">5</span>
                 </label>
-                <input id="wave-intensity-slider" type="range" min="1" max="25" step="1" value="5" class="w-full">
+                <input id="wave-intensity-slider" type="range" min="1" max="50" step="1" value="5" class="w-full">
             </div>
         </div>
     </div>
 
     <div id="controls-panel" class="ui-panel"></div>
+
+    <div id="graph-panel" class="ui-panel hidden">
+        <div id="radius-chart-container">
+            <canvas id="radius-chart"></canvas>
+        </div>
+    </div>
+
 
     <div id="mesh-color-key" class="hidden">
         <div class="gradient-bar"></div>
@@ -385,6 +451,7 @@
         meshShapeScale: 30,
         meshResolution: 64,
         waveCoherent: false,
+        waveAsFrequency: false,
         waveSpeed: 1,
         waveIntensity: 5
     };
@@ -393,18 +460,18 @@
     // --- UI Elements ---
     const viewTitle = document.getElementById('view-title');
     const viewDescription = document.getElementById('view-description');
-    const stateDisplayContainer = document.getElementById('state-display-container');
     const stateDisplay = document.getElementById('state-display');
     const controlsPanel = document.getElementById('controls-panel');
     const settingsButton = document.getElementById('settings-button');
+    const graphButton = document.getElementById('graph-button');
     const settingsPanel = document.getElementById('settings-panel');
+    const graphPanel = document.getElementById('graph-panel');
     const particleSettings = document.getElementById('particle-settings');
     const meshSettings = document.getElementById('mesh-settings');
     const waveSettings = document.getElementById('wave-settings');
     const meshColorKey = document.getElementById('mesh-color-key');
     const particleColorKey = document.getElementById('particle-color-key');
     const titlePanel = document.getElementById('title-panel');
-    const radiusChartContainer = document.getElementById('radius-chart-container');
 
     // --- Math Functions (Factorial, Legendre, Spherical Harmonics, etc.) ---
     function factorial(k) {
@@ -652,6 +719,10 @@
             vertexColors: true, blending: THREE.AdditiveBlending,
             transparent: true, opacity: 0.5
         });
+        const upVector = new THREE.Vector3(0, 1, 0);
+        const tempVector = new THREE.Vector3();
+        const perpVector = new THREE.Vector3();
+
         for (let i = 0; i < WAVE_COUNT; i++) {
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(2 * 3), 3));
@@ -660,7 +731,6 @@
             line.userData.phi = Math.random() * Math.PI * 2;
             line.userData.theta = Math.random() * Math.PI * 2;
             line.userData.baseSpeed = 0.5 + Math.random() * 0.5;
-            line.userData.radialOffset = Math.random() * Math.PI * 2;
             waves.add(line);
         }
         activeSceneObjects.add(waves);
@@ -675,16 +745,36 @@
                 
                 const r = 20 + Math.sin(line.userData.theta * 4 + currentTime * speed) * displaySettings.waveIntensity;
                 const color = new THREE.Color();
-                color.setHSL(currentTime * 0.1 + line.userData.theta / Math.PI, 0.8, 0.6);
-                const x1 = r * Math.sin(line.userData.theta) * Math.cos(line.userData.phi);
-                const y1 = r * Math.cos(line.userData.theta);
-                const z1 = r * Math.sin(line.userData.theta) * Math.sin(line.userData.phi);
-                line.geometry.attributes.position.setXYZ(0, x1, y1, z1);
-                line.geometry.attributes.position.setXYZ(1, 0,0,0);
-                line.geometry.attributes.color.setXYZ(0, color.r, color.g, color.b);
-                line.geometry.attributes.color.setXYZ(1, 1,1,1);
-                line.geometry.attributes.position.needsUpdate = true;
-                line.geometry.attributes.color.needsUpdate = true;
+                const lightness = 0.5 + Math.sin(line.userData.theta * 5 + currentTime * speed) * 0.2;
+                color.setHSL(currentTime * 0.1 + line.userData.theta / Math.PI, 0.8, lightness);
+                
+                tempVector.set(
+                    r * Math.sin(line.userData.theta) * Math.cos(line.userData.phi),
+                    r * Math.cos(line.userData.theta),
+                    r * Math.sin(line.userData.theta) * Math.sin(line.userData.phi)
+                );
+
+                const positions = line.geometry.attributes.position;
+                const colors = line.geometry.attributes.color;
+
+                if (displaySettings.waveAsFrequency) {
+                    perpVector.crossVectors(tempVector, upVector).normalize();
+                    const waveLength = lightness * 2;
+                    const p1 = tempVector.clone().add(perpVector.clone().multiplyScalar(waveLength));
+                    const p2 = tempVector.clone().sub(perpVector.clone().multiplyScalar(waveLength));
+                    positions.setXYZ(0, p1.x, p1.y, p1.z);
+                    positions.setXYZ(1, p2.x, p2.y, p2.z);
+                    colors.setXYZ(0, color.r, color.g, color.b);
+                    colors.setXYZ(1, color.r, color.g, color.b);
+                } else {
+                    positions.setXYZ(0, tempVector.x, tempVector.y, tempVector.z);
+                    positions.setXYZ(1, 0, 0, 0);
+                    colors.setXYZ(0, color.r, color.g, color.b);
+                    colors.setXYZ(1, 1, 1, 1);
+                }
+                
+                positions.needsUpdate = true;
+                colors.needsUpdate = true;
             });
         }
         function cleanup() { material.dispose(); }
@@ -709,23 +799,25 @@
         currentUpdate = result.update;
         currentCleanup = result.cleanup;
         
-        stateDisplayContainer.style.display = (key === 'particles' || key === 'mesh') ? 'block' : 'none';
-        particleSettings.style.display = key === 'particles' ? 'block' : 'none';
+        document.querySelectorAll('.view-button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-${key}`).classList.add('active');
+
+        const isParticleScene = key === 'particles';
+        graphButton.classList.toggle('hidden', !isParticleScene);
+        if(!isParticleScene) graphPanel.classList.remove('open');
+
+
+        particleSettings.style.display = isParticleScene ? 'block' : 'none';
         meshSettings.style.display = key === 'mesh' ? 'block' : 'none';
         waveSettings.style.display = key === 'wave' ? 'block' : 'none';
         meshColorKey.style.display = key === 'mesh' ? 'block' : 'none';
-        radiusChartContainer.style.display = key === 'particles' ? 'block' : 'none';
-        titlePanel.classList.toggle('expanded', key === 'particles');
         
-        if (key === 'particles') {
+        if (isParticleScene) {
             updateParticleColorKey();
             particleColorKey.style.display = 'block';
         } else {
             particleColorKey.style.display = 'none';
         }
-
-        document.querySelectorAll('.view-button').forEach(b => b.classList.remove('active'));
-        document.getElementById(`btn-${key}`).classList.add('active');
     }
 
     function init() {
@@ -743,9 +835,11 @@
         scene.add(activeSceneObjects);
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        
         setupRadiusChart();
         setupGlobalUI();
-        switchScene('particles');
+        switchScene('particles'); // Start with particles scene
+        
         window.addEventListener('resize', onWindowResize, false);
         animate();
     }
@@ -754,9 +848,21 @@
         document.getElementById('btn-particles').addEventListener('click', () => switchScene('particles'));
         document.getElementById('btn-mesh').addEventListener('click', () => switchScene('mesh'));
         document.getElementById('btn-wave').addEventListener('click', () => switchScene('wave'));
+        
         settingsButton.addEventListener('click', (e) => {
             e.stopPropagation();
             settingsPanel.classList.toggle('open');
+        });
+        graphButton.addEventListener('click', (e) => {
+             e.stopPropagation();
+            graphPanel.classList.toggle('open');
+            graphPanel.classList.toggle('block');
+        });
+        
+        titlePanel.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'CANVAS' && e.target.tagName !== 'A' && !e.target.closest('canvas')) {
+                titlePanel.classList.toggle('expanded');
+            }
         });
 
         // Particle Settings
@@ -832,6 +938,9 @@
              if (settingsPanel.classList.contains('open') && !settingsPanel.contains(e.target) && e.target !== settingsButton) {
                 settingsPanel.classList.remove('open');
             }
+             if (graphPanel.classList.contains('open') && !graphPanel.contains(e.target) && e.target !== graphButton) {
+                graphPanel.classList.remove('open');
+            }
         });
     }
 
@@ -889,7 +998,7 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    title: { display: true, text: 'Radial Distribution', color: '#9ca3af' }
+                    title: { display: false }
                 },
                 scales: {
                     y: {
@@ -913,8 +1022,10 @@
         
         for(let i=0; i < radii.length; i++) {
             const r = radii[i];
-            const binIndex = Math.min(bins - 1, Math.max(0, Math.floor((r / maxRadius) * bins)));
-            counts[binIndex]++;
+            if (r > 0) {
+                const binIndex = Math.min(bins - 1, Math.max(0, Math.floor((r / maxRadius) * bins)));
+                counts[binIndex]++;
+            }
         }
         
         const labels = Array.from({length: bins}, (_, i) => ((i / bins) * maxRadius).toFixed(1));
@@ -927,13 +1038,23 @@
 
      function setupWaveControls() {
         controlsPanel.innerHTML = `
-            <button id="coherent-toggle" class="toggle-button">Coherent Flow</button>
+            <div class="flex gap-4">
+                <button id="coherent-toggle" class="toggle-button">Coherent Flow</button>
+                <button id="waveform-toggle" class="toggle-button">Waveform</button>
+            </div>
         `;
         const coherentToggle = document.getElementById('coherent-toggle');
         coherentToggle.classList.toggle('active', displaySettings.waveCoherent);
         coherentToggle.addEventListener('click', () => {
             displaySettings.waveCoherent = !displaySettings.waveCoherent;
             coherentToggle.classList.toggle('active', displaySettings.waveCoherent);
+        });
+
+        const waveformToggle = document.getElementById('waveform-toggle');
+        waveformToggle.classList.toggle('active', displaySettings.waveAsFrequency);
+        waveformToggle.addEventListener('click', () => {
+            displaySettings.waveAsFrequency = !displaySettings.waveAsFrequency;
+            waveformToggle.classList.toggle('active', displaySettings.waveAsFrequency);
         });
     }
 
@@ -971,6 +1092,7 @@
 
         updateSliders();
     }
+    
 
     const clock = new THREE.Clock();
     function onWindowResize() {
@@ -991,3 +1113,4 @@
 </script>
 </body>
 </html>
+
