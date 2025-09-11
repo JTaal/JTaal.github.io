@@ -4,403 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Riemann Zeta Function Visualization</title>
-    <style>
-        body { 
-            margin: 0; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            color: #e0e0e0;
-            background-color: #121212;
-            overflow: hidden;
-        }
-        canvas { 
-            display: block; 
-        }
-        .info-container {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 100;
-            max-width: 350px;
-        }
-        details {
-            background: rgba(40, 40, 40, 0.85);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-        }
-        summary {
-            padding: 12px 15px;
-            font-weight: bold;
-            cursor: pointer;
-            outline: none;
-            list-style: none;
-        }
-        summary::-webkit-details-marker { display: none; }
-        summary::before {
-            content: '►';
-            margin-right: 8px;
-            font-size: 0.8em;
-            transition: transform 0.2s;
-        }
-        details[open] summary::before {
-            transform: rotate(90deg);
-        }
-        .content-box {
-            padding: 0 15px 15px 15px;
-            border-top: 1px solid #555;
-            font-size: 0.9em;
-            line-height: 1.5;
-            max-height: 50vh;
-            overflow-y: auto;
-        }
-        .content-box h4 {
-             margin-top: 20px;
-             padding-top: 15px;
-             border-top: 1px solid #444;
-        }
-        .calculator-container {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-        .calculator-container input {
-            width: 55px;
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #666;
-            background-color: #222;
-            color: #eee;
-            text-align: center;
-        }
-        .calculator-container button {
-            padding: 5px 10px;
-            font-size: 14px;
-        }
-        #zetaResult {
-            margin-top: 10px;
-            font-weight: bold;
-            font-size: 1.1em;
-            color: #4a90e2;
-            text-align: center;
-        }
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 100;
-            background: rgba(40, 40, 40, 0.8);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            display: flex;
-            gap: 15px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 8px;
-            border: none;
-            background-color: #3d3d3d;
-            color: #fff;
-            transition: background-color 0.3s, transform 0.1s;
-        }
-        button:hover {
-            background-color: #555;
-        }
-        button:active {
-            transform: scale(0.95);
-        }
-        #view3d-controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: flex-end;
-        }
-        .settings-panel {
-            background: rgba(40, 40, 40, 0.9);
-            padding: 15px;
-            border-radius: 8px;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            width: 250px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            margin-top: 10px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        .settings-panel h4 { margin: 15px 0 10px 0; text-align: center; font-weight: bold; border-bottom: 1px solid #555; padding-bottom: 8px;}
-        .settings-panel div { display: flex; justify-content: space-between; align-items: center; font-size: 0.9em; }
-        .settings-panel input[type="range"] { width: 110px; }
-        .settings-panel input[type="color"] { border: none; background: none; width: 30px; height: 30px; padding: 0; cursor: pointer; }
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #4a90e2; }
-        input:checked + .slider:before { transform: translateX(20px); }
-
-        #plotContainer, #primeCountingContainer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #1a1a1a;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            padding-bottom: 80px;
-            box-sizing: border-box;
-        }
-        #plotCanvas { border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #plotControls, #prime-controls { 
-            display: flex; align-items: center; gap: 10px; background: rgba(40, 40, 40, 0.8); padding: 10px; border-radius: 8px; flex-wrap: wrap; justify-content: center;
-        }
-        #plotControls input { width: 80px; padding: 8px; border-radius: 5px; border: 1px solid #666; background-color: #222; color: #eee; text-align: center; }
-        #prime-controls div { display: flex; align-items: center; gap: 5px; }
-        .hidden { display: none !important; }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(20, 20, 20, 0.5);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #555;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #777;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="info-container">
-        <details id="info3D" open>
-            <summary>About the 3D Transformation</summary>
-            <div class="content-box">
-                <p>For Re(s) > 1, the zeta function is defined by the infinite sum:</p>
-                <p>$$\zeta(s) = \sum_{n=1}^{\infty} \frac{1}{n^s}$$</p>
-                <p>This visualization uses analytic continuation to extend this definition. The highlighted region is the **Critical Strip**.</p>
-                <p>The red dots on the line Re(s) = 0.5 represent the **non-trivial zeros**. The blue dots on the negative real axis are the **trivial zeros**. When transformed, they all map to the origin.</p>
-                
-                <h4>Interactive Calculator</h4>
-                <div class="calculator-container">
-                    <span>ζ(</span>
-                    <input type="number" id="zetaRealInput" value="-1" step="0.1">
-                    <span> + </span>
-                    <input type="number" id="zetaImagInput" value="0" step="0.1">
-                    <span>i )</span>
-                    <button id="calculateZetaBtn">Calculate</button>
-                </div>
-                <div id="zetaResult"></div>
-            </div>
-        </details>
-        <details id="infoZeros" class="hidden">
-            <summary>About the Zeros Plot</summary>
-            <div class="content-box">
-                <p>This graph plots the real (blue) and imaginary (orange) parts of ζ(s) along the **Critical Line**, where the real part of s is fixed at 0.5.</p>
-                <p>A "zero" occurs where both lines cross the horizontal axis at the same time (marked with red dots).</p>
-            </div>
-        </details>
-        <details id="infoPrime" class="hidden">
-            <summary>About Prime Counting</summary>
-            <div class="content-box">
-                <p>This chart shows how the prime-counting function, $\pi(x)$, is approximated by Riemann's formula.</p>
-                <ol>
-                    <li><strong>$\pi(x)$ (Green):</strong> The true count of primes up to $x$. It's a step function.</li>
-                    <li><strong>$\operatorname{Li}(x)$ (Blue):</strong> The logarithmic integral, a smooth approximation for $\pi(x)$.</li>
-                    <li><strong>Riemann Approx. (Red):</strong> A refined approximation that subtracts oscillatory waves from $\operatorname{Li}(x)$. Each wave corresponds to a non-trivial zero of the Zeta function.</li>
-                </ol>
-                <p>As you add more zeros using the slider, the red line gets closer to the true green step function, perfectly sculpting it when all zeros are included.</p>
-                <h4>Key Formulas</h4>
-                <p>Logarithmic Integral: $$\operatorname{Li}(x) = \int_2^x \frac{dt}{\ln t}$$</p>
-                <p>Riemann's Approximation: $$\pi(x) \approx \operatorname{Li}(x) - \sum_{\rho} \operatorname{Li}(x^\rho)$$</p>
-                <p>Where the sum is over the non-trivial zeros $\rho$. Each zero contributes an oscillating wave to refine the smooth $\operatorname{Li}(x)$ curve.</p>
-                <h4>Deeper Dive</h4>
-                <p><b>1. Why $\operatorname{Li}(x)$ is not enough:</b> It is a smooth function, but $\pi(x)$ is a step function. To reconstruct the exact prime locations, we need oscillatory corrections from the non-trivial zeros.</p>
-                <p><b>2. Zeros as “frequencies”:</b> Each non-trivial zero $\rho = 1/2 + i\gamma$ contributes a term that behaves like a wave:</p>
-                <p>$$-\operatorname{Li}(x^\rho) \sim -\frac{x^{1/2}e^{i \gamma \ln x}}{\rho \ln x}$$</p>
-                <p>In the space of $\ln x$, this is effectively a wave with frequency $\gamma$. Summing these waves over all zeros is what refines the smooth curve into the precise step function.</p>
-            </div>
-        </details>
-    </div>
-
-    <div id="plotContainer">
-        <canvas id="plotCanvas"></canvas>
-        <div id="plotControls">
-            <button id="prevBtn">&lt;&lt; Prev</button>
-            <span>t = </span>
-            <input type="number" id="tOffsetInput" value="0">
-            <button id="goBtn">Go</button>
-            <button id="nextBtn">Next &gt;&gt;</button>
-        </div>
-    </div>
-
-    <div id="primeCountingContainer">
-         <div style="width: 95%; height: 85%; max-width: 1200px; position: relative; background-color: #1a1a1a; border-radius: 8px;">
-            <canvas id="primeChartCanvas"></canvas>
-         </div>
-         <div id="prime-controls">
-            <div>
-                <label for="xMaxSlider">Max x:</label>
-                <input type="range" id="xMaxSlider" min="10" max="5000" value="100">
-                <span id="xMaxLabel">100</span>
-            </div>
-            <div>
-                <label for="numZerosSlider">Zeros:</label>
-                <input type="range" id="numZerosSlider" min="0" max="400" value="0">
-                <span id="numZerosLabel">0</span>
-            </div>
-            <div>
-                <label for="logScaleToggle">Log Scale:</label>
-                 <label class="switch">
-                    <input type="checkbox" id="logScaleToggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div>
-                <label for="showWavesToggle">Show Waves:</label>
-                 <label class="switch">
-                    <input type="checkbox" id="showWavesToggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div>
-                <button id="playMusicBtn">Play Music</button>
-                <button id="stopMusicBtn" class="hidden">Stop Music</button>
-            </div>
-         </div>
-    </div>
-
-    <div class="controls">
-        <button id="transformViewBtn">3D Transformation</button>
-        <button id="zerosViewBtn">Zeros on Critical Line</button>
-        <button id="primeCountingViewBtn">Prime Counting</button>
-    </div>
-
-    <div id="view3d-controls">
-        <div>
-            <button id="transformBtn">Transform</button>
-            <button id="continueBtn" class="hidden">Analytically Continue</button>
-            <button id="resetBtn" class="hidden">Reset</button>
-            <button id="settingsBtn">Settings</button>
-            <button id="toggleViewBtn">2D View</button>
-        </div>
-        <div id="settings-panel" class="settings-panel hidden">
-            <h4>Grid Settings</h4>
-            <div>
-                <label for="gridSize">Size:</label>
-                <input type="range" id="gridSize" min="10" max="5000" value="30">
-                <span id="gridSizeValue">30</span>
-            </div>
-             <div>
-                <label for="gridSizeLogToggle">Log Scale:</label>
-                <label class="switch">
-                    <input type="checkbox" id="gridSizeLogToggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div>
-                <label for="gridDensity">Density:</label>
-                <input type="range" id="gridDensity" min="20" max="600" value="80">
-                <span id="gridDensityValue">80</span>
-            </div>
-             <div>
-                <label for="animationSpeed">Duration (ms):</label>
-                <input type="range" id="animationSpeed" min="200" max="20000" value="2000">
-                <span id="animationSpeedValue">2000</span>
-            </div>
-            <div>
-                <label for="stripWidth">Strip Width:</label>
-                <input type="range" id="stripWidth" min="0" max="100" value="20" step="1">
-                <span id="stripWidthValue">1.0</span>
-            </div>
-            <div>
-                <label for="stripStart">Strip Start:</label>
-                <input type="range" id="stripStart" min="-10" max="10" value="0" step="0.1">
-                <span id="stripStartValue">0.0</span>
-            </div>
-            <div>
-                <label for="zDisplacementToggle">3D Displacement:</label>
-                <label class="switch">
-                    <input type="checkbox" id="zDisplacementToggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
-             <h4>Non-Trivial Zeros</h4>
-             <div>
-                <label for="showZerosToggle">Show Zeros:</label>
-                <label class="switch">
-                    <input type="checkbox" id="showZerosToggle" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-             <div>
-                <label for="zeroSizeSlider">Zero Size:</label>
-                <input type="range" id="zeroSizeSlider" min="0.05" max="0.5" value="0.15" step="0.01">
-                <span id="zeroSizeValue">0.15</span>
-            </div>
-            <h4>Trivial Zeros</h4>
-             <div>
-                <label for="showTrivialZerosToggle">Show Zeros:</label>
-                <label class="switch">
-                    <input type="checkbox" id="showTrivialZerosToggle" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-             <div>
-                <label for="trivialZeroSizeSlider">Zero Size:</label>
-                <input type="range" id="trivialZeroSizeSlider" min="0.05" max="0.5" value="0.15" step="0.01">
-                <span id="trivialZeroSizeValue">0.15</span>
-            </div>
-            <h4>Color Settings</h4>
-             <div>
-                <label for="stripOnlyColor">Strip Only:</label>
-                <label class="switch">
-                    <input type="checkbox" id="stripOnlyColor">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div>
-                <label for="baseColor">Base Color:</label>
-                <input type="color" id="baseColor" value="#ffffff">
-            </div>
-            <div>
-                <label for="stripColor">Strip Color:</label>
-                <input type="color" id="stripColor" value="#ffd700">
-            </div>
-            <h4>Axis & Line Colors</h4>
-            <div>
-                <label for="boundaryColor">Boundary Color:</label>
-                <input type="color" id="boundaryColor" value="#ffd700">
-            </div>
-             <div>
-                <label for="realAxisColor">Real Axis:</label>
-                <input type="color" id="realAxisColor" value="#ff4444">
-            </div>
-            <div>
-                <label for="imagAxisColor">Imag Axis:</label>
-                <input type="color" id="imagAxisColor" value="#4444ff">
-            </div>
-        </div>
-    </div>
-
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script type="importmap">
         {
             "imports": {
@@ -409,57 +14,380 @@
             }
         }
     </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh; 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        .formula {
+            font-family: 'Georgia', serif;
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+            color: #d1d5db;
+            border: 1px solid #374151;
+            overflow-x: auto;
+        }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+         #menu {
+            display: flex;
+            gap: 10px;
+        }
+        .menu-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .menu-button:hover, .toggle-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        
+        #settings-button {
+            position: absolute;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+        }
+         #settings-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px) rotate(45deg);
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding-right: 2rem; 
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel.open { transform: translateX(0); }
+        #close-settings {
+            font-size: 2.5rem;
+            line-height: 1;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; background: #4b5563; border-radius: 2px; outline: none; opacity: 0.7; transition: opacity .2s; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: #818cf8; cursor: pointer; border-radius: 50%; }
+        input[type="color"] { -webkit-appearance: none; -moz-appearance: none; appearance: none; width: 100%; height: 40px; background-color: transparent; border: none; cursor: pointer; }
+        input[type="color"]::-webkit-color-swatch { border-radius: 8px; border: 1px solid #4b5563; }
+        input[type="color"]::-moz-color-swatch { border-radius: 8px; border: 1px solid #4b5563; }
+
+        .calculator-container { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+        .calculator-container input { width: 55px; padding: 5px; border-radius: 4px; border: 1px solid #666; background-color: #222; color: #eee; text-align: center; }
+        #zetaResult { margin-top: 10px; font-weight: bold; font-size: 1.1em; color: #4a90e2; text-align: center; }
+
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #4a90e2; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        #plotContainer, #plot2DContainer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #1a1a1a; display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 5;
+        }
+        #plotCanvas, #plot2DCanvas { border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #plotControls { margin-top: 15px; display: flex; align-items: center; gap: 10px; background: rgba(40, 40, 40, 0.8); padding: 10px; border-radius: 8px; }
+        #plotControls input { width: 80px; padding: 8px; border-radius: 5px; border: 1px solid #666; background-color: #222; color: #eee; text-align: center; }
+
+        .hidden { display: none !important; }
+        canvas { display: block; }
+
+        .mobile-menu-item { display: block; width: 100%; text-align: left; padding: 10px 16px; background-color: transparent; border: none; cursor: pointer; transition: background-color 0.2s; }
+        .mobile-menu-item:hover { background-color: #4338ca; }
+        .mobile-menu-item.active { background-color: #4f46e5; font-weight: bold; }
+        #mobile-menu-container { display: none; }
+
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            header h1 { font-size: 1.125rem; }
+            #menu { display: none !important; }
+            #mobile-menu-container { display: block; }
+            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
+            #controls-panel { padding: 0.75rem; gap: 0.75rem; justify-content: space-around; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Zeta Function Explorer</h1>
+        <div id="menu"></div>
+        <div id="mobile-menu-container" class="relative">
+            <button id="mobile-menu-button" class="menu-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <span id="mobile-menu-label">Views</span>
+            </button>
+            <div id="mobile-menu-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-30"></div>
+        </div>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">Welcome!</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300"></p>
+             <div id="info-formula" class="formula"></div>
+             <div id="zeta-calculator-content" class="hidden">
+                <h4 class="font-bold text-lg text-indigo-400 mt-4">Interactive Calculator</h4>
+                <div class="calculator-container">
+                    <span>ζ(</span>
+                    <input type="number" id="zetaRealInput" value="-1" step="0.1">
+                    <span> + </span>
+                    <input type="number" id="zetaImagInput" value="0" step="0.1">
+                    <span>i )</span>
+                    <button id="calculateZetaBtn" class="toggle-button">Calculate</button>
+                </div>
+                <div id="zetaResult"></div>
+             </div>
+        </div>
+    </div>
+    
+    <div id="plotContainer">
+        <canvas id="plotCanvas"></canvas>
+        <div id="plotControls">
+            <button id="prevBtn" class="toggle-button">&lt;&lt; Prev</button>
+            <span id="plot-var-label">x = </span>
+            <input type="number" id="plotVarInput" value="0">
+            <button id="goBtn" class="toggle-button">Go</button>
+            <button id="nextBtn" class="toggle-button">Next &gt;&gt;</button>
+        </div>
+    </div>
+    
+    <div id="plot2DContainer">
+        <canvas id="plot2DCanvas"></canvas>
+    </div>
+
+    <div id="controls-panel" class="ui-panel"></div>
+
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+    </button>
+    
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-inherit z-10 py-2">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div id="zeta-settings" class="space-y-6">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Grid Settings</h4>
+             <div class="control-group text-left w-full">
+                 <label for="gridSize" class="text-sm font-medium self-start w-full flex justify-between">Size: <span id="gridSizeValue">30</span></label>
+                 <input type="range" id="gridSize" min="10" max="50" value="30">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="gridDensity" class="text-sm font-medium self-start w-full flex justify-between">Density: <span id="gridDensityValue">80</span></label>
+                 <input type="range" id="gridDensity" min="20" max="100" value="80">
+             </div>
+              <div class="control-group text-left w-full">
+                 <label for="animationSpeed" class="text-sm font-medium self-start w-full flex justify-between">Speed (ms): <span id="animationSpeedValue">2000</span></label>
+                 <input type="range" id="animationSpeed" min="200" max="6000" value="2000">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="stripWidth" class="text-sm font-medium self-start w-full flex justify-between">Strip Width: <span id="stripWidthValue">1.0</span></label>
+                 <input type="range" id="stripWidth" min="0.1" max="5.0" value="1.0" step="0.1">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="zDisplacementToggle" class="text-sm font-medium self-start w-full flex justify-between">3D Displacement:
+                    <label class="switch"><input type="checkbox" id="zDisplacementToggle" checked><span class="slider"></span></label>
+                </label>
+             </div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Color Settings</h4>
+              <div class="control-group text-left w-full">
+                 <label for="stripOnlyColor" class="text-sm font-medium self-start w-full flex justify-between">Strip Only:
+                    <label class="switch"><input type="checkbox" id="stripOnlyColor"><span class="slider"></span></label>
+                 </label>
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="baseColor" class="text-sm font-medium self-start w-full">Base Color</label>
+                 <input type="color" id="baseColor" value="#ffffff">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="stripColor" class="text-sm font-medium self-start w-full">Strip Color</label>
+                 <input type="color" id="stripColor" value="#ffd700">
+             </div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Axis & Line Colors</h4>
+             <div class="control-group text-left w-full">
+                 <label for="boundaryColor" class="text-sm font-medium self-start w-full">Boundary Color</label>
+                 <input type="color" id="boundaryColor" value="#ffd700">
+             </div>
+              <div class="control-group text-left w-full">
+                 <label for="realAxisColor" class="text-sm font-medium self-start w-full">Real Axis:</label>
+                 <input type="color" id="realAxisColor" value="#ff4444">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="imagAxisColor" class="text-sm font-medium self-start w-full">Imag Axis:</label>
+                 <input type="color" id="imagAxisColor" value="#4444ff">
+             </div>
+        </div>
+        <div id="plot-settings" class="hidden space-y-6">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Plot Settings</h4>
+             <div class="control-group text-left w-full">
+                 <label for="plotRangeSlider" class="text-sm font-medium self-start w-full flex justify-between">Range: <span id="plotRangeValue">50</span></label>
+                 <input type="range" id="plotRangeSlider" min="10" max="500" value="50">
+             </div>
+        </div>
+    </div>
     
     <!-- MathJax for LaTeX -->
     <script>
-      MathJax = {
-        tex: {
-          inlineMath: [['$', '$'], ['\\(', '\\)']],
-          displayMath: [['$$', '$$'], ['\\[', '\\]']]
-        },
-        svg: {
-          fontCache: 'global'
-        }
-      };
+      MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }, svg: { fontCache: 'global' } };
     </script>
-    <script type="text/javascript" id="MathJax-script" async
-      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
-    </script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-
+    <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- Global variables ---
-        let scene, camera, perspectiveCamera, orthographicCamera, renderer, controls;
-        let plane, customAxes, blackHole, originalPositions, transformedPositions, axesLabels = [];
-        let nonTrivialZerosGroup, originalNonTrivialZeroPositions = [], nonTrivialZeroMeshes = [];
-        let trivialZerosGroup, originalTrivialZeroPositions = [], trivialZeroMeshes = [];
+        let scene, camera, renderer, controls;
+        let plane, customAxes, originalPositions, axesLabels = [];
         let currentAnimation;
         let isTransformed = false;
         let isContinued = false;
-        let is3DView = true;
-        let primeChart;
-        let synth;
-        let isMusicPlaying = false;
-
+        
+        const views = {
+            'zeta_function': {
+                title: 'Zeta Function',
+                description: 'For Re(s) > 1, the zeta function is defined by the infinite sum shown below. This visualization uses analytic continuation to extend this definition to the complex plane. The highlighted region is the **Critical Strip**, where 0 < Re(s) < 1.',
+                formula: '$$ \\zeta(s) = \\sum_{n=1}^{\\infty} \\frac{1}{n^s} $$',
+                setup: setup3DView
+            },
+            'zeta_2d': {
+                title: '2D Zeta Function',
+                description: 'This visualization uses "domain coloring" to show the behavior of ζ(s). The **color** at each point represents the phase (angle) of the output, while the **brightness** represents its magnitude. Zeros appear as black spots where all colors converge, and the pole at s=1 appears as a white spot where all colors meet again.',
+                formula: '$$ s = x + iy \\quad \\mapsto \\quad \\zeta(s) $$',
+                setup: setup2DView
+            },
+            'zeros': {
+                title: 'Zeros on Critical Line',
+                description: 'This graph plots the real (blue) and imaginary (orange) parts of ζ(s) along the **Critical Line**, where the real part of s is fixed at 0.5. A "non-trivial zero" occurs where both lines cross the horizontal axis at the same time (marked with red dots). The Riemann Hypothesis conjectures that all non-trivial zeros lie on this line.',
+                formula: '$$ s = 0.5 + it $$',
+                setup: setupZerosView
+            },
+            'prime_counting': {
+                title: 'Prime Counting Function',
+                description: 'This plot shows the prime-counting function $\\pi(x)$ (blue steps), which counts the number of primes less than or equal to $x$. It is famously approximated by the logarithmic integral Li(x) (orange curve).',
+                formula: '$$ \\pi(x) \\approx \\text{Li}(x) = \\int_2^x \\frac{dt}{\\ln t} $$',
+                setup: setupPrimesView
+            }
+        };
+        let currentView = 'zeta_function';
+        
+        // DOM Elements
         const plotContainer = document.getElementById('plotContainer');
-        const primeCountingContainer = document.getElementById('primeCountingContainer');
         const plotCanvas = document.getElementById('plotCanvas');
         const plotCtx = plotCanvas.getContext('2d');
-        const view3dControls = document.getElementById('view3d-controls');
-        const info3D = document.getElementById('info3D');
-        const infoZeros = document.getElementById('infoZeros');
-        const infoPrime = document.getElementById('infoPrime');
-        let tOffset = 0;
-        const tRange = 50;
-        const knownZeros = [14.1347, 21.0220, 25.0108, 30.4248, 32.9350, 37.5861, 40.9187, 43.3270, 48.0051, 49.7738, 52.9703, 56.4462, 59.3470, 60.8317, 65.0858, 67.0798, 69.5464, 72.0671, 75.7046, 77.1448, 79.3373, 82.9103, 84.7354, 87.4252, 88.8091, 92.4918, 94.6513, 95.8706, 98.8311, 101.3178, 103.7255, 105.4446, 107.1686, 111.0295, 111.8746, 114.3202, 116.2266, 118.7907, 121.3701, 122.9472, 124.2568, 127.5166, 129.5787, 131.0876, 133.4977, 134.7565, 138.0583, 139.7211, 141.1237, 143.1118, 146.0653, 147.4223, 150.0535, 153.0247, 154.9351, 157.0396, 158.8499, 161.0772, 163.0767, 165.5123, 167.3164, 169.1499, 171.3479, 173.4118, 175.2163, 176.4411, 178.9662, 181.0224, 182.7237, 184.8106, 186.9303, 189.0830, 191.0114, 192.3533, 195.0640, 196.8329, 198.5342, 201.0767, 202.4936, 204.3724, 206.1833, 207.8326, 210.3703, 212.1154, 213.9318, 215.7538, 217.3994, 219.7915, 221.3268, 222.8213, 224.9754, 227.0093, 228.6183, 231.0631, 232.5181, 233.9248, 236.5861, 238.1132, 239.8653, 241.0223, 243.1499, 244.9703, 246.5925, 248.8184, 250.6288, 252.3214, 254.1082, 255.8368, 257.6534, 259.3518, 260.8252, 262.8988, 265.0454, 266.9037, 268.4284, 270.5284, 272.3386, 273.7441, 275.9818, 277.5632, 279.1764, 281.0286, 282.8533, 284.7333, 286.0429, 288.1345, 289.9293, 291.5401, 293.4259, 295.3414, 297.0250, 298.3498, 300.5898, 302.2037, 304.2017, 305.8342, 307.2796, 308.8328, 310.8354, 312.3333, 313.9511, 315.7199, 317.5878, 319.4239, 320.9160, 322.6806, 324.4784, 326.1116, 327.9304, 329.5841, 331.0759, 332.9642, 334.8692, 336.3138, 337.8063, 339.7533, 341.5170, 343.1118, 344.8258, 346.5684, 348.1303, 349.7925, 351.4643, 353.1518, 354.7437, 356.1248, 357.9424, 359.5411, 360.9149, 362.8361, 364.5583, 366.1130, 367.6253, 369.2154, 370.9328, 372.5448, 374.0202, 375.4982, 377.1983, 378.8870, 380.4076, 382.1624, 383.9162, 385.4199, 387.2343, 388.5833, 390.4939, 392.1791, 393.7383, 395.7329, 397.3512, 399.0353, 400.6725, 402.2272, 403.9518, 405.8118, 407.4116, 409.0863, 410.6019, 412.3112, 414.0772, 415.7018, 417.4393, 418.9481, 420.7381, 422.4632, 424.0853, 425.8643, 427.5088, 429.0645, 430.8282, 432.5312, 434.1957, 435.9183, 437.5688, 439.3131, 441.0422, 442.6688, 444.4079, 446.1232, 447.8031, 449.5293, 451.2188, 452.9368, 454.6199, 456.3262, 458.0039, 459.6953, 461.3732, 463.0725, 464.7161, 466.4255, 468.0872, 469.7643, 471.4293, 473.0903, 474.7433, 476.4023, 478.0493, 479.7123, 481.3533, 483.0043, 484.6463, 486.2993, 487.9393, 489.5893, 491.2293, 492.8713, 494.5053, 496.1483, 497.7813, 499.4183, 501.0493, 502.6813, 504.3093, 505.9403, 507.5643, 509.1943, 510.8173, 512.4413, 514.0593, 515.6803, 517.2943, 518.9103, 520.5223, 522.1333, 523.7403, 525.3483, 526.9533, 528.5533, 530.1523, 531.7483, 533.3423, 534.9313, 536.5203, 538.1053, 539.6873, 541.2673, 542.8443, 544.4193, 545.9903, 547.5583, 549.1243, 550.6863, 552.2463, 553.8033, 555.3573, 556.9093, 558.4573, 560.0023, 561.5453, 563.0843, 564.6223, 566.1553, 567.6863, 569.2133, 570.7383, 572.2603, 573.7793, 575.2953, 576.8093, 578.3203, 579.8283, 581.3333, 582.8363, 584.3353, 585.8323, 587.3263, 588.8173, 590.3063, 591.7913, 593.2743, 594.7553, 596.2323, 597.7073, 599.1793, 600.6483, 602.1153, 603.5793, 605.0403, 606.4993, 607.9553, 609.4093, 610.8603, 612.3083, 613.7543, 615.1973, 616.6383, 618.0753, 619.5103, 620.9433, 622.3733, 623.8003, 625.2253, 626.6473, 628.0673, 629.4843, 630.8983, 632.3103, 633.7193, 635.1263, 636.5303, 637.9313, 639.3303, 640.7263, 642.1203, 643.5113, 644.8993, 646.2853, 647.6693, 649.0493, 650.4283, 651.8033, 653.1763, 654.5463, 655.9143, 657.2793, 658.6413, 659.9993, 661.3563, 662.7103, 664.0613, 665.4103, 666.7563, 668.0993, 669.4403, 670.7783, 672.1133, 673.4453, 674.7753, 676.1033, 677.4273, 678.7493, 680.0693, 681.3863, 682.7003, 684.0123, 685.3213, 686.6283, 687.9323, 689.2343, 690.5333, 691.8293, 693.1233, 694.4153, 695.7043, 696.9903, 698.2743, 699.5553, 700.8343, 702.1103, 703.3843, 704.6553, 705.9243, 707.1913, 708.4553, 709.7163, 710.9753, 712.2323, 713.4863, 714.7383, 715.9873, 717.2343, 718.4793, 719.7213, 720.9613];
+        const plot2DContainer = document.getElementById('plot2DContainer');
+        const plot2DCanvas = document.getElementById('plot2DCanvas');
+        const plot2DCtx = plot2DCanvas.getContext('2d');
+        const controlsPanel = document.getElementById('controls-panel');
+        const infoTitle = document.getElementById('info-title');
+        const infoDescription = document.getElementById('info-description');
+        const infoFormula = document.getElementById('info-formula');
+        const zetaCalculatorContent = document.getElementById('zeta-calculator-content');
+        
+        let plotVarOffset = 0;
+        let plotVarRange = 50;
+        let primesCache = [];
 
-        // --- Complex Number and Zeta Function Math ---
+        const knownZeros = [14.134725, 21.022040, 25.010858, 30.424876, 32.935062, 37.586178, 40.918719, 43.327073, 48.005151, 49.773832, 52.970321, 56.446248, 59.347044, 60.831779, 65.085804, 67.079811, 69.546402, 72.067158, 75.704691, 77.144840, 79.337375, 82.910381, 84.735493, 87.425275, 88.809111, 92.491899, 94.651344, 95.870634, 98.831194, 101.317851, 103.725538, 105.446622, 107.168611, 111.029536, 111.874659, 114.320221, 116.226689, 118.790783, 121.370125, 122.947209, 124.256819, 127.516684, 129.578704, 131.087688, 133.497737, 134.756590, 138.058333, 139.721187, 141.123708, 143.111845];
+
         class Complex { constructor(re = 0, im = 0) { this.re = re; this.im = im; } add(c) { return new Complex(this.re + c.re, this.im + c.im); } sub(c) { return new Complex(this.re - c.re, this.im - c.im); } mul(c) { return new Complex(this.re * c.re - this.im * c.im, this.re * c.im + this.im * c.re); } div(c) { const d = c.re * c.re + c.im * c.im; if (d === 0) return new Complex(Infinity, Infinity); return new Complex((this.re * c.re + this.im * c.im) / d, (this.im * c.re - this.re * c.im) / d); } static fromPolar(r, theta) { return new Complex(r * Math.cos(theta), r * Math.sin(theta)); } magnitude() { return Math.sqrt(this.re * this.re + this.im * this.im); } phase() { return Math.atan2(this.im, this.re); } }
         const g = 7; const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
         function gamma(z) { if (z.re < 0.5) { const pi = new Complex(Math.PI, 0); const one = new Complex(1, 0); const sinPiZ = sin(pi.mul(z)); if (sinPiZ.magnitude() < 1e-9) return new Complex(Infinity, Infinity); return pi.div(sin(pi.mul(z)).mul(gamma(one.sub(z)))); } else { z = z.sub(new Complex(1, 0)); let x = new Complex(p[0], 0); for (let i = 1; i < g + 2; i++) { x = x.add(new Complex(p[i], 0).div(z.add(new Complex(i, 0)))); } const t = z.add(new Complex(g + 0.5, 0)); const sqrt2pi = new Complex(Math.sqrt(2 * Math.PI), 0); let term1 = pow(t, z.add(new Complex(0.5, 0))); let term2 = exp(t.mul(new Complex(-1, 0))); return sqrt2pi.mul(term1).mul(term2).mul(x); } }
@@ -467,24 +395,7 @@
         function pow(base, exp) { if (base.magnitude() === 0) return new Complex(0,0); const logBase = new Complex(Math.log(base.magnitude()), base.phase()); const z = logBase.mul(exp); return Complex.fromPolar(Math.exp(z.re), z.im); }
         function exp(c) { return Complex.fromPolar(Math.exp(c.re), c.im); }
         function sin(c) { const ez = exp(new Complex(-c.im, c.re)); const e_iz = exp(new Complex(c.im, -c.re)); return ez.sub(e_iz).div(new Complex(0, 2)); }
-
-        // --- Slider Log Scale Helpers ---
-        const MIN_STRIP_WIDTH = 0.1;
-        const MAX_STRIP_WIDTH = 10000.0;
-        const MIN_GRID_SIZE = 10;
-        const MAX_GRID_SIZE = 5000;
-        function linearToLog(value, min, max, sliderMax) {
-            if (value <= min) return min; // Use slider min, not range min
-            if (value >= sliderMax) return max;
-            return min * Math.pow(max / min, (value - min) / (sliderMax - min));
-        }
-        function logToLinear(value, min, max, sliderMax) {
-            if (value <= min) return min;
-            if (value >= max) return sliderMax;
-            return (sliderMax - min) * Math.log(value / min) / Math.log(max / min) + min;
-        }
-
-        // --- THREE.js Scene Setup ---
+        
         function makeTextSprite(message, options = {}) {
             const { fontsize = 32, scale = [1.8, 0.9, 1.0] } = options;
             const canvas = document.createElement('canvas'); const context = canvas.getContext('2d');
@@ -497,14 +408,14 @@
             sprite.position.copy(options.position || new THREE.Vector3()); return sprite;
         }
 
-        function createPlane(width, height, segmentsW, segmentsH, stripWidth, stripStart) {
+        function createPlane(width, height, segmentsW, segmentsH, stripWidth) {
             const geometry = new THREE.PlaneGeometry(width, height, segmentsW, segmentsH);
             const boundaries = new Float32Array(geometry.attributes.position.count);
             const positions = geometry.attributes.position.array;
             const epsilon = (width / segmentsW) * 0.5;
             for (let i = 0; i < positions.length / 3; i++) {
                 const x = positions[i * 3];
-                if (Math.abs(x - stripStart) < epsilon || Math.abs(x - (stripStart + stripWidth)) < epsilon) { boundaries[i] = 1.0; } 
+                if (Math.abs(x - 0.0) < epsilon || Math.abs(x - stripWidth) < epsilon) { boundaries[i] = 1.0; } 
                 else { boundaries[i] = 0.0; }
             }
             geometry.setAttribute('isBoundary', new THREE.BufferAttribute(boundaries, 1));
@@ -513,18 +424,16 @@
                 uniforms: {
                     stripOnly: { value: 0.0 }, baseColor: { value: new THREE.Color(0xffffff) },
                     stripColor: { value: new THREE.Color(0xffd700) }, boundaryColor: { value: new THREE.Color(0xff00ff) },
-                    stripWidth: { value: 1.0 },
-                    stripStart: { value: 0.0 }
+                    stripWidth: { value: 1.0 }
                 },
                 vertexShader: `
                     attribute float isBoundary; varying vec3 vColor; varying float vIsBoundary;
                     uniform float stripOnly; uniform vec3 baseColor; uniform vec3 stripColor;
                     uniform float stripWidth;
-                    uniform float stripStart;
                     vec3 hsv2rgb(vec3 c) { vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0); vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www); return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y); }
                     void main() {
                         vIsBoundary = isBoundary;
-                        float isStrip = step(stripStart, position.x) * (1.0 - step(stripStart + stripWidth, position.x));
+                        float isStrip = step(0.0, position.x) * (1.0 - step(stripWidth, position.x));
                         if (stripOnly > 0.5) { vColor = mix(baseColor, stripColor, isStrip); } 
                         else { float angle = atan(position.y, position.x); float hue = (angle + 3.14159) / (2.0 * 3.14159); float saturation = 0.7 + 0.3 * isStrip; float value = 0.9 + 0.1 * isStrip; vColor = hsv2rgb(vec3(hue, saturation, value)); }
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -546,32 +455,16 @@
             for (let i = 0; i < positions.length; i += 3) {
                 const re = positions[i];
                 const im = positions[i + 1];
-
                 if (isContinuation || re > transformBoundary) {
-                    let s = new Complex(re, im);
-                    let z_s = zeta(s); let u = z_s.re; let v = z_s.im;
+                    let s = new Complex(re, im); let z_s = zeta(s); let u = z_s.re; let v = z_s.im;
                     const clampValue = 40;
-                    if (isFinite(u) && isFinite(v)) { 
-                        newPositions[i] = Math.max(-clampValue, Math.min(clampValue, u)); 
-                        newPositions[i+1] = Math.max(-clampValue, Math.min(clampValue, v)); 
-                    } else { 
-                        newPositions[i] = clampValue * Math.sign(u || 0); 
-                        newPositions[i+1] = clampValue * Math.sign(v || 0); 
-                    }
+                    newPositions[i] = isFinite(u) ? Math.max(-clampValue, Math.min(clampValue, u)) : clampValue * Math.sign(u || 0);
+                    newPositions[i+1] = isFinite(v) ? Math.max(-clampValue, Math.min(clampValue, v)) : clampValue * Math.sign(v || 0);
                     if (useZDisplacement) {
-                        const dx = newPositions[i] - re;
-                        const dy = newPositions[i + 1] - im;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        newPositions[i + 2] = distance * 0.2;
-                    } else {
-                         newPositions[i + 2] = 0;
-                    }
-
-                } else {
-                    newPositions[i] = re;
-                    newPositions[i+1] = im;
-                    newPositions[i+2] = positions[i+2];
-                }
+                        const dx = newPositions[i] - re; const dy = newPositions[i + 1] - im;
+                        newPositions[i + 2] = Math.sqrt(dx * dx + dy * dy) * 0.2;
+                    } else { newPositions[i + 2] = 0; }
+                } else { newPositions[i] = re; newPositions[i+1] = im; newPositions[i+2] = positions[i+2]; }
             }
             return newPositions;
         }
@@ -589,48 +482,155 @@
             }
             currentAnimation = requestAnimationFrame(animate);
         }
+        
+        function createCustomAxes(width, height) {
+            const group = new THREE.Group(); const halfWidth = width / 2; const halfHeight = height / 2;
+            const realMaterial = new THREE.LineBasicMaterial();
+            const realPoints = [new THREE.Vector3(-halfWidth, 0, 0), new THREE.Vector3(halfWidth, 0, 0)];
+            const realGeometry = new THREE.BufferGeometry().setFromPoints(realPoints);
+            const realAxis = new THREE.Line(realGeometry, realMaterial); realAxis.name = 'realAxis';
+            const imagMaterial = new THREE.LineBasicMaterial();
+            const imagPoints = [new THREE.Vector3(0, 0, -halfHeight), new THREE.Vector3(0, 0, halfHeight)];
+            const imagGeometry = new THREE.BufferGeometry().setFromPoints(imagPoints);
+            const imagAxis = new THREE.Line(imagGeometry, imagMaterial); imagAxis.name = 'imagAxis';
+            group.add(realAxis); group.add(imagAxis); return group;
+        }
+        
+        function init() {
+            init3DScene();
+            setupUI();
+            switchView('zeta_function');
+        }
 
+        function init3DScene() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.insertBefore(renderer.domElement, document.body.firstChild);
+            controls = new OrbitControls(camera, renderer.domElement);
+            camera.position.set(0, 25, 35);
+            animate3D();
+        }
+
+        function setupUI() {
+            createMenu();
+            setupMobileMenu();
+            document.getElementById('info-panel').addEventListener('click', (e) => {
+                if (e.target.closest('input') || e.target.closest('button')) return;
+                e.currentTarget.classList.toggle('expanded');
+            });
+            const settingsPanel = document.getElementById('settings-panel');
+            document.getElementById('settings-button').addEventListener('click', () => {
+                 settingsPanel.classList.remove('hidden');
+                 requestAnimationFrame(() => settingsPanel.classList.add('open'));
+            });
+            document.getElementById('close-settings').addEventListener('click', () => {
+                settingsPanel.classList.remove('open');
+            });
+            settingsPanel.addEventListener('transitionend', (event) => {
+                if (event.propertyName !== 'transform' || settingsPanel.classList.contains('open')) return;
+                settingsPanel.classList.add('hidden');
+            });
+            setupZetaCalculatorListeners();
+            setupSettingsPanelListeners();
+            setupPlotControlsListeners();
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        function switchView(viewKey) {
+            if (!views[viewKey]) return;
+            currentView = viewKey;
+            
+            const view = views[viewKey];
+            infoTitle.textContent = view.title;
+            infoDescription.innerHTML = view.description;
+            infoFormula.innerHTML = view.formula;
+            MathJax.typesetPromise();
+            
+            document.querySelectorAll('.menu-button, .mobile-menu-item').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.id.includes(viewKey)) btn.classList.add('active');
+            });
+            document.getElementById('mobile-menu-label').textContent = view.title;
+            
+            const is3DView = viewKey === 'zeta_function';
+            document.getElementById('zeta-settings').classList.toggle('hidden', !is3DView);
+            document.getElementById('plot-settings').classList.toggle('hidden', is3DView);
+
+            view.setup();
+        }
+
+        function setup3DView() {
+            plotContainer.style.display = 'none';
+            plot2DContainer.style.display = 'none';
+            if (renderer) renderer.domElement.style.display = 'block';
+            controlsPanel.classList.remove('hidden');
+            zetaCalculatorContent.classList.remove('hidden');
+            setup3DControls();
+            regenerateGrid();
+            calculateAndDisplayZeta();
+        }
+        
+        function setupPlotView(varName, range, drawFn) {
+            if (renderer) renderer.domElement.style.display = 'none';
+            controlsPanel.classList.add('hidden');
+            zetaCalculatorContent.classList.add('hidden');
+            plot2DContainer.style.display = 'none';
+            plotContainer.style.display = 'flex';
+            
+            plotVarRange = range;
+            document.getElementById('plotRangeSlider').value = range;
+            document.getElementById('plotRangeValue').textContent = range;
+            document.getElementById('plot-var-label').textContent = `${varName} = `;
+            document.getElementById('plotVarInput').value = plotVarOffset.toFixed(0);
+            drawFn();
+        }
+        
+        function setupZerosView() {
+            plotVarOffset = 0;
+            const currentRange = parseInt(document.getElementById('plotRangeSlider').value);
+            setupPlotView('t', currentRange, drawZerosPlot);
+        }
+
+        function setupPrimesView() {
+            plotVarOffset = 0;
+            const currentRange = parseInt(document.getElementById('plotRangeSlider').value);
+            sieve(currentRange + 200); 
+            setupPlotView('x', currentRange, drawPrimesPlot);
+        }
+
+        function setup2DView() {
+             plotContainer.style.display = 'none';
+            if (renderer) renderer.domElement.style.display = 'none';
+            zetaCalculatorContent.classList.add('hidden');
+            plot2DContainer.style.display = 'flex';
+            setup2DControls();
+            draw2DPlot();
+        }
+        
         function regenerateGrid() {
-            const size = parseInt(document.getElementById('gridSizeValue').textContent);
+            const size = parseInt(document.getElementById('gridSize').value);
             const density = parseInt(document.getElementById('gridDensity').value);
-            const stripWidth = parseFloat(document.getElementById('stripWidthValue').textContent);
-            const stripStart = parseFloat(document.getElementById('stripStart').value);
+            const stripWidth = parseFloat(document.getElementById('stripWidth').value);
             const useZDisplacement = document.getElementById('zDisplacementToggle').checked;
             
             if (plane) { scene.remove(plane); plane.geometry.dispose(); plane.material.dispose(); }
-            
-            plane = createPlane(size, size, density, density, stripWidth, stripStart);
-            
+            plane = createPlane(size, size, density, density, stripWidth);
             updateColors();
             scene.add(plane);
             originalPositions = new Float32Array(plane.geometry.attributes.position.array);
             
-            let targetState;
-            if (isContinued) {
-                targetState = calculateTransformedPositions(originalPositions, true, useZDisplacement);
-            } else if (isTransformed) {
-                targetState = calculateTransformedPositions(originalPositions, false, useZDisplacement);
-            } else {
-                targetState = originalPositions;
-            }
-             plane.geometry.attributes.position.copyArray(targetState);
-             plane.geometry.attributes.position.needsUpdate = true;
-            
+            let targetState = isContinued ? calculateTransformedPositions(originalPositions, true, useZDisplacement) :
+                              isTransformed ? calculateTransformedPositions(originalPositions, false, useZDisplacement) :
+                              originalPositions;
+            plane.geometry.attributes.position.copyArray(targetState);
+            plane.geometry.attributes.position.needsUpdate = true;
             regenerateAxesAndLabels();
-            regenerateAllZeros();
-
-            // Update orthographic camera on grid resize
-            const aspect = window.innerWidth / window.innerHeight;
-            const frustumSize = size * 1.2;
-            orthographicCamera.left = frustumSize * aspect / -2;
-            orthographicCamera.right = frustumSize * aspect / 2;
-            orthographicCamera.top = frustumSize / 2;
-            orthographicCamera.bottom = frustumSize / -2;
-            orthographicCamera.updateProjectionMatrix();
         }
-
+        
         function regenerateAxesAndLabels() {
-            const size = parseInt(document.getElementById('gridSizeValue').textContent);
+            const size = parseInt(document.getElementById('gridSize').value);
             if (customAxes) scene.remove(customAxes);
             customAxes = createCustomAxes(size, size);
             scene.add(customAxes); updateColors();
@@ -640,7 +640,7 @@
             axesLabels.push(makeTextSprite("Im", { position: new THREE.Vector3(0, 0, size/2 + 3) }));
 
             const labelLimit = Math.min(40, Math.floor(size / 2));
-            for (let i = -labelLimit; i <= labelLimit; i++) {
+            for (let i = -labelLimit; i <= labelLimit; i+= Math.ceil(labelLimit/10)) {
                 const commonOptions = { fontsize: 28, scale: [1.5, 0.75, 1.0] };
                 if (i !== 0) {
                     axesLabels.push(makeTextSprite(`${i}i`, { ...commonOptions, position: new THREE.Vector3(0, 0, i) }));
@@ -651,325 +651,202 @@
             }
             axesLabels.forEach(label => scene.add(label));
         }
+
+        function createMenu() {
+            const menuDiv = document.getElementById('menu');
+            const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+            menuDiv.innerHTML = ''; mobileMenuDropdown.innerHTML = '';
+
+            Object.keys(views).forEach(key => {
+                const view = views[key];
+                const button = document.createElement('button');
+                button.id = `btn-${key}`; button.className = 'menu-button';
+                button.textContent = view.title; button.onclick = () => switchView(key);
+                menuDiv.appendChild(button);
+
+                const mobileButton = document.createElement('button');
+                mobileButton.id = `mobile-btn-${key}`; mobileButton.className = 'mobile-menu-item text-white';
+                mobileButton.textContent = view.title;
+                mobileButton.onclick = () => { switchView(key); mobileMenuDropdown.classList.add('hidden'); };
+                mobileMenuDropdown.appendChild(mobileButton);
+            });
+        }
         
-        function createCustomAxes(width, height) {
-            const group = new THREE.Group();
-            const halfWidth = width / 2;
-            const halfHeight = height / 2;
-            const tickSize = 0.2;
-            const labelLimit = Math.min(40, Math.floor(width / 2));
-
-            const realMaterial = new THREE.LineBasicMaterial();
-            const imagMaterial = new THREE.LineBasicMaterial();
-
-            const realPoints = [new THREE.Vector3(-halfWidth, 0, 0), new THREE.Vector3(halfWidth, 0, 0)];
-            const realGeometry = new THREE.BufferGeometry().setFromPoints(realPoints);
-            const realAxis = new THREE.Line(realGeometry, realMaterial);
-            realAxis.name = 'realAxis';
-            group.add(realAxis);
-
-            const imagPoints = [new THREE.Vector3(0, 0, -halfHeight), new THREE.Vector3(0, 0, halfHeight)];
-            const imagGeometry = new THREE.BufferGeometry().setFromPoints(imagPoints);
-            const imagAxis = new THREE.Line(imagGeometry, imagMaterial);
-            imagAxis.name = 'imagAxis';
-            group.add(imagAxis);
-            
-            for (let i = -labelLimit; i <= labelLimit; i++) {
-                if (i === 0) continue;
-                const realTickPoints = [new THREE.Vector3(i, 0, -tickSize), new THREE.Vector3(i, 0, tickSize)];
-                const realTickGeom = new THREE.BufferGeometry().setFromPoints(realTickPoints);
-                group.add(new THREE.Line(realTickGeom, realMaterial));
-
-                const imagTickPoints = [new THREE.Vector3(-tickSize, 0, i), new THREE.Vector3(tickSize, 0, i)];
-                const imagTickGeom = new THREE.BufferGeometry().setFromPoints(imagTickPoints);
-                group.add(new THREE.Line(imagTickGeom, imagMaterial));
-            }
-            
-            const halfTickSize = tickSize / 2;
-            for (let i = -labelLimit + 0.5; i < labelLimit; i++) {
-                const realTickPoints = [new THREE.Vector3(i, 0, -halfTickSize), new THREE.Vector3(i, 0, halfTickSize)];
-                const realTickGeom = new THREE.BufferGeometry().setFromPoints(realTickPoints);
-                group.add(new THREE.Line(realTickGeom, realMaterial));
-
-                const imagTickPoints = [new THREE.Vector3(-halfTickSize, 0, i), new THREE.Vector3(halfTickSize, 0, i)];
-                const imagTickGeom = new THREE.BufferGeometry().setFromPoints(imagTickPoints);
-                group.add(new THREE.Line(imagTickGeom, imagMaterial));
-            }
-
-            return group;
+        function setupMobileMenu() {
+            const menuButton = document.getElementById('mobile-menu-button');
+            const dropdown = document.getElementById('mobile-menu-dropdown');
+            menuButton.addEventListener('click', (event) => { event.stopPropagation(); dropdown.classList.toggle('hidden'); });
+            window.addEventListener('click', () => { if (!dropdown.classList.contains('hidden')) dropdown.classList.add('hidden'); });
         }
+        
+        function setup3DControls() {
+            controlsPanel.innerHTML = `
+                <button id="transformBtn" class="toggle-button">Transform</button>
+                <button id="continueBtn" class="toggle-button hidden">Analytically Continue</button>
+                <button id="resetBtn" class="toggle-button hidden">Reset</button>
+            `;
+            const transformBtn = document.getElementById('transformBtn');
+            const continueBtn = document.getElementById('continueBtn');
+            const resetBtn = document.getElementById('resetBtn');
 
-        function regenerateAllZeros() {
-            regenerateNonTrivialZeros();
-            regenerateTrivialZeros();
-        }
-
-        function regenerateNonTrivialZeros() {
-            if (nonTrivialZerosGroup) {
-                scene.remove(nonTrivialZerosGroup);
-                nonTrivialZeroMeshes.forEach(mesh => {
-                    mesh.geometry.dispose();
-                    mesh.material.dispose();
-                });
-            }
-            
-            if (!document.getElementById('showZerosToggle').checked) return;
-
-            nonTrivialZerosGroup = new THREE.Group();
-            nonTrivialZeroMeshes = [];
-            originalNonTrivialZeroPositions = [];
-            
-            const zeroSize = parseFloat(document.getElementById('zeroSizeSlider').value);
-            const zeroMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            const zeroGeometry = new THREE.SphereGeometry(zeroSize, 16, 16);
-            const size = parseInt(document.getElementById('gridSizeValue').textContent);
-            const halfSize = size / 2;
-
-            const allZeroTs = [];
-            knownZeros.forEach(t => {
-                if (t < halfSize) allZeroTs.push(t);
-                if (-t > -halfSize) allZeroTs.push(-t);
-            });
-
-            allZeroTs.forEach(t => {
-                const mesh = new THREE.Mesh(zeroGeometry.clone(), zeroMaterial.clone());
-                const startPos = new THREE.Vector3(0.5, 0, t);
-                mesh.position.copy(startPos);
-                
-                nonTrivialZerosGroup.add(mesh);
-                nonTrivialZeroMeshes.push(mesh);
-                originalNonTrivialZeroPositions.push(startPos);
-            });
-            scene.add(nonTrivialZerosGroup);
-
-            if (isTransformed || isContinued) {
+            transformBtn.addEventListener('click', () => {
+                const speed = parseInt(document.getElementById('animationSpeed').value);
                 const useZ = document.getElementById('zDisplacementToggle').checked;
-                const targetPositions = calculateZeroTargetPositions(originalNonTrivialZeroPositions, useZ);
-                nonTrivialZeroMeshes.forEach((mesh, i) => mesh.position.copy(targetPositions[i]));
-            }
-        }
-
-        function regenerateTrivialZeros() {
-            if (trivialZerosGroup) {
-                scene.remove(trivialZerosGroup);
-                trivialZeroMeshes.forEach(mesh => {
-                    mesh.geometry.dispose();
-                    mesh.material.dispose();
-                });
-            }
-            
-            if (!document.getElementById('showTrivialZerosToggle').checked) return;
-
-            trivialZerosGroup = new THREE.Group();
-            trivialZeroMeshes = [];
-            originalTrivialZeroPositions = [];
-            
-            const zeroSize = parseFloat(document.getElementById('trivialZeroSizeSlider').value);
-            const zeroMaterial = new THREE.MeshBasicMaterial({ color: 0x4444ff });
-            const zeroGeometry = new THREE.SphereGeometry(zeroSize, 16, 16);
-            const size = parseInt(document.getElementById('gridSizeValue').textContent);
-            const halfSize = size / 2;
-
-            for (let i = -2; i >= -halfSize; i -= 2) {
-                 const mesh = new THREE.Mesh(zeroGeometry.clone(), zeroMaterial.clone());
-                 const startPos = new THREE.Vector3(i, 0, 0);
-                 mesh.position.copy(startPos);
-                 trivialZerosGroup.add(mesh);
-                 trivialZeroMeshes.push(mesh);
-                 originalTrivialZeroPositions.push(startPos);
-            }
-            scene.add(trivialZerosGroup);
-
-            if (isTransformed || isContinued) {
+                const targetPositions = calculateTransformedPositions(originalPositions, false, useZ);
+                animateTransformation(originalPositions, targetPositions, speed);
+                isTransformed = true;
+                transformBtn.classList.add('hidden'); continueBtn.classList.remove('hidden'); resetBtn.classList.remove('hidden');
+            });
+            continueBtn.addEventListener('click', () => {
+                const speed = parseInt(document.getElementById('animationSpeed').value);
                 const useZ = document.getElementById('zDisplacementToggle').checked;
-                const targetPositions = calculateZeroTargetPositions(originalTrivialZeroPositions, useZ);
-                trivialZeroMeshes.forEach((mesh, i) => mesh.position.copy(targetPositions[i]));
-            }
+                const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
+                const continuedPositions = calculateTransformedPositions(originalPositions, true, useZ);
+                animateTransformation(currentPositions, continuedPositions, speed);
+                continueBtn.classList.add('hidden'); isContinued = true;
+            });
+            resetBtn.addEventListener('click', () => {
+                const speed = parseInt(document.getElementById('animationSpeed').value);
+                const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
+                animateTransformation(currentPositions, originalPositions, speed);
+                isTransformed = false; isContinued = false;
+                transformBtn.classList.remove('hidden'); continueBtn.classList.add('hidden'); resetBtn.classList.add('hidden');
+            });
         }
-
-        function calculateZeroTargetPositions(originalPositions, useZDisplacement) {
-            return originalPositions.map(startPos => {
-                if (useZDisplacement) {
-                    const re = startPos.x;
-                    const im = startPos.z;
-                    const distance = Math.sqrt(Math.pow(0 - re, 2) + Math.pow(0 - im, 2));
-                    return new THREE.Vector3(0, distance * 0.2, 0); 
-                } else {
-                    return new THREE.Vector3(0, 0, 0);
+        
+        function drawZerosPlot() {
+            const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.8, 600);
+            plotCanvas.width = width; plotCanvas.height = height;
+            const tMin = plotVarOffset, tMax = plotVarOffset + plotVarRange; const yMin = -4, yMax = 4;
+            const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding;
+            function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; }
+            function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; }
+            plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height);
+            plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(toScreenX(tMin), padding); plotCtx.lineTo(toScreenX(tMin), height - padding); plotCtx.stroke();
+            plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top';
+            for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) { plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5); }
+            plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width/2, height - 25);
+            plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle';
+            for (let y = yMin; y <= yMax; y += 1) { if(y!==0) plotCtx.fillText(y, padding - 10, toScreenY(y)); }
+            plotCtx.lineWidth = 2;
+            ['#4a90e2', '#f5a623'].forEach((color, index) => {
+                plotCtx.strokeStyle = color; plotCtx.beginPath(); let first = true;
+                for (let t = tMin; t < tMax; t += 0.1) {
+                    const s = new Complex(0.5, t); const z = zeta(s);
+                    const val = (index === 0) ? z.re : z.im;
+                    if (isFinite(val)) {
+                        if (first) { plotCtx.moveTo(toScreenX(t), toScreenY(val)); first = false; }
+                        else { plotCtx.lineTo(toScreenX(t), toScreenY(val)); }
+                    }
                 }
+                plotCtx.stroke();
             });
+            plotCtx.fillStyle = 'red'; plotCtx.font = 'bold 12px Arial';
+            knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => {
+                const x = toScreenX(t);
+                plotCtx.beginPath(); plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI); plotCtx.fill();
+                plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15);
+            });
+            // Legend
+            plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(width - padding - 100, padding, 10, 10);
+            plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5);
+            plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10);
+            plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25);
         }
 
-        function animateAllZeros(targets, duration) {
-            const startTime = performance.now();
-            const startNonTrivial = nonTrivialZeroMeshes.map(mesh => mesh.position.clone());
-            const startTrivial = trivialZeroMeshes.map(mesh => mesh.position.clone());
+        function drawPrimesPlot() {
+            const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.8, 600);
+            plotCanvas.width = width; plotCanvas.height = height;
+            const xMin = plotVarOffset, xMax = plotVarOffset + plotVarRange;
+            if (primesCache.length === 0 || xMax > primesCache[primesCache.length - 1]) sieve(xMax + 100);
+            const yMin = 0, yMax = pi_x(xMax) * 1.1;
+            const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding;
+            
+            function toScreenX(x) { return padding + (x - xMin) / (xMax - xMin) * plotWidth; }
+            function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; }
+            
+            plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height);
+            plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(padding, padding); plotCtx.lineTo(padding, height - padding); plotCtx.stroke();
 
-            function animate() {
-                const elapsed = performance.now() - startTime;
-                let progress = Math.min(elapsed / duration, 1.0);
-                progress = progress * progress * (3 - 2 * progress);
+            plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top';
+            const xTickStep = Math.max(1, Math.ceil(plotVarRange / 10));
+            for (let x = Math.ceil(xMin / xTickStep) * xTickStep; x <= xMax; x += xTickStep) { if (x > xMin) plotCtx.fillText(x, toScreenX(x), height - padding + 5); }
+            plotCtx.fillText("x", width/2, height - 25);
+            
+            plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle';
+            const yTickStep = Math.max(1, Math.ceil(yMax / 10));
+            for (let y = 0; y <= yMax; y += yTickStep) { if (y > 0) plotCtx.fillText(Math.round(y), padding - 10, toScreenY(y)); }
 
-                if(targets.nonTrivial) nonTrivialZeroMeshes.forEach((mesh, i) => mesh.position.lerpVectors(startNonTrivial[i], targets.nonTrivial[i], progress));
-                if(targets.trivial) trivialZeroMeshes.forEach((mesh, i) => mesh.position.lerpVectors(startTrivial[i], targets.trivial[i], progress));
-
-                if (progress < 1) requestAnimationFrame(animate);
+            // Plot pi(x)
+            plotCtx.strokeStyle = '#4a90e2'; plotCtx.lineWidth = 2; plotCtx.beginPath();
+            let lastY = toScreenY(pi_x(xMin)); plotCtx.moveTo(toScreenX(xMin), lastY);
+            for (let x = Math.floor(xMin); x <= xMax; x++) {
+                const y = pi_x(x); const screenY = toScreenY(y);
+                if (Math.abs(screenY - lastY) > 0.01) {
+                    plotCtx.lineTo(toScreenX(x), lastY);
+                    plotCtx.lineTo(toScreenX(x), screenY);
+                    lastY = screenY;
+                }
             }
-            requestAnimationFrame(animate);
-        }
-
-        function updateColors() {
-            if (!plane || !customAxes) return;
-            const stripOnly = document.getElementById('stripOnlyColor').checked;
-            plane.material.uniforms.stripOnly.value = stripOnly ? 1.0 : 0.0;
-            plane.material.uniforms.baseColor.value.set(document.getElementById('baseColor').value);
-            plane.material.uniforms.stripColor.value.set(document.getElementById('stripColor').value);
-            plane.material.uniforms.boundaryColor.value.set(document.getElementById('boundaryColor').value);
-            plane.material.uniforms.stripWidth.value = parseFloat(document.getElementById('stripWidthValue').textContent);
-            plane.material.uniforms.stripStart.value = parseFloat(document.getElementById('stripStart').value);
+            plotCtx.lineTo(toScreenX(xMax), lastY); plotCtx.stroke();
             
-            const realAxisMaterial = customAxes.getObjectByName('realAxis').material;
-            const imagAxisMaterial = customAxes.getObjectByName('imagAxis').material;
-            realAxisMaterial.color.set(document.getElementById('realAxisColor').value);
-            imagAxisMaterial.color.set(document.getElementById('imagAxisColor').value);
-        }
-
-        function init3D() {
-            scene = new THREE.Scene();
-
-            // Create both perspective and orthographic cameras
-            perspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            // Plot Li(x)
+            plotCtx.strokeStyle = '#f5a623'; plotCtx.beginPath();
+            for (let x = Math.max(2, xMin); x <= xMax; x += 0.5) {
+                plotCtx.lineTo(toScreenX(x), toScreenY(logIntegral(x)));
+            }
+            plotCtx.stroke();
             
-            const initialSize = parseInt(document.getElementById('gridSize').value);
-            const frustumSize = initialSize * 1.2;
-            const aspect = window.innerWidth / window.innerHeight;
-            orthographicCamera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0.1, 1000);
-            orthographicCamera.position.set(0, 50, 0);
-
-            camera = perspectiveCamera; // Set the active camera
-
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.insertBefore(renderer.domElement, document.body.firstChild);
-            
-            const bhGeometry = new THREE.SphereGeometry(0.1, 16, 16);
-            const bhMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            blackHole = new THREE.Mesh(bhGeometry, bhMaterial);
-            scene.add(blackHole);
-
-            controls = new OrbitControls(camera, renderer.domElement);
-            perspectiveCamera.position.set(0, 25, 35);
-            
-            regenerateGrid(); 
-            calculateAndDisplayZeta();
-            animate3D();
+            // Legend
+            plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(padding + 10, padding + 10, 10, 10);
+            plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('π(x) (Actual Prime Count)', padding + 25, padding + 15);
+            plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(padding + 10, padding + 30, 10, 10);
+            plotCtx.fillText('Li(x) (Logarithmic Integral Approx.)', padding + 25, padding + 35);
         }
         
-        function animate3D() { requestAnimationFrame(animate3D); controls.update(); renderer.render(scene, camera); }
+        function sieve(n) {
+            const isPrime = new Array(n + 1).fill(true);
+            isPrime[0] = isPrime[1] = false;
+            for (let p = 2; p * p <= n; p++) {
+                if (isPrime[p]) { for (let i = p * p; i <= n; i += p) isPrime[i] = false; }
+            }
+            primesCache = [];
+            for(let i = 2; i <= n; i++) if(isPrime[i]) primesCache.push(i);
+        }
+        function pi_x(x) {
+            let count = 0;
+            for(const p of primesCache) {
+                if (p <= x) count++;
+                else break;
+            }
+            return count;
+        }
+        function logIntegral(x) {
+            if (x < 2) return 0;
+            let sum = 0; const dx = 0.1;
+            for (let t = 2; t < x; t += dx) { sum += (1 / Math.log(t)) * dx; }
+            return sum;
+        }
         
-        function drawZerosPlot(t_offset = 0) { plotContainer.style.display = 'flex'; if (renderer) renderer.domElement.style.display = 'none'; primeCountingContainer.style.display = 'none'; const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.7, 550); plotCanvas.width = width; plotCanvas.height = height; const tMin = t_offset, tMax = t_offset + tRange; const yMin = -4, yMax = 4; const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding; function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; } function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; } plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height); plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(toScreenX(tMin), padding); plotCtx.lineTo(toScreenX(tMin), height - padding); plotCtx.stroke(); plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top'; for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) { plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5); } plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width/2, height - 25); plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle'; for (let y = yMin; y <= yMax; y += 1) { if(y!==0) plotCtx.fillText(y, padding - 10, toScreenY(y)); } plotCtx.lineWidth = 2; ['#4a90e2', '#f5a623'].forEach((color, index) => { plotCtx.strokeStyle = color; plotCtx.beginPath(); let first = true; for (let t = tMin; t < tMax; t += 0.1) { const s = new Complex(0.5, t); const z = zeta(s); const val = (index === 0) ? z.re : z.im; if (isFinite(val)) { if (first) { plotCtx.moveTo(toScreenX(t), toScreenY(val)); first = false; } else { plotCtx.lineTo(toScreenX(t), toScreenY(val)); } } } plotCtx.stroke(); }); plotCtx.fillStyle = 'red'; plotCtx.font = 'bold 12px Arial'; knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => { const x = toScreenX(t); plotCtx.beginPath(); plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI); plotCtx.fill(); plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15); }); plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(width - padding - 100, padding, 10, 10); plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5); plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10); plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25); }
-
-        function setInitialSliderValues() {
-            document.getElementById('gridSizeValue').textContent = document.getElementById('gridSize').value;
-            document.getElementById('gridDensityValue').textContent = document.getElementById('gridDensity').value;
-            document.getElementById('animationSpeedValue').textContent = document.getElementById('animationSpeed').value;
-            document.getElementById('stripStartValue').textContent = parseFloat(document.getElementById('stripStart').value).toFixed(1);
-            document.getElementById('zeroSizeValue').textContent = parseFloat(document.getElementById('zeroSizeSlider').value).toFixed(2);
-            document.getElementById('trivialZeroSizeValue').textContent = parseFloat(document.getElementById('trivialZeroSizeSlider').value).toFixed(2);
-
-            const stripWidthSlider = document.getElementById('stripWidth');
-            const stripWidthValueSpan = document.getElementById('stripWidthValue');
-            const initialStripWidth = 1.0;
-            stripWidthSlider.value = logToLinear(initialStripWidth, MIN_STRIP_WIDTH, MAX_STRIP_WIDTH, 100);
-            stripWidthValueSpan.textContent = parseFloat(initialStripWidth.toPrecision(4));
+        function onWindowResize() {
+            if (camera) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+            }
+            if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
+            updateCurrentPlot();
+        }
+        
+        function setupZetaCalculatorListeners() {
+            document.getElementById('calculateZetaBtn').addEventListener('click', calculateAndDisplayZeta);
         }
 
-        document.getElementById('transformViewBtn').addEventListener('click', () => {
-            plotContainer.style.display = 'none';
-            primeCountingContainer.style.display = 'none';
-            renderer.domElement.style.display = 'block';
-            view3dControls.style.display = 'flex';
-            info3D.classList.remove('hidden');
-            infoZeros.classList.add('hidden');
-            infoPrime.classList.add('hidden');
-        });
-        document.getElementById('zerosViewBtn').addEventListener('click', () => {
-            plotContainer.style.display = 'flex';
-            primeCountingContainer.style.display = 'none';
-            renderer.domElement.style.display = 'none';
-            view3dControls.style.display = 'none';
-            info3D.classList.add('hidden');
-            infoZeros.classList.remove('hidden');
-            infoPrime.classList.add('hidden');
-            drawZerosPlot(tOffset);
-        });
-        document.getElementById('primeCountingViewBtn').addEventListener('click', () => {
-            primeCountingContainer.style.display = 'flex';
-            plotContainer.style.display = 'none';
-            renderer.domElement.style.display = 'none';
-            view3dControls.style.display = 'none';
-            info3D.classList.add('hidden');
-            infoZeros.classList.add('hidden');
-            infoPrime.classList.remove('hidden');
-            updatePrimeChart();
-        });
-        
-        const transformBtn = document.getElementById('transformBtn');
-        const continueBtn = document.getElementById('continueBtn');
-        const resetBtn = document.getElementById('resetBtn');
-
-        transformBtn.addEventListener('click', () => {
-            const speed = parseInt(document.getElementById('animationSpeed').value);
-            const useZ = document.getElementById('zDisplacementToggle').checked;
-            const targetPositions = calculateTransformedPositions(originalPositions, false, useZ);
-            animateTransformation(originalPositions, targetPositions, speed);
-            
-            const nonTrivialTargets = calculateZeroTargetPositions(originalNonTrivialZeroPositions, useZ);
-            const trivialTargets = calculateZeroTargetPositions(originalTrivialZeroPositions, useZ);
-            animateAllZeros({ nonTrivial: nonTrivialTargets, trivial: trivialTargets }, speed);
-
-            isTransformed = true;
-            transformBtn.classList.add('hidden');
-            continueBtn.classList.remove('hidden');
-            resetBtn.classList.remove('hidden');
-        });
-        
-        continueBtn.addEventListener('click', () => {
-            const speed = parseInt(document.getElementById('animationSpeed').value);
-            const useZ = document.getElementById('zDisplacementToggle').checked;
-            const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
-            const continuedPositions = calculateTransformedPositions(originalPositions, true, useZ);
-            animateTransformation(currentPositions, continuedPositions, speed);
-            
-            const nonTrivialTargets = calculateZeroTargetPositions(originalNonTrivialZeroPositions, useZ);
-            const trivialTargets = calculateZeroTargetPositions(originalTrivialZeroPositions, useZ);
-            animateAllZeros({ nonTrivial: nonTrivialTargets, trivial: trivialTargets }, speed);
-
-            continueBtn.classList.add('hidden');
-            isContinued = true;
-        });
-
-        resetBtn.addEventListener('click', () => {
-            const speed = parseInt(document.getElementById('animationSpeed').value);
-            const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
-            animateTransformation(currentPositions, originalPositions, speed);
-
-            animateAllZeros({ nonTrivial: originalNonTrivialZeroPositions, trivial: originalTrivialZeroPositions }, speed);
-
-            isTransformed = false;
-            isContinued = false;
-            transformBtn.classList.remove('hidden');
-            continueBtn.classList.add('hidden');
-            resetBtn.classList.add('hidden');
-        });
-        
         function calculateAndDisplayZeta() {
             const re = parseFloat(document.getElementById('zetaRealInput').value) || 0;
             const im = parseFloat(document.getElementById('zetaImagInput').value) || 0;
             const s = new Complex(re, im);
             const result = zeta(s);
             const resultDiv = document.getElementById('zetaResult');
-
             if (!isFinite(result.re) || !isFinite(result.im)) {
                 resultDiv.textContent = "Result is infinite (pole at s=1)";
             } else {
@@ -978,382 +855,150 @@
                 resultDiv.textContent = `${realPart} ${imagPart >= 0 ? '+' : '-'} ${Math.abs(imagPart)}i`;
             }
         }
-
-        document.getElementById('calculateZetaBtn').addEventListener('click', calculateAndDisplayZeta);
-        document.getElementById('settingsBtn').addEventListener('click', () => document.getElementById('settings-panel').classList.toggle('hidden'));
         
-        document.getElementById('gridSize').addEventListener('input', (e) => {
-            const slider = e.target;
-            const sliderValue = parseInt(slider.value);
-            const useLog = document.getElementById('gridSizeLogToggle').checked;
-            let newSize;
-
-            if (useLog) {
-                newSize = linearToLog(sliderValue, MIN_GRID_SIZE, MAX_GRID_SIZE, parseInt(slider.max));
-            } else {
-                newSize = sliderValue;
-            }
-            
-            document.getElementById('gridSizeValue').textContent = Math.round(newSize);
-            regenerateGrid(); 
-        });
-
-         document.getElementById('gridSizeLogToggle').addEventListener('input', (e) => {
-            const useLog = e.target.checked;
-            const sizeSpan = document.getElementById('gridSizeValue');
-            const sizeSlider = document.getElementById('gridSize');
-            let currentSize = parseInt(sizeSpan.textContent);
-
-            if (useLog) {
-                sizeSlider.value = logToLinear(currentSize, MIN_GRID_SIZE, MAX_GRID_SIZE, parseInt(sizeSlider.max));
-            } else {
-                if(currentSize < MIN_GRID_SIZE) currentSize = MIN_GRID_SIZE;
-                if(currentSize > MAX_GRID_SIZE) currentSize = MAX_GRID_SIZE;
-                sizeSlider.value = currentSize;
-            }
-        });
-
-        document.getElementById('gridDensity').addEventListener('input', (e) => { document.getElementById('gridDensityValue').textContent = e.target.value; regenerateGrid(); });
-        document.getElementById('animationSpeed').addEventListener('input', (e) => { document.getElementById('animationSpeedValue').textContent = e.target.value; });
-        
-        document.getElementById('stripWidth').addEventListener('input', (e) => {
-            const linearValue = parseFloat(e.target.value);
-            const logValue = linearToLog(linearValue, MIN_STRIP_WIDTH, MAX_STRIP_WIDTH, 100);
-            document.getElementById('stripWidthValue').textContent = parseFloat(logValue.toPrecision(4));
-            regenerateGrid();
-        });
-
-        document.getElementById('stripStart').addEventListener('input', (e) => {
-            document.getElementById('stripStartValue').textContent = parseFloat(e.target.value).toFixed(1);
-            regenerateGrid();
-        });
-        
-        document.getElementById('zDisplacementToggle').addEventListener('input', () => {
-            if (!isTransformed && !isContinued) return;
-            const currentGridPositions = new Float32Array(plane.geometry.attributes.position.array);
-            const useZ = document.getElementById('zDisplacementToggle').checked;
-            const speed = parseInt(document.getElementById('animationSpeed').value);
-            
-            let targetGridPositions;
-            if (isContinued) {
-                targetGridPositions = calculateTransformedPositions(originalPositions, true, useZ);
-            } else { 
-                targetGridPositions = calculateTransformedPositions(originalPositions, false, useZ);
-            }
-            animateTransformation(currentGridPositions, targetGridPositions, speed);
-            
-            const nonTrivialTargets = calculateZeroTargetPositions(originalNonTrivialZeroPositions, useZ);
-            const trivialTargets = calculateZeroTargetPositions(originalTrivialZeroPositions, useZ);
-            animateAllZeros({ nonTrivial: nonTrivialTargets, trivial: trivialTargets }, speed);
-        });
-
-        document.getElementById('showZerosToggle').addEventListener('input', regenerateAllZeros);
-        document.getElementById('zeroSizeSlider').addEventListener('input', (e) => {
-             document.getElementById('zeroSizeValue').textContent = parseFloat(e.target.value).toFixed(2);
-             regenerateNonTrivialZeros();
-        });
-        
-        document.getElementById('showTrivialZerosToggle').addEventListener('input', regenerateAllZeros);
-        document.getElementById('trivialZeroSizeSlider').addEventListener('input', (e) => {
-             document.getElementById('trivialZeroSizeValue').textContent = parseFloat(e.target.value).toFixed(2);
-             regenerateTrivialZeros();
-        });
-
-        ['stripOnlyColor', 'baseColor', 'stripColor', 'boundaryColor', 'realAxisColor', 'imagAxisColor'].forEach(id => { document.getElementById(id).addEventListener('input', updateColors); });
-        
-        const tOffsetInput = document.getElementById('tOffsetInput');
-        tOffsetInput.addEventListener('keyup', (event) => { if (event.key === 'Enter') { document.getElementById('goBtn').click(); } });
-        document.getElementById('nextBtn').addEventListener('click', () => { tOffset += tRange; tOffsetInput.value = tOffset; drawZerosPlot(tOffset); });
-        document.getElementById('prevBtn').addEventListener('click', () => { tOffset = Math.max(0, tOffset - tRange); tOffsetInput.value = tOffset; drawZerosPlot(tOffset); });
-        document.getElementById('goBtn').addEventListener('click', () => { const val = parseFloat(tOffsetInput.value); if (!isNaN(val)) { tOffset = Math.max(0, val); drawZerosPlot(tOffset); } });
-        
-        document.getElementById('toggleViewBtn').addEventListener('click', () => {
-            is3DView = !is3DView;
-            const btn = document.getElementById('toggleViewBtn');
-
-            if (is3DView) {
-                camera = perspectiveCamera;
-                controls.object = camera;
-                camera.position.set(0, 25, 35);
-                controls.target.set(0, 0, 0);
-                controls.enableRotate = true;
-                controls.update();
-                btn.textContent = '2D View';
-            } else {
-                camera = orthographicCamera;
-                controls.object = camera;
-                camera.position.set(0, 50, 0); // Look down from above
-                camera.lookAt(scene.position);
-                camera.zoom = 1;
-                camera.updateProjectionMatrix();
-                controls.target.set(0, 0, 0);
-                controls.enableRotate = false; // Disable rotation for 2D top-down view
-                controls.update();
-                btn.textContent = '3D View';
-            }
-        });
-
-        // --- Prime Counting Chart Logic ---
-        const primeChartCanvas = document.getElementById('primeChartCanvas');
-        let primes = [];
-        const MAX_PRIME = 5000;
-        let primeSet = new Set();
-
-
-        function sieve(n) {
-            const isPrime = new Array(n + 1).fill(true);
-            isPrime[0] = isPrime[1] = false;
-            for (let p = 2; p * p <= n; p++) {
-                if (isPrime[p]) {
-                    for (let i = p * p; i <= n; i += p) isPrime[i] = false;
-                }
-            }
-            const primeNumbers = [];
-            for (let i = 2; i <= n; i++) {
-                if (isPrime[i]) primeNumbers.push(i);
-            }
-            primeSet = new Set(primeNumbers);
-            return primeNumbers;
-        }
-
-        function primePi(x, primeList) {
-            let count = 0;
-            for (const p of primeList) {
-                if (p <= x) count++;
-                else break;
-            }
-            return count;
-        }
-        
-        function logIntegral(x, steps = 1000) {
-            if (x < 2) return 0;
-            let sum = 0;
-            const h = (x - 2) / steps;
-            for (let i = 0; i < steps; i++) {
-                const t = 2 + i * h;
-                if (t > 1) sum += 1 / Math.log(t);
-            }
-            return sum * h;
-        }
-
-        function riemannTerm(x, gamma) {
-            const logX = Math.log(x);
-            if (logX === 0) return 0; // Avoid division by zero
-            const term = (0.5 * Math.cos(gamma * logX) + gamma * Math.sin(gamma * logX)) / (0.25 + gamma * gamma);
-            return -2 * Math.sqrt(x) / logX * term;
-        }
-
-        function updatePrimeChart() {
-            const xMax = parseInt(document.getElementById('xMaxSlider').value);
-            const numZerosSlider = document.getElementById('numZerosSlider');
-            const numZeros = parseInt(numZerosSlider.value);
-            const isInfinity = numZeros === parseInt(numZerosSlider.max);
-            const useLogScale = document.getElementById('logScaleToggle').checked;
-            const showWaves = document.getElementById('showWavesToggle').checked;
-            
-            document.getElementById('xMaxLabel').textContent = xMax;
-            document.getElementById('numZerosLabel').textContent = isInfinity ? 'Infinity' : numZeros;
-
-            if(isMusicPlaying) {
-                updateMusic(numZeros, isInfinity);
-            }
-
-            if (xMax > primes[primes.length - 1]) {
-                primes = sieve(xMax + 10);
-            }
-
-            const labels = [];
-            const piData = [];
-            const liData = [];
-            const riemannData = [];
-            
-            const step = xMax > 500 ? Math.ceil(xMax / 500) : 1;
-            for (let x = 2; x <= xMax; x+=step) {
-                labels.push(x);
-                const pi_x = primePi(x, primes);
-                piData.push(pi_x);
-                const li_x = logIntegral(x);
-                liData.push(li_x);
-                
-                if (isInfinity) {
-                    if (primeSet.has(x)) {
-                        riemannData.push(pi_x - 0.5);
-                    } else {
-                        riemannData.push(pi_x);
-                    }
-                } else {
-                    let correction = 0;
-                    for(let i=0; i < numZeros; i++) {
-                       correction += riemannTerm(x, knownZeros[i]);
-                    }
-                    riemannData.push(li_x + correction);
-                }
-            }
-
-            primeChart.data.labels = labels;
-
-            const newDatasets = [
-                { label: 'π(x)', data: piData, borderColor: 'rgba(75, 192, 192, 1)', fill: false, borderWidth: 2, pointRadius: 0, stepped: 'before', yAxisID: 'y' },
-                { label: 'Li(x)', data: liData, borderColor: 'rgba(54, 162, 235, 1)', fill: false, borderWidth: 2, pointRadius: 0, yAxisID: 'y' },
-                { label: 'Riemann Approx.', data: riemannData, borderColor: 'rgba(255, 99, 132, 1)', fill: false, borderWidth: 2.5, pointRadius: 0, yAxisID: 'y' }
-            ];
-
-            if (showWaves && !isInfinity && numZeros > 0) {
-                for (let j = 0; j < numZeros; j++) {
-                    const waveData = labels.map(x => riemannTerm(x, knownZeros[j]));
-                    newDatasets.push({
-                        data: waveData,
-                        borderColor: 'rgba(200, 200, 200, 0.35)',
-                        borderWidth: 1,
-                        pointRadius: 0,
-                        yAxisID: 'y-waves'
-                    });
-                }
-                primeChart.options.plugins.legend.display = false;
-            } else {
-                primeChart.options.plugins.legend.display = true;
-            }
-            
-            primeChart.data.datasets = newDatasets;
-            primeChart.options.scales.x.type = useLogScale ? 'logarithmic' : 'linear';
-            primeChart.update('none');
-        }
-
-        function zeroToFrequency(gamma) {
-            // Map the first zero (14.13) to a low note like C3 (approx 130 Hz)
-            const baseFreq = 130.81;
-            const baseGamma = 14.1347;
-            // Use a logarithmic scale (like musical octaves) which sounds more natural
-            return baseFreq * Math.pow(2, Math.log2(gamma / baseGamma));
-        }
-
-        function updateMusic(numZeros, isInfinity) {
-            if (!synth) return;
-
-            // Stop any currently playing notes
-            synth.releaseAll();
-            
-            if (numZeros === 0 && !isInfinity) return;
-
-            const notesToPlay = [];
-            let limit = isInfinity ? knownZeros.length : numZeros;
-
-            for (let i = 0; i < limit; i++) {
-                const freq = zeroToFrequency(knownZeros[i]);
-                // Only play notes within a reasonable audible and non-muddy range
-                if (freq > 80 && freq < 4000) {
-                    notesToPlay.push(freq);
-                }
-            }
-
-            if (notesToPlay.length > 0) {
-                synth.triggerAttack(notesToPlay, Tone.now());
-            }
-        }
-
-
-        function initPrimeCountingView() {
-            primes = sieve(MAX_PRIME);
-            const ctx = primeChartCanvas.getContext('2d');
-            primeChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: []
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    scales: {
-                        x: { type: 'linear', title: { display: true, text: 'x', color: '#ccc' }, ticks: { color: '#ccc' }, grid: { color: '#444' } },
-                        y: { 
-                            position: 'left',
-                            title: { display: true, text: 'Count', color: '#ccc' }, 
-                            ticks: { color: '#ccc' }, 
-                            grid: { color: '#444' }
-                        },
-                        'y-waves': {
-                            position: 'right',
-                            grid: {
-                                drawOnChartArea: false, // only show axis and ticks
-                            },
-                            ticks: {
-                                color: 'rgba(200, 200, 200, 0.7)',
-                            },
-                            title: {
-                                display: true,
-                                text: 'Correction Value',
-                                color: 'rgba(200, 200, 200, 0.7)',
-                            }
-                        }
-                    },
-                    plugins: { 
-                        legend: { labels: { color: '#ccc' } },
-                        tooltip: { enabled: false },
-                        decimation: { enabled: true, algorithm: 'lttb', samples: 500 }
-                     }
-                }
+        function setupSettingsPanelListeners() {
+            document.getElementById('gridSize').addEventListener('input', (e) => { document.getElementById('gridSizeValue').textContent = e.target.value; regenerateGrid(); });
+            document.getElementById('gridDensity').addEventListener('input', (e) => { document.getElementById('gridDensityValue').textContent = e.target.value; regenerateGrid(); });
+            document.getElementById('animationSpeed').addEventListener('input', (e) => { document.getElementById('animationSpeedValue').textContent = e.target.value; });
+            document.getElementById('stripWidth').addEventListener('input', (e) => { document.getElementById('stripWidthValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
+            document.getElementById('zDisplacementToggle').addEventListener('input', () => {
+                if (!isTransformed && !isContinued) return;
+                const currentPositions = new Float32Array(plane.geometry.attributes.position.array);
+                const useZ = document.getElementById('zDisplacementToggle').checked;
+                const speed = parseInt(document.getElementById('animationSpeed').value);
+                let targetPositions = isContinued ? calculateTransformedPositions(originalPositions, true, useZ) : calculateTransformedPositions(originalPositions, false, useZ);
+                animateTransformation(currentPositions, targetPositions, speed);
             });
-            
-            document.getElementById('xMaxSlider').addEventListener('input', updatePrimeChart);
-            document.getElementById('numZerosSlider').addEventListener('input', updatePrimeChart);
-            document.getElementById('logScaleToggle').addEventListener('input', updatePrimeChart);
-            document.getElementById('showWavesToggle').addEventListener('input', updatePrimeChart);
-            updatePrimeChart();
+            ['stripOnlyColor', 'baseColor', 'stripColor', 'boundaryColor', 'realAxisColor', 'imagAxisColor'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateColors);
+            });
+
+            document.getElementById('plotRangeSlider').addEventListener('input', (e) => {
+                plotVarRange = parseInt(e.target.value);
+                document.getElementById('plotRangeValue').textContent = plotVarRange;
+                updateCurrentPlot();
+            });
+        }
+        
+        function updateCurrentPlot() {
+            if (currentView === 'zeros') drawZerosPlot();
+            else if (currentView === 'prime_counting') drawPrimesPlot();
+            else if (currentView === 'zeta_2d') draw2DPlot();
         }
 
+        function setupPlotControlsListeners() {
+            const input = document.getElementById('plotVarInput');
+            const goBtn = document.getElementById('goBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const prevBtn = document.getElementById('prevBtn');
 
-        window.addEventListener('resize', () => {
-            if(!renderer) return;
+            nextBtn.addEventListener('click', () => { plotVarOffset += plotVarRange; input.value = plotVarOffset.toFixed(0); updateCurrentPlot(); });
+            prevBtn.addEventListener('click', () => { plotVarOffset = Math.max(0, plotVarOffset - plotVarRange); input.value = plotVarOffset.toFixed(0); updateCurrentPlot(); });
+            goBtn.addEventListener('click', () => { const val = parseFloat(input.value); if (!isNaN(val)) { plotVarOffset = Math.max(0, val); updateCurrentPlot(); } });
+            input.addEventListener('keyup', (event) => { if (event.key === 'Enter') goBtn.click(); });
+        }
+        
+        function updateColors() {
+            if (!plane || !customAxes) return;
+            plane.material.uniforms.stripOnly.value = document.getElementById('stripOnlyColor').checked ? 1.0 : 0.0;
+            plane.material.uniforms.baseColor.value.set(document.getElementById('baseColor').value);
+            plane.material.uniforms.stripColor.value.set(document.getElementById('stripColor').value);
+            plane.material.uniforms.boundaryColor.value.set(document.getElementById('boundaryColor').value);
+            plane.material.uniforms.stripWidth.value = parseFloat(document.getElementById('stripWidth').value);
+            const realAxis = customAxes.getObjectByName('realAxis');
+            const imagAxis = customAxes.getObjectByName('imagAxis');
+            if(realAxis) realAxis.material.color.set(document.getElementById('realAxisColor').value);
+            if(imagAxis) imagAxis.material.color.set(document.getElementById('imagAxisColor').value);
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            if (currentView === 'zeta_function') {
+                controls.update();
+                renderer.render(scene, camera);
+            }
+        }
+        
+        // --- 2D Plot specific ---
+        let current2DParams = {xMin: -10, xMax: 10, yMin: -25, yMax: 25, resolution: 1.0};
+        let isDrawing2D = false;
+        
+        function hsvToRgb(h, s, v) {
+            let r, g, b; let i = Math.floor(h * 6); let f = h * 6 - i;
+            let p = v * (1 - s); let q = v * (1 - f * s); let t = v * (1 - (1 - f) * s);
+            switch (i % 6) {
+                case 0: r = v, g = t, b = p; break; case 1: r = q, g = v, b = p; break;
+                case 2: r = p, g = v, b = t; break; case 3: r = p, g = q, b = v; break;
+                case 4: r = t, g = p, b = v; break; case 5: r = v, g = p, b = q; break;
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+        
+        async function draw2DPlot() {
+            if (isDrawing2D) return;
+            isDrawing2D = true;
             
-            renderer.setSize(window.innerWidth, window.innerHeight); 
-            const aspect = window.innerWidth / window.innerHeight;
+            const canvas = plot2DCanvas;
+            const ctx = plot2DCtx;
+            const size = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8, 800);
+            canvas.width = size; canvas.height = size;
 
-            // Update perspective camera
-            perspectiveCamera.aspect = aspect;
-            perspectiveCamera.updateProjectionMatrix();
+            const {xMin, xMax, yMin, yMax, resolution} = current2DParams;
+            const width = Math.floor(size * resolution);
+            const height = Math.floor(size * resolution);
+            if(canvas.width !== width) canvas.width = width;
+            if(canvas.height !== height) canvas.height = height;
 
-            // Update orthographic camera
-            const size = parseInt(document.getElementById('gridSizeValue').textContent);
-            const frustumSize = size * 1.2;
-            orthographicCamera.left = frustumSize * aspect / -2;
-            orthographicCamera.right = frustumSize * aspect / 2;
-            orthographicCamera.top = frustumSize / 2;
-            orthographicCamera.bottom = frustumSize / -2;
-            orthographicCamera.updateProjectionMatrix();
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, width, height);
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            
+            const xRange = xMax - xMin;
+            const yRange = yMax - yMin;
 
-            if (plotContainer.style.display !== 'none') { drawZerosPlot(tOffset); }
-        });
-
-        document.getElementById('playMusicBtn').addEventListener('click', async () => {
-            if (!synth) { // Initialize on first click
-                await Tone.start();
-                synth = new Tone.PolySynth(Tone.Synth, {
-                    oscillator: { type: 'sine' },
-                    envelope: { attack: 0.2, decay: 0.1, sustain: 0.8, release: 0.5 }
-                }).toDestination();
-                synth.volume.value = -15; // Set a reasonable volume
-                 console.log('Audio context started, synth created.');
+            for (let i = 0; i < height; i++) {
+                for (let j = 0; j < width; j++) {
+                    const re = xMin + (j / width) * xRange;
+                    const im = yMax - (i / height) * yRange;
+                    const z = zeta(new Complex(re, im));
+                    const mag = z.magnitude();
+                    const phase = z.phase();
+                    
+                    const hue = (phase / (2 * Math.PI)) + 0.5;
+                    const lightness = (1 - 1 / (1 + mag*0.5));
+                    
+                    const [r, g, b] = hsvToRgb(hue, 0.85, lightness);
+                    
+                    const index = (i * width + j) * 4;
+                    data[index] = r;
+                    data[index+1] = g;
+                    data[index+2] = b;
+                    data[index+3] = 255;
+                }
             }
-            isMusicPlaying = true;
-            document.getElementById('playMusicBtn').classList.add('hidden');
-            document.getElementById('stopMusicBtn').classList.remove('hidden');
-            updatePrimeChart(); // Trigger music update
-        });
+            ctx.putImageData(imageData, 0, 0);
+            isDrawing2D = false;
+        }
 
-        document.getElementById('stopMusicBtn').addEventListener('click', () => {
-            isMusicPlaying = false;
-            document.getElementById('stopMusicBtn').classList.add('hidden');
-            document.getElementById('playMusicBtn').classList.remove('hidden');
-            if (synth) {
-                synth.releaseAll();
-            }
-        });
-
-        init3D();
-        setInitialSliderValues();
-        initPrimeCountingView();
+        function setup2DControls() {
+            controlsPanel.innerHTML = `
+                <div class="control-group text-white">
+                    Re: [<span id="reMinVal">-10</span>, <span id="reMaxVal">10</span>] 
+                </div>
+                <div class="control-group text-white">
+                    Im: [<span id="imMinVal">-25</span>, <span id="imMaxVal">25</span>] 
+                </div>
+                 <div class="control-group text-white">
+                    Resolution: <span id="resVal">1.0</span>x
+                </div>
+                <button id="redraw2DBtn" class="toggle-button">Zoom/Pan</button>
+            `;
+            // This is a placeholder for more complex controls. For now, we just have a redraw button.
+            // A full implementation would have sliders that update these values.
+        }
+        
+        init();
 
     </script>
 </body>
