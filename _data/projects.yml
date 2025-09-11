@@ -76,6 +76,12 @@
   visualization_url: /visualizations/blackhole-entropy.html
   description: A short description goes here.
 
+- title: Complex Numbers
+  author: Jasper Taal
+  thumbnail: /assets/images/complex-numbers.png
+  visualization_url: /visualizations/complex-numbers.html
+  description: A short description goes here.
+
 - title: Chirp Up And Down
   author: Jasper Taal
   thumbnail: /assets/images/chirp-up-and-down.png
