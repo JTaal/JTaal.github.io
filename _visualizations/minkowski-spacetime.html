@@ -443,7 +443,7 @@
         clock = new THREE.Clock();
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.set(0, 3, 8);
+        camera.position.set(0, 5, 25);
         
         playerDolly = new THREE.Group();
         playerDolly.add(camera);
@@ -459,9 +459,10 @@
         controls.dampingFactor = 0.05;
 
         gridHelper = new THREE.GridHelper(30, 15, 0x4b5563);
+        gridHelper.visible = false;
         scene.add(gridHelper);
         
-        createSpacetimeAxes(5); // Add labeled axes for orientation
+        createSpacetimeAxes(15);
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.5));
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -483,7 +484,7 @@
         if (result.followTarget) followObject = result.followTarget;
 
         const sceneData = {
-            title: 'Minkowski Spacetime (Arc)',
+            title: 'Minkowski Spacetime',
             description: 'A visualization of combined circular and Minkowski space, as conceptualized by you. The arc on the sphere represents a path within this combined spacetime framework. Use the controls to explore its properties.'
         };
         document.getElementById('info-title').textContent = sceneData.title;
@@ -497,50 +498,82 @@
     // --- Scene Definition ---
     function initMinkowskiArcViewer() {
         const SPHERE_RADIUS = 4;
-        let sphereMesh, arcMesh, areaMesh, minkowskiCone, worldLineMesh, returnWorldLineMesh, sphereGrid;
+        let sphereMesh, arcMesh, areaMesh, animationGroup, sphereGrid, interactiveCone, worldLineMesh, returnWorldLineMesh;
+        
+        const animatedCones = [];
         const arcMaterial = new THREE.MeshStandardMaterial({ color: 0xe63946, roughness: 0.4, metalness: 0.2, side: THREE.DoubleSide });
         const coneMat = new THREE.MeshBasicMaterial({ color: 0xfca311, wireframe: true, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
         
         // State
         let metric = 'deg';
-        let isMinkowski = true; 
+        let currentView = 'animation'; // 'animation', 'interactive', 'arcBall'
         let isAreaVisible = false;
         let isWireframe = true;
         let isReturnTrip = false;
         let metrics = { arc: 0, chord: 0, area: 0 };
-        let minkowskiParams = { c: 1, v: 0.5, coneDistance: -20 };
+        let minkowskiParams = { c: 0.5, v: 0.25, coneDistance: 0, coneHeight: 10 };
         let velocityProportion = minkowskiParams.v / minkowskiParams.c;
         let coneRadialSegments = 32;
-
+        let animationParams = { speed: 1.5, count: 15, separation: 2.5, coneDistance: 0 };
+       
         // --- 1. Create 3D Objects ---
         const sphereGeom = new THREE.SphereGeometry(SPHERE_RADIUS, 32, 32);
-        const sphereMatWire = new THREE.MeshPhongMaterial({
-            color: 0x457b9d,
-            emissive: 0x1d3557,
-            shininess: 30,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.2
-        });
-        const sphereMatSolid = new THREE.MeshPhongMaterial({
-            color: 0x457b9d,
-            emissive: 0x1d3557,
-            shininess: 80,
-            specular: 0x222222
-        });
+        const sphereMatWire = new THREE.MeshPhongMaterial({ color: 0x457b9d, emissive: 0x1d3557, shininess: 30, wireframe: true, transparent: true, opacity: 0.2 });
+        const sphereMatSolid = new THREE.MeshPhongMaterial({ color: 0x457b9d, emissive: 0x1d3557, shininess: 80, specular: 0x222222 });
         sphereMesh = new THREE.Mesh(sphereGeom, sphereMatWire);
-        sphereMesh.visible = !isMinkowski;
         activeSceneObjects.add(sphereMesh);
 
         sphereGrid = createSphereGrid(SPHERE_RADIUS, 12);
-        sphereGrid.visible = !isMinkowski;
         activeSceneObjects.add(sphereGrid);
         
-        minkowskiCone = new THREE.Group();
-        minkowskiCone.visible = isMinkowski;
-        activeSceneObjects.add(minkowskiCone);
+        animationGroup = new THREE.Group();
+        activeSceneObjects.add(animationGroup);
 
+        interactiveCone = new THREE.Group();
+        activeSceneObjects.add(interactiveCone);
+        
         // --- 2. Generation Logic ---
+        
+        function regenerateAnimationCones() {
+            while(animationGroup.children.length > 0) {
+                const child = animationGroup.children[0];
+                animationGroup.remove(child);
+                if(child.geometry) child.geometry.dispose();
+                if(child.material) child.material.dispose();
+            }
+            animatedCones.length = 0; // Clear the array
+
+            const baseConeGeom = new THREE.ConeGeometry(1, 1, 32, 1, true);
+            const baseConeMat = new THREE.MeshBasicMaterial({ color: 0xfca311, wireframe: true, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+
+            for (let i = 0; i < animationParams.count; i++) {
+                const yPos = (i - (animationParams.count - 1) / 2) * animationParams.separation;
+                const offset = animationParams.coneDistance / 2;
+                const futureCone = new THREE.Mesh(baseConeGeom, baseConeMat);
+                futureCone.position.y = yPos + 0.5 + offset;
+                const pastCone = new THREE.Mesh(baseConeGeom, baseConeMat.clone());
+                pastCone.position.y = yPos - 0.5 - offset;
+                pastCone.rotation.x = Math.PI;
+                const conePair = new THREE.Group();
+                conePair.add(futureCone, pastCone);
+                animatedCones.push(conePair);
+                animationGroup.add(conePair);
+            }
+
+            const worldLineV = 0.4;
+            const totalHeight = animationParams.count * animationParams.separation;
+            const p_start = new THREE.Vector3(0, -totalHeight / 2, 0);
+            const p_end = new THREE.Vector3(0, totalHeight / 2, 0);
+            p_start.x = p_start.y * worldLineV;
+            p_end.x = p_end.y * worldLineV;
+            const worldLineCurve = new THREE.LineCurve3(p_start, p_end);
+            const worldLineGeom = new THREE.TubeGeometry(worldLineCurve, 64, 0.08, 8, false);
+            const worldLineMat = new THREE.MeshBasicMaterial({color: 0x00f5d4});
+            const worldLineMesh = new THREE.Mesh(worldLineGeom, worldLineMat);
+            animationGroup.add(worldLineMesh);
+        }
+
+
         function createSphereGrid(radius, lines) {
             const group = new THREE.Group();
             const material = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
@@ -569,76 +602,60 @@
             return group;
         }
 
-        function updateMinkowskiCone(c) {
-            // Cleanup previous cones
-            while (minkowskiCone.children.length > 0) {
-                const child = minkowskiCone.children[0];
-                minkowskiCone.remove(child);
+        function updateInteractiveCone() {
+            while(interactiveCone.children.length > 0) {
+                const child = interactiveCone.children[0];
+                interactiveCone.remove(child);
                 if (child.geometry) child.geometry.dispose();
                 if (child.material) child.material.dispose();
             }
-
-            const coneHeight = 10;
-            const coneRadius = coneHeight / c;
+            const coneHeight = minkowskiParams.coneHeight;
+            const coneRadius = coneHeight / minkowskiParams.c; 
             const coneGeom = new THREE.ConeGeometry(coneRadius, coneHeight, coneRadialSegments, 1, true);
-            const coneMat = new THREE.MeshBasicMaterial({
-                color: 0xfca311,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.5,
-                side: THREE.DoubleSide
-            });
-
+            
             const futureCone = new THREE.Mesh(coneGeom, coneMat);
             const pastCone = new THREE.Mesh(coneGeom, coneMat);
-
-            // --- Cone distance logic ---
+            
             const offset = minkowskiParams.coneDistance / 2;
-            const futureConeY = (coneHeight / 2) + offset;
-            const pastConeY   = -(coneHeight / 2) - offset;
+            
+            futureCone.position.y = (coneHeight / 2) + offset;
+            pastCone.position.y = (-coneHeight/2) - offset;
+            pastCone.rotation.x = Math.PI;
 
-            futureCone.position.y = futureConeY;
-            pastCone.position.y   = pastConeY;
-            pastCone.rotation.x   = Math.PI;
-
-            minkowskiCone.add(futureCone, pastCone);
+            interactiveCone.add(futureCone, pastCone);
         }
 
-
-        function updateWorldLine(v, c) {
-             if (v >= c) v = c - 0.0000000001; // Prevent division by zero
-            // Cleanup previous lines
+        function updateWorldLine() {
+             if (minkowskiParams.v >= minkowskiParams.c) minkowskiParams.v = minkowskiParams.c - 0.0000000001;
             if (worldLineMesh) { activeSceneObjects.remove(worldLineMesh); worldLineMesh.geometry.dispose(); worldLineMesh.material.dispose(); }
             if (returnWorldLineMesh) { activeSceneObjects.remove(returnWorldLineMesh); returnWorldLineMesh.geometry.dispose(); returnWorldLineMesh.material.dispose(); }
             
             const lineMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4 });
-            const journeyTime = 10; // Arbitrary observer time for one leg
+            const journeyTime = minkowskiParams.coneHeight / (2 * minkowskiParams.c);
             
-            // Outbound trip
             const p_start = new THREE.Vector3(0, 0, 0);
-            const p_turnaround = new THREE.Vector3(v * journeyTime, c * journeyTime, 0);
+            const p_turnaround = new THREE.Vector3(minkowskiParams.v * journeyTime, minkowskiParams.c * journeyTime, 0);
             const outboundCurve = new THREE.LineCurve3(p_start, p_turnaround);
             const outboundGeom = new THREE.TubeGeometry(outboundCurve, 20, 0.05, 8, false);
             worldLineMesh = new THREE.Mesh(outboundGeom, lineMat);
-            worldLineMesh.visible = isMinkowski;
             activeSceneObjects.add(worldLineMesh);
             
-            // Return trip
             if (isReturnTrip) {
-                const p_final = new THREE.Vector3(0, c * journeyTime * 2, 0); // Return to x=0 at t=2*journeyTime
+                const p_final = new THREE.Vector3(0, minkowskiParams.c * journeyTime * 2, 0);
                 const returnCurve = new THREE.LineCurve3(p_turnaround, p_final);
                 const returnGeom = new THREE.TubeGeometry(returnCurve, 20, 0.05, 8, false);
                 returnWorldLineMesh = new THREE.Mesh(returnGeom, lineMat);
-                returnWorldLineMesh.visible = isMinkowski;
                 activeSceneObjects.add(returnWorldLineMesh);
             }
 
-            // Time Dilation Calculation
-            const lorentzFactor = 1 / Math.sqrt(1 - (v**2 / c**2));
+            const lorentzFactor = 1 / Math.sqrt(1 - (minkowskiParams.v**2 / minkowskiParams.c**2));
             const totalObserverTime = isReturnTrip ? journeyTime * 2 : journeyTime;
             const totalProperTime = totalObserverTime / lorentzFactor;
             document.getElementById('observer-time').textContent = totalObserverTime.toFixed(2);
             document.getElementById('proper-time').textContent = totalProperTime.toFixed(2);
+            
+            worldLineMesh.visible = (currentView === 'interactive');
+            if(returnWorldLineMesh) returnWorldLineMesh.visible = (currentView === 'interactive' && isReturnTrip);
         }
         
         function updateMetricsDisplay() {
@@ -694,7 +711,7 @@
         // --- 3. Create UI Controls ---
         const controlsDiv = document.getElementById('controls-panel');
         controlsDiv.innerHTML = `
-            <div id="arc-controls-group" class="hidden items-center gap-4 flex-wrap justify-center">
+             <div id="arc-controls-group" class="hidden items-center gap-4 flex-wrap justify-center">
                 <div class="control-group w-64">
                     <label for="arc-slider" class="text-sm font-medium flex justify-between w-full"><span>Arc Length</span><span id="arc-value"></span></label>
                     <input id="arc-slider" type="range" min="0" max="${2 * Math.PI}" step="0.00000000001" value="${Math.PI}" class="w-full">
@@ -703,32 +720,55 @@
                 <button id="angle-45-btn" class="toggle-button">45°</button>
                 <button id="angle-90-btn" class="toggle-button">90°</button>
             </div>
-            <div id="minkowski-controls-group" class="flex items-center gap-4 flex-wrap justify-center">
-                 <div class="control-group w-52">
-                    <label for="c-slider" class="text-sm font-medium flex justify-between w-full"><span>Speed of Light (c)</span><span id="c-value">1</span></label>
-                    <input id="c-slider" type="range" min="0.000000001" max="1" step="0.000000001" value="1" class="w-full">
+            <div id="minkowski-interactive-controls" class="hidden items-center gap-4 flex-wrap justify-center">
+                 <div class="control-group w-48">
+                    <label for="c-slider" class="text-sm font-medium flex justify-between w-full"><span>Speed of Light (c)</span><span id="c-value">0.5</span></label>
+                    <input id="c-slider" type="range" min="0.000000001" max="1" step="0.000000001" value="0.5" class="w-full">
                 </div>
-                <div class="control-group w-52">
+                <div class="control-group w-48">
                     <label for="v-slider" class="text-sm font-medium flex justify-between w-full"><span>Velocity (v)</span><span id="v-value">0.25</span></label>
                     <input id="v-slider" type="range" min="0" max="1.0" step="0.000000001" value="0.25" class="w-full">
                 </div>
-                <div class="control-group w-52">
-                    <label for="cone-distance-slider" class="text-sm font-medium flex justify-between w-full"><span>Cone Distance</span><span id="cone-distance-value">-20</span></label>
-                    <input id="cone-distance-slider" type="range" min="-20" max="0" step="1" value="-20" class="w-full">
+                <div class="control-group w-48">
+                    <label for="cone-distance-slider" class="text-sm font-medium flex justify-between w-full"><span>Cone Distance</span><span id="cone-distance-value">0.0</span></label>
+                    <input id="cone-distance-slider" type="range" min="-10" max="10" step="1" value="0" class="w-full">
                 </div>
-                 <div class="control-group w-52">
+                 <div class="control-group w-48">
+                    <label for="cone-height-slider" class="text-sm font-medium flex justify-between w-full"><span>Cone Height</span><span id="cone-height-value">10.0</span></label>
+                    <input id="cone-height-slider" type="range" min="2" max="20" step="0.5" value="10" class="w-full">
+                </div>
+                 <div class="control-group w-48">
                     <label for="cone-lines-slider" class="text-sm font-medium flex justify-between w-full"><span>Cone Lines</span><span id="cone-lines-value">32</span></label>
                     <input id="cone-lines-slider" type="range" min="4" max="64" step="1" value="32" class="w-full">
                 </div>
-                <div class="control-group w-52">
+                <div class="control-group w-48">
                     <label for="cone-color-picker" class="text-sm font-medium">Cone Color</label>
                     <input id="cone-color-picker" type="color" value="#fca311" class="w-full h-8 p-0 rounded-md">
                 </div>
                 <button id="return-trip-btn" class="toggle-button">Return Trip</button>
                 <button id="minkowski-grid-toggle-btn" class="toggle-button">Hide Grid</button>
             </div>
+             <div id="minkowski-animation-controls" class="hidden items-center gap-4 flex-wrap justify-center">
+                 <div class="control-group w-52">
+                    <label for="anim-speed-slider" class="text-sm font-medium flex justify-between w-full"><span>Anim. Speed</span><span id="anim-speed-value">1.5</span></label>
+                    <input id="anim-speed-slider" type="range" min="0.1" max="5" step="0.1" value="1.5" class="w-full">
+                </div>
+                <div class="control-group w-52">
+                    <label for="anim-cones-slider" class="text-sm font-medium flex justify-between w-full"><span>Cone Count</span><span id="anim-cones-value">15</span></label>
+                    <input id="anim-cones-slider" type="range" min="3" max="40" step="1" value="15" class="w-full">
+                </div>
+                <div class="control-group w-52">
+                    <label for="anim-sep-slider" class="text-sm font-medium flex justify-between w-full"><span>Separation</span><span id="anim-sep-value">2.5</span></label>
+                    <input id="anim-sep-slider" type="range" min="1" max="5" step="0.1" value="2.5" class="w-full">
+                </div>
+                <div class="control-group w-52">
+                    <label for="anim-cone-dist-slider" class="text-sm font-medium flex justify-between w-full"><span>Cone Distance</span><span id="anim-cone-dist-value">0.0</span></label>
+                    <input id="anim-cone-dist-slider" type="range" min="-2" max="2" step="0.1" value="0" class="w-full">
+                </div>
+            </div>
             <div id="view-controls-group" class="flex items-center gap-4">
-                <button id="minkowski-toggle-btn" class="toggle-button active">View Arc Ball</button>
+                 <button id="mode-toggle-btn" class="toggle-button">View Interactive</button>
+                 <button id="view-toggle-btn" class="toggle-button active">View Arc Ball</button>
                 <div id="arc-view-buttons" class="hidden items-center gap-4">
                     <button id="mesh-toggle-btn" class="toggle-button">View: Wireframe</button>
                     <button id="grid-toggle-btn" class="toggle-button">Hide Grid</button>
@@ -736,14 +776,18 @@
                 </div>
             </div>
         `;
+
         const arcSlider = document.getElementById('arc-slider');
         const arcValueSpan = document.getElementById('arc-value');
         const metricToggleButton = document.getElementById('metric-toggle-btn');
         const gridToggleButton = document.getElementById('grid-toggle-btn');
         const areaToggleButton = document.getElementById('area-toggle-btn');
-        const minkowskiToggleButton = document.getElementById('minkowski-toggle-btn');
+        const viewToggleButton = document.getElementById('view-toggle-btn');
         const arcControlsGroup = document.getElementById('arc-controls-group');
-        const minkowskiControlsGroup = document.getElementById('minkowski-controls-group');
+        
+        const interactiveControls = document.getElementById('minkowski-interactive-controls');
+        const animationControls = document.getElementById('minkowski-animation-controls');
+
         const cSlider = document.getElementById('c-slider');
         const cValueSpan = document.getElementById('c-value');
         const vSlider = document.getElementById('v-slider');
@@ -759,6 +803,87 @@
         const coneLinesSlider = document.getElementById('cone-lines-slider');
         const coneLinesValue = document.getElementById('cone-lines-value');
         const returnTripButton = document.getElementById('return-trip-btn');
+        const coneHeightSlider = document.getElementById('cone-height-slider');
+        const coneHeightValue = document.getElementById('cone-height-value');
+        const modeToggleButton = document.getElementById('mode-toggle-btn');
+        
+        const animSpeedSlider = document.getElementById('anim-speed-slider');
+        const animSpeedValue = document.getElementById('anim-speed-value');
+        const animConesSlider = document.getElementById('anim-cones-slider');
+        const animConesValue = document.getElementById('anim-cones-value');
+        const animSepSlider = document.getElementById('anim-sep-slider');
+        const animSepValue = document.getElementById('anim-sep-value');
+        const animConeDistSlider = document.getElementById('anim-cone-dist-slider');
+        const animConeDistValue = document.getElementById('anim-cone-dist-value');
+
+        function setView(view) { // 'animation', 'interactive', 'arcBall'
+            currentView = view;
+            const isMinkowski = (view === 'animation' || view === 'interactive');
+            
+            animationGroup.visible = (view === 'animation');
+            interactiveCone.visible = (view === 'interactive');
+            if (worldLineMesh) worldLineMesh.visible = (view === 'interactive');
+            if (returnWorldLineMesh) returnWorldLineMesh.visible = (view === 'interactive' && isReturnTrip);
+            sphereMesh.visible = (view === 'arcBall');
+            sphereGrid.visible = (view === 'arcBall');
+            if(arcMesh) arcMesh.visible = (view === 'arcBall');
+            if(areaMesh) areaMesh.visible = (view === 'arcBall' && isAreaVisible);
+            
+            document.getElementById('info-panel').classList.toggle('hidden', view !== 'arcBall' && view !== 'interactive');
+            document.getElementById('time-dilation-display').classList.toggle('hidden', view !== 'interactive');
+            document.getElementById('metrics-display').classList.toggle('hidden', view !== 'arcBall');
+            
+            animationControls.classList.toggle('hidden', view !== 'animation');
+            animationControls.classList.toggle('flex', view === 'animation');
+            interactiveControls.classList.toggle('hidden', view !== 'interactive');
+            interactiveControls.classList.toggle('flex', view === 'interactive');
+            arcControlsGroup.classList.toggle('hidden', view !== 'arcBall');
+            arcControlsGroup.classList.toggle('flex', view === 'arcBall');
+            arcViewButtons.classList.toggle('hidden', view !== 'arcBall');
+            arcViewButtons.classList.toggle('flex', view === 'arcBall');
+            
+            modeToggleButton.classList.toggle('hidden', view === 'arcBall');
+            viewToggleButton.textContent = isMinkowski ? 'View Arc Ball' : 'View Minkowski';
+        }
+
+        modeToggleButton.addEventListener('click', e => {
+            if (currentView === 'animation') {
+                setView('interactive');
+                e.target.textContent = 'View Animation';
+            } else {
+                setView('animation');
+                e.target.textContent = 'View Interactive';
+            }
+        });
+
+        viewToggleButton.addEventListener('click', e => {
+            if (currentView === 'arcBall') {
+                setView('animation');
+                modeToggleButton.textContent = 'View Interactive';
+            } else {
+                setView('arcBall');
+            }
+        });
+        
+        animSpeedSlider.addEventListener('input', e => {
+            animationParams.speed = parseFloat(e.target.value);
+            animSpeedValue.textContent = animationParams.speed.toFixed(1);
+        });
+        animConesSlider.addEventListener('input', e => {
+            animationParams.count = parseInt(e.target.value, 10);
+            animConesValue.textContent = animationParams.count;
+            regenerateAnimationCones();
+        });
+        animSepSlider.addEventListener('input', e => {
+            animationParams.separation = parseFloat(e.target.value);
+            animSepValue.textContent = animationParams.separation.toFixed(1);
+            regenerateAnimationCones();
+        });
+        animConeDistSlider.addEventListener('input', e => {
+            animationParams.coneDistance = parseFloat(e.target.value);
+            animConeDistValue.textContent = animationParams.coneDistance.toFixed(1);
+            regenerateAnimationCones();
+        });
 
         function updateDisplayValue(radians) {
             if (metric === 'deg') { arcValueSpan.textContent = `${THREE.MathUtils.radToDeg(radians).toFixed(0)}°`; }
@@ -813,58 +938,34 @@
             isAreaVisible = !isAreaVisible; if(areaMesh) areaMesh.visible = isAreaVisible && arcMesh.visible;
             e.target.textContent = isAreaVisible ? 'Hide Arc Area' : 'Show Arc Area'; e.target.classList.toggle('active', isAreaVisible);
         });
-        minkowskiToggleButton.addEventListener('click', (e) => {
-             isMinkowski = !isMinkowski;
-             e.target.textContent = isMinkowski ? 'View Arc Ball' : 'View Minkowski';
-             minkowskiCone.visible = isMinkowski;
-             if (worldLineMesh) worldLineMesh.visible = isMinkowski;
-             if (returnWorldLineMesh) returnWorldLineMesh.visible = isMinkowski && isReturnTrip;
-             sphereMesh.visible = !isMinkowski;
-             sphereGrid.visible = !isMinkowski;
-             if(arcMesh) arcMesh.visible = !isMinkowski;
-             if(areaMesh) areaMesh.visible = !isMinkowski && isAreaVisible;
-             
-             arcControlsGroup.classList.toggle('hidden', isMinkowski);
-             minkowskiControlsGroup.classList.toggle('hidden', !isMinkowski);
-             minkowskiControlsGroup.classList.toggle('flex', isMinkowski);
-             document.getElementById('metrics-display').classList.toggle('hidden', isMinkowski);
-             document.getElementById('time-dilation-display').classList.toggle('hidden', !isMinkowski);
-             arcViewButtons.classList.toggle('hidden', isMinkowski);
-             arcViewButtons.classList.toggle('flex', !isMinkowski);
 
-
-             e.target.classList.toggle('active', isMinkowski);
-        });
         cSlider.addEventListener('input', e => {
             minkowskiParams.c = parseFloat(e.target.value);
             cValueSpan.textContent = minkowskiParams.c < 0.01 ? minkowskiParams.c.toExponential(2) : minkowskiParams.c.toFixed(2);
-            
-            // Update velocity to maintain proportion
             minkowskiParams.v = minkowskiParams.c * velocityProportion;
             vSlider.max = minkowskiParams.c;
             vSlider.value = minkowskiParams.v;
-
-            updateMinkowskiCone(minkowskiParams.c);
-            updateWorldLine(minkowskiParams.v, minkowskiParams.c);
-            vSlider.dispatchEvent(new Event('input')); // To update the text display
+            updateInteractiveCone();
+            updateWorldLine();
+            vSlider.dispatchEvent(new Event('input'));
         });
         vSlider.addEventListener('input', e => {
             minkowskiParams.v = parseFloat(e.target.value);
-            velocityProportion = minkowskiParams.c > 0 ? minkowskiParams.v / minkowskiParams.c : 0; // Recalculate proportion, avoid division by zero
+            velocityProportion = minkowskiParams.c > 0 ? minkowskiParams.v / minkowskiParams.c : 0;
             vValueSpan.textContent = `${minkowskiParams.v < 0.01 ? minkowskiParams.v.toExponential(2) : minkowskiParams.v.toFixed(2)} (${(velocityProportion * 100).toFixed(0)}% of c)`;
-            updateWorldLine(minkowskiParams.v, minkowskiParams.c);
+            updateWorldLine();
         });
         coneDistanceSlider.addEventListener('input', e => {
             minkowskiParams.coneDistance = parseFloat(e.target.value);
             coneDistanceValueSpan.textContent = minkowskiParams.coneDistance.toFixed(2);
-            updateMinkowskiCone(minkowskiParams.c);
-            updateWorldLine(minkowskiParams.v, minkowskiParams.c);
+            updateInteractiveCone();
+            updateWorldLine();
         });
         
         returnTripButton.addEventListener('click', (e) => {
             isReturnTrip = !isReturnTrip;
             e.target.classList.toggle('active', isReturnTrip);
-            updateWorldLine(minkowskiParams.v, minkowskiParams.c);
+            updateWorldLine();
         });
 
         coneColorPicker.addEventListener('input', (e) => {
@@ -874,7 +975,14 @@
         coneLinesSlider.addEventListener('input', (e) => {
             coneRadialSegments = parseInt(e.target.value, 10);
             coneLinesValue.textContent = coneRadialSegments;
-            updateMinkowskiCone(minkowskiParams.c);
+            updateInteractiveCone();
+        });
+
+        coneHeightSlider.addEventListener('input', e => {
+            minkowskiParams.coneHeight = parseFloat(e.target.value);
+            coneHeightValue.textContent = minkowskiParams.coneHeight.toFixed(1);
+            updateInteractiveCone();
+            updateWorldLine();
         });
 
         function setAngle(radians) {
@@ -886,31 +994,52 @@
         angle90Btn.addEventListener('click', () => setAngle(Math.PI / 2));
 
         // Initial setup calls
-        minkowskiToggleButton.click(); 
-
+        setView('animation');
         updateArc(Math.PI);
         updateDisplayValue(Math.PI);
-        updateMinkowskiCone(minkowskiParams.c);
-        updateWorldLine(minkowskiParams.v, minkowskiParams.c);
+        updateInteractiveCone();
+        updateWorldLine();
+        regenerateAnimationCones();
         updateGridToggleButtons();
 
 
         // --- 4. Define Animation Loop ---
         function update(delta) {
-            if (isPaused) return;
-            const rotation = delta * animationSpeed * 0.2;
-            if (sphereMesh.visible) {
-                sphereMesh.rotation.y += rotation;
-                sphereGrid.rotation.y += rotation;
+            const time = clock.getElapsedTime();
+            if(currentView === 'animation'){
+                animatedCones.forEach((conePair, i) => {
+                    const wave = Math.sin(time * animationParams.speed - i * 0.5); // value from -1 to 1
+                    const mappedWave = (wave + 1) / 2; // map to 0-1
+                    const c = THREE.MathUtils.lerp(0.01, 1.5, mappedWave); // map to 0.01-1.5
+                    
+                    const coneHeight = 1; 
+                    const newRadius = coneHeight / c;
+
+                    const futureCone = conePair.children[0];
+                    const pastCone = conePair.children[1];
+                    
+                    futureCone.scale.set(newRadius, coneHeight, newRadius);
+                    pastCone.scale.set(newRadius, coneHeight, newRadius);
+                });
+            } else if (currentView === 'arcBall') {
+                 if (isPaused) return;
+                const rotation = delta * animationSpeed * 0.2;
+                if (sphereMesh.visible) {
+                    sphereMesh.rotation.y += rotation;
+                    sphereGrid.rotation.y += rotation;
+                }
+                if (arcMesh && arcMesh.visible) arcMesh.rotation.y += rotation;
+                if (areaMesh && areaMesh.visible) areaMesh.rotation.y += rotation;
+            } else { // Interactive
+                if (isPaused) return;
+                const rotation = delta * animationSpeed * 0.2;
+                if (interactiveCone.visible) interactiveCone.rotation.y += rotation;
             }
-            if (arcMesh && arcMesh.visible) arcMesh.rotation.y += rotation;
-            if (areaMesh && areaMesh.visible) areaMesh.rotation.y += rotation;
-            if (minkowskiCone.visible) minkowskiCone.rotation.y += rotation;
         }
         
         // --- 5. Define Cleanup ---
         function cleanup() {
-            [sphereMesh, arcMesh, areaMesh, minkowskiCone, worldLineMesh, sphereGrid, returnWorldLineMesh].forEach(obj => {
+            [sphereMesh, arcMesh, areaMesh, animationGroup, sphereGrid, interactiveCone, worldLineMesh, returnWorldLineMesh].forEach(obj => {
                 if(obj) {
                     if (obj.geometry) obj.geometry.dispose();
                     if (obj.material) {
@@ -926,10 +1055,6 @@
             sphereMatSolid.dispose();
         }
 
-        minkowskiToggleButton.click(); 
-        updateMinkowskiCone(minkowskiParams.c);
-        updateWorldLine(minkowskiParams.v, minkowskiParams.c);
-
         return { update, cleanup, followTarget: sphereMesh };
     }
     
@@ -943,7 +1068,6 @@
         
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-        // Set a larger font size for clearer rendering
         const canvasFontsize = fontsize * 4;
         context.font = `Bold ${canvasFontsize}px ${fontface}`;
         
@@ -961,7 +1085,6 @@
         
         const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
         const sprite = new THREE.Sprite(spriteMaterial);
-        // Scale the sprite down to the desired size in the scene
         sprite.scale.set(textWidth / canvasFontsize * 0.5, 0.5, 1.0);
         sprite.position.copy(position);
         
@@ -1232,3 +1355,5 @@
 </script>
 </body>
 </html>
+
+
