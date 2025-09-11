@@ -19,7 +19,8 @@ body {
 }
 #three-container {
     position: relative;
-    width: 106%;
+    width: 100%;
+    //width: 106%;
     height: 60vh;
     background-image: url('https://JTaal.github.io/assets/images/gif/diffraction_pattern_parachute_2560p_side_view_transparant.gif');
     background-size: 165%;
