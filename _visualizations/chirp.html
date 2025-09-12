@@ -160,9 +160,11 @@
             <p>A visualization of chirp components and the resulting sinc function.</p>
         </div>
         <div id="controls-container">
-            <label for="bandwidth-slider">Bandwidth:</label>
-            <input type="range" id="bandwidth-slider" min="1" max="2000" value="8" step="0.5">
-            <span id="bandwidth-value" class="value-display">8.0</span>
+            <div>
+                <label for="bandwidth-slider">Bandwidth:</label>
+                <input type="range" id="bandwidth-slider" min="1" max="2000" value="8" step="0.5">
+                <span id="bandwidth-value" class="value-display">8.0</span>
+            </div>
 
             <!-- Container for the view switching button -->
             <div id="switch-container">
@@ -178,10 +180,11 @@
             <p>A 4D concept in 3D. The Z-axis represents frequency, which increases from back (blue) to front (red), causing the spiral to get tighter.</p>
         </div>
         <div id="controls-container">
-            <label for="frequency-slider">End Frequency:</label>
-            <input type="range" id="frequency-slider" min="1" max="30" value="10" step="0.5">
-            <span id="frequency-value">10.0</span>
-
+            <div>
+                <label for="frequency-slider">End Frequency:</label>
+                <input type="range" id="frequency-slider" min="1" max="30" value="10" step="0.5">
+                <span id="frequency-value">10.0</span>
+            </div>
             <!-- Container for the view switching button -->
             <div id="switch-container">
                 <button id="switch-button">Switch to 4D Complex View</button>

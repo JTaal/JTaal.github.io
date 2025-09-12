@@ -16,10 +16,10 @@
   visualization_url: /visualizations/chaos-relativity.html
   description: A short description goes here.
 
-- title: Chrip
+- title: Chirp
   author: Jasper Taal
-  thumbnail: /assets/images/chrip.png
-  visualization_url: /visualizations/chrip.html
+  thumbnail: /assets/images/chirp.png
+  visualization_url: /visualizations/chirp.html
   description: A short description goes here.
 
 - title: Complex Numbers
