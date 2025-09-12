@@ -28,12 +28,6 @@
   visualization_url: /visualizations/dimensionality-reduction.html
   description: A short description goes here.
 
-- title: Quantum Copy
-  author: Jasper Taal
-  thumbnail: /assets/images/quantum copy.png
-  visualization_url: /visualizations/quantum copy.html
-  description: A short description goes here.
-
 - title: Linear Regression
   author: Jasper Taal
   thumbnail: /assets/images/linear-regression.png
@@ -62,12 +56,6 @@
   author: Jasper Taal
   thumbnail: /assets/images/machine-learning-optimizers.png
   visualization_url: /visualizations/machine-learning-optimizers.html
-  description: A short description goes here.
-
-- title: Minkowski Spacetime Copy
-  author: Jasper Taal
-  thumbnail: /assets/images/minkowski-spacetime copy.png
-  visualization_url: /visualizations/minkowski-spacetime copy.html
   description: A short description goes here.
 
 - title: Blackhole Entropy
@@ -118,12 +106,6 @@
   visualization_url: /visualizations/universe.html
   description: A short description goes here.
 
-- title: Complex Waves Combined Low
-  author: Jasper Taal
-  thumbnail: /assets/images/complex-waves-combined-low.png
-  visualization_url: /visualizations/complex-waves-combined-low.html
-  description: A short description goes here.
-
 - title: Multivariate Gaussian
   author: Jasper Taal
   thumbnail: /assets/images/multivariate-gaussian.png
@@ -158,11 +140,5 @@
   author: Jasper Taal
   thumbnail: /assets/images/regularisation.png
   visualization_url: /visualizations/regularisation.html
-  description: A short description goes here.
-
-- title: Complex Waves Combined High
-  author: Jasper Taal
-  thumbnail: /assets/images/complex-waves-combined-high.png
-  visualization_url: /visualizations/complex-waves-combined-high.html
   description: A short description goes here.
 
