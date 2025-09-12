@@ -1,73 +1,7 @@
-- title: Diffusion Modeling
+- title: 3D Basis Vectors
   author: Jasper Taal
-  thumbnail: /assets/images/diffusion-modeling.png
-  visualization_url: /visualizations/diffusion-modeling.html
-  description: A short description goes here.
-
-- title: Complex Chirp
-  author: Jasper Taal
-  thumbnail: /assets/images/complex-chirp.png
-  visualization_url: /visualizations/complex-chirp.html
-  description: A short description goes here.
-
-- title: Minkowski Spacetime
-  author: Jasper Taal
-  thumbnail: /assets/images/minkowski-spacetime.png
-  visualization_url: /visualizations/minkowski-spacetime.html
-  description: A short description goes here.
-
-- title: Quaternions
-  author: Jasper Taal
-  thumbnail: /assets/images/quaternions.png
-  visualization_url: /visualizations/quaternions.html
-  description: A short description goes here.
-
-- title: Dimensionality Reduction
-  author: Jasper Taal
-  thumbnail: /assets/images/dimensionality-reduction.png
-  visualization_url: /visualizations/dimensionality-reduction.html
-  description: A short description goes here.
-
-- title: Quantum Copy
-  author: Jasper Taal
-  thumbnail: /assets/images/quantum copy.png
-  visualization_url: /visualizations/quantum copy.html
-  description: A short description goes here.
-
-- title: Linear Regression
-  author: Jasper Taal
-  thumbnail: /assets/images/linear-regression.png
-  visualization_url: /visualizations/linear-regression.html
-  description: A short description goes here.
-
-- title: Mandlebrot Julia Analysis
-  author: Jasper Taal
-  thumbnail: /assets/images/mandlebrot-julia-analysis.png
-  visualization_url: /visualizations/mandlebrot-julia-analysis.html
-  description: A short description goes here.
-
-- title: Entropy
-  author: Jasper Taal
-  thumbnail: /assets/images/entropy.png
-  visualization_url: /visualizations/entropy.html
-  description: A short description goes here.
-
-- title: Chaos Relativity
-  author: Jasper Taal
-  thumbnail: /assets/images/chaos-relativity.png
-  visualization_url: /visualizations/chaos-relativity.html
-  description: A short description goes here.
-
-- title: Machine Learning Optimizers
-  author: Jasper Taal
-  thumbnail: /assets/images/machine-learning-optimizers.png
-  visualization_url: /visualizations/machine-learning-optimizers.html
-  description: A short description goes here.
-
-- title: Minkowski Spacetime Copy
-  author: Jasper Taal
-  thumbnail: /assets/images/minkowski-spacetime copy.png
-  visualization_url: /visualizations/minkowski-spacetime copy.html
+  thumbnail: /assets/images/3D-basis-vectors.png
+  visualization_url: /visualizations/3D-basis-vectors.html
   description: A short description goes here.
 
 - title: Blackhole Entropy
@@ -76,10 +10,10 @@
   visualization_url: /visualizations/blackhole-entropy.html
   description: A short description goes here.
 
-- title: Complex Numbers
+- title: Chaos Relativity
   author: Jasper Taal
-  thumbnail: /assets/images/complex-numbers.png
-  visualization_url: /visualizations/complex-numbers.html
+  thumbnail: /assets/images/chaos-relativity.png
+  visualization_url: /visualizations/chaos-relativity.html
   description: A short description goes here.
 
 - title: Chirp Up And Down
@@ -88,40 +22,64 @@
   visualization_url: /visualizations/chirp-up-and-down.html
   description: A short description goes here.
 
-- title: Quantum
+- title: Complex Chirp
   author: Jasper Taal
-  thumbnail: /assets/images/quantum.png
-  visualization_url: /visualizations/quantum.html
+  thumbnail: /assets/images/complex-chirp.png
+  visualization_url: /visualizations/complex-chirp.html
   description: A short description goes here.
 
-- title: Pipe Harmonics
+- title: Complex Numbers
   author: Jasper Taal
-  thumbnail: /assets/images/pipe-harmonics.png
-  visualization_url: /visualizations/pipe-harmonics.html
+  thumbnail: /assets/images/complex-numbers.png
+  visualization_url: /visualizations/complex-numbers.html
   description: A short description goes here.
 
-- title: Reinforcement Learning
+- title: Diffusion Modeling
   author: Jasper Taal
-  thumbnail: /assets/images/reinforcement-learning.png
-  visualization_url: /visualizations/reinforcement-learning.html
+  thumbnail: /assets/images/diffusion-modeling.png
+  visualization_url: /visualizations/diffusion-modeling.html
   description: A short description goes here.
 
-- title: Support Vector Machine
+- title: Dimensionality Reduction
   author: Jasper Taal
-  thumbnail: /assets/images/support-vector-machine.png
-  visualization_url: /visualizations/support-vector-machine.html
+  thumbnail: /assets/images/dimensionality-reduction.png
+  visualization_url: /visualizations/dimensionality-reduction.html
   description: A short description goes here.
 
-- title: Universe
+- title: Entropy
   author: Jasper Taal
-  thumbnail: /assets/images/universe.png
-  visualization_url: /visualizations/universe.html
+  thumbnail: /assets/images/entropy.png
+  visualization_url: /visualizations/entropy.html
   description: A short description goes here.
 
-- title: Complex Waves Combined Low
+- title: Evolutionary Algorithms
   author: Jasper Taal
-  thumbnail: /assets/images/complex-waves-combined-low.png
-  visualization_url: /visualizations/complex-waves-combined-low.html
+  thumbnail: /assets/images/evolutionary-algorithms.png
+  visualization_url: /visualizations/evolutionary-algorithms.html
+  description: A short description goes here.
+
+- title: Linear Regression
+  author: Jasper Taal
+  thumbnail: /assets/images/linear-regression.png
+  visualization_url: /visualizations/linear-regression.html
+  description: A short description goes here.
+
+- title: Machine Learning Optimizers
+  author: Jasper Taal
+  thumbnail: /assets/images/machine-learning-optimizers.png
+  visualization_url: /visualizations/machine-learning-optimizers.html
+  description: A short description goes here.
+
+- title: Mandlebrot Julia Analysis
+  author: Jasper Taal
+  thumbnail: /assets/images/mandlebrot-julia-analysis.png
+  visualization_url: /visualizations/mandlebrot-julia-analysis.html
+  description: A short description goes here.
+
+- title: Minkowski Spacetime
+  author: Jasper Taal
+  thumbnail: /assets/images/minkowski-spacetime.png
+  visualization_url: /visualizations/minkowski-spacetime.html
   description: A short description goes here.
 
 - title: Multivariate Gaussian
@@ -130,10 +88,34 @@
   visualization_url: /visualizations/multivariate-gaussian.html
   description: A short description goes here.
 
-- title: Evolutionary Algorithms
+- title: Pipe Harmonics
   author: Jasper Taal
-  thumbnail: /assets/images/evolutionary-algorithms.png
-  visualization_url: /visualizations/evolutionary-algorithms.html
+  thumbnail: /assets/images/pipe-harmonics.png
+  visualization_url: /visualizations/pipe-harmonics.html
+  description: A short description goes here.
+
+- title: Quantum
+  author: Jasper Taal
+  thumbnail: /assets/images/quantum.png
+  visualization_url: /visualizations/quantum.html
+  description: A short description goes here.
+
+- title: Quaternions
+  author: Jasper Taal
+  thumbnail: /assets/images/quaternions.png
+  visualization_url: /visualizations/quaternions.html
+  description: A short description goes here.
+
+- title: Regularisation
+  author: Jasper Taal
+  thumbnail: /assets/images/regularisation.png
+  visualization_url: /visualizations/regularisation.html
+  description: A short description goes here.
+
+- title: Reinforcement Learning
+  author: Jasper Taal
+  thumbnail: /assets/images/reinforcement-learning.png
+  visualization_url: /visualizations/reinforcement-learning.html
   description: A short description goes here.
 
 - title: Riemann Zeta
@@ -148,21 +130,9 @@
   visualization_url: /visualizations/rotary-positional-embedding.html
   description: A short description goes here.
 
-- title: 3D Basis Vectors
+- title: Support Vector Machine
   author: Jasper Taal
-  thumbnail: /assets/images/3D-basis-vectors.png
-  visualization_url: /visualizations/3D-basis-vectors.html
-  description: A short description goes here.
-
-- title: Regularisation
-  author: Jasper Taal
-  thumbnail: /assets/images/regularisation.png
-  visualization_url: /visualizations/regularisation.html
-  description: A short description goes here.
-
-- title: Complex Waves Combined High
-  author: Jasper Taal
-  thumbnail: /assets/images/complex-waves-combined-high.png
-  visualization_url: /visualizations/complex-waves-combined-high.html
+  thumbnail: /assets/images/support-vector-machine.png
+  visualization_url: /visualizations/support-vector-machine.html
   description: A short description goes here.
 

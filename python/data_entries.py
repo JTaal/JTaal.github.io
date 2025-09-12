@@ -26,6 +26,9 @@ for f in visualizations_dir.glob("*.html"):
     }
     projects.append(project)
 
+# ✅ Sort alphabetically by title
+projects.sort(key=lambda p: p["title"])
+
 # Step 3: Write everything to projects.yml
 with open(output_file, "w") as f:
     for project in projects:
