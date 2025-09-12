@@ -120,7 +120,7 @@ body {
 .card h3 { font-size: 1.3rem; }
 .card small { font-size: 0.85rem; color: #ddd; }
 .card-cover .d-flex {
-    <!-- background: linear-gradient(to top, rgba(0,0,0,0.85) 20%, transparent 100%); -->
+    /* <!-- background: linear-gradient(to top, rgba(0,0,0,0.85) 20%, transparent 100%); --> */
     background: linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent 100%);
 }
 
