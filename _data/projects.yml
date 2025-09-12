@@ -16,16 +16,10 @@
   visualization_url: /visualizations/chaos-relativity.html
   description: A short description goes here.
 
-- title: Chirp Up And Down
+- title: Chrip
   author: Jasper Taal
-  thumbnail: /assets/images/chirp-up-and-down.png
-  visualization_url: /visualizations/chirp-up-and-down.html
-  description: A short description goes here.
-
-- title: Complex Chirp
-  author: Jasper Taal
-  thumbnail: /assets/images/complex-chirp.png
-  visualization_url: /visualizations/complex-chirp.html
+  thumbnail: /assets/images/chrip.png
+  visualization_url: /visualizations/chrip.html
   description: A short description goes here.
 
 - title: Complex Numbers
