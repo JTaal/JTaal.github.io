@@ -108,17 +108,41 @@
             min-width: 30px;
             text-align: center;
         }
+        
+        /* --- Info Panel Styles --- */
         #title-panel {
             position: absolute;
             top: 80px;
             left: 20px;
             max-width: 350px;
             transition: max-height 0.5s ease-in-out;
-            max-height: 140px; /* Collapsed height */
+            max-height: 70px; /* Collapsed height */
             overflow: hidden;
         }
         #title-panel.expanded {
             max-height: 500px; /* Expanded height */
+            overflow-y: auto;
+        }
+        #title-header {
+             cursor: pointer;
+        }
+        #title-panel.expanded #info-toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        #title-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        #title-panel::-webkit-scrollbar-track {
+            background: rgba(31, 41, 55, 0.5);
+            border-radius: 4px;
+        }
+        #title-panel::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        #title-panel::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
         }
 
         #state-display {
@@ -129,9 +153,7 @@
         }
 
         #settings-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
+            position: relative; 
             z-index: 21;
             background-color: rgba(55, 65, 81, 0.8);
             border: 1px solid rgba(75, 85, 99, 0.9);
@@ -205,8 +227,8 @@
         
         #mesh-color-key, #particle-color-key {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 10;
         }
         .gradient-bar {
@@ -233,9 +255,23 @@
 
         .hidden { display: none; }
 
+        #views-menu-desktop { display: flex; }
+        #views-menu-mobile { display: none; }
+        .dropdown-item.active {
+            background-color: #4f46e5;
+        }
+        #views-dropdown-button.open svg {
+            transform: rotate(180deg);
+        }
+        #views-dropdown-button { margin: 0; }
+
         @media (max-width: 768px) {
-             header { padding: 0.75rem 1rem; }
-             header h1 { font-size: 1rem; }
+            header { padding: 0.75rem 1rem; }
+            header h1 { font-size: 1rem; }
+            
+            #views-menu-desktop { display: none; }
+            #views-menu-mobile { display: block; }
+            
             #controls-panel {
                 flex-direction: column;
                 bottom: 10px;
@@ -249,30 +285,49 @@
                 max-width: none;
                 width: auto;
             }
-            #settings-button { top: 12px; right: 10px; }
+            #settings-button { top: initial; right: initial; }
             #settings-panel { top: 70px; width: 280px; }
             #settings-panel.open { transform: translateX(-10px); }
-            #mesh-color-key, #particle-color-key { bottom: 10px; left: 10px; }
         }
     </style>
 </head>
 <body>
     <header>
         <h1 class="text-xl font-bold text-gray-200 tracking-wider">Quantum Visualization</h1>
-        <div id="views-menu">
-             <button id="btn-particles" class="view-button active">Particles</button>
-             <button id="btn-mesh" class="view-button">Orbital Mesh</button>
-             <button id="btn-wave" class="view-button">Energy Wave</button>
+        
+        <div class="flex items-center gap-2">
+            <div id="views-container">
+                <div id="views-menu-desktop">
+                    <button data-view="particles" class="view-button active">Particles</button>
+                    <button data-view="mesh" class="view-button">Orbital Mesh</button>
+                    <button data-view="wave" class="view-button">Energy Wave</button>
+                </div>
+                <div id="views-menu-mobile" class="relative">
+                    <button id="views-dropdown-button" class="view-button flex items-center">
+                        <span id="current-view-label">Particles</span>
+                        <svg class="ml-2 w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="views-dropdown-menu" class="hidden absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg py-1 z-50 border border-gray-700">
+                        <a href="#" class="dropdown-item block px-4 py-2 text-sm text-gray-200 hover:bg-indigo-600 active" data-view="particles">Particles</a>
+                        <a href="#" class="dropdown-item block px-4 py-2 text-sm text-gray-200 hover:bg-indigo-600" data-view="mesh">Orbital Mesh</a>
+                        <a href="#" class="dropdown-item block px-4 py-2 text-sm text-gray-200 hover:bg-indigo-600" data-view="wave">Energy Wave</a>
+                    </div>
+                </div>
+            </div>
+
+            <button id="settings-button" title="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
         </div>
-         <button id="settings-button" title="Settings">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        </button>
     </header>
 
     <div id="title-panel" class="ui-panel">
-        <h1 id="view-title" class="text-xl font-bold text-gray-200 tracking-wider">Particle Cloud</h1>
-        <p id="view-description" class="text-sm text-gray-400 mt-1">Each point represents a possible electron location, forming a probability cloud.</p>
-        <div id="state-display-container">
+        <div id="title-header" class="flex justify-between items-center">
+             <h1 id="view-title" class="text-xl font-bold text-gray-200 tracking-wider">Particle Cloud</h1>
+             <svg id="info-toggle-icon" class="w-6 h-6 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+        <p id="view-description" class="text-sm text-gray-400 mt-2">Each point represents a possible electron location, forming a probability cloud.</p>
+        <div id="state-display-container" class="mt-4">
             <div id="state-display">n=1, l=0, m=0</div>
         </div>
         <div id="radius-chart-container">
@@ -297,12 +352,12 @@
                 </label>
             </div>
             <div class="control-group w-full items-start">
-                 <label for="color-scheme-select" class="mb-2">Particle Color Scheme</label>
-                 <select id="color-scheme-select">
-                     <option value="phase">Phase (Phi)</option>
-                     <option value="plasma">Plasma</option>
-                     <option value="monochrome">Monochrome</option>
-                 </select>
+                <label for="color-scheme-select" class="mb-2">Particle Color Scheme</label>
+                <select id="color-scheme-select">
+                    <option value="phase">Phase (Phi)</option>
+                    <option value="plasma">Plasma</option>
+                    <option value="monochrome">Monochrome</option>
+                </select>
             </div>
             <div class="control-group w-full items-start">
                 <label for="particle-size-slider" class="mb-2 w-full flex justify-between">
@@ -715,7 +770,7 @@
         waveSettings.style.display = key === 'wave' ? 'block' : 'none';
         meshColorKey.style.display = key === 'mesh' ? 'block' : 'none';
         radiusChartContainer.style.display = key === 'particles' ? 'block' : 'none';
-        titlePanel.classList.toggle('expanded', key === 'particles');
+        titlePanel.classList.remove('expanded');
         
         if (key === 'particles') {
             updateParticleColorKey();
@@ -724,8 +779,16 @@
             particleColorKey.style.display = 'none';
         }
 
-        document.querySelectorAll('.view-button').forEach(b => b.classList.remove('active'));
-        document.getElementById(`btn-${key}`).classList.add('active');
+        document.querySelectorAll('[data-view]').forEach(el => {
+            el.classList.toggle('active', el.dataset.view === key);
+        });
+        const currentViewLabel = document.getElementById('current-view-label');
+        const activeItem = document.querySelector(`.dropdown-item[data-view="${key}"]`);
+        if (activeItem) {
+            currentViewLabel.textContent = activeItem.textContent;
+        }
+        
+        updateColorKeyPositions();
     }
 
     function init() {
@@ -746,14 +809,42 @@
         setupRadiusChart();
         setupGlobalUI();
         switchScene('particles');
+        updateColorKeyPositions();
         window.addEventListener('resize', onWindowResize, false);
         animate();
     }
     
     function setupGlobalUI() {
-        document.getElementById('btn-particles').addEventListener('click', () => switchScene('particles'));
-        document.getElementById('btn-mesh').addEventListener('click', () => switchScene('mesh'));
-        document.getElementById('btn-wave').addEventListener('click', () => switchScene('wave'));
+        const viewsDropdownButton = document.getElementById('views-dropdown-button');
+        const viewsDropdownMenu = document.getElementById('views-dropdown-menu');
+        const viewsContainer = document.getElementById('views-container');
+        const titleHeader = document.getElementById('title-header');
+
+        titleHeader.addEventListener('click', () => {
+            titlePanel.classList.toggle('expanded');
+        });
+
+        viewsContainer.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-view]');
+            if (!target) return;
+
+            e.preventDefault();
+            const viewKey = target.dataset.view;
+            switchScene(viewKey);
+
+            if (viewsDropdownButton.classList.contains('open')) {
+                 viewsDropdownMenu.classList.add('hidden');
+                 viewsDropdownButton.classList.remove('open');
+            }
+        });
+
+        viewsDropdownButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = !viewsDropdownMenu.classList.contains('hidden');
+            viewsDropdownMenu.classList.toggle('hidden');
+            viewsDropdownButton.classList.toggle('open', !isOpen);
+        });
+        
         settingsButton.addEventListener('click', (e) => {
             e.stopPropagation();
             settingsPanel.classList.toggle('open');
@@ -830,8 +921,12 @@
 
         document.body.addEventListener('click', (e) => {
              if (settingsPanel.classList.contains('open') && !settingsPanel.contains(e.target) && e.target !== settingsButton) {
-                settingsPanel.classList.remove('open');
+                 settingsPanel.classList.remove('open');
             }
+             if (viewsDropdownButton.classList.contains('open') && !viewsDropdownButton.contains(e.target)) {
+                 viewsDropdownMenu.classList.add('hidden');
+                 viewsDropdownButton.classList.remove('open');
+             }
         });
     }
 
@@ -924,11 +1019,8 @@
         radiusChart.update();
     }
 
-
-     function setupWaveControls() {
-        controlsPanel.innerHTML = `
-            <button id="coherent-toggle" class="toggle-button">Coherent Flow</button>
-        `;
+    function setupWaveControls() {
+        controlsPanel.innerHTML = `<button id="coherent-toggle" class="toggle-button">Coherent Flow</button>`;
         const coherentToggle = document.getElementById('coherent-toggle');
         coherentToggle.classList.toggle('active', displaySettings.waveCoherent);
         coherentToggle.addEventListener('click', () => {
@@ -971,12 +1063,32 @@
 
         updateSliders();
     }
+    
+    function updateColorKeyPositions() {
+        setTimeout(() => {
+            const controlsPanel = document.getElementById('controls-panel');
+            if (!controlsPanel) return;
+
+            const controlsHeight = controlsPanel.offsetHeight;
+            const isMobile = window.innerWidth <= 768;
+            const bottomMargin = isMobile ? 10 : 20;
+            const gap = 10;
+            const newBottom = bottomMargin + controlsHeight + gap;
+
+            const meshKey = document.getElementById('mesh-color-key');
+            const particleKey = document.getElementById('particle-color-key');
+            if (meshKey) meshKey.style.bottom = `${newBottom}px`;
+            if (particleKey) particleKey.style.bottom = `${newBottom}px`;
+        }, 0);
+    }
+
 
     const clock = new THREE.Clock();
     function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        updateColorKeyPositions();
     }
 
     function animate() {
@@ -991,3 +1103,4 @@
 </script>
 </body>
 </html>
+
