@@ -24,7 +24,8 @@ body {
     height: 60vh;
     background-image: url('https://JTaal.github.io/assets/images/gif/diffraction_pattern_parachute_2560p_side_view_transparant.gif');
     background-size: 165%;
-    background-position: center 10% 10%;
+    background-position: center 40% 10%;
+    /* background-position: center 10%; */
     overflow: hidden;
     color: white;
     display: flex;
