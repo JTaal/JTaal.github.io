@@ -46,12 +46,12 @@ body {
     border-radius: 1rem;
 }
 #logo-placeholder {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     margin-bottom: 20px;
     background-image: url("https://JTaal.github.io/assets/images/logo/logo.jpg");
-    background-size: 60%;
-    /* background-size: contain; */
+    /* background-size: 60%; */
+    background-size: contain;
     background-color: white; 
     background-repeat: no-repeat;
     background-position: center;
