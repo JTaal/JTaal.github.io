@@ -154,6 +154,12 @@
   visualization_url: /visualizations/3D-basis-vectors.html
   description: A short description goes here.
 
+- title: Regularisation
+  author: Jasper Taal
+  thumbnail: /assets/images/regularisation.png
+  visualization_url: /visualizations/regularisation.html
+  description: A short description goes here.
+
 - title: Complex Waves Combined High
   author: Jasper Taal
   thumbnail: /assets/images/complex-waves-combined-high.png
