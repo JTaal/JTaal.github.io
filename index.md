@@ -24,7 +24,7 @@ body {
     height: 60vh;
     background-image: url('https://JTaal.github.io/assets/images/gif/diffraction_pattern_parachute_2560p_side_view_transparant.gif');
     background-size: 190%;
-    background-position: center 10%;
+    background-position: center 20%;
     /* background-position: center 10%; */
     overflow: hidden;
     color: white;
@@ -52,6 +52,7 @@ body {
     background-image: url("https://JTaal.github.io/assets/images/logo/logo.jpg");
     background-size: 60%;
     /* background-size: contain; */
+    background-color: white; 
     background-repeat: no-repeat;
     background-position: center;
     border: 2px solid rgba(255,255,255,0.5);
@@ -122,7 +123,8 @@ body {
 .card h3 { font-size: 1.3rem; }
 .card small { font-size: 0.85rem; color: #ddd; }
 .card-cover .d-flex {
-    background: linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent 100%);
+    /* background: linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent 100%); */
+    background: linear-gradient(to top, rgba(0,0,0,0.1) 20%, transparent 100%);
 }
 
 .footer {
