@@ -49,8 +49,9 @@ body {
     width: 80px;
     height: 80px;
     margin-bottom: 20px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%23ffffff' stroke-width='4'%3E%3Cpath d='M50 10 L61.8 38.2 L90.5 38.2 L69.3 55.9 L78.8 85 L50 66.9 L21.2 85 L30.7 55.9 L9.5 38.2 L38.2 38.2 Z'/%3E%3C/svg%3E");
+    background-image: url("https://JTaal.github.io/assets/images/logo/logo.jpg");
     background-size: 60%;
+    /* background-size: contain; */
     background-repeat: no-repeat;
     background-position: center;
     border: 2px solid rgba(255,255,255,0.5);
