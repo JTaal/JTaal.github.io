@@ -82,29 +82,21 @@
         <div class="flex justify-between items-center"><h2 class="text-2xl font-bold">Settings</h2><button id="close-settings-btn" class="p-2 rounded-full hover:bg-gray-700 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div>
         <div id="data-controls" class="space-y-4 p-4 bg-gray-700 bg-opacity-40 rounded-lg">
             <h3 class="font-semibold text-lg border-b border-gray-600 pb-2">Shape Distribution</h3>
+            <div><label for="meanX" class="block text-sm font-medium mb-1">Mean X (μx): <span id="meanX-value" class="font-bold">0.0</span></label><input type="range" id="meanX" min="-5" max="5" step="0.1" value="0.0" class="w-full h-2 rounded-lg appearance-none cursor-pointer"></div>
+            <div><label for="meanY" class="block text-sm font-medium mb-1">Mean Y (μy): <span id="meanY-value" class="font-bold">0.0</span></label><input type="range" id="meanY" min="-5" max="5" step="0.1" value="0.0" class="w-full h-2 rounded-lg appearance-none cursor-pointer"></div>
             <div><label for="varianceX" class="block text-sm font-medium mb-1">Variance X (σ²x): <span id="varianceX-value" class="font-bold">1.0</span></label><input type="range" id="varianceX" min="0.1" max="5" step="0.1" value="1.0" class="w-full h-2 rounded-lg appearance-none cursor-pointer"></div>
             <div><label for="varianceY" class="block text-sm font-medium mb-1">Variance Y (σ²y): <span id="varianceY-value" class="font-bold">1.0</span></label><input type="range" id="varianceY" min="0.1" max="5" step="0.1" value="1.0" class="w-full h-2 rounded-lg appearance-none cursor-pointer"></div>
             <div><label for="correlation" class="block text-sm font-medium mb-1">Correlation (ρ): <span id="correlation-value" class="font-bold">0.0</span></label><input type="range" id="correlation" min="-0.95" max="0.95" step="0.05" value="0.0" class="w-full h-2 rounded-lg appearance-none cursor-pointer"></div>
-            <h3 class="font-semibold text-lg border-b border-gray-600 pt-2 pb-2">Place Distribution</h3>
-            <div class="grid grid-cols-2 gap-2">
-                <button class="place-btn text-sm py-2 px-2 rounded-md bg-gray-600" data-quadrant="--">Place in --</button>
-                <button class="place-btn text-sm py-2 px-2 rounded-md bg-gray-600" data-quadrant="-+">Place in -+</button>
-                <button class="place-btn text-sm py-2 px-2 rounded-md bg-gray-600" data-quadrant="+-">Place in +-</button>
-                <button class="place-btn text-sm py-2 px-2 rounded-md bg-gray-600" data-quadrant="++">Place in ++</button>
-            </div>
-             <button id="reset-btn" class="w-full text-sm py-2 px-2 mt-2 rounded-md bg-red-800 hover:bg-red-700 transition">Reset All</button>
+            <button id="add-dist-btn" class="w-full text-sm py-2 px-2 mt-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition">Add Distribution</button>
+            <button id="reset-btn" class="w-full text-sm py-2 px-2 mt-2 rounded-md bg-red-800 hover:bg-red-700 transition">Reset All</button>
         </div>
         <div class="space-y-4 p-4 bg-gray-700 bg-opacity-40 rounded-lg">
-            <h3 class="font-semibold text-lg border-b border-gray-600 pb-2">Visibility & Scene</h3>
+            <h3 class="font-semibold text-lg border-b border-gray-600 pb-2">Visibility</h3>
             <div class="grid grid-cols-2 gap-2">
                 <button id="toggle-points" class="toggle-btn text-sm py-2 px-2 rounded-md bg-gray-600 active">Data Points</button>
                 <button id="toggle-surface" class="toggle-btn text-sm py-2 px-2 rounded-md bg-gray-600 active">Fit Surface</button>
                 <button id="toggle-penalty" class="toggle-btn col-span-2 text-sm py-2 px-2 rounded-md bg-gray-600 active">Penalty & Hit Point</button>
                 <button id="toggle-mesh-style" class="toggle-btn col-span-2 text-sm py-2 px-2 rounded-md bg-gray-600">Mesh Style: Solid</button>
-            </div>
-             <div class="pt-2">
-                <label for="grid-size" class="block text-sm font-medium mb-1">Grid Size: <span id="grid-size-value" class="font-bold">20</span></label>
-                <input type="range" id="grid-size" min="10" max="50" step="2" value="20" class="w-full h-2 rounded-lg appearance-none cursor-pointer">
             </div>
         </div>
     </div>
@@ -119,11 +111,11 @@
     // --- 3D SCENE ---
     let scene, camera, renderer, controls, activeMeshes = new THREE.Group(), clock;
     function createLabeledAxes(size){const axes=new THREE.Object3D();const origin=new THREE.Vector3(0,0,0);const makeLabel=(text,color,pos)=>{const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');ctx.font='bold 60px Arial';ctx.fillStyle=color;ctx.fillText(text,0,60);const tex=new THREE.CanvasTexture(canvas);const spriteMat=new THREE.SpriteMaterial({map:tex});const sprite=new THREE.Sprite(spriteMat);sprite.scale.set(1.5,0.75,1);sprite.position.copy(pos);return sprite};const xAxisGeo=new THREE.BufferGeometry().setFromPoints([origin,new THREE.Vector3(size,0,0)]);const yAxisGeo=new THREE.BufferGeometry().setFromPoints([origin,new THREE.Vector3(0,size,0)]);const zAxisGeo=new THREE.BufferGeometry().setFromPoints([origin,new THREE.Vector3(0,0,-size)]);axes.add(new THREE.Line(xAxisGeo,new THREE.LineBasicMaterial({color:0xff0000})));axes.add(new THREE.Line(yAxisGeo,new THREE.LineBasicMaterial({color:0x00ff00})));axes.add(new THREE.Line(zAxisGeo,new THREE.LineBasicMaterial({color:0x0000ff})));axes.add(makeLabel('X','#ff0000',new THREE.Vector3(size+0.5,0,0)));axes.add(makeLabel('Probability / Z','#00ff00',new THREE.Vector3(0,size+0.5,0)));axes.add(makeLabel('Y','#0000ff',new THREE.Vector3(0,0,-size-0.5)));return axes}
-    function init3D(){clock=new THREE.Clock();const container=document.getElementById('container3d');scene=new THREE.Scene();scene.background=new THREE.Color(0x111827);camera=new THREE.PerspectiveCamera(75,container.clientWidth/container.clientHeight,0.1,2000);camera.position.set(8,8,12);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(container.clientWidth,container.clientHeight);container.appendChild(renderer.domElement);controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;const aL=new THREE.AmbientLight(0xffffff,0.5),dL=new THREE.DirectionalLight(0xffffff,0.8);dL.position.set(5,10,7.5);const grid=new THREE.GridHelper(state.gridSize,state.gridSize,'#444','#888');grid.name='gridHelper';grid.position.y=-0.01;scene.add(aL,dL,createLabeledAxes(10),grid,activeMeshes);new ResizeObserver(()=>{camera.aspect=container.clientWidth/container.clientHeight;camera.updateProjectionMatrix();renderer.setSize(container.clientWidth,container.clientHeight)}).observe(container);const animate=()=>{requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);const hitDot=scene.getObjectByName('hitDot');if(hitDot){const scale=1+Math.sin(clock.getElapsedTime()*5)*0.2;hitDot.scale.set(scale,scale,scale)}};animate()}
+    function init3D(){clock=new THREE.Clock();const container=document.getElementById('container3d');scene=new THREE.Scene();scene.background=new THREE.Color(0x111827);camera=new THREE.PerspectiveCamera(75,container.clientWidth/container.clientHeight,0.1,2000);camera.position.set(8,8,12);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(container.clientWidth,container.clientHeight);container.appendChild(renderer.domElement);controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;const aL=new THREE.AmbientLight(0xffffff,0.5),dL=new THREE.DirectionalLight(0xffffff,0.8);dL.position.set(5,10,7.5);const grid=new THREE.GridHelper(20,20,'#444','#888');grid.position.y=-0.01;scene.add(aL,dL,createLabeledAxes(10),grid,activeMeshes);new ResizeObserver(()=>{camera.aspect=container.clientWidth/container.clientHeight;camera.updateProjectionMatrix();renderer.setSize(container.clientWidth,container.clientHeight)}).observe(container);const animate=()=>{requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);const hitDot=scene.getObjectByName('hitDot');if(hitDot){const scale=1+Math.sin(clock.getElapsedTime()*5)*0.2;hitDot.scale.set(scale,scale,scale)}};animate()}
 
     // --- CORE LOGIC ---
-    const ui={varianceXSlider:document.getElementById('varianceX'),varianceXValue:document.getElementById('varianceX-value'),varianceYSlider:document.getElementById('varianceY'),varianceYValue:document.getElementById('varianceY-value'),correlationSlider:document.getElementById('correlation'),correlationValue:document.getElementById('correlation-value'),degreeSlider:document.getElementById('degree'),degreeValue:document.getElementById('degree-value'),regBtns:document.querySelectorAll('.reg-btn'),lambdaControl:document.getElementById('lambda-control'),lambdaSlider:document.getElementById('lambda'),lambdaValue:document.getElementById('lambda-value'),togglePointsBtn:document.getElementById('toggle-points'),toggleSurfaceBtn:document.getElementById('toggle-surface'),togglePenaltyBtn:document.getElementById('toggle-penalty'),toggleMeshStyleBtn:document.getElementById('toggle-mesh-style'),settingsBtn:document.getElementById('settings-btn'),closeSettingsBtn:document.getElementById('close-settings-btn'),settingsPanel:document.getElementById('settings-panel'),infoPanel:document.getElementById('info-panel'),infoPanelHeader:document.getElementById('info-header'),placeBtns:document.querySelectorAll('.place-btn'),resetBtn:document.getElementById('reset-btn'),biasValue:document.getElementById('bias-value'),cov00:document.getElementById('cov-00'),cov01:document.getElementById('cov-01'),cov10:document.getElementById('cov-10'),cov11:document.getElementById('cov-11'),determinantValue:document.getElementById('determinant-value'),gridSizeSlider:document.getElementById('grid-size'),gridSizeValue:document.getElementById('grid-size-value'),};
-    const state={varianceX:1.0,varianceY:1.0,correlation:0.0,degree:3,regType:'l2',lambda:0,allData:[],distributions:[],isGridMode:false,gridSize:20,};
+    const ui={meanXSlider:document.getElementById('meanX'),meanXValue:document.getElementById('meanX-value'),meanYSlider:document.getElementById('meanY'),meanYValue:document.getElementById('meanY-value'),varianceXSlider:document.getElementById('varianceX'),varianceXValue:document.getElementById('varianceX-value'),varianceYSlider:document.getElementById('varianceY'),varianceYValue:document.getElementById('varianceY-value'),correlationSlider:document.getElementById('correlation'),correlationValue:document.getElementById('correlation-value'),degreeSlider:document.getElementById('degree'),degreeValue:document.getElementById('degree-value'),regBtns:document.querySelectorAll('.reg-btn'),lambdaControl:document.getElementById('lambda-control'),lambdaSlider:document.getElementById('lambda'),lambdaValue:document.getElementById('lambda-value'),togglePointsBtn:document.getElementById('toggle-points'),toggleSurfaceBtn:document.getElementById('toggle-surface'),togglePenaltyBtn:document.getElementById('toggle-penalty'),toggleMeshStyleBtn:document.getElementById('toggle-mesh-style'),settingsBtn:document.getElementById('settings-btn'),closeSettingsBtn:document.getElementById('close-settings-btn'),settingsPanel:document.getElementById('settings-panel'),infoPanel:document.getElementById('info-panel'),infoPanelHeader:document.getElementById('info-header'),addDistBtn:document.getElementById('add-dist-btn'),resetBtn:document.getElementById('reset-btn'),biasValue:document.getElementById('bias-value'),cov00:document.getElementById('cov-00'),cov01:document.getElementById('cov-01'),cov10:document.getElementById('cov-10'),cov11:document.getElementById('cov-11'),determinantValue:document.getElementById('determinant-value'),};
+    const state={meanX:0.0,meanY:0.0,varianceX:1.0,varianceY:1.0,correlation:0.0,degree:3,regType:'l2',lambda:0,allData:[],distributions:[],isGridMode:false};
     
     function bivariateGaussianPDF(x,y,mux,muy,vx,vy,p){const peak=1/(2*Math.PI*Math.sqrt(vx)*Math.sqrt(vy)*Math.sqrt(1-p*p));const t2=-1/(2*(1-p*p));const x_=x-mux;const y_=y-muy;const t3=(x_*x_/vx)+(y_*y_/vy)-(2*p*x_*y_/(Math.sqrt(vx)*Math.sqrt(vy)));return{raw:peak*Math.exp(t2*t3),peak:peak}}
     function generateGaussianData(n,mux,muy,vx,vy,p){const data=[];const sx=Math.sqrt(vx),sy=Math.sqrt(vy);for(let i=0;i<n;i++){const u1=Math.random(),u2=Math.random(),z1=Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2),z2=Math.sqrt(-2*Math.log(u1))*Math.sin(2*Math.PI*u2),x=mux+sx*z1,y=muy+sy*(p*z1+Math.sqrt(1-p*p)*z2),z=bivariateGaussianPDF(x,y,mux,muy,vx,vy,p).raw;data.push({x,y,z,mux,muy,vx,vy,p})}return data}
@@ -150,19 +142,21 @@
             surfaceMesh.visible=ui.toggleSurfaceBtn.classList.contains('active');activeMeshes.add(surfaceMesh);
 
             const isPenaltyVisible=ui.togglePenaltyBtn.classList.contains('active');
-            const w=OLS_model.weights.slice(1).map((w,i)=>({w:Math.abs(w),i:i+1}));w.sort((a,b)=>b.w-a.w);const top_indices=[w[0]?.i||1,w[1]?.i||2];
-            let solution_w1,solution_w2;
-            if(state.lambda>0){solution_w1=model.weights[top_indices[0]];solution_w2=model.weights[top_indices[1]]}else{solution_w1=OLS_model.weights[top_indices[0]];solution_w2=OLS_model.weights[top_indices[1]]}
-            
-            if(solution_w1!==undefined&&solution_w2!==undefined){
-                const hitHeight=state.distributions.reduce((acc,dist)=>{const pdf=bivariateGaussianPDF(solution_w1,solution_w2,dist.mux,dist.muy,dist.vx,dist.vy,dist.p);return acc+pdf.raw/pdf.peak*4},0);
-                const hitDot=new THREE.Mesh(new THREE.SphereGeometry(0.2,16,16),new THREE.MeshBasicMaterial({color:0xff00ff}));hitDot.name="hitDot";hitDot.position.set(solution_w1,hitHeight,-solution_w2);hitDot.visible=isPenaltyVisible;activeMeshes.add(hitDot);
+            let solution_w1 = model.weights[1] || 0;
+            let solution_w2 = model.weights[2] || 0;
+
+            if(state.lambda === 0) {
+                solution_w1 = OLS_model.weights[1] || 0;
+                solution_w2 = OLS_model.weights[2] || 0;
             }
+            
+            const hitHeight=state.distributions.reduce((acc,dist)=>{const pdf=bivariateGaussianPDF(solution_w1,-solution_w2,dist.mux,dist.muy,dist.vx,dist.vy,dist.p);return acc+pdf.raw/pdf.peak*4},0);
+            const hitDot=new THREE.Mesh(new THREE.SphereGeometry(0.2,16,16),new THREE.MeshBasicMaterial({color:0xff00ff}));hitDot.name="hitDot";hitDot.position.set(solution_w1,hitHeight,-solution_w2);hitDot.visible=isPenaltyVisible;activeMeshes.add(hitDot);
         }
 
         let penaltyGeom, penaltyMat;
         if(state.lambda > 0) {
-            const penaltySize=2/(1+state.lambda*10);
+            const penaltySize = 2 / (state.lambda * 10)
             if(state.regType==='l1'){penaltyGeom=new THREE.OctahedronGeometry(penaltySize,0);penaltyMat=new THREE.MeshBasicMaterial({color:0xfbbf24,wireframe:true})}
             else if(state.regType==='l2'){penaltyGeom=new THREE.SphereGeometry(penaltySize,16,16);penaltyMat=new THREE.MeshBasicMaterial({color:0x60a5fa,wireframe:true})}
         } else {
@@ -177,30 +171,16 @@
     function updateLambdaUI(logVal){if(logVal<=-15){state.lambda=0;ui.lambdaValue.textContent="0.00e+0"}else{state.lambda=Math.pow(10,logVal);ui.lambdaValue.textContent=state.lambda.toExponential(2)}}
 
     // --- EVENT LISTENERS ---
-    ['varianceXSlider','varianceYSlider','correlationSlider'].forEach(id=>{const key=id.replace('Slider','');ui[id].addEventListener('input',e=>{state[key]=parseFloat(e.target.value);ui[key+'Value'].textContent=state[key].toFixed(2)})});
+    ['meanXSlider','meanYSlider','varianceXSlider','varianceYSlider','correlationSlider'].forEach(id=>{const key=id.replace('Slider','');ui[id].addEventListener('input',e=>{state[key]=parseFloat(e.target.value);ui[key+'Value'].textContent=state[key].toFixed(1)})});
     ui.degreeSlider.addEventListener('input',e=>{state.degree=parseInt(e.target.value,10);ui.degreeValue.textContent=state.degree;updateVisualizations()});
     ui.lambdaSlider.addEventListener('input',e=>{updateLambdaUI(parseFloat(e.target.value));updateVisualizations()});
     ui.regBtns.forEach(btn=>btn.addEventListener('click',()=>{ui.regBtns.forEach(b=>b.classList.remove('bg-blue-600'));btn.classList.add('bg-blue-600');state.regType=btn.dataset.reg;ui.lambdaControl.style.display=state.regType==='none'?'none':'block';updateVisualizations()}));
     ['togglePointsBtn','toggleSurfaceBtn','togglePenaltyBtn','toggleMeshStyleBtn'].forEach(id=>ui[id].addEventListener('click',e=>{e.currentTarget.classList.toggle('active');if(id==='toggleMeshStyleBtn'){state.isGridMode=!state.isGridMode;e.currentTarget.textContent=`Mesh Style: ${state.isGridMode?'Grid':'Solid'}`}updateVisualizations()}));
-    ui.placeBtns.forEach(btn=>{btn.addEventListener('click',()=>{const q=btn.dataset.quadrant;const m=5;const mux=q[0]==='+'?m:-m;const muy=q[1]==='+'?m:-m;const distParams={mux,muy,vx:state.varianceX,vy:state.varianceY,p:state.correlation};state.distributions.push(distParams);const newData=generateGaussianData(50,mux,muy,state.varianceX,state.varianceY,state.correlation);state.allData.push(...newData);updateVisualizations();updateMetrics()})});
+    ui.addDistBtn.addEventListener('click',()=>{const distParams={mux:state.meanX,muy:state.meanY,vx:state.varianceX,vy:state.varianceY,p:state.correlation};state.distributions.push(distParams);const newData=generateGaussianData(50,state.meanX,state.meanY,state.varianceX,state.varianceY,state.correlation);state.allData.push(...newData);updateVisualizations();updateMetrics()});
     ui.resetBtn.addEventListener('click',()=>{state.allData=[];state.distributions=[];updateVisualizations();updateMetrics()});
     ui.settingsBtn.addEventListener('click',()=>ui.settingsPanel.classList.remove('translate-x-full'));
     ui.closeSettingsBtn.addEventListener('click',()=>ui.settingsPanel.classList.add('translate-x-full'));
     ui.infoPanelHeader.addEventListener('click',e=>{if(e.target.closest('canvas'))return;ui.infoPanel.classList.toggle('expanded')});
-    ui.gridSizeSlider.addEventListener('input', e => {
-        state.gridSize = parseInt(e.target.value, 10);
-        ui.gridSizeValue.textContent = state.gridSize;
-        const oldGrid = scene.getObjectByName('gridHelper');
-        if (oldGrid) {
-            scene.remove(oldGrid);
-            oldGrid.geometry.dispose();
-            oldGrid.material.dispose();
-        }
-        const newGrid = new THREE.GridHelper(state.gridSize, state.gridSize, '#444', '#888');
-        newGrid.name = 'gridHelper';
-        newGrid.position.y = -0.01;
-        scene.add(newGrid);
-    });
 
     // --- INIT ---
     document.addEventListener('DOMContentLoaded',()=>{init3D();updateLambdaUI(parseFloat(ui.lambdaSlider.value));updateVisualizations()});
