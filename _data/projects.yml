@@ -22,6 +22,12 @@
   visualization_url: /visualizations/chirp.html
   description: A short description goes here.
 
+- title: Clustering
+  author: Jasper Taal
+  thumbnail: /assets/images/clustering.png
+  visualization_url: /visualizations/clustering.html
+  description: A short description goes here.
+
 - title: Complex Numbers
   author: Jasper Taal
   thumbnail: /assets/images/complex-numbers.png
@@ -50,12 +56,6 @@
   author: Jasper Taal
   thumbnail: /assets/images/evolutionary-algorithms.png
   visualization_url: /visualizations/evolutionary-algorithms.html
-  description: A short description goes here.
-
-- title: K Means Clustering
-  author: Jasper Taal
-  thumbnail: /assets/images/k-means-clustering.png
-  visualization_url: /visualizations/k-means-clustering.html
   description: A short description goes here.
 
 - title: Linear Regression
