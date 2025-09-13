@@ -211,6 +211,7 @@
             <p><strong class="text-indigo-400">K-Means:</strong> Partitions data into a user-defined number of spherical clusters (K). It's fast but struggles with complex shapes and noise.</p>
             <p><strong class="text-indigo-400">DBSCAN:</strong> Groups points based on density. It excels at finding arbitrarily shaped clusters and identifying outliers as noise.</p>
             <p><strong class="text-indigo-400">Agglomerative:</strong> A bottom-up hierarchical approach that merges the closest pair of clusters at each step until a target number of clusters is reached.</p>
+            <p><strong class="text-indigo-400">Gaussian Mixture (GMM):</strong> A probabilistic model assuming data is from several Gaussian distributions. It can identify elliptical clusters.</p>
         </div>
     </div>
 
@@ -229,6 +230,7 @@
 
     // --- Data Generation ---
     function randGauss(mean = 0, stdDev = 1) { let u = 0, v = 0; while (u === 0) u = Math.random(); while (v === 0) v = Math.random(); return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v) * stdDev + mean; }
+    function shuffle(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
     const datasets = { blobs: { name: 'Blobs', generator: () => generateBlobData(1500, 3, 20, 5), is3D: false }, moons: { name: 'Moons', generator: () => generateMoonData(1000), is3D: false }, circles: { name: 'Circles', generator: () => generateCircleData(1000), is3D: false }, spiral: { name: 'Spiral', generator: () => generateSpiralData(1000, 2), is3D: false }, anisotropic: { name: 'Anisotropic', generator: () => generateAnisotropicData(1500), is3D: false }, varying_density: { name: 'Varying Density', generator: () => generateVaryingDensityData(), is3D: false }, overlapping: { name: 'Overlapping', generator: () => generateBlobData(1500, 3, 10, 8), is3D: false }, line: { name: 'Noisy Line', generator: () => generateLineData(1500), is3D: false }, cross: { name: 'Cross', generator: () => generateCrossData(1500), is3D: false }, random: { name: 'Random', generator: () => generateRandomData(1500, 50), is3D: false }, sphere: { name: '3D Sphere', generator: () => generate3DSphereData(1500, 25), is3D: true }, shells: { name: '3D Shells', generator: () => generate3DShellData(1500, [15, 25]), is3D: true }, torus: { name: '3D Torus', generator: () => generate3DTorusData(1500, 20, 8), is3D: true }, helix: { name: '3D Helix', generator: () => generate3DHelixData(1500), is3D: true }, linked_rings: { name: '3D Linked Rings', generator: () => generateLinkedRingsData(1500), is3D: true }, saturn: { name: '3D Saturn', generator: () => generateSaturnData(1500), is3D: true }, s_curve: { name: '3D S-Curve', generator: () => generate3DSCurveData(1500), is3D: true }, };
     function generateBlobData(numPoints, blobCount, maxRadius, blobStdDev) { const data = []; const pointsPerBlob = Math.floor(numPoints / blobCount); for (let i = 0; i < blobCount; i++) { const angle = (i / blobCount) * Math.PI * 2; const centerX = Math.cos(angle) * maxRadius, centerY = Math.sin(angle) * maxRadius; for (let j = 0; j < pointsPerBlob; j++) data.push([ centerX + randGauss(0, blobStdDev), centerY + randGauss(0, blobStdDev), 0]); } return data; }
     function generateMoonData(numPoints) { const data = []; const n = numPoints / 2, radius = 25; for (let i = 0; i < n; i++) { const angle = Math.random() * Math.PI, r = radius + randGauss(0, 2); data.push([ Math.cos(angle) * r, Math.sin(angle) * r, 0]); } for (let i = 0; i < n; i++) { const angle = Math.random() * Math.PI + Math.PI, r = radius + randGauss(0, 2); data.push([ Math.cos(angle) * r + radius, Math.sin(angle) * r - 8, 0]); } return data; }
@@ -257,9 +259,11 @@
     let kmeansState = { k: 3, centroids: [], assignments: [], status: 'idle', iteration: 0, pointsMesh: null, centroidsMesh: null };
     const comparisonAlgorithms = {
         dbscan: { name: 'DBSCAN', state: { epsilon: 2.5, minPts: 5, assignments: [], status: 'idle', pointsMesh: null }, run: runDBSCAN, updateVisuals: updatePointColorVisuals, setupControls: setupDBSCANControls, },
-        agglomerative: { name: 'Agglomerative', state: { n_clusters: 3, assignments: [], status: 'idle', pointsMesh: null }, run: runAgglomerative, updateVisuals: updatePointColorVisuals, setupControls: setupAgglomerativeControls, }
+        agglomerative: { name: 'Agglomerative', state: { n_clusters: 3, assignments: [], status: 'idle', pointsMesh: null }, run: runAgglomerative, updateVisuals: updatePointColorVisuals, setupControls: setupAgglomerativeControls, },
+        gmm: { name: 'GMM', state: { n_components: 3, assignments: [], status: 'idle', pointsMesh: null }, run: runGMM, updateVisuals: updatePointColorVisuals, setupControls: setupGMMControls, }
     };
 
+    // --- Three.js Components ---
     let sceneLeft, cameraLeft, rendererLeft, controlsLeft;
     let sceneRight, cameraRight, rendererRight, controlsRight;
     let clock = new THREE.Clock();
@@ -268,6 +272,49 @@
     function initializeCentroids(data, k) { const centroids = []; const usedIndices = new Set(); while (centroids.length < k) { const index = Math.floor(Math.random() * data.length); if (!usedIndices.has(index)) { centroids.push([...data[index]]); usedIndices.add(index); } } return centroids; }
     function runDBSCAN() { const { epsilon, minPts } = comparisonAlgorithms.dbscan.state; const labels = new Array(points.length).fill(0); let clusterId = 0; const regionQuery = (index) => { const neighbors = []; for (let i = 0; i < points.length; i++) { if (Math.hypot(points[index][0] - points[i][0], points[index][1] - points[i][1], points[index][2] - points[i][2]) < epsilon) { neighbors.push(i); } } return neighbors; }; for (let i = 0; i < points.length; i++) { if (labels[i] !== 0) continue; const neighbors = regionQuery(i); if (neighbors.length < minPts) { labels[i] = -1; continue; } clusterId++; labels[i] = clusterId; const seedSet = [...neighbors]; for (let j = 0; j < seedSet.length; j++) { const currentPointIndex = seedSet[j]; if (labels[currentPointIndex] === -1) labels[currentPointIndex] = clusterId; if (labels[currentPointIndex] !== 0) continue; labels[currentPointIndex] = clusterId; const newNeighbors = regionQuery(currentPointIndex); if (newNeighbors.length >= minPts) { for (const neighborIndex of newNeighbors) { if (!seedSet.includes(neighborIndex)) seedSet.push(neighborIndex); } } } } comparisonAlgorithms.dbscan.state.assignments = labels.map(l => l - 1); comparisonAlgorithms.dbscan.state.status = 'finished'; }
     function runAgglomerative() { const state = comparisonAlgorithms.agglomerative.state; let clusters = points.map((p, i) => ({ points: [p], indices: [i], center: p })); const dist = (c1, c2) => Math.hypot(c1.center[0] - c2.center[0], c1.center[1] - c2.center[1], c1.center[2] - c2.center[2]); while(clusters.length > state.n_clusters) { let min_dist = Infinity, merge_idx1 = -1, merge_idx2 = -1; for(let i=0; i < clusters.length; i++) { for(let j=i+1; j < clusters.length; j++) { const d = dist(clusters[i], clusters[j]); if(d < min_dist) { min_dist = d; merge_idx1 = i; merge_idx2 = j; } } } const c1 = clusters[merge_idx1], c2 = clusters[merge_idx2]; const new_points = c1.points.concat(c2.points); const new_center = new_points.reduce((acc, p) => [acc[0]+p[0], acc[1]+p[1], acc[2]+p[2]], [0,0,0]).map(v => v / new_points.length); clusters.splice(merge_idx2, 1); clusters.splice(merge_idx1, 1); clusters.push({ points: new_points, indices: c1.indices.concat(c2.indices), center: new_center }); } state.assignments = new Array(points.length); clusters.forEach((cluster, cluster_id) => { cluster.indices.forEach(point_idx => { state.assignments[point_idx] = cluster_id; }); }); state.status = 'finished'; }
+    function runGMM() {
+        const state = comparisonAlgorithms.gmm.state;
+        const numPoints = points.length;
+        const dim = is3D ? 3 : 2; 
+        const k = state.n_components;
+        let responsibilities = Array(numPoints).fill(0).map(() => new Array(k).fill(0));
+        let weights = new Array(k).fill(1 / k);
+        let means = [];
+        const shuffledIndices = Array.from({length: numPoints}, (_, i) => i);
+        shuffle(shuffledIndices);
+        for(let i=0; i<k; i++) { means.push([...points[shuffledIndices[i]]]); }
+        let covariances = Array(k).fill(0).map(() => { const mat = Array(dim).fill(0).map(() => new Array(dim).fill(0)); for(let i=0; i<dim; i++) mat[i][i] = 10; return mat; });
+        const determinant = (cov) => { let det = 1; for(let i=0; i<dim; i++) det *= cov[i][i]; return det; };
+        const inverse = (cov) => { const inv = Array(dim).fill(0).map(() => new Array(dim).fill(0)); for(let i=0; i<dim; i++) inv[i][i] = 1 / cov[i][i]; return inv; };
+        const multivariateNormalPDF = (x, mean, cov) => { const covDet = determinant(cov); if (covDet <= 1e-9) return 1e-9; const covInv = inverse(cov); let exponent = 0; const diff = Array(dim); for(let i=0; i<dim; i++) diff[i] = x[i] - mean[i]; let term = 0; for(let i=0; i<dim; i++) { for(let j=0; j<dim; j++) { term += diff[i] * covInv[i][j] * diff[j]; } } exponent = -0.5 * term; return (1 / Math.sqrt(Math.pow(2 * Math.PI, dim) * covDet)) * Math.exp(exponent); };
+        for (let iter = 0; iter < 100; iter++) {
+            for (let i = 0; i < numPoints; i++) {
+                let sumProb = 0; const point = points[i]; const pdfs = new Array(k);
+                for (let j = 0; j < k; j++) { pdfs[j] = multivariateNormalPDF(point, means[j], covariances[j]); sumProb += weights[j] * pdfs[j]; }
+                if (sumProb === 0) { for(let j=0; j<k; j++) responsibilities[i][j] = 1/k; } 
+                else { for (let j = 0; j < k; j++) { responsibilities[i][j] = (weights[j] * pdfs[j]) / sumProb; } }
+            }
+            const N_k = new Array(k).fill(0); for (let j = 0; j < k; j++) { for (let i = 0; i < numPoints; i++) { N_k[j] += responsibilities[i][j]; } }
+            for (let j = 0; j < k; j++) {
+                if (N_k[j] < 1e-6) continue; 
+                means[j] = new Array(dim).fill(0);
+                for (let i = 0; i < numPoints; i++) { for (let d = 0; d < dim; d++) { means[j][d] += responsibilities[i][j] * points[i][d]; } }
+                for (let d = 0; d < dim; d++) { means[j][d] /= N_k[j]; }
+                covariances[j] = Array(dim).fill(0).map(() => new Array(dim).fill(0));
+                for (let d = 0; d < dim; d++) {
+                    let variance = 0;
+                    for (let i = 0; i < numPoints; i++) { variance += responsibilities[i][j] * Math.pow(points[i][d] - means[j][d], 2); }
+                    covariances[j][d][d] = variance / N_k[j];
+                    if (covariances[j][d][d] < 1e-6) covariances[j][d][d] = 1e-6;
+                }
+                weights[j] = N_k[j] / numPoints;
+            }
+        }
+        state.assignments = new Array(numPoints);
+        for (let i = 0; i < numPoints; i++) { let maxResponsibility = -1, bestCluster = -1; for (let j = 0; j < k; j++) { if (responsibilities[i][j] > maxResponsibility) { maxResponsibility = responsibilities[i][j]; bestCluster = j; } } state.assignments[i] = bestCluster; }
+        state.status = 'finished';
+    }
+
 
     // --- UI and App Logic ---
     function setupUI() {
@@ -296,23 +343,14 @@
         document.getElementById('info-panel').addEventListener('click', (e) => { if (!e.target.closest('button, a, input')) e.currentTarget.classList.toggle('expanded'); });
         document.getElementById('view-toggle-btn').addEventListener('click', toggleView);
         document.getElementById('algo-select').addEventListener('change', (e) => { activeComparisonAlgoKey = e.target.value; setupComparisonControls(); reset(); });
-        setupComparisonControls();
+        setupComparisonControls(); 
+        document.getElementById('algo-select').value = activeComparisonAlgoKey;
     }
     
-    function setupDBSCANControls() {
-        const container = document.getElementById('comparison-algo-controls'), state = comparisonAlgorithms.dbscan.state;
-        container.innerHTML = `<div class="control-group"><label class="text-sm font-medium">Epsilon: <span id="eps-value">${state.epsilon.toFixed(1)}</span></label><input id="eps-slider" type="range" min="0.5" max="10" step="0.1" value="${state.epsilon}" class="w-32"></div><div class="control-group"><label class="text-sm font-medium">MinPts: <span id="minpts-value">${state.minPts}</span></label><input id="minpts-slider" type="range" min="2" max="20" step="1" value="${state.minPts}" class="w-32"></div>`;
-        document.getElementById('eps-slider').addEventListener('input', e => { state.epsilon = parseFloat(e.target.value); document.getElementById('eps-value').textContent = state.epsilon.toFixed(1); });
-        document.getElementById('eps-slider').addEventListener('change', reset);
-        document.getElementById('minpts-slider').addEventListener('input', e => { state.minPts = parseInt(e.target.value); document.getElementById('minpts-value').textContent = state.minPts; });
-        document.getElementById('minpts-slider').addEventListener('change', reset);
-    }
-    function setupAgglomerativeControls() {
-        const container = document.getElementById('comparison-algo-controls'), state = comparisonAlgorithms.agglomerative.state;
-        container.innerHTML = `<div class="control-group"><label class="text-sm font-medium">Clusters: <span id="n-clusters-value">${state.n_clusters}</span></label><input id="n-clusters-slider" type="range" min="2" max="8" step="1" value="${state.n_clusters}" class="w-32"></div>`;
-        document.getElementById('n-clusters-slider').addEventListener('input', e => { state.n_clusters = parseInt(e.target.value); document.getElementById('n-clusters-value').textContent = state.n_clusters; });
-        document.getElementById('n-clusters-slider').addEventListener('change', reset);
-    }
+    function setupDBSCANControls() { const container = document.getElementById('comparison-algo-controls'), state = comparisonAlgorithms.dbscan.state; container.innerHTML = `<div class="control-group"><label class="text-sm font-medium">Epsilon: <span id="eps-value">${state.epsilon.toFixed(1)}</span></label><input id="eps-slider" type="range" min="0.5" max="10" step="0.1" value="${state.epsilon}" class="w-32"></div><div class="control-group"><label class="text-sm font-medium">MinPts: <span id="minpts-value">${state.minPts}</span></label><input id="minpts-slider" type="range" min="2" max="20" step="1" value="${state.minPts}" class="w-32"></div>`; document.getElementById('eps-slider').addEventListener('input', e => { state.epsilon = parseFloat(e.target.value); document.getElementById('eps-value').textContent = state.epsilon.toFixed(1); }); document.getElementById('eps-slider').addEventListener('change', reset); document.getElementById('minpts-slider').addEventListener('input', e => { state.minPts = parseInt(e.target.value); document.getElementById('minpts-value').textContent = state.minPts; }); document.getElementById('minpts-slider').addEventListener('change', reset); }
+    function setupAgglomerativeControls() { const container = document.getElementById('comparison-algo-controls'), state = comparisonAlgorithms.agglomerative.state; container.innerHTML = `<div class="control-group"><label class="text-sm font-medium">Clusters: <span id="n-clusters-value">${state.n_clusters}</span></label><input id="n-clusters-slider" type="range" min="2" max="8" step="1" value="${state.n_clusters}" class="w-32"></div>`; document.getElementById('n-clusters-slider').addEventListener('input', e => { state.n_clusters = parseInt(e.target.value); document.getElementById('n-clusters-value').textContent = state.n_clusters; }); document.getElementById('n-clusters-slider').addEventListener('change', reset); }
+    function setupGMMControls() { const container = document.getElementById('comparison-algo-controls'), state = comparisonAlgorithms.gmm.state; container.innerHTML = `<div class="control-group"><label class="text-sm font-medium">Components: <span id="n-components-value">${state.n_components}</span></label><input id="n-components-slider" type="range" min="2" max="8" step="1" value="${state.n_components}" class="w-32"></div>`; document.getElementById('n-components-slider').addEventListener('input', e => { state.n_components = parseInt(e.target.value); document.getElementById('n-components-value').textContent = state.n_components; }); document.getElementById('n-components-slider').addEventListener('change', reset); }
+
     function setupComparisonControls() {
         const algo = comparisonAlgorithms[activeComparisonAlgoKey];
         if (algo && algo.setupControls) algo.setupControls(); else document.getElementById('comparison-algo-controls').innerHTML = '';
@@ -328,24 +366,45 @@
         document.getElementById('view-toggle-text').textContent = isDualView ? 'Dual View' : 'Single View';
         document.getElementById('comparison-algo-section').style.display = isDualView ? 'flex' : 'none';
         mainContainer.addEventListener('transitionend', onWindowResize, { once: true });
-        onWindowResize();
+        onWindowResize(); // Trigger resize immediately
     }
     function updateUIState() { const startBtn = document.getElementById('start-btn'), pauseBtn = document.getElementById('pause-btn'); const stepBtn = document.getElementById('step-btn'), resetBtn = document.getElementById('reset-btn'); const datasetSelect = document.getElementById('dataset-select'), kSlider = document.getElementById('k-slider'); const isRunning = kmeansState.status === 'running'; startBtn.classList.toggle('hidden', isRunning); pauseBtn.classList.toggle('hidden', !isRunning); startBtn.disabled = kmeansState.status === 'finished' || isRunning; stepBtn.disabled = kmeansState.status === 'finished' || isRunning; resetBtn.disabled = isRunning; datasetSelect.disabled = isRunning; kSlider.disabled = isRunning; Object.values(comparisonAlgorithms).forEach(algo => { if(algo.setupControls) { const controls = document.getElementById('comparison-algo-controls'); if(controls) Array.from(controls.getElementsByTagName('input')).forEach(input => input.disabled = isRunning); }}); document.getElementById('algo-select').disabled = isRunning; }
     function createOrUpdateMesh(scene, existingMesh, size, sizeAttenuation, isCentroid = false) { if (existingMesh) { scene.remove(existingMesh); existingMesh.geometry.dispose(); } const numEntities = isCentroid ? kmeansState.k : points.length; const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(numEntities * 3), 3)); geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(numEntities * 3), 3)); const mesh = new THREE.Points(geometry, new THREE.PointsMaterial({ size, vertexColors: true, sizeAttenuation })); scene.add(mesh); return mesh; }
+    
     function reset() {
         kmeansState.status = 'idle';
         Object.values(comparisonAlgorithms).forEach(algo => algo.state.status = 'idle');
         kmeansState.iteration = 0;
-        const datasetKey = document.getElementById('dataset-select').value, dataset = datasets[datasetKey];
-        is3D = dataset.is3D; points = dataset.generator();
+        const datasetKey = document.getElementById('dataset-select').value;
+        const dataset = datasets[datasetKey];
+        is3D = dataset.is3D;
+        points = dataset.generator();
         kmeansState.centroids = initializeCentroids(points, kmeansState.k);
         kmeansState.assignments = Array(points.length).fill(-1);
-        [cameraLeft, cameraRight].forEach(cam => cam.position.set(0, 0, 80));
-        [controlsLeft, controlsRight].forEach(ctrl => { ctrl.target.set(0, 0, 0); ctrl.enableRotate = is3D; ctrl.mouseButtons.LEFT = is3D ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN; ctrl.mouseButtons.RIGHT = is3D ? THREE.MOUSE.PAN : THREE.MOUSE.DOLLY; });
+
+        const pointsVec3 = points.map(p => new THREE.Vector3(...p));
+        const boundingBox = new THREE.Box3().setFromPoints(pointsVec3);
+        const center = new THREE.Vector3();
+        const size = new THREE.Vector3();
+        boundingBox.getCenter(center);
+        boundingBox.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = cameraLeft.fov * (Math.PI / 180);
+        const cameraDistance = maxDim / (2 * Math.tan(fov / 2));
+        const fitOffset = 1.5;
+
+        [controlsLeft, controlsRight].forEach(ctrl => {
+            ctrl.target.copy(center);
+            ctrl.object.position.set(center.x, center.y, center.z + cameraDistance * fitOffset);
+            ctrl.update();
+        });
+
         kmeansState.pointsMesh = createOrUpdateMesh(sceneLeft, kmeansState.pointsMesh, is3D ? 0.75 : 1, true);
         kmeansState.centroidsMesh = createOrUpdateMesh(sceneLeft, kmeansState.centroidsMesh, is3D ? 4 : 10, is3D, true);
+        
         const activeAlgo = comparisonAlgorithms[activeComparisonAlgoKey];
         activeAlgo.state.pointsMesh = createOrUpdateMesh(sceneRight, activeAlgo.state.pointsMesh, is3D ? 0.75 : 1, true);
+
         const positions = new Float32Array(points.length * 3);
         for (let i = 0; i < points.length; i++) positions.set(points[i], i * 3);
         kmeansState.pointsMesh.geometry.attributes.position.copyArray(positions);
@@ -354,39 +413,69 @@
             activeAlgo.state.pointsMesh.geometry.attributes.position.copyArray(positions);
             activeAlgo.state.pointsMesh.geometry.attributes.position.needsUpdate = true;
         }
+        
         updateKMeansVisuals(true);
         activeAlgo.updateVisuals(true);
         updateUIState();
     }
+    
     function start() { const activeAlgo = comparisonAlgorithms[activeComparisonAlgoKey]; if (kmeansState.status === 'idle' || kmeansState.status === 'paused') { kmeansState.status = 'running'; if (activeAlgo.state.status === 'idle') { activeAlgo.run(); activeAlgo.updateVisuals(); } updateUIState(); } }
     function pause() { if (kmeansState.status === 'running') { kmeansState.status = 'paused'; updateUIState(); } }
     function updateKMeansVisuals(isReset = false) { const pColors = kmeansState.pointsMesh.geometry.attributes.color; for (let i = 0; i < points.length; i++) { const color = (isReset || kmeansState.assignments[i] === -1) ? noiseColor : clusterColors[kmeansState.assignments[i]]; pColors.setXYZ(i, color.r, color.g, color.b); } pColors.needsUpdate = true; const cPositions = kmeansState.centroidsMesh.geometry.attributes.position; const cColors = kmeansState.centroidsMesh.geometry.attributes.color; for (let i = 0; i < kmeansState.k; i++) { cPositions.setXYZ(i, kmeansState.centroids[i][0], kmeansState.centroids[i][1], kmeansState.centroids[i][2] + 0.1); cColors.setXYZ(i, clusterColors[i].r, clusterColors[i].g, clusterColors[i].b); } cPositions.needsUpdate = true; cColors.needsUpdate = true; }
     function updatePointColorVisuals(isReset = false) { const state = this.state, pColors = state.pointsMesh.geometry.attributes.color; for (let i = 0; i < points.length; i++) { const assignment = state.assignments[i]; const color = (isReset || assignment < 0) ? noiseColor : clusterColors[assignment % clusterColors.length]; pColors.setXYZ(i, color.r, color.g, color.b); } pColors.needsUpdate = true; }
+
+    // --- Main Init and Loop ---
     function init() {
-        const viewLeft = document.getElementById('view-left'), viewRight = document.getElementById('view-right');
+        const viewLeft = document.getElementById('view-left');
+        const viewRight = document.getElementById('view-right');
         sceneLeft = new THREE.Scene(); sceneRight = new THREE.Scene();
         sceneLeft.background = new THREE.Color(0x030712); sceneRight.background = new THREE.Color(0x030712);
         cameraLeft = new THREE.PerspectiveCamera(75, viewLeft.clientWidth / viewLeft.clientHeight, 0.1, 1000);
         cameraRight = new THREE.PerspectiveCamera(75, viewRight.clientWidth / viewRight.clientHeight, 0.1, 1000);
         rendererLeft = new THREE.WebGLRenderer({ antialias: true }); rendererRight = new THREE.WebGLRenderer({ antialias: true });
         rendererLeft.setPixelRatio(window.devicePixelRatio); rendererRight.setPixelRatio(window.devicePixelRatio);
-        rendererLeft.setSize(viewLeft.clientWidth, viewLeft.clientHeight); rendererRight.setSize(viewRight.clientWidth, viewRight.clientHeight);
         viewLeft.appendChild(rendererLeft.domElement); viewRight.appendChild(rendererRight.domElement);
         controlsLeft = new OrbitControls(cameraLeft, rendererLeft.domElement); controlsRight = new OrbitControls(cameraRight, rendererRight.domElement);
         controlsLeft.enableDamping = true; controlsRight.enableDamping = true;
-        setupUI(); toggleView(); reset();
+        
+        setupUI();
+        toggleView();
+        reset();
+        
         window.addEventListener('resize', onWindowResize);
         controlsLeft.addEventListener('change', () => { if(isDualView) { cameraRight.position.copy(cameraLeft.position); controlsRight.target.copy(controlsLeft.target); }});
         controlsRight.addEventListener('change', () => { if(isDualView) { cameraLeft.position.copy(cameraRight.position); controlsLeft.target.copy(controlsRight.target); }});
+        
         animate();
     }
-    function animate() { requestAnimationFrame(animate); const delta = clock.getDelta(); if (kmeansState.status === 'running') { timeSinceStep += delta; if (timeSinceStep > 0.2) { timeSinceStep = 0; stepKMeans(); updateKMeansVisuals(); updateUIState(); } } controlsLeft.update(); rendererLeft.render(sceneLeft, cameraLeft); if (isDualView) { controlsRight.update(); rendererRight.render(sceneRight, cameraRight); } }
+
+    function animate() { 
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+        if (kmeansState.status === 'running') {
+            timeSinceStep += delta;
+            if (timeSinceStep > 0.1) {
+                timeSinceStep = 0;
+                stepKMeans();
+                updateKMeansVisuals();
+                updateUIState();
+            }
+        }
+        controlsLeft.update();
+        rendererLeft.render(sceneLeft, cameraLeft); 
+        if (isDualView) {
+            controlsRight.update();
+            rendererRight.render(sceneRight, cameraRight);
+        }
+    }
+    
     function onWindowResize() {
         const viewLeft = document.getElementById('view-left');
         if (viewLeft) { const w = viewLeft.clientWidth, h = viewLeft.clientHeight; if (w > 0 && h > 0) { cameraLeft.aspect = w / h; cameraLeft.updateProjectionMatrix(); rendererLeft.setSize(w, h); } }
         const viewRight = document.getElementById('view-right');
         if (isDualView && viewRight) { const w = viewRight.clientWidth, h = viewRight.clientHeight; if (w > 0 && h > 0) { cameraRight.aspect = w / h; cameraRight.updateProjectionMatrix(); rendererRight.setSize(w, h); } }
     }
+    
     init();
 </script>
 </body>
