@@ -23,7 +23,7 @@
         .control-btn:hover, .preset-btn:hover, .main-nav-btn:hover { background-color: #4f46e5; }
         .control-btn:active, .preset-btn:active, .main-nav-btn:active { transform: translateY(1px); }
         .preset-btn.active, .main-nav-btn.active { background-color: #4f46e5; box-shadow: 0 0 10px rgba(79, 70, 229, 0.5); font-weight: 600; }
-        select { background-color: #1f2937; border: 1px solid #4b5563; border-radius: 6px; padding: 0.5rem; width: 100%; }
+        select, input[type="text"] { background-color: #1f2937; border: 1px solid #4b5563; border-radius: 6px; padding: 0.5rem; width: 100%; }
         input[type="range"]{-webkit-appearance:none;width:100%;height:4px;background:#4b5563;border-radius:2px;outline:none}
         input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;background:#818cf8;cursor:pointer;border-radius:50%}
         .main-view { display: none; } .main-view.active { display: block; }
@@ -47,18 +47,14 @@
         #builder-svg .add-btn:hover, #builder-svg .delete-btn:hover { opacity: 1; }
         .builder-select { background-color: #1f2937; border: 1px solid #4b5563; color: #e5e7eb; border-radius: 4px; font-family: 'Inter', sans-serif; }
         
-        /* Settings Accordion */
         .accordion-header { cursor: pointer; user-select: none; }
         .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
-        .accordion-content.open { max-height: 500px; /* Adjust as needed */ }
+        .accordion-content.open { max-height: 500px; }
         .accordion-icon { transition: transform 0.3s ease-out; }
         .accordion-header.open .accordion-icon { transform: rotate(90deg); }
-
-        /* Toggle Switch */
         .toggle-bg:after { content: ''; position: absolute; top: 2px; left: 2px; background: white; border-radius: 9999px; height: 1rem; width: 1rem; transition: transform 0.2s ease-in-out; }
         input:checked + .toggle-bg:after { transform: translateX(100%); transform: translateX(calc(1.75rem - 100%)); }
         input:checked + .toggle-bg { background-color: #4f46e5; }
-
     </style>
 </head>
 <body>
@@ -99,18 +95,41 @@
         <div class="flex justify-between items-center border-b border-gray-700 pb-3 mb-4"><h2 class="text-xl font-bold text-indigo-400">Settings</h2><button id="close-settings-btn" class="control-btn p-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
         
         <div class="space-y-4">
-            <!-- Training Section -->
             <div class="border-b border-gray-700 pb-4">
-                <div class="accordion-header flex justify-between items-center open">
-                    <h3 class="font-semibold">Training Parameters</h3>
+                 <div class="accordion-header flex justify-between items-center open">
+                    <h3 class="font-semibold">Presets</h3>
+                     <svg class="accordion-icon w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </div>
                 <div class="accordion-content open space-y-4 pt-4">
+                    <div><h4 class="font-medium text-sm mb-2">Network Presets</h4><div id="nn-presets" class="grid grid-cols-2 gap-2"><button class="preset-btn" data-preset="linear">Linear</button><button class="preset-btn" data-preset="xor">XOR Solver</button><button class="preset-btn" data-preset="moons">Moons Solver</button><button class="preset-btn" data-preset="spiral">Spiral Solver</button></div></div>
+                    <div><h4 class="font-medium text-sm mb-2">Dataset Templates</h4><div id="dataset-presets" class="grid grid-cols-2 sm:grid-cols-3 gap-2"><button class="preset-btn" data-dataset="circle">Circle</button><button class="preset-btn" data-dataset="xor">XOR</button><button class="preset-btn" data-dataset="spiral">Spiral</button><button class="preset-btn" data-dataset="interleaved">Interleaved</button><button class="preset-btn" data-dataset="moons">Moons</button><button class="preset-btn" data-dataset="gaussian">Blobs</button><button class="preset-btn" data-dataset="ushape">U-Shape</button><button class="preset-btn" data-dataset="rings">Rings</button><button class="preset-btn" data-dataset="swiss_roll">Swiss Roll</button><button class="preset-btn" data-dataset="checkerboard">Checker</button></div></div>
+                </div>
+            </div>
+
+            <div class="border-b border-gray-700 py-4">
+                <div class="accordion-header flex justify-between items-center">
+                    <h3 class="font-semibold">Custom Data</h3>
+                    <svg class="accordion-icon w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </div>
+                <div class="accordion-content space-y-3 pt-4">
+                    <label for="api-url-input" class="font-medium text-sm">Load from API (URL)</label>
+                    <input type="text" id="api-url-input" placeholder="e.g., https://api.example.com/data">
+                    <button id="api-fetch-btn" class="control-btn w-full text-sm">Fetch & Apply</button>
+                    <p id="api-status" class="text-xs text-center text-gray-400 h-4"></p>
+                </div>
+            </div>
+
+            <div class="border-b border-gray-700 py-4">
+                <div class="accordion-header flex justify-between items-center">
+                    <h3 class="font-semibold">Training Parameters</h3>
+                     <svg class="accordion-icon w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </div>
+                <div class="accordion-content space-y-4 pt-4">
                     <div><label for="lr-slider" class="font-medium text-sm">Learning Rate: <span id="lr-value" class="font-mono">0.03</span></label><input id="lr-slider" type="range" min="0.001" max="0.5" step="0.001" value="0.03"></div>
                     <div><label for="batch-size-slider" class="font-medium text-sm">Batch Size: <span id="batch-size-value" class="font-mono">10</span></label><input id="batch-size-slider" type="range" min="1" max="50" step="1" value="10"></div>
                 </div>
             </div>
 
-            <!-- Display Section -->
             <div class="border-b border-gray-700 py-4">
                 <div class="accordion-header flex justify-between items-center open">
                     <h3 class="font-semibold">Display</h3>
@@ -123,7 +142,6 @@
                 </div>
             </div>
 
-             <!-- Graphical Settings Section -->
             <div class="border-b border-gray-700 py-4">
                 <div class="accordion-header flex justify-between items-center">
                     <h3 class="font-semibold">Graphical Settings</h3>
@@ -135,7 +153,6 @@
                 </div>
             </div>
 
-            <!-- Grid Settings Section -->
             <div class="border-b border-gray-700 py-4">
                  <div class="accordion-header flex justify-between items-center">
                     <h3 class="font-semibold">Grid Settings</h3>
@@ -147,8 +164,7 @@
                 </div>
             </div>
 
-             <!-- Data Settings Section -->
-            <div class="border-b border-gray-700 py-4">
+            <div class="pt-4">
                  <div class="accordion-header flex justify-between items-center">
                     <h3 class="font-semibold">Data Settings</h3>
                     <svg class="accordion-icon w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
@@ -157,19 +173,6 @@
                     <div><label for="data-size-slider" class="font-medium text-sm">Data Point Size: <span id="data-size-value" class="font-mono">1.0</span></label><input id="data-size-slider" type="range" min="0.25" max="2.5" step="0.05" value="1.0"></div>
                 </div>
             </div>
-
-            <!-- Presets Section -->
-            <div class="pt-4">
-                 <div class="accordion-header flex justify-between items-center">
-                    <h3 class="font-semibold">Presets</h3>
-                     <svg class="accordion-icon w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </div>
-                <div class="accordion-content space-y-4 pt-4">
-                    <div><h4 class="font-medium text-sm mb-2">Dataset Templates</h4><div id="dataset-presets" class="grid grid-cols-2 gap-2"><button class="preset-btn active" data-dataset="circle">Circle</button><button class="preset-btn" data-dataset="xor">XOR</button><button class="preset-btn" data-dataset="spiral">Spiral</button><button class="preset-btn" data-dataset="interleaved">Interleaved</button><button class="preset-btn" data-dataset="moons">Moons</button><button class="preset-btn" data-dataset="gaussian">Blobs</button><button class="preset-btn" data-dataset="ushape">U-Shape</button></div></div>
-                    <div><h4 class="font-medium text-sm mb-2">Network Presets</h4><div id="nn-presets" class="grid grid-cols-2 gap-2"><button class="preset-btn" data-preset="linear">Linear</button><button class="preset-btn" data-preset="xor">XOR Solver</button><button class="preset-btn" data-preset="moons">Moons Solver</button><button class="preset-btn" data-preset="spiral">Spiral Solver</button></div></div>
-                </div>
-            </div>
-
         </div>
     </div>
     
@@ -220,7 +223,6 @@
         dirLight.position.set(2, 3, 2);
         threeScene.add(dirLight);
 
-        // Post-processing
         const renderScene = new RenderPass(threeScene, threeCamera);
         bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
         bloomPass.threshold = 0;
@@ -288,23 +290,22 @@
         } else {
             const firstHiddenLayer = network.layers[0];
             const neuronIndex = threeState.selectedNeuron;
-            if (!firstHiddenLayer || neuronIndex >= firstHiddenLayer.biases.length) return;
+            if (!firstHiddenLayer || firstHiddenLayer.activation.isOutput || neuronIndex >= firstHiddenLayer.biases.length) return;
             const { weights, biases, activation } = firstHiddenLayer;
-            const [w1, w2, bias] = [weights[0][neuronIndex], weights[1][neuronIndex], biases[neuronIndex]];
             for (let i = 0; i < positions.count; i++) {
                 const x_in = positions.getX(i), y_in = positions.getY(i);
-                const z_pre = w1 * x_in + w2 * (-y_in) + bias;
+                const z_pre = weights[0][neuronIndex] * x_in + weights[1][neuronIndex] * (-y_in) + biases[neuronIndex];
                 positions.setZ(i, activation.func(z_pre));
                 const color = z_pre > 0 ? colorClass0 : colorClass1;
                 const intensity = Math.min(1, Math.abs(z_pre) * 0.8);
                 colors.setXYZ(i, color.r * intensity, color.g * intensity, color.b * intensity);
             }
-            const weightVec = new THREE.Vector3(w1, w2, 0);
+            const weightVec = new THREE.Vector3(weights[0][neuronIndex], weights[1][neuronIndex], 0);
             const weightLen = weightVec.length() || 1;
             weightVec.normalize();
             weightVectorHelper.setDirection(new THREE.Vector3(weightVec.x, 0, weightVec.y));
             weightVectorHelper.setLength(Math.min(1.2, weightLen * 0.5));
-            const dist = -bias / weightLen;
+            const dist = -biases[neuronIndex] / weightLen;
             biasPlaneHelper.position.set(dist * weightVec.x, 0, dist * weightVec.y);
             biasPlaneHelper.lookAt(weightVec.x, 0, weightVec.y);
         }
@@ -321,7 +322,7 @@
             if (threeState.viewMode === 'output') {
                 child.position.y = (network.predict([x_in, y_in])[0] - 0.5) * 2 + 0.05;
             } else {
-                 if (network.layers.length > 0 && network.layers[0].biases.length > threeState.selectedNeuron) {
+                 if (network.layers.length > 0 && !network.layers[0].activation.isOutput && network.layers[0].biases.length > threeState.selectedNeuron) {
                      child.position.y = network.getNeuronActivation([x_in, y_in], 0, threeState.selectedNeuron) + 0.05;
                  }
             }
@@ -343,7 +344,10 @@
     function generateMoonsData(n=200){ const data=[],labels=[]; for(let i=0;i<n;i++){ const m=i<n/2, a=Math.PI*Math.random(), r=m?1:-1; data.push([r*Math.cos(a)+(m?0:1),r*Math.sin(a)+(m?0:0.3)]); labels.push(m?0:1); } return normalizeData(data,labels); }
     function generateGaussianData(n=200){ const data=[],labels=[], c=[[-1.5,1.5],[1.5,-1.5]]; for(let i=0;i<n;i++){ const s=c[i<n/2?0:1]; data.push([s[0]+(Math.random()-0.5)*1.5,s[1]+(Math.random()-0.5)*1.5]); labels.push(i<n/2?0:1); } return normalizeData(data,labels); }
     function generateUshapeData(n=200){ const data=[],labels=[]; for(let i=0;i<n;i++){ const isU=i<n*0.7; let x,y; if(isU){const a=Math.PI+Math.random()*Math.PI;x=2*Math.cos(a);y=2*Math.sin(a)}else{x=Math.random()*4-2;y=Math.random()*2-1.5} data.push([x,y]); labels.push(isU?0:1); } return normalizeData(data,labels); }
-    const DATASETS = { circle: generateCircleData, xor: generateXORData, spiral: generateSpiralData, interleaved: generateInterleavedData, moons: generateMoonsData, gaussian: generateGaussianData, ushape: generateUshapeData };
+    function generateRingsData(n=250){ const data=[],labels=[]; for(let i=0;i<n;i++){ let r, l; if(i < n/2) { r=Math.random()*1.5+0.5; l=0; } else { r=Math.random()*1.5+3; l=1; } const a=Math.random()*2*Math.PI; data.push([r*Math.sin(a),r*Math.cos(a)]);labels.push(l); } return normalizeData(data,labels); }
+    function generateSwissRollData(n=250){ const data=[],labels=[]; for(let i=0;i<n;i++){ const t=1.5*Math.PI*(1+2*Math.random()); const y=10*Math.random(); data.push([t*Math.cos(t),t*Math.sin(t)]); labels.push(y>5?0:1); } return normalizeData(data,labels); }
+    function generateCheckerboardData(n=250){ const data=[],labels=[]; for(let i=0;i<n;i++){ const x=Math.random()*8-4; const y=Math.random()*8-4; data.push([x,y]); labels.push((Math.floor(x)%2===0)^(Math.floor(y)%2===0)?0:1); } return normalizeData(data,labels); }
+    const DATASETS = { circle: generateCircleData, xor: generateXORData, spiral: generateSpiralData, interleaved: generateInterleavedData, moons: generateMoonsData, gaussian: generateGaussianData, ushape: generateUshapeData, rings: generateRingsData, swiss_roll: generateSwissRollData, checkerboard: generateCheckerboardData };
     const NN_PRESETS = { linear:{dataset:'circle',architecture:[2,2],activations:['softmax']}, xor:{dataset:'xor',architecture:[2,4,2],activations:['relu','softmax']}, moons:{dataset:'moons',architecture:[2,8,2],activations:['tanh','softmax']}, spiral:{dataset:'spiral',architecture:[2,8,8,2],activations:['tanh','tanh','softmax']} };
     
     function updateAllVisualizations() {
@@ -389,10 +393,10 @@
         else cancelAnimationFrame(nn_state.rafId);
     }
 
-    function fullResetNN() {
+    function fullResetNN(customData = null) {
         if(nn_state.isTraining) toggleTraining();
         nn_state.epoch = 0;
-        const { data, labels } = DATASETS[nn_state.currentDataset]();
+        const { data, labels } = customData ? customData : DATASETS[nn_state.currentDataset]();
         trainX = data; trainY = labels;
         const outputSize = Math.max(...labels) + 1;
         
@@ -409,7 +413,11 @@
         }
 
         document.getElementById('epoch-counter').textContent = 0;
-        document.querySelectorAll('#dataset-presets button').forEach(b => b.classList.toggle('active', b.dataset.dataset === nn_state.currentDataset));
+        if (!customData) {
+            document.querySelectorAll('#dataset-presets button').forEach(b => b.classList.toggle('active', b.dataset.dataset === nn_state.currentDataset));
+        } else {
+            document.querySelectorAll('#dataset-presets button').forEach(b => b.classList.remove('active'));
+        }
         populateNeuronSelector();
         
         dataPointsObject.clear();
@@ -439,31 +447,41 @@
     
     function setupCharts() {
         const chartOptions = (title) => ({
-             responsive: false, maintainAspectRatio: false, animation: false,
-             scales: { y: { beginAtZero: true, ticks:{color:'#e5e7eb', font: {size: 24}}, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { ticks:{color:'#e5e7eb', display:false}, grid: { color: 'rgba(255,255,255,0.1)' } } },
-             plugins: {
-                 legend: { display: false },
-                 title: { display: true, text: title, color: '#e5e7eb', font: { size: 28 } },
-                 beforeDraw: (chart) => {
+            responsive: false, maintainAspectRatio: false, animation: false,
+            scales: { 
+                y: { 
+                    beginAtZero: true, 
+                    ticks:{ color:'#e5e7eb', font: {size: 24} }, 
+                    grid: { display: false },
+                    border: { display: false }
+                }, 
+                x: { 
+                    ticks:{ display:false }, 
+                    grid: { display: false },
+                    border: { display: false }
+                } 
+            },
+            plugins: {
+                legend: { display: false },
+                title: { display: true, text: title, color: '#e5e7eb', font: { size: 28 } },
+                beforeDraw: (chart) => {
                     const ctx = chart.canvas.getContext('2d');
-                    ctx.save();
                     ctx.clearRect(0, 0, chart.width, chart.height);
-                    ctx.globalCompositeOperation = 'destination-over';
-                    ctx.fillStyle = 'rgba(31, 41, 55, 0.8)';
-                    ctx.fillRect(0, 0, chart.width, chart.height);
-                    ctx.restore();
-                 }
-             },
-             layout: { padding: 20 }
+                }
+            },
+            layout: { padding: 20 }
         });
         
         const lossCanvas = document.getElementById('loss-canvas');
         lossCanvas.width = 800; lossCanvas.height = 500;
-        lossChart = new Chart(lossCanvas.getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ label: 'Loss', data: [], borderColor: '#f87171', borderWidth: 1.5, tension: 0.1, pointRadius: 0 }] }, options: chartOptions("Training Loss") });
+        lossChart = new Chart(lossCanvas.getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ label: 'Loss', data: [], borderColor: '#f87171', borderWidth: 2, tension: 0.1, pointRadius: 0 }] }, options: chartOptions("Training Loss") });
 
         const accCanvas = document.getElementById('accuracy-canvas');
         accCanvas.width = 800; accCanvas.height = 500;
-        accuracyChart = new Chart(accCanvas.getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ label: 'Accuracy', data: [], borderColor: '#4ade80', borderWidth: 1.5, tension: 0.1, pointRadius: 0 }] }, options: {...chartOptions("Accuracy"), scales: {y: { min:0, max:1, ticks:{color:'#e5e7eb', font: {size:24}}, grid: { color: 'rgba(255,255,255,0.1)' }}}} });
+        const accChartOptions = chartOptions("Accuracy");
+        accChartOptions.scales.y.min = 0;
+        accChartOptions.scales.y.max = 1;
+        accuracyChart = new Chart(accCanvas.getContext('2d'), { type: 'line', data: { labels: [], datasets: [{ label: 'Accuracy', data: [], borderColor: '#4ade80', borderWidth: 2, tension: 0.1, pointRadius: 0 }] }, options: accChartOptions });
 
         lossChartPlane = createChartPlane(lossCanvas, new THREE.Vector3(-2.5, 1.2, -1.8));
         lossChartPlane.rotation.y = Math.PI / 9;
@@ -473,7 +491,7 @@
 
     function createChartPlane(canvas, position) {
         const texture = new THREE.CanvasTexture(canvas);
-        const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+        const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
         const geometry = new THREE.PlaneGeometry(2.4, 1.5);
         const plane = new THREE.Mesh(geometry, material);
         plane.position.copy(position);
@@ -484,13 +502,10 @@
     
     function updateCharts(epoch, loss, accuracy) {
         if (!lossChart || !accuracyChart) return;
-        lossChart.data.labels.push(epoch); lossChart.data.datasets[0].data.push(loss);
-        accuracyChart.data.labels.push(epoch); accuracyChart.data.datasets[0].data.push(accuracy);
-        
-        if (lossChart.data.labels.length > 100) {
-            lossChart.data.labels.shift(); lossChart.data.datasets[0].data.shift();
-            accuracyChart.data.labels.shift(); accuracyChart.data.datasets[0].data.shift();
-        }
+        lossChart.data.labels.push(epoch);
+        lossChart.data.datasets[0].data.push(loss);
+        accuracyChart.data.labels.push(epoch);
+        accuracyChart.data.datasets[0].data.push(accuracy);
         
         lossChart.update('none');
         accuracyChart.update('none');
@@ -514,6 +529,35 @@
         selector.value = threeState.selectedNeuron < numNeurons ? threeState.selectedNeuron : 0;
     }
     
+    async function fetchAndApplyAPIData() {
+        const url = document.getElementById('api-url-input').value;
+        const statusEl = document.getElementById('api-status');
+        if (!url) {
+            statusEl.textContent = "Please enter a URL.";
+            return;
+        }
+        statusEl.textContent = "Fetching...";
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const jsonData = await response.json();
+
+            if (!jsonData.data || !jsonData.labels || !Array.isArray(jsonData.data) || !Array.isArray(jsonData.labels) || jsonData.data.length !== jsonData.labels.length) {
+                throw new Error("Invalid data format.");
+            }
+            
+            statusEl.textContent = "Data loaded successfully!";
+            const normalizedData = normalizeData(jsonData.data, jsonData.labels);
+            fullResetNN(normalizedData);
+
+        } catch (error) {
+            console.error("API Fetch Error:", error);
+            statusEl.textContent = `Error: ${error.message}`;
+        } finally {
+            setTimeout(() => { statusEl.textContent = ""; }, 3000);
+        }
+    }
+
     function renderBuilder() {
         const svg = d3.select("#builder-svg");
         svg.selectAll("*").remove();
@@ -578,7 +622,13 @@
         addNeuronButtons.append("text").text("+").attr("fill", "#e5e7eb").attr("text-anchor", "middle").attr("dy", ".35em").style("font-size", "14px").style("font-weight", "bold");
 
         if (layerCount - 2 < 4) {
-             svg.selectAll("g.add-layer-btn").data(d3.range(layerCount - 1)).enter().append("g").attr("class", "add-btn").attr("transform", (d, i) => `translate(${(i + 1) * (effectiveLayerWidth + layerGap) + layerGap/2}, ${height / 2})`).on("click", (e, i) => { if (builder_state.architecture.length - 2 < 4) { builder_state.architecture.splice(i + 1, 0, 4); builder_state.activations.splice(i, 0, 'relu'); renderBuilder(); } }).append("circle").attr("r", 15).attr("fill", "#374151").attr("stroke", "#6b7280").attr("stroke-width", 2).style("stroke-dasharray", "3 3");
+             const addLayerBtn = svg.selectAll("g.add-layer-btn").data(d3.range(layerCount - 1)).enter()
+                .append("g")
+                .attr("class", "add-btn")
+                .attr("transform", (d, i) => `translate(${(i + 1) * (effectiveLayerWidth + layerGap) + layerGap/2}, ${height / 2})`)
+                .on("click", (e, i) => { if (builder_state.architecture.length - 2 < 4) { builder_state.architecture.splice(i + 1, 0, 4); builder_state.activations.splice(i, 0, 'relu'); renderBuilder(); } });
+            addLayerBtn.append("circle").attr("r", 15).attr("fill", "#374151").attr("stroke", "#6b7280").attr("stroke-width", 2).style("stroke-dasharray", "3 3");
+            addLayerBtn.append("text").text("+").attr("fill", "#9ca3af").attr("text-anchor", "middle").attr("dy", ".35em").style("font-size", "20px");
         }
 
         const hiddenLayerGroups = layerGroups.filter((d, i) => i > 0 && i < layerCount - 1);
@@ -635,7 +685,8 @@
     document.getElementById('settings-backdrop').addEventListener('click', closeSettings);
     
     document.getElementById('play-pause-btn').addEventListener('click', toggleTraining);
-    document.getElementById('reset-btn').addEventListener('click', fullResetNN);
+    document.getElementById('reset-btn').addEventListener('click', () => fullResetNN());
+    document.getElementById('api-fetch-btn').addEventListener('click', fetchAndApplyAPIData);
     
     document.getElementById('three-d-view-selector').addEventListener('click', (e) => { 
         if (e.target.tagName === 'BUTTON') { 
@@ -654,7 +705,6 @@
     document.getElementById('batch-size-slider').addEventListener('input', e => { nn_state.batchSize = parseInt(e.target.value); document.getElementById('batch-size-value').textContent = nn_state.batchSize; });
     document.getElementById('neuron-select').addEventListener('change', e => { threeState.selectedNeuron = parseInt(e.target.value); update3DScene(); });
     
-    // Accordion Logic
     document.querySelectorAll('.accordion-header').forEach(header => {
         header.addEventListener('click', () => {
             const content = header.nextElementSibling;
@@ -663,7 +713,6 @@
         });
     });
 
-    // Graphics Settings Handlers
     document.getElementById('charts-toggle-input').addEventListener('change', e => {
         graphics_state.showCharts = e.target.checked;
         if (lossChartPlane) lossChartPlane.visible = graphics_state.showCharts;
@@ -703,7 +752,6 @@
         dataPointsObject.children.forEach(child => child.scale.set(scale, scale, scale));
     });
 
-
     function switchView(viewName) {
         document.getElementById('three-d-view').classList.toggle('active', viewName === 'trainer');
         document.getElementById('builder-view').classList.toggle('active', viewName === 'builder');
@@ -722,7 +770,7 @@
         switchView('trainer');
     });
 
-    applyNNPreset('linear');
+    applyNNPreset('xor');
     document.querySelector('#three-d-view-selector button[data-view="output"]').classList.add('active');
     switchView('trainer');
 
