@@ -46,6 +46,12 @@
   visualization_url: /visualizations/dimensionality-reduction.html
   description: A short description goes here.
 
+- title: Dna Helix
+  author: Jasper Taal
+  thumbnail: /assets/images/DNA-helix.png
+  visualization_url: /visualizations/DNA-helix.html
+  description: A short description goes here.
+
 - title: Entropy
   author: Jasper Taal
   thumbnail: /assets/images/entropy.png
