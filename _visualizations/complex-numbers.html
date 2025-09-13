@@ -267,6 +267,7 @@
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
+            // Initially append to main-ui-container, will be moved as needed
             document.getElementById('main-ui-container').appendChild(renderer.domElement);
             
             controls = new OrbitControls(camera, renderer.domElement);
@@ -380,9 +381,8 @@
                 btn.classList.toggle('active', btn.dataset.view === key);
             });
 
-            if (key !== 'wave_forms' && key !== 'mandelbrot') {
-                updateAll();
-            }
+            // Immediately update the visuals, especially important for wave forms
+            updateAll();
         }
         
         // --- View Initializers ---
@@ -591,12 +591,18 @@
 
                 <div id="shader-view" class="wf-view-container active">
                     <div class="wf-overlay-container">
-                        <div id="controls-shader" class="wf-controls-container"><div class="wf-control-group"><label for="angle-slider-shader">Angle (θ):</label><input type="range" id="angle-slider-shader" min="-180" max="180" value="45" step="1"><span id="angle-value-shader" class="value-display">45°</span></div><div class="wf-control-group"><label for="frequency-slider-shader">Frequency:</label><input type="range" id="frequency-slider-shader" min="0" max="100" value="0" step="1"><span id="frequency-value-shader" class="value-display">1.0 Hz</span></div><div class="wf-control-group"><label for="zoom-slider-shader">Zoom:</label><input type="range" id="zoom-slider-shader" min="0" max="100" value="0" step="1"><span id="zoom-value-shader" class="value-display">1.0x</span></div></div>
+                        <div id="controls-shader" class="wf-controls-container">
+                            <div class="wf-control-group"><label for="frequency-slider-shader">Frequency:</label><input type="range" id="frequency-slider-shader" min="0" max="100" value="0" step="1"><span id="frequency-value-shader" class="value-display">1.0 Hz</span></div>
+                            <div class="wf-control-group"><label for="zoom-slider-shader">Zoom:</label><input type="range" id="zoom-slider-shader" min="0" max="100" value="0" step="1"><span id="zoom-value-shader" class="value-display">1.0x</span></div>
+                        </div>
                     </div>
                 </div>
                 <div id="geometry-view" class="wf-view-container">
                      <div class="wf-overlay-container">
-                         <div id="controls-geometry" class="wf-controls-container"><div class="wf-control-group"><label for="angle-slider-geometry">Angle (θ):</label><input type="range" id="angle-slider-geometry" min="0" max="360" value="45" step="1"><span id="angle-value-geometry" class="value-display">45°</span></div><div class="wf-control-group"><label for="frequency-slider-geometry">Frequency:</label><input type="range" id="frequency-slider-geometry" min="0" max="100" value="0" step="1"><span id="frequency-value-geometry" class="value-display">1.0x</span></div><div class="wf-control-group"><label for="amplitude-slider-geometry">Amplitude:</label><input type="range" id="amplitude-slider-geometry" min="0.1" max="2.5" value="1" step="0.1"><span id="amplitude-value-geometry" class="value-display">1.0</span></div></div>
+                         <div id="controls-geometry" class="wf-controls-container">
+                            <div class="wf-control-group"><label for="frequency-slider-geometry">Frequency:</label><input type="range" id="frequency-slider-geometry" min="0" max="100" value="0" step="1"><span id="frequency-value-geometry" class="value-display">1.0x</span></div>
+                            <div class="wf-control-group"><label for="amplitude-slider-geometry">Amplitude:</label><input type="range" id="amplitude-slider-geometry" min="0.1" max="2.5" value="1" step="0.1"><span id="amplitude-value-geometry" class="value-display">1.0</span></div>
+                        </div>
                     </div>
                 </div>
                 <footer class="wf-footer"><div class="container mx-auto px-4 py-3 flex justify-center items-center"><div id="tab-container" class="flex items-center bg-gray-700 rounded-lg p-1 space-x-1"><button id="btn-shader" class="menu-button tab-button active">Shader View</button><button id="btn-geometry" class="menu-button tab-button">Geometry View</button></div></div></footer>`;
@@ -608,6 +614,12 @@
             
             let currentWaveView = 'shader';
             let waveViewInstances = {};
+            let waveUpdateFuncs = {};
+
+            views.wave_forms.update = () => {
+                if(waveUpdateFuncs.shader) waveUpdateFuncs.shader();
+                if(waveUpdateFuncs.geometry) waveUpdateFuncs.geometry();
+            };
 
             const wfTeardownView = (viewName) => {
                 const instance = waveViewInstances[viewName];
@@ -626,6 +638,7 @@
                 const canvas = instance.container.querySelector('canvas');
                 if(canvas) instance.container.removeChild(canvas);
                 delete waveViewInstances[viewName];
+                delete waveUpdateFuncs[viewName];
             };
 
             const wfCreateAxisLabel = (scene, text, position, size = 30) => {
@@ -678,7 +691,6 @@
                 const cosMarker = new THREE.Mesh(pointGeometry, new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xef4444, emissiveIntensity: 2 }));
                 const resultMarker = new THREE.Mesh(pointGeometry, new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 2 }));
                 scene.add(sinMarker, cosMarker, resultMarker);
-                const angleSlider = document.getElementById('angle-slider-shader'), angleValueSpan = document.getElementById('angle-value-shader');
                 const frequencySlider = document.getElementById('frequency-slider-shader'), frequencyValueSpan = document.getElementById('frequency-value-shader');
                 const zoomSlider = document.getElementById('zoom-slider-shader'), zoomValueSpan = document.getElementById('zoom-value-shader');
                 const waveZ = 4, waveWidth = 10, waveHeight = 5;
@@ -707,7 +719,22 @@
                 wfCreateAxisLabel(scene, 'i', new THREE.Vector3(0, axisLength + 0.3, 0));
                 const MIN_FREQ = 1, MAX_FREQ = 1.855e43, MIN_ZOOM = 1.0, MAX_ZOOM = 1.855e43;
                 const getLogValue = (slider, min, max) => min * Math.pow(max / min, parseFloat(slider.value) / parseFloat(slider.max));
-                const updateUniforms = () => {
+                
+                const updateVisualization = () => {
+                    const angleRadians = sharedState.theta;
+                    const frequency = getLogValue(frequencySlider, MIN_FREQ, MAX_FREQ);
+                    const zoom = getLogValue(zoomSlider, MIN_ZOOM, MAX_ZOOM);
+                    vectorGroup.rotation.z = angleRadians;
+                    const domainWidth = (2.0 * Math.PI) / zoom;
+                    const spatialAngle = angleRadians / frequency;
+                    const waveX = (spatialAngle / domainWidth) * waveWidth;
+                    const markerAngle = angleRadians;
+                    sinMarker.position.set(waveX, Math.sin(markerAngle), -waveZ);
+                    cosMarker.position.set(waveX, Math.cos(markerAngle), -waveZ);
+                    resultMarker.position.set(waveX, Math.sin(markerAngle) + Math.cos(markerAngle), waveZ);
+                };
+
+                const updateUniformsAndViz = () => {
                     const frequency = getLogValue(frequencySlider, MIN_FREQ, MAX_FREQ);
                     const zoom = getLogValue(zoomSlider, MIN_ZOOM, MAX_ZOOM);
                     const domainWidth = (2.0 * Math.PI) / zoom;
@@ -719,24 +746,11 @@
                     zoomValueSpan.textContent = `${zoom.toExponential(1)}x`;
                     updateVisualization();
                 };
-                const updateVisualization = () => {
-                    const angleDegrees = parseInt(angleSlider.value);
-                    const angleRadians = angleDegrees * (Math.PI / 180);
-                    const frequency = getLogValue(frequencySlider, MIN_FREQ, MAX_FREQ);
-                    const zoom = getLogValue(zoomSlider, MIN_ZOOM, MAX_ZOOM);
-                    vectorGroup.rotation.z = angleRadians;
-                    const domainWidth = (2.0 * Math.PI) / zoom;
-                    const spatialAngle = angleRadians / frequency;
-                    const waveX = (spatialAngle / domainWidth) * waveWidth;
-                    const markerAngle = angleRadians;
-                    sinMarker.position.set(waveX, Math.sin(markerAngle), -waveZ);
-                    cosMarker.position.set(waveX, Math.cos(markerAngle), -waveZ);
-                    resultMarker.position.set(waveX, Math.sin(markerAngle) + Math.cos(markerAngle), waveZ);
-                    angleValueSpan.textContent = `${angleDegrees}°`;
-                };
-                angleSlider.addEventListener('input', updateVisualization);
-                frequencySlider.addEventListener('input', updateUniforms);
-                zoomSlider.addEventListener('input', updateUniforms);
+
+                waveUpdateFuncs.shader = updateVisualization;
+                frequencySlider.addEventListener('input', updateUniformsAndViz);
+                zoomSlider.addEventListener('input', updateUniformsAndViz);
+                
                 let animationId;
                 const animate = () => {
                     animationId = requestAnimationFrame(animate);
@@ -752,7 +766,7 @@
                     renderer.setSize(clientWidth, clientHeight);
                 });
                 resizeObserver.observe(container);
-                updateUniforms();
+                updateUniformsAndViz();
                 animate();
                 waveViewInstances.shader = { scene, renderer, container, animationId, resizeObserver };
             };
@@ -789,7 +803,6 @@
                 const cosMarker = new THREE.Mesh(pointGeometry, new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xef4444, emissiveIntensity: 2 }));
                 const resultMarker = new THREE.Mesh(pointGeometry, new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 2 }));
                 scene.add(sinMarker, cosMarker, resultMarker);
-                const angleSlider = document.getElementById('angle-slider-geometry'), angleValueSpan = document.getElementById('angle-value-geometry');
                 const frequencySlider = document.getElementById('frequency-slider-geometry'), frequencyValueSpan = document.getElementById('frequency-value-geometry');
                 const amplitudeSlider = document.getElementById('amplitude-slider-geometry'), amplitudeValueSpan = document.getElementById('amplitude-value-geometry');
                 let sinWave, cosWave, resultWave;
@@ -797,7 +810,21 @@
                 const getLogFrequency = () => MIN_FREQ * Math.pow(MAX_FREQ / MIN_FREQ, parseFloat(frequencySlider.value) / parseFloat(frequencySlider.max));
                 wfCreateAxisLabel(scene, 'x', new THREE.Vector3(axisLength + 0.3, 0, 0));
                 wfCreateAxisLabel(scene, 'i', new THREE.Vector3(0, axisLength + 0.3, 0));
-                const regenerateWaves = () => {
+                
+                const updateVisualization = () => {
+                    const angleRadians = sharedState.theta;
+                    const frequency = getLogFrequency();
+                    const amplitude = parseFloat(amplitudeSlider.value);
+                    vectorGroup.rotation.z = angleRadians;
+                    const waveX = (angleRadians / (Math.PI * 2)) * 10 - 5;
+                    const freqAngle = angleRadians * frequency;
+                    const waveZ = 4;
+                    sinMarker.position.set(waveX, Math.sin(freqAngle) * amplitude, -waveZ);
+                    cosMarker.position.set(waveX, Math.cos(freqAngle) * amplitude, -waveZ);
+                    resultMarker.position.set(waveX, (Math.sin(freqAngle) + Math.cos(freqAngle)) * amplitude, waveZ);
+                };
+
+                const regenerateWavesAndViz = () => {
                     const frequency = getLogFrequency();
                     const amplitude = parseFloat(amplitudeSlider.value);
                     [sinWave, cosWave, resultWave].forEach(wave => { if (wave) { scene.remove(wave); wave.geometry.dispose(); if(wave.material) wave.material.dispose(); } });
@@ -824,23 +851,11 @@
                     amplitudeValueSpan.textContent = amplitude.toFixed(1);
                     updateVisualization();
                 };
-                const updateVisualization = () => {
-                    const angleDegrees = parseInt(angleSlider.value);
-                    const frequency = getLogFrequency();
-                    const amplitude = parseFloat(amplitudeSlider.value);
-                    const angleRadians = angleDegrees * (Math.PI / 180);
-                    vectorGroup.rotation.z = angleRadians;
-                    const waveX = (angleRadians / (Math.PI * 2)) * 10 - 5;
-                    const freqAngle = angleRadians * frequency;
-                    const waveZ = 4;
-                    sinMarker.position.set(waveX, Math.sin(freqAngle) * amplitude, -waveZ);
-                    cosMarker.position.set(waveX, Math.cos(freqAngle) * amplitude, -waveZ);
-                    resultMarker.position.set(waveX, (Math.sin(freqAngle) + Math.cos(freqAngle)) * amplitude, waveZ);
-                    angleValueSpan.textContent = `${angleDegrees}°`;
-                };
-                angleSlider.addEventListener('input', updateVisualization);
-                frequencySlider.addEventListener('input', regenerateWaves);
-                amplitudeSlider.addEventListener('input', regenerateWaves);
+
+                waveUpdateFuncs.geometry = updateVisualization;
+                frequencySlider.addEventListener('input', regenerateWavesAndViz);
+                amplitudeSlider.addEventListener('input', regenerateWavesAndViz);
+
                 let animationId;
                 const animate = () => {
                     animationId = requestAnimationFrame(animate);
@@ -856,7 +871,7 @@
                     renderer.setSize(clientWidth, clientHeight);
                 });
                 resizeObserver.observe(container);
-                regenerateWaves();
+                regenerateWavesAndViz();
                 animate();
                 waveViewInstances.geometry = { scene, renderer, container, animationId, resizeObserver };
             };
@@ -885,6 +900,7 @@
             return () => {
                 wfTeardownView(currentWaveView);
                 container.innerHTML = '';
+                delete views.wave_forms.update;
             };
         }
 
@@ -897,13 +913,15 @@
                         <div id="mandelbrot-toggle-icon" class="text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
                     </div>
                     <div class="pt-4 space-y-3">
-                        <p class="text-gray-300">This fractal is generated by the formula z = zⁿ + c. For each pixel (c), the formula is iterated. The color is determined by how quickly the result escapes to infinity.</p>
-                        <div class="formula-container">z' = zⁿ + c</div>
+                        <p class="text-gray-300">This fractal is generated by the formula z' = z' + c, where z is raised to a power using its polar components (radius r, angle φ). The color is determined by how quickly the result escapes to infinity.</p>
+                        <div class="formula-container">z' = rⁿ¹ ⋅ e<sup>i⋅n²⋅φ</sup> + c</div>
                     </div>
                 </div>
                 <div id="mandelbrot-controls-panel" class="ui-panel">
-                    <div class="control-group"><label>Power (n): <span id="power-val">2.00</span></label><input type="range" id="power-slider" min="2" max="10" value="2" step="0.01"></div>
+                    <div class="control-group"><label>Power (n): <span id="power-val">2.00</span></label><input type="range" id="power-slider" min="0" max="100" value="20"></div>
                     <div class="control-group"><label>Iterations: <span id="iter-val">128</span></label><input type="range" id="iter-slider" min="32" max="1024" value="128" step="16"></div>
+                    <div class="control-group"><label for="n1-mode">r Power (n1)</label><select id="n1-mode" class="menu-button"><option value="0">n</option><option value="1">1</option><option value="2">2n</option><option value="3">n/2</option></select></div>
+                    <div class="control-group"><label for="n2-mode">φ Power (n2)</label><select id="n2-mode" class="menu-button"><option value="0">n</option><option value="1">1</option><option value="2">2n</option><option value="3">n/2</option></select></div>
                     <button id="color-anim-btn" class="menu-button">Animate Colors</button>
                 </div>
             `;
@@ -927,11 +945,27 @@
                 uniform int u_max_iterations;
                 uniform float u_power;
                 uniform float u_time;
+                uniform int u_n1_mode;
+                uniform int u_n2_mode;
 
-                vec2 complex_pow(vec2 z, float n) {
+                vec2 custom_complex_pow(vec2 z, float n, int n1_mode, int n2_mode) {
                     float r = length(z);
-                    float angle = atan(z.y, z.x);
-                    return pow(r, n) * vec2(cos(n * angle), sin(n * angle));
+                    float phi = atan(z.y, z.x);
+
+                    float n1 = n;
+                    if (n1_mode == 1) n1 = 1.0;
+                    else if (n1_mode == 2) n1 = 2.0 * n;
+                    else if (n1_mode == 3) n1 = n / 2.0;
+
+                    float n2 = n;
+                    if (n2_mode == 1) n2 = 1.0;
+                    else if (n2_mode == 2) n2 = 2.0 * n;
+                    else if (n2_mode == 3) n2 = n / 2.0;
+
+                    float new_r = pow(r, n1);
+                    float new_phi = phi * n2;
+
+                    return vec2(new_r * cos(new_phi), new_r * sin(new_phi));
                 }
 
                 void main() {
@@ -943,7 +977,7 @@
                     vec2 c = uv;
                     int i;
                     for(i = 0; i < u_max_iterations; i++) {
-                        z = complex_pow(z, u_power) + c;
+                        z = custom_complex_pow(z, u_power, u_n1_mode, u_n2_mode) + c;
                         if(length(z) > 2.0) break;
                     }
 
@@ -964,6 +998,8 @@
                 u_max_iterations: { value: 128 },
                 u_power: { value: 2.0 },
                 u_time: { value: 0.0 },
+                u_n1_mode: { value: 0 },
+                u_n2_mode: { value: 0 },
             };
             
             const planeGeo = new THREE.PlaneGeometry(2, 2);
@@ -978,7 +1014,8 @@
             });
 
             document.getElementById('power-slider').addEventListener('input', e => {
-                const power = parseFloat(e.target.value);
+                let val = parseInt(e.target.value);
+                let power = 2.0 + (val / 100.0) * 8.0; // Map [0, 100] to [2.0, 10.0]
                 uniforms.u_power.value = power;
                 document.getElementById('power-val').textContent = power.toFixed(2);
             });
@@ -986,6 +1023,8 @@
                 uniforms.u_max_iterations.value = parseInt(e.target.value);
                 document.getElementById('iter-val').textContent = e.target.value;
             });
+            document.getElementById('n1-mode').addEventListener('change', e => uniforms.u_n1_mode.value = parseInt(e.target.value));
+            document.getElementById('n2-mode').addEventListener('change', e => uniforms.u_n2_mode.value = parseInt(e.target.value));
 
             // --- Touch and Mouse Controls ---
             let isDragging = false;
@@ -1157,9 +1196,11 @@
         }
         
         function updateAll() {
-            if (activeView !== 'wave_forms' && activeView !== 'mandelbrot' && views[activeView] && views[activeView].update) {
+            if (views[activeView] && views[activeView].update) {
                 views[activeView].update();
             }
+            
+            // Update the main UI panel if it's visible
             if (activeView !== 'wave_forms' && activeView !== 'mandelbrot') {
                 updateInfoPanel();
                 updateControlsDisplay();
@@ -1167,9 +1208,9 @@
         }
 
         function updateControlsDisplay() {
-            const thetaDeg = sharedState.theta * 180 / Math.PI;
+            const thetaDeg = (sharedState.theta * 180 / Math.PI) % 720;
             document.getElementById('theta-slider').value = thetaDeg;
-            document.getElementById('theta-value').textContent = `${thetaDeg.toFixed(0)}°`;
+            document.getElementById('theta-value').textContent = `${(sharedState.theta * 180 / Math.PI).toFixed(0)}°`;
             document.getElementById('radius-slider').value = sharedState.radius;
             document.getElementById('radius-value').textContent = sharedState.radius.toFixed(2);
         }
@@ -1250,13 +1291,15 @@
 
         function animate() { 
             const delta = clock.getDelta();
-            if(isAnimating && activeView !== 'wave_forms' && activeView !== 'mandelbrot') {
+            if(isAnimating) {
                 sharedState.theta += delta * 0.5; // Adjust speed here
                 if(sharedState.theta > 4 * Math.PI) sharedState.theta -= 4 * Math.PI;
                 updateAll();
             }
-            controls.update();
+            
+            // Only render the main scene if it's a relevant view
             if (activeView !== 'wave_forms' && activeView !== 'mandelbrot') {
+                controls.update();
                 renderer.render(scene, camera); 
             }
         }
