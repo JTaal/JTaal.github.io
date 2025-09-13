@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Means Clustering Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712;
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px;
+        }
+        #info-panel.expanded {
+            max-height: 90vh; 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        .menu-button, .toggle-button, .control-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s, opacity 0.3s;
+            font-weight: 500;
+        }
+        .menu-button:hover, .toggle-button:hover, .control-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            background-color: rgba(55, 65, 81, 0.8);
+        }
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 4px;
+            background: #4b5563; border-radius: 2px; outline: none;
+            opacity: 0.7; transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 18px; height: 18px; background: #818cf8;
+            cursor: pointer; border-radius: 50%;
+        }
+        select {
+             -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a0aec0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right .7em top 50%;
+            background-size: .65em auto;
+            padding-right: 2.5rem;
+        }
+        .control-group {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 0.5rem;
+        }
+        .hidden { display: none !important; }
+        canvas { display: block; }
+        #settings-button, #fullscreen-button {
+            position: absolute; background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px); border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white; padding: 10px; border-radius: 50%;
+            cursor: pointer; transition: all 0.3s;
+        }
+        #settings-button { top: 80px; right: 20px; z-index: 11; }
+        #fullscreen-button { bottom: 120px; right: 20px; z-index: 11; }
+        #settings-button:hover { background-color: #4338ca; transform: translateY(-2px) rotate(45deg); }
+        #fullscreen-button:hover { background-color: #4338ca; transform: translateY(-2px) scale(1.1); }
+        #settings-panel {
+            top: 80px; right: 0; width: 300px;
+            max-width: 90vw; border-radius: 12px 0 0 12px;
+            transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            max-height: calc(100vh - 100px); overflow-y: auto; z-index: 12;
+        }
+        #settings-panel.open { transform: translateX(0); }
+        #close-settings { font-size: 2.5rem; line-height: 1; background: none; border: none; cursor: pointer; }
+        
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; }
+            #settings-button { top: 70px; right: 10px; }
+            #fullscreen-button { bottom: 100px; right: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Static HTML Shell for UI Panels -->
+    <header>
+        <h1 class="text-xl font-bold">K-Means Clustering Explorer</h1>
+        <div></div> <!-- Placeholder for right-aligned items if needed -->
+    </header>
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400"></h2>
+            <div id="toggle-icon" class="text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+        </div>
+        <div id="info-content" class="pt-4"><p id="info-description"></p></div>
+    </div>
+    <div id="controls-panel" class="ui-panel"></div>
+    <button id="fullscreen-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white">&times;</button>
+        </div>
+        <div class="space-y-6">
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium">VR Mode</label>
+                <button id="vr-button" class="toggle-button w-full" disabled>Enter VR</button>
+            </div>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium flex justify-between">Animation Speed: <span id="speed-value">1.0x</span></label>
+                <input id="speed-slider" type="range" min="0" max="5" step="0.1" value="1" class="w-full">
+            </div>
+                 <hr class="border-gray-600">
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium flex justify-between">Graphics Quality: <span id="graphics-quality-value">High</span></label>
+                <input id="graphics-slider" type="range" min="0.5" max="2" step="0.1" value="1.5" class="w-full">
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // =================================================================================================
+    // ||                                     SCENE DEFINITIONS                                       ||
+    // =================================================================================================
+    const scenes = {
+        k_means_explorer: {
+            title: 'K-Means Clustering Explorer',
+            description: 'An interactive visualization of the K-Means algorithm. Choose a dataset and a "K" value (number of clusters), then run the algorithm to see how it groups the data points. The large colored squares are the "centroids", which move to the center of their assigned points in each step. For 3D datasets, you can rotate the camera.',
+            init: initKMeansExplorer,
+        },
+    };
+
+    // =================================================================================================
+    // ||                              K-MEANS CLUSTERING EXPLORER                                    ||
+    // =================================================================================================
+    
+    // --- K-Means Data Generation ---
+
+    // Helper for Gaussian random numbers (Box-Muller transform)
+    function randGauss(mean = 0, stdDev = 1) {
+        let u = 0, v = 0;
+        while (u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+        while (v === 0) v = Math.random();
+        let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        return z * stdDev + mean;
+    }
+
+    const datasets = {
+        blobs: { name: 'Blobs', generator: () => generateBlobData(500, 3, 20, 5), is3D: false },
+        moons: { name: 'Moons', generator: () => generateMoonData(500), is3D: false },
+        circles: { name: 'Circles', generator: () => generateCircleData(500), is3D: false },
+        spiral: { name: 'Spiral', generator: () => generateSpiralData(1000, 2), is3D: false },
+        random: { name: 'Random', generator: () => generateRandomData(500, 50), is3D: false },
+        sphere: { name: '3D Sphere', generator: () => generate3DSphereData(1500, 25), is3D: true },
+        torus: { name: '3D Torus', generator: () => generate3DTorusData(1500, 20, 8), is3D: true },
+        shells: { name: '3D Shells', generator: () => generate3DShellData(1500, [15, 25]), is3D: true },
+    };
+
+    function generateBlobData(pointsPerBlob, blobCount, maxRadius, blobStdDev) {
+        const data = [];
+        for (let i = 0; i < blobCount; i++) {
+            const angle = (i / blobCount) * Math.PI * 2;
+            const centerX = Math.cos(angle) * maxRadius;
+            const centerY = Math.sin(angle) * maxRadius;
+            for (let j = 0; j < pointsPerBlob; j++) {
+                data.push([ centerX + randGauss(0, blobStdDev), centerY + randGauss(0, blobStdDev), 0]);
+            }
+        }
+        return data;
+    }
+
+    function generateMoonData(numPoints) {
+        const data = [];
+        const n = numPoints / 2;
+        const radius = 25;
+        for (let i = 0; i < n; i++) {
+            const angle = Math.random() * Math.PI;
+            const r = radius + randGauss(0, 2);
+            data.push([ Math.cos(angle) * r, Math.sin(angle) * r, 0]);
+        }
+        for (let i = 0; i < n; i++) {
+            const angle = Math.random() * Math.PI + Math.PI;
+            const r = radius + randGauss(0, 2);
+            data.push([ Math.cos(angle) * r + radius, Math.sin(angle) * r - 8, 0]);
+        }
+        return data;
+    }
+    
+    function generateCircleData(numPoints) {
+        const data = [];
+        const n = numPoints / 2;
+        for (let i = 0; i < n; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 15 + randGauss(0, 1);
+            data.push([Math.cos(angle) * r, Math.sin(angle) * r, 0]);
+        }
+        for (let i = 0; i < n; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 35 + randGauss(0, 1);
+            data.push([Math.cos(angle) * r, Math.sin(angle) * r, 0]);
+        }
+        return data;
+    }
+    
+    function generateSpiralData(numPoints, numArms) {
+        const data = [];
+        const armSeparation = 2 * Math.PI / numArms;
+        for (let i = 0; i < numPoints; i++) {
+            const angle = Math.random() * Math.PI * 4;
+            const radius = angle * 3;
+            const arm = Math.floor(Math.random() * numArms);
+            const noise = randGauss(0, 1.5);
+            const finalAngle = angle + arm * armSeparation;
+            data.push([
+                Math.cos(finalAngle) * (radius + noise),
+                Math.sin(finalAngle) * (radius + noise),
+                0
+            ]);
+        }
+        return data;
+    }
+
+    function generateRandomData(numPoints, range) {
+        const data = [];
+        for (let i = 0; i < numPoints; i++) {
+            data.push([ (Math.random() - 0.5) * range * 2, (Math.random() - 0.5) * range * 2, 0 ]);
+        }
+        return data;
+    }
+    
+    function generate3DSphereData(numPoints, radius) {
+        const data = [];
+        for (let i = 0; i < numPoints; i++) {
+            const u = Math.random();
+            const v = Math.random();
+            const theta = 2 * Math.PI * u;
+            const phi = Math.acos(2 * v - 1);
+            const r = radius * Math.cbrt(Math.random());
+            data.push([
+                r * Math.sin(phi) * Math.cos(theta),
+                r * Math.sin(phi) * Math.sin(theta),
+                r * Math.cos(phi)
+            ]);
+        }
+        return data;
+    }
+    
+    function generate3DTorusData(numPoints, radius, tube) {
+        const data = [];
+        for (let i = 0; i < numPoints; i++) {
+            const u = Math.random() * 2 * Math.PI;
+            const v = Math.random() * 2 * Math.PI;
+            const r = tube * Math.sqrt(Math.random());
+            const x = (radius + r * Math.cos(v)) * Math.cos(u);
+            const y = (radius + r * Math.cos(v)) * Math.sin(u);
+            const z = r * Math.sin(v);
+            data.push([x, y, z]);
+        }
+        return data;
+    }
+    
+    function generate3DShellData(numPoints, radii) {
+        const data = [];
+        const pointsPerShell = Math.floor(numPoints / radii.length);
+        for (const radius of radii) {
+            for (let i = 0; i < pointsPerShell; i++) {
+                const u = Math.random() * 2 * Math.PI;
+                const v = Math.acos(2 * Math.random() - 1);
+                const noise = 1 + randGauss(0, 0.05);
+                const r = radius * noise;
+                data.push([
+                    r * Math.sin(v) * Math.cos(u),
+                    r * Math.sin(v) * Math.sin(u),
+                    r * Math.cos(v)
+                ]);
+            }
+        }
+        return data;
+    }
+
+    // --- K-Means Algorithm Logic ---
+    function initializeCentroids(data, k) {
+        const centroids = [];
+        const usedIndices = new Set();
+        while (centroids.length < k) {
+            const index = Math.floor(Math.random() * data.length);
+            if (!usedIndices.has(index)) {
+                centroids.push([...data[index]]);
+                usedIndices.add(index);
+            }
+        }
+        return centroids;
+    }
+
+    function assignToCentroids(data, centroids) {
+        const assignments = [];
+        for (const point of data) {
+            let minDistance = Infinity;
+            let bestCentroid = -1;
+            for (let i = 0; i < centroids.length; i++) {
+                const dist = Math.hypot(point[0] - centroids[i][0], point[1] - centroids[i][1], point[2] - centroids[i][2]);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    bestCentroid = i;
+                }
+            }
+            assignments.push(bestCentroid);
+        }
+        return assignments;
+    }
+
+    function updateCentroids(data, assignments, k) {
+        const newCentroids = Array(k).fill(0).map(() => [0, 0, 0]);
+        const counts = Array(k).fill(0);
+        for (let i = 0; i < data.length; i++) {
+            const centroidIndex = assignments[i];
+            newCentroids[centroidIndex][0] += data[i][0];
+            newCentroids[centroidIndex][1] += data[i][1];
+            newCentroids[centroidIndex][2] += data[i][2];
+            counts[centroidIndex]++;
+        }
+        for (let i = 0; i < k; i++) {
+            if (counts[i] > 0) {
+                newCentroids[i][0] /= counts[i];
+                newCentroids[i][1] /= counts[i];
+                newCentroids[i][2] /= counts[i];
+            }
+        }
+        return newCentroids;
+    }
+
+    /** The K-Means Scene */
+    function initKMeansExplorer() {
+        let points = [], centroids = [], assignments = [];
+        let k = 3;
+        let pointsMesh, centroidsMesh;
+        let algorithmState = 'idle'; // idle, running, paused, finished
+        let iteration = 0, timeSinceStep = 0;
+        let is3D = false;
+        
+        const clusterColors = [ 0xef4444, 0x3b82f6, 0x22c55e, 0xeab308, 0xa855f7, 0xec4899, 0x14b8a6, 0xf97316 ].map(c => new THREE.Color(c));
+        const defaultColor = new THREE.Color(0x6b7280);
+
+        function setupUI() {
+            const controlsPanel = document.getElementById('controls-panel');
+            
+            let datasetOptions = '<optgroup label="2D Datasets">';
+            Object.keys(datasets).filter(k => !datasets[k].is3D).forEach(key => { datasetOptions += `<option value="${key}">${datasets[key].name}</option>` });
+            datasetOptions += '</optgroup><optgroup label="3D Datasets">';
+            Object.keys(datasets).filter(k => datasets[k].is3D).forEach(key => { datasetOptions += `<option value="${key}">${datasets[key].name}</option>` });
+            datasetOptions += '</optgroup>';
+
+            controlsPanel.innerHTML = `
+                <div class="control-group">
+                    <label class="text-sm font-medium">Dataset</label>
+                    <select id="dataset-select" class="bg-gray-700 border border-gray-600 rounded-md p-2 text-white">${datasetOptions}</select>
+                </div>
+                <div class="control-group">
+                    <label class="text-sm font-medium">K (Clusters): <span id="k-value">${k}</span></label>
+                    <input id="k-slider" type="range" min="2" max="8" step="1" value="${k}" class="w-40">
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="reset-btn" class="control-button">Reset & Run</button>
+                    <button id="step-btn" class="control-button">Step</button>
+                    <button id="pause-btn" class="control-button hidden">Pause</button>
+                </div>
+                <div id="status-text" class="text-sm text-gray-400">Status: Idle</div>
+            `;
+
+            document.getElementById('dataset-select').addEventListener('change', (e) => reset(e.target.value, k));
+            document.getElementById('k-slider').addEventListener('input', (e) => { k = parseInt(e.target.value); document.getElementById('k-value').textContent = k; });
+             document.getElementById('k-slider').addEventListener('change', () => reset(document.getElementById('dataset-select').value, k));
+            document.getElementById('reset-btn').addEventListener('click', () => reset(document.getElementById('dataset-select').value, k, true));
+            document.getElementById('step-btn').addEventListener('click', step);
+            document.getElementById('pause-btn').addEventListener('click', pause);
+        }
+
+        function updateUIState() {
+            document.getElementById('reset-btn').disabled = algorithmState === 'running';
+            document.getElementById('step-btn').disabled = algorithmState !== 'paused' && algorithmState !== 'idle';
+            document.getElementById('dataset-select').disabled = algorithmState === 'running';
+            document.getElementById('k-slider').disabled = algorithmState === 'running';
+            document.getElementById('reset-btn').classList.toggle('hidden', algorithmState === 'running');
+            document.getElementById('pause-btn').classList.toggle('hidden', algorithmState !== 'running');
+            const statusEl = document.getElementById('status-text');
+            if (algorithmState === 'running') statusEl.textContent = `Running - Iteration: ${iteration}`;
+            else if (algorithmState === 'paused') statusEl.textContent = `Paused - Iteration: ${iteration}`;
+            else if (algorithmState === 'finished') statusEl.textContent = `Finished in ${iteration} iterations.`;
+            else statusEl.textContent = 'Status: Idle. Press "Reset & Run".';
+        }
+
+        function reset(datasetKey, newK, startRunning = false) {
+            k = newK;
+            const dataset = datasets[datasetKey];
+            is3D = dataset.is3D;
+            points = dataset.generator();
+            centroids = initializeCentroids(points, k);
+            assignments = Array(points.length).fill(-1);
+            iteration = 0;
+            algorithmState = startRunning ? 'running' : 'idle';
+            
+            camera.position.set(0, 0, 80);
+            controls.target.set(0, 0, 0);
+            controls.enableRotate = is3D;
+            controls.mouseButtons.LEFT = is3D ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN;
+            controls.mouseButtons.RIGHT = is3D ? THREE.MOUSE.PAN : THREE.MOUSE.DOLLY;
+
+            createOrUpdateMeshes();
+            updateColors(true);
+            updateUIState();
+        }
+
+        function step() {
+            if (algorithmState === 'finished') return;
+            iteration++;
+            assignments = assignToCentroids(points, centroids);
+            updateColors();
+            const newCentroids = updateCentroids(points, assignments, k);
+            let hasConverged = true;
+            for(let i=0; i<k; i++) {
+                if(Math.hypot(centroids[i][0] - newCentroids[i][0], centroids[i][1] - newCentroids[i][1], centroids[i][2] - newCentroids[i][2]) > 0.01) {
+                    hasConverged = false;
+                    break;
+                }
+            }
+            centroids = newCentroids;
+            updateCentroidPositions();
+            if(hasConverged) algorithmState = 'finished';
+            else if (algorithmState === 'idle') algorithmState = 'paused';
+            updateUIState();
+        }
+
+        function pause() {
+            if (algorithmState === 'running') { algorithmState = 'paused'; updateUIState(); }
+        }
+        
+        function createOrUpdateMeshes() {
+            if (pointsMesh) { activeSceneObjects.remove(pointsMesh); pointsMesh.geometry.dispose(); }
+            if (centroidsMesh) { activeSceneObjects.remove(centroidsMesh); centroidsMesh.geometry.dispose(); }
+
+            const positions = new Float32Array(points.length * 3);
+            for (let i = 0; i < points.length; i++) { positions.set(points[i], i * 3); }
+            const pointsGeometry = new THREE.BufferGeometry();
+            pointsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            pointsGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(points.length * 3), 3));
+            pointsMesh = new THREE.Points(pointsGeometry, new THREE.PointsMaterial({ size: is3D ? 0.75 : 1, vertexColors: true }));
+            activeSceneObjects.add(pointsMesh);
+
+            const centroidGeometry = new THREE.BufferGeometry();
+            centroidGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(k * 3), 3));
+            centroidGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(k * 3), 3));
+            centroidsMesh = new THREE.Points(centroidGeometry, new THREE.PointsMaterial({ size: is3D ? 4 : 10, vertexColors: true, sizeAttenuation: is3D }));
+            activeSceneObjects.add(centroidsMesh);
+            updateCentroidPositions();
+        }
+        
+        function updateColors(isReset = false) {
+            const colors = pointsMesh.geometry.attributes.color;
+            for (let i = 0; i < points.length; i++) {
+                const color = isReset ? defaultColor : clusterColors[assignments[i]];
+                colors.setXYZ(i, color.r, color.g, color.b);
+            }
+            colors.needsUpdate = true;
+        }
+
+        function updateCentroidPositions() {
+            const positions = centroidsMesh.geometry.attributes.position;
+            const colors = centroidsMesh.geometry.attributes.color;
+            for (let i = 0; i < k; i++) {
+                positions.setXYZ(i, centroids[i][0], centroids[i][1], centroids[i][2] + 0.1);
+                colors.setXYZ(i, clusterColors[i].r, clusterColors[i].g, clusterColors[i].b);
+            }
+            positions.needsUpdate = true;
+            colors.needsUpdate = true;
+        }
+
+        setupUI();
+        reset('blobs', k, false);
+
+        function update(delta) {
+            if (algorithmState !== 'running') return;
+            timeSinceStep += delta * animationSpeed;
+            if (timeSinceStep > 0.5) { timeSinceStep = 0; step(); }
+        }
+
+        function cleanup() {
+            if (pointsMesh) pointsMesh.geometry.dispose();
+            if (centroidsMesh) centroidsMesh.geometry.dispose();
+            controls.enableRotate = true;
+            controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+            controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+        }
+        return { update, cleanup };
+    }
+
+    // =================================================================================================
+    // ||                                      TEMPLATE ENGINE                                        ||
+    // =================================================================================================
+    let scene, camera, renderer, controls, clock;
+    let activeSceneObjects = new THREE.Group();
+    let currentUpdate = () => {}, currentCleanup = () => {}, currentSceneKey = null;
+    let animationSpeed = 1.0;
+    
+    function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x030712);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 80);
+        
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        
+        scene.add(activeSceneObjects);
+        setupUI();
+        switchScene(Object.keys(scenes)[0]);
+        window.addEventListener('resize', onWindowResize);
+        renderer.setAnimationLoop(animate);
+    }
+
+    function switchScene(key) {
+        if (key === currentSceneKey) return;
+        if (currentCleanup) currentCleanup();
+        while(activeSceneObjects.children.length > 0) activeSceneObjects.remove(activeSceneObjects.children[0]); 
+        document.getElementById('controls-panel').innerHTML = '';
+        const sceneData = scenes[key];
+        document.getElementById('info-title').textContent = sceneData.title;
+        document.getElementById('info-description').textContent = sceneData.description;
+        currentSceneKey = key;
+        const result = sceneData.init();
+        currentUpdate = result.update || (() => {});
+        currentCleanup = result.cleanup || (() => {});
+    }
+
+    function animate() { 
+        const delta = clock.getDelta();
+        controls.update();
+        currentUpdate(delta);
+        renderer.render(scene, camera); 
+    }
+    
+    function setupUI() {
+        document.getElementById('info-panel').addEventListener('click', (e) => { if (!e.target.closest('button, a, input')) e.currentTarget.classList.toggle('expanded'); });
+        const settingsPanel = document.getElementById('settings-panel');
+        document.getElementById('settings-button').addEventListener('click', () => { settingsPanel.classList.remove('hidden'); requestAnimationFrame(() => settingsPanel.classList.add('open')); });
+        document.getElementById('close-settings').addEventListener('click', () => settingsPanel.classList.remove('open'));
+        settingsPanel.addEventListener('transitionend', () => { if (!settingsPanel.classList.contains('open')) settingsPanel.classList.add('hidden'); });
+        document.getElementById('speed-slider').addEventListener('input', (e) => { animationSpeed = parseFloat(e.target.value); document.getElementById('speed-value').textContent = `${animationSpeed.toFixed(1)}x`; });
+        document.getElementById('graphics-slider').addEventListener('input', (e) => { const q = parseFloat(e.target.value); renderer.setPixelRatio(window.devicePixelRatio * q); const el = document.getElementById('graphics-quality-value'); if (q < 0.8) el.textContent = "Low"; else if (q < 1.5) el.textContent = "Medium"; else el.textContent = "High"; });
+        const fsBtn = document.getElementById('fullscreen-button'), enterIcon = document.getElementById('fullscreen-enter-icon'), exitIcon = document.getElementById('fullscreen-exit-icon');
+        if (!document.fullscreenEnabled) fsBtn.style.display = 'none';
+        fsBtn.addEventListener('click', () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
+        document.addEventListener('fullscreenchange', () => { const isFs = !!document.fullscreenElement; enterIcon.classList.toggle('hidden', isFs); exitIcon.classList.toggle('hidden', !isFs); });
+    }
+
+    function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+    init();
+</script>
+</body>
+</html>
+
