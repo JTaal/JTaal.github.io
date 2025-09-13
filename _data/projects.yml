@@ -52,6 +52,12 @@
   visualization_url: /visualizations/evolutionary-algorithms.html
   description: A short description goes here.
 
+- title: K Means Clustering
+  author: Jasper Taal
+  thumbnail: /assets/images/k-means-clustering.png
+  visualization_url: /visualizations/k-means-clustering.html
+  description: A short description goes here.
+
 - title: Linear Regression
   author: Jasper Taal
   thumbnail: /assets/images/linear-regression.png
