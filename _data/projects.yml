@@ -160,6 +160,12 @@
   visualization_url: /visualizations/support-vector-machine.html
   description: A short description goes here.
 
+- title: Tailor Series
+  author: Jasper Taal
+  thumbnail: /assets/images/tailor-series.png
+  visualization_url: /visualizations/tailor-series.html
+  description: A short description goes here.
+
 - title: Tomography
   author: Jasper Taal
   thumbnail: /assets/images/tomography.png
