@@ -76,6 +76,12 @@
   visualization_url: /visualizations/mandlebrot-julia-analysis.html
   description: A short description goes here.
 
+- title: Matrix Eigenvectors
+  author: Jasper Taal
+  thumbnail: /assets/images/matrix-eigenvectors.png
+  visualization_url: /visualizations/matrix-eigenvectors.html
+  description: A short description goes here.
+
 - title: Minkowski Spacetime
   author: Jasper Taal
   thumbnail: /assets/images/minkowski-spacetime.png
