@@ -82,6 +82,12 @@
   visualization_url: /visualizations/multivariate-gaussian.html
   description: A short description goes here.
 
+- title: Neural Networks
+  author: Jasper Taal
+  thumbnail: /assets/images/neural-networks.png
+  visualization_url: /visualizations/neural-networks.html
+  description: A short description goes here.
+
 - title: Pipe Harmonics
   author: Jasper Taal
   thumbnail: /assets/images/pipe-harmonics.png
