@@ -22,7 +22,7 @@ for f in visualizations_dir.glob("*.html"):
         "thumbnail": f"/assets/images/{f.stem}.png",
         # "post_url": None,
         "visualization_url": f"/visualizations/{f.name}",
-        "description": "A short description goes here."
+        # "description": "A short description goes here."
     }
     projects.append(project)
 
