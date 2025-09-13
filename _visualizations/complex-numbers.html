@@ -269,6 +269,12 @@
                 </label>
                 <input id="graphics-slider" type="range" min="0.5" max="2" step="0.1" value="1.5" class="w-full">
             </div>
+             <div class="control-group text-left w-full">
+                <label for="theta-max-input" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Theta Max (°):</span> <span id="theta-max-value">360°</span>
+                </label>
+                <input id="theta-max-input" type="range" min="360" max="2880" step="360" value="360" class="w-full">
+            </div>
         </div>
     </div>
     
@@ -280,6 +286,7 @@
         let activeView = null;
         let viewObjects = new THREE.Group();
         let isAnimating = false;
+        let maxTheta = 360;
         let sharedState = {
             theta: Math.PI / 4,
             radius: 1.0
@@ -356,16 +363,21 @@
                          <p id="info-description" class="text-gray-300"></p>
                          <div class="formula-container">z = r(cos(θ) + i sin(θ)) = re<sup>iθ</sup></div>
                          <div id="info-grid" class="info-grid mt-2">
-                             <dt>r (Radius):</dt><dd id="info-radius">1.00</dd>
-                             <dt>θ (Theta):</dt><dd id="info-theta">45°</dd>
                              <dt>Rectangular:</dt><dd id="info-rectangular">0.71 + 0.71i</dd>
+                            <dt>r (Radius):</dt><dd id="info-radius">1.00</dd>
+                            <dt>θ (Degrees):</dt><dd id="info-theta">45°</dd>
+                            <dt>θ (Radians):</dt><dd id="info-radians">0.785</dd>
+                            <dt>θ (Pi):</dt><dd id="info-pi">0.25π</dd>
+                            <dt>θ (Norm):</dt><dd id="info-normalized">0.125</dd>
+                            <dt>cos(θ):</dt><dd id="info-cos">0.707</dd>
+                            <dt>sin(θ):</dt><dd id="info-sin">0.707</dd>
                          </div>
                     </div>
                 </div>
                 <div id="controls-panel" class="ui-panel ui-element">
                     <div class="control-group">
                         <label for="theta-slider">Theta (θ)</label>
-                        <input id="theta-slider" type="range" min="0" max="720" value="45" step="1">
+                        <input id="theta-slider" type="range" min="0" max="360" value="45" step="1">
                         <span id="theta-value" class="value-display">45°</span>
                     </div>
                     <div class="control-group">
@@ -722,7 +734,7 @@
                 wfCreateAxisLabel(scene, 'i', new THREE.Vector3(0, axisLength + 0.3, 0));
                 const MIN_FREQ = 1, MAX_FREQ = 1.855e43, MIN_ZOOM = 1.0, MAX_ZOOM = 1.855e43;
                 const getLogValue = (slider, min, max) => min * Math.pow(max / min, parseFloat(slider.value) / parseFloat(slider.max));
-                const updateVisualization = () => { const angleRadians = sharedState.theta; const frequency = getLogValue(frequencySlider, MIN_FREQ, MAX_FREQ); const zoom = getLogValue(zoomSlider, MIN_ZOOM, MAX_ZOOM); vectorGroup.rotation.z = angleRadians; const domainWidth = (2.0 * Math.PI) / zoom; const spatialAngle = angleRadians / frequency; const waveX = (spatialAngle / domainWidth) * waveWidth; const markerAngle = angleRadians; sinMarker.position.set(waveX, Math.sin(markerAngle), -waveZ); cosMarker.position.set(waveX, Math.cos(markerAngle), -waveZ); resultMarker.position.set(waveX, Math.sin(markerAngle) + Math.cos(markerAngle), waveZ); };
+                const updateVisualization = () => { const angleRadians = sharedState.theta; const frequency = getLogValue(frequencySlider, MIN_FREQ, MAX_FREQ); const zoom = getLogValue(zoomSlider, MIN_ZOOM, MAX_ZOOM); vectorGroup.rotation.z = angleRadians; const domainWidth = (2.0 * Math.PI) / zoom; const spatialAngle = angleRadians / frequency; const halfDomain = domainWidth / 2; const loopedSpatialAngle = ((spatialAngle + halfDomain) % domainWidth) - halfDomain; const waveX = (loopedSpatialAngle / halfDomain) * (waveWidth / 2); const markerAngle = angleRadians; sinMarker.position.set(waveX, Math.sin(markerAngle), -waveZ); cosMarker.position.set(waveX, Math.cos(markerAngle), -waveZ); resultMarker.position.set(waveX, Math.sin(markerAngle) + Math.cos(markerAngle), waveZ); };
                 const updateUniformsAndViz = () => { const frequency = getLogValue(frequencySlider, MIN_FREQ, MAX_FREQ); const zoom = getLogValue(zoomSlider, MIN_ZOOM, MAX_ZOOM); const domainWidth = (2.0 * Math.PI) / zoom; [sinMaterial, cosMaterial, resultMaterial].forEach(m => { m.uniforms.frequency.value = frequency; m.uniforms.domainWidth.value = domainWidth; }); frequencyValueSpan.textContent = `${frequency.toExponential(1)} Hz`; zoomValueSpan.textContent = `${zoom.toExponential(1)}x`; updateVisualization(); };
                 waveUpdateFuncs.shader = updateVisualization;
                 frequencySlider.addEventListener('input', updateUniformsAndViz);
@@ -774,7 +786,7 @@
                 const getLogFrequency = () => MIN_FREQ * Math.pow(MAX_FREQ / MIN_FREQ, parseFloat(frequencySlider.value) / parseFloat(frequencySlider.max));
                 wfCreateAxisLabel(scene, 'x', new THREE.Vector3(axisLength + 0.3, 0, 0));
                 wfCreateAxisLabel(scene, 'i', new THREE.Vector3(0, axisLength + 0.3, 0));
-                const updateVisualization = () => { const angleRadians = sharedState.theta; const frequency = getLogFrequency(); const amplitude = parseFloat(amplitudeSlider.value); vectorGroup.rotation.z = angleRadians; const waveX = (angleRadians / (Math.PI * 2)) * 10 - 5; const freqAngle = angleRadians * frequency; const waveZ = 4; sinMarker.position.set(waveX, Math.sin(freqAngle) * amplitude, -waveZ); cosMarker.position.set(waveX, Math.cos(freqAngle) * amplitude, -waveZ); resultMarker.position.set(waveX, (Math.sin(freqAngle) + Math.cos(freqAngle)) * amplitude, waveZ); };
+                const updateVisualization = () => { const angleRadians = sharedState.theta; const frequency = getLogFrequency(); const amplitude = parseFloat(amplitudeSlider.value); vectorGroup.rotation.z = angleRadians; const period = (2 * Math.PI) / frequency; const loopedAngle = angleRadians % period; const waveX = (loopedAngle / period) * 10 - 5; const freqAngle = angleRadians * frequency; const waveZ = 4; sinMarker.position.set(waveX, Math.sin(freqAngle) * amplitude, -waveZ); cosMarker.position.set(waveX, Math.cos(freqAngle) * amplitude, -waveZ); resultMarker.position.set(waveX, (Math.sin(freqAngle) + Math.cos(freqAngle)) * amplitude, waveZ); };
                 const regenerateWavesAndViz = () => { const frequency = getLogFrequency(); const amplitude = parseFloat(amplitudeSlider.value); [sinWave, cosWave, resultWave].forEach(wave => { if (wave) { scene.remove(wave); wave.geometry.dispose(); if(wave.material) wave.material.dispose(); } }); let tubeSegments = Math.min(Math.max(128, Math.floor(128 * (frequency / 10))), 4096); class WaveCurve extends THREE.Curve { constructor(waveFunc, freq, amp, z) { super(); this.waveFunc = waveFunc; this.freq = freq; this.amp = amp; this.z = z; } getPoint(t, optionalTarget = new THREE.Vector3()) { const angle = t * Math.PI * 2 * this.freq; return optionalTarget.set(t * 10 - 5, this.waveFunc(angle) * this.amp, this.z); } } const createWave = (func, color, zPos) => { const curve = new WaveCurve(func, frequency, amplitude, zPos); const tubeGeometry = new THREE.TubeGeometry(curve, tubeSegments, 0.03, 8, false); const tubeMaterial = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5 }); return new THREE.Mesh(tubeGeometry, tubeMaterial); }; const waveZ = 4; sinWave = createWave(Math.sin, 0x3b82f6, -waveZ); cosWave = createWave(Math.cos, 0xef4444, -waveZ); resultWave = createWave((angle) => Math.sin(angle) + Math.cos(angle), 0x22c55e, waveZ); scene.add(sinWave, cosWave, resultWave); frequencyValueSpan.textContent = `${frequency.toFixed(1)}x`; amplitudeValueSpan.textContent = amplitude.toFixed(1); updateVisualization(); };
                 waveUpdateFuncs.geometry = updateVisualization;
                 frequencySlider.addEventListener('input', regenerateWavesAndViz);
@@ -978,20 +990,42 @@
             document.addEventListener('click', () => dropdown.classList.add('hidden'));
         }
         function setupControls() {
-            document.getElementById('theta-slider').addEventListener('input', e => { sharedState.theta = parseInt(e.target.value) * (Math.PI / 180); updateAll(); });
+            const thetaSlider = document.getElementById('theta-slider');
+            thetaSlider.max = maxTheta;
+            thetaSlider.addEventListener('input', e => { sharedState.theta = parseInt(e.target.value) * (Math.PI / 180); updateAll(); });
             document.getElementById('radius-slider').addEventListener('input', e => { sharedState.radius = parseFloat(e.target.value); updateAll(); });
             document.getElementById('play-pause-button').addEventListener('click', (e) => { isAnimating = !isAnimating; e.target.textContent = isAnimating ? "Pause" : "Play"; e.target.classList.toggle('active', isAnimating); });
         }
         function updateAll() { if (views[activeView] && views[activeView].update) { views[activeView].update(); } if (activeView !== 'wave_forms' && activeView !== 'mandelbrot') { updateInfoPanel(); updateControlsDisplay(); } }
-        function updateControlsDisplay() { const thetaDeg = (sharedState.theta * 180 / Math.PI) % 720; document.getElementById('theta-slider').value = thetaDeg; document.getElementById('theta-value').textContent = `${(sharedState.theta * 180 / Math.PI).toFixed(0)}°`; document.getElementById('radius-slider').value = sharedState.radius; document.getElementById('radius-value').textContent = sharedState.radius.toFixed(2); }
+        function updateControlsDisplay() { const thetaDeg = (sharedState.theta * 180 / Math.PI) % maxTheta; document.getElementById('theta-slider').value = thetaDeg; document.getElementById('theta-value').textContent = `${(sharedState.theta * 180 / Math.PI).toFixed(0)}°`; document.getElementById('radius-slider').value = sharedState.radius; document.getElementById('radius-value').textContent = sharedState.radius.toFixed(2); }
         function setupInfoPanel() { document.getElementById('info-panel').addEventListener('click', (e) => { if (e.target.closest('a')) return; e.currentTarget.classList.toggle('expanded'); }); }
-        function updateInfoPanel() { const x = (sharedState.radius * Math.cos(sharedState.theta)); const y = (sharedState.radius * Math.sin(sharedState.theta)); document.getElementById('info-radius').textContent = sharedState.radius.toFixed(2); document.getElementById('info-theta').textContent = `${(sharedState.theta * 180 / Math.PI).toFixed(0)}°`; document.getElementById('info-rectangular').textContent = `${x.toFixed(2)} + ${y.toFixed(2)}i`; }
+        function updateInfoPanel() { 
+            const x = sharedState.radius * Math.cos(sharedState.theta); 
+            const y = sharedState.radius * Math.sin(sharedState.theta); 
+            document.getElementById('info-rectangular').textContent = `${x.toFixed(2)} + ${y.toFixed(2)}i`;
+            document.getElementById('info-radius').textContent = sharedState.radius.toFixed(2);
+            document.getElementById('info-theta').textContent = `${(sharedState.theta * 180 / Math.PI).toFixed(0)}°`;
+            document.getElementById('info-radians').textContent = sharedState.theta.toFixed(3);
+            document.getElementById('info-pi').textContent = `${(sharedState.theta / Math.PI).toFixed(2)}π`;
+            document.getElementById('info-normalized').textContent = (sharedState.theta / (2 * Math.PI) % 1).toFixed(3);
+            document.getElementById('info-cos').textContent = Math.cos(sharedState.theta).toFixed(3);
+            document.getElementById('info-sin').textContent = Math.sin(sharedState.theta).toFixed(3);
+        }
         function setupSettingsPanel() {
             const settingsPanel = document.getElementById('settings-panel');
+            const thetaMaxInput = document.getElementById('theta-max-input');
+            const thetaMaxValue = document.getElementById('theta-max-value');
+
             document.getElementById('settings-button').addEventListener('click', () => { settingsPanel.classList.remove('hidden'); requestAnimationFrame(() => settingsPanel.classList.add('open')); });
             document.getElementById('close-settings').addEventListener('click', () => { settingsPanel.classList.remove('open'); });
             settingsPanel.addEventListener('transitionend', (e) => { if (e.propertyName === 'transform' && !settingsPanel.classList.contains('open')) { settingsPanel.classList.add('hidden'); } });
             document.getElementById('graphics-slider').addEventListener('input', (e) => { const quality = parseFloat(e.target.value); renderer.setPixelRatio(quality); const qualityValue = document.getElementById('graphics-quality-value'); if (quality < 0.8) qualityValue.textContent = "Low"; else if (quality < 1.5) qualityValue.textContent = "Medium"; else qualityValue.textContent = "High"; });
+            thetaMaxInput.addEventListener('input', (e) => {
+                maxTheta = parseInt(e.target.value);
+                thetaMaxValue.textContent = `${maxTheta}°`;
+                const thetaSlider = document.getElementById('theta-slider');
+                if(thetaSlider) thetaSlider.max = maxTheta;
+            });
         }
         function setupFullscreen() {
             const btn = document.getElementById('fullscreen-button');
@@ -1052,7 +1086,8 @@
             const delta = clock.getDelta();
             if(isAnimating) {
                 sharedState.theta += delta * 0.5;
-                if(sharedState.theta > 4 * Math.PI) sharedState.theta -= 4 * Math.PI;
+                 const maxThetaRad = maxTheta * (Math.PI / 180);
+                if(sharedState.theta > maxThetaRad) sharedState.theta -= maxThetaRad;
                 updateAll();
             }
             if (activeView !== 'wave_forms' && activeView !== 'mandelbrot') {
