@@ -136,3 +136,9 @@
   visualization_url: /visualizations/support-vector-machine.html
   description: A short description goes here.
 
+- title: Tomography
+  author: Jasper Taal
+  thumbnail: /assets/images/tomography.png
+  visualization_url: /visualizations/tomography.html
+  description: A short description goes here.
+
