@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive 3D Complex Number Visualizer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Interactive Complex Number Visualizer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="importmap">
@@ -21,6 +21,7 @@
             overflow: hidden;
             background-color: #030712;
             color: #e5e7eb;
+            touch-action: none; /* Prevents default touch behaviors like scrolling */
         }
         .ui-panel {
             position: absolute;
@@ -31,7 +32,7 @@
             transition: all 0.5s ease-in-out;
             z-index: 10;
         }
-        #info-panel, #wf-info-panel {
+        #info-panel, #mandelbrot-info-panel, #wf-info-panel {
             top: 80px;
             left: 20px;
             max-width: 420px;
@@ -40,15 +41,15 @@
             border-radius: 12px;
             max-height: 58px; /* Collapsed */
         }
-        #info-panel.expanded, #wf-info-panel.expanded {
+        #info-panel.expanded, #mandelbrot-info-panel.expanded, #wf-info-panel.expanded {
             max-height: 90vh; 
             cursor: default;
             overflow-y: auto;
             z-index: 11;
         }
-        #info-header, #wf-info-header { display: flex; justify-content: space-between; align-items: center; }
-        #toggle-icon, #wf-toggle-icon { transition: transform 0.3s ease-in-out; }
-        #info-panel.expanded #toggle-icon, #wf-info-panel.expanded #wf-toggle-icon { transform: rotate(180deg); }
+        #info-header, #mandelbrot-info-header, #wf-info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon, #mandelbrot-toggle-icon, #wf-toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon, #mandelbrot-info-panel.expanded #mandelbrot-toggle-icon, #wf-info-panel.expanded #wf-toggle-icon { transform: rotate(180deg); }
         .info-grid {
             display: grid;
             grid-template-columns: auto 1fr;
@@ -59,7 +60,7 @@
         }
         .info-grid > dt { color: #9ca3af; }
         .info-grid > dd { color: #e5e7eb; font-weight: 600; }
-        #controls-panel {
+        #controls-panel, #mandelbrot-controls-panel {
             bottom: 0;
             left: 0;
             right: 0;
@@ -87,7 +88,7 @@
             border-bottom: 1px solid rgba(55, 65, 81, 0.7);
         }
         #menu { display: flex; gap: 10px; }
-        .menu-button, .mobile-menu-item {
+        .menu-button, .mobile-menu-item, select {
             background-color: rgba(55, 65, 81, 0.8);
             border: 1px solid rgba(75, 85, 99, 0.9);
             color: white;
@@ -97,7 +98,8 @@
             transition: background-color 0.3s, transform 0.2s;
             font-weight: 500;
         }
-        .menu-button:hover { background-color: #4338ca; transform: translateY(-2px); }
+        select { -webkit-appearance: none; appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em;}
+        .menu-button:hover, select:hover { background-color: #4338ca; transform: translateY(-2px); }
         .menu-button.active { background-color: #4f46e5; box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); }
         .mobile-menu-item { display: block; width: 100%; text-align: left; }
         .mobile-menu-item.active { background-color: #4f46e5; }
@@ -130,14 +132,17 @@
             text-align: center; margin-bottom: 1rem;
         }
         .hidden { display: none !important; }
-        canvas { display: block; cursor: grab; }
-        canvas:active { cursor: grabbing; }
+        canvas { display: block; }
+        #main-ui-container canvas { cursor: grab; }
+        #main-ui-container canvas:active { cursor: grabbing; }
         
         #mobile-menu-container { display: none; }
 
         #loading-overlay { transition: opacity 0.3s ease-in-out; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .loader { border: 8px solid #374151; border-top-color: #4f46e5; animation: spin 1.5s linear infinite; }
+        
+        #mandelbrot-container { position: absolute; inset: 0; }
 
         /* Styles for the Wave Forms view */
         #wave-forms-container { height: 100%; width: 100%; position: absolute; inset: 0; display: flex; flex-direction: column; background-color: #000; }
@@ -155,11 +160,11 @@
             #menu { display: none; }
             #mobile-menu-container { display: block; }
             header { padding: 0.75rem 1rem; }
-            #info-panel, #wf-info-panel { left: 10px; right: 10px; max-width: none; }
+            #info-panel, #mandelbrot-info-panel, #wf-info-panel { left: 10px; right: 10px; max-width: none; }
             #settings-button { top: 70px; right: 10px; }
             #fullscreen-button { bottom: 120px; right: 10px; }
             .formula-container { font-size: 1rem; width: 90%; margin-left: auto; margin-right: auto;}
-            #controls-panel { flex-direction: column; bottom: 10px; width: 95%; padding: 0.75rem; }
+            #controls-panel, #mandelbrot-controls-panel { flex-direction: column; bottom: 10px; width: 95%; padding: 0.75rem; }
         }
     </style>
 </head>
@@ -170,7 +175,7 @@
     </div>
     
     <header>
-        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">3D Complex Visualizer</h1>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Complex Visualizer</h1>
         <div id="menu"></div>
         <div id="mobile-menu-container" class="relative">
             <button id="mobile-menu-button" class="menu-button">
@@ -182,54 +187,21 @@
     </header>
     
     <div id="main-ui-container">
-        <div id="info-panel" class="ui-panel">
-            <div id="info-header">
-                <h2 id="info-title" class="text-xl font-bold text-indigo-400">Complex Properties</h2>
-                <div id="toggle-icon" class="text-indigo-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                </div>
-            </div>
-            <div id="info-content" class="pt-4 space-y-3">
-                 <p id="info-description" class="text-gray-300"></p>
-                 <div class="formula-container">z = r(cos(θ) + i sin(θ)) = re<sup>iθ</sup></div>
-                 <div id="info-grid" class="info-grid mt-2">
-                    <dt>r (Radius):</dt><dd id="info-radius">1.00</dd>
-                    <dt>θ (Theta):</dt><dd id="info-theta">45°</dd>
-                    <dt>Rectangular:</dt><dd id="info-rectangular">0.71 + 0.71i</dd>
-                 </div>
-            </div>
-        </div>
-
-        <div id="controls-panel" class="ui-panel">
-            <div class="control-group">
-                <div class="flex items-center justify-center gap-2 mb-1">
-                    <label for="theta-slider">Theta (θ)</label>
-                    <span id="theta-value" class="value-display">45°</span>
-                </div>
-                <input id="theta-slider" type="range" min="0" max="720" value="45" step="1">
-            </div>
-            <div class="control-group">
-                <div class="flex items-center justify-center gap-2 mb-1">
-                    <label for="radius-slider">Radius (r)</label>
-                    <span id="radius-value" class="value-display">1.00</span>
-                </div>
-                <input id="radius-slider" type="range" min="0.1" max="5.0" value="1.0" step="0.05">
-            </div>
-            <button id="play-pause-button" class="menu-button">Play</button>
-        </div>
+        <!-- This will contain the canvas for non-special views -->
     </div>
-
+    
     <div id="wave-forms-container" class="hidden"></div>
+    <div id="mandelbrot-container" class="hidden"></div>
     
     <button id="fullscreen-button" title="Toggle Fullscreen">
         <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
         <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
     </button>
-   
+    
     <button id="settings-button" title="Settings">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
-   
+    
     <div id="settings-panel" class="ui-panel hidden">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold text-gray-200">Settings</h3>
@@ -257,7 +229,7 @@
             theta: Math.PI / 4,
             radius: 1.0
         };
-        let waveFormsCleanup = () => {};
+        let viewCleanup = () => {};
 
         const views = {
             euler: {
@@ -279,6 +251,11 @@
                 title: 'Wave Forms',
                 description: 'An isolated view showing sine and cosine waves. These two fundamental waves are the building blocks of the complex exponential function shown in the other views.',
                 init: initWaveFormsView
+            },
+            mandelbrot: {
+                title: 'Multibrot Set',
+                description: 'Explore the Multibrot sets. Pan by dragging and zoom with the scroll wheel or pinch gestures.',
+                init: initMandelbrotView
             }
         };
 
@@ -290,7 +267,7 @@
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
+            document.getElementById('main-ui-container').appendChild(renderer.domElement);
             
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
@@ -304,8 +281,6 @@
 
             createMenu();
             setupMobileMenu();
-            setupControls();
-            setupInfoPanel();
             setupSettingsPanel();
             setupFullscreen();
 
@@ -314,22 +289,58 @@
             window.addEventListener('resize', onWindowResize);
             renderer.setAnimationLoop(animate);
         }
+        
+        function setupMainUI() {
+             document.getElementById('main-ui-container').innerHTML = `
+                <div id="info-panel" class="ui-panel">
+                    <div id="info-header">
+                        <h2 id="info-title" class="text-xl font-bold text-indigo-400"></h2>
+                        <div id="toggle-icon" class="text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+                    </div>
+                    <div id="info-content" class="pt-4 space-y-3">
+                         <p id="info-description" class="text-gray-300"></p>
+                         <div class="formula-container">z = r(cos(θ) + i sin(θ)) = re<sup>iθ</sup></div>
+                         <div id="info-grid" class="info-grid mt-2">
+                             <dt>r (Radius):</dt><dd id="info-radius">1.00</dd>
+                             <dt>θ (Theta):</dt><dd id="info-theta">45°</dd>
+                             <dt>Rectangular:</dt><dd id="info-rectangular">0.71 + 0.71i</dd>
+                         </div>
+                    </div>
+                </div>
+                <div id="controls-panel" class="ui-panel">
+                    <div class="control-group">
+                        <div class="flex items-center justify-center gap-2 mb-1"><label for="theta-slider">Theta (θ)</label><span id="theta-value" class="value-display">45°</span></div>
+                        <input id="theta-slider" type="range" min="0" max="720" value="45" step="1">
+                    </div>
+                    <div class="control-group">
+                        <div class="flex items-center justify-center gap-2 mb-1"><label for="radius-slider">Radius (r)</label><span id="radius-value" class="value-display">1.00</span></div>
+                        <input id="radius-slider" type="range" min="0.1" max="5.0" value="1.0" step="0.05">
+                    </div>
+                    <button id="play-pause-button" class="menu-button">Play</button>
+                </div>
+            `;
+            // Re-append the renderer's canvas
+            document.getElementById('main-ui-container').appendChild(renderer.domElement);
+            setupInfoPanel();
+            setupControls();
+        }
+
 
         function switchView(key) {
             if (activeView === key) return;
             
-            waveFormsCleanup(); waveFormsCleanup = () => {};
+            viewCleanup(); viewCleanup = () => {};
+            
             while(viewObjects.children.length > 0) {
                 const obj = viewObjects.children[0];
                 if (obj.geometry) obj.geometry.dispose();
                 if (obj.material) {
                      if (Array.isArray(obj.material)) {
-                        obj.material.forEach(m => { if(m.map) m.map.dispose(); m.dispose()});
+                         obj.material.forEach(m => { if(m.map) m.map.dispose(); m.dispose()});
                     } else if (obj.material.map) {
                         obj.material.map.dispose();
                         obj.material.dispose();
-                    }
-                    else {
+                    } else {
                         obj.material.dispose();
                     }
                 }
@@ -338,25 +349,29 @@
             
             const mainUiContainer = document.getElementById('main-ui-container');
             const waveFormsContainer = document.getElementById('wave-forms-container');
+            const mandelbrotContainer = document.getElementById('mandelbrot-container');
 
-            if (key === 'wave_forms') {
-                mainUiContainer.classList.add('hidden');
-                waveFormsContainer.classList.remove('hidden');
-                renderer.domElement.classList.add('hidden');
-            } else {
-                mainUiContainer.classList.remove('hidden');
-                waveFormsContainer.classList.add('hidden');
-                renderer.domElement.classList.remove('hidden');
-            }
+            mainUiContainer.classList.add('hidden');
+            waveFormsContainer.classList.add('hidden');
+            mandelbrotContainer.classList.add('hidden');
 
             const view = views[key];
-            document.getElementById('info-title').textContent = view.title;
-            document.getElementById('info-description').textContent = view.description;
+            if (key === 'wave_forms') {
+                waveFormsContainer.classList.remove('hidden');
+            } else if (key === 'mandelbrot') {
+                mandelbrotContainer.classList.remove('hidden');
+            } else {
+                mainUiContainer.classList.remove('hidden');
+                setupMainUI(); // Rebuild the UI for standard views
+                document.getElementById('info-title').textContent = view.title;
+                document.getElementById('info-description').textContent = view.description;
+            }
+            
             document.getElementById('mobile-menu-label').textContent = view.title;
             
             const cleanupFunc = view.init();
-            if (key === 'wave_forms' && typeof cleanupFunc === 'function') {
-                waveFormsCleanup = cleanupFunc;
+            if (typeof cleanupFunc === 'function') {
+                viewCleanup = cleanupFunc;
             }
 
             activeView = key;
@@ -364,7 +379,8 @@
             document.querySelectorAll('.menu-button, .mobile-menu-item').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === key);
             });
-            if (key !== 'wave_forms') {
+
+            if (key !== 'wave_forms' && key !== 'mandelbrot') {
                 updateAll();
             }
         }
@@ -418,6 +434,7 @@
                 const arcCurve = new THREE.EllipseCurve(0, 0, 0.3, 0.3, 0, sharedState.theta);
                 arc.geometry.setFromPoints(arcCurve.getPoints(50));
             };
+            return null; // No special cleanup
         }
 
         function initShaderHelixView() {
@@ -469,6 +486,7 @@
                 projectionLine.geometry.setFromPoints([movingPoint.position, projectionPoint.position]);
                 projectionLine.computeLineDistances();
             };
+             return null;
         }
 
         function initRiemannView() {
@@ -538,6 +556,7 @@
                 projLine.geometry.setFromPoints([northPole, new THREE.Vector3(x, y, 0)]);
                 projLine.computeLineDistances();
             };
+             return null;
         }
 
         function projectLineOntoSphere(points) {
@@ -561,11 +580,11 @@
                     <div id="wf-info-header">
                         <h2 class="text-xl font-bold text-indigo-400">Wave Components</h2>
                          <div id="wf-toggle-icon" class="text-indigo-400">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                          </div>
                     </div>
                      <div class="pt-4 space-y-3">
-                        <p class="text-gray-300">These sine and cosine waves are the fundamental building blocks of the complex exponential function shown in the other views.</p>
+                         <p class="text-gray-300">These sine and cosine waves are the fundamental building blocks of the complex exponential function shown in the other views.</p>
                          <div class="formula-container" style="font-size: 1.1rem;">e<sup>iθ</sup> = cos(θ) + i sin(θ)</div>
                      </div>
                 </div>
@@ -577,7 +596,7 @@
                 </div>
                 <div id="geometry-view" class="wf-view-container">
                      <div class="wf-overlay-container">
-                        <div id="controls-geometry" class="wf-controls-container"><div class="wf-control-group"><label for="angle-slider-geometry">Angle (θ):</label><input type="range" id="angle-slider-geometry" min="0" max="360" value="45" step="1"><span id="angle-value-geometry" class="value-display">45°</span></div><div class="wf-control-group"><label for="frequency-slider-geometry">Frequency:</label><input type="range" id="frequency-slider-geometry" min="0" max="100" value="0" step="1"><span id="frequency-value-geometry" class="value-display">1.0x</span></div><div class="wf-control-group"><label for="amplitude-slider-geometry">Amplitude:</label><input type="range" id="amplitude-slider-geometry" min="0.1" max="2.5" value="1" step="0.1"><span id="amplitude-value-geometry" class="value-display">1.0</span></div></div>
+                         <div id="controls-geometry" class="wf-controls-container"><div class="wf-control-group"><label for="angle-slider-geometry">Angle (θ):</label><input type="range" id="angle-slider-geometry" min="0" max="360" value="45" step="1"><span id="angle-value-geometry" class="value-display">45°</span></div><div class="wf-control-group"><label for="frequency-slider-geometry">Frequency:</label><input type="range" id="frequency-slider-geometry" min="0" max="100" value="0" step="1"><span id="frequency-value-geometry" class="value-display">1.0x</span></div><div class="wf-control-group"><label for="amplitude-slider-geometry">Amplitude:</label><input type="range" id="amplitude-slider-geometry" min="0.1" max="2.5" value="1" step="0.1"><span id="amplitude-value-geometry" class="value-display">1.0</span></div></div>
                     </div>
                 </div>
                 <footer class="wf-footer"><div class="container mx-auto px-4 py-3 flex justify-center items-center"><div id="tab-container" class="flex items-center bg-gray-700 rounded-lg p-1 space-x-1"><button id="btn-shader" class="menu-button tab-button active">Shader View</button><button id="btn-geometry" class="menu-button tab-button">Geometry View</button></div></div></footer>`;
@@ -869,6 +888,203 @@
             };
         }
 
+        function initMandelbrotView() {
+            const container = document.getElementById('mandelbrot-container');
+            container.innerHTML = `
+                <div id="mandelbrot-info-panel" class="ui-panel">
+                    <div id="mandelbrot-info-header">
+                        <h2 class="text-xl font-bold text-indigo-400">Multibrot Fractal</h2>
+                        <div id="mandelbrot-toggle-icon" class="text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+                    </div>
+                    <div class="pt-4 space-y-3">
+                        <p class="text-gray-300">This fractal is generated by the formula z = zⁿ + c. For each pixel (c), the formula is iterated. The color is determined by how quickly the result escapes to infinity.</p>
+                        <div class="formula-container">z' = zⁿ + c</div>
+                    </div>
+                </div>
+                <div id="mandelbrot-controls-panel" class="ui-panel">
+                    <div class="control-group"><label>Power (n): <span id="power-val">2.00</span></label><input type="range" id="power-slider" min="2" max="10" value="2" step="0.01"></div>
+                    <div class="control-group"><label>Iterations: <span id="iter-val">128</span></label><input type="range" id="iter-slider" min="32" max="1024" value="128" step="16"></div>
+                    <button id="color-anim-btn" class="menu-button">Animate Colors</button>
+                </div>
+            `;
+
+            document.getElementById('mandelbrot-info-panel').addEventListener('click', (e) => {
+                if (e.target.closest('a')) return;
+                e.currentTarget.classList.toggle('expanded');
+            });
+            
+            const mb_renderer = new THREE.WebGLRenderer();
+            container.appendChild(mb_renderer.domElement);
+            
+            const mb_scene = new THREE.Scene();
+            const mb_camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+            mb_camera.position.set(0,0,1);
+
+            const fragmentShader = `
+                uniform vec2 u_resolution;
+                uniform vec2 u_center;
+                uniform float u_zoom;
+                uniform int u_max_iterations;
+                uniform float u_power;
+                uniform float u_time;
+
+                vec2 complex_pow(vec2 z, float n) {
+                    float r = length(z);
+                    float angle = atan(z.y, z.x);
+                    return pow(r, n) * vec2(cos(n * angle), sin(n * angle));
+                }
+
+                void main() {
+                    vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
+                    uv /= u_zoom;
+                    uv += u_center;
+
+                    vec2 z = vec2(0.0);
+                    vec2 c = uv;
+                    int i;
+                    for(i = 0; i < u_max_iterations; i++) {
+                        z = complex_pow(z, u_power) + c;
+                        if(length(z) > 2.0) break;
+                    }
+
+                    if (i == u_max_iterations) {
+                        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                    } else {
+                        float t = float(i) / float(u_max_iterations);
+                        vec3 color = 0.5 + 0.5 * cos(3.14159265 * (vec3(0.2, 0.3, 0.9) * 10.0 * t + vec3(0.0, 0.1, 0.2) + u_time));
+                        gl_FragColor = vec4(color, 1.0);
+                    }
+                }
+            `;
+            
+            const uniforms = {
+                u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                u_center: { value: new THREE.Vector2(-0.5, 0.0) },
+                u_zoom: { value: 0.5 },
+                u_max_iterations: { value: 128 },
+                u_power: { value: 2.0 },
+                u_time: { value: 0.0 },
+            };
+            
+            const planeGeo = new THREE.PlaneGeometry(2, 2);
+            const planeMat = new THREE.ShaderMaterial({ fragmentShader, uniforms });
+            const plane = new THREE.Mesh(planeGeo, planeMat);
+            mb_scene.add(plane);
+
+            let isColorAnimating = false;
+            document.getElementById('color-anim-btn').addEventListener('click', (e) => {
+                isColorAnimating = !isColorAnimating;
+                e.target.classList.toggle('active', isColorAnimating);
+            });
+
+            document.getElementById('power-slider').addEventListener('input', e => {
+                const power = parseFloat(e.target.value);
+                uniforms.u_power.value = power;
+                document.getElementById('power-val').textContent = power.toFixed(2);
+            });
+            document.getElementById('iter-slider').addEventListener('input', e => {
+                uniforms.u_max_iterations.value = parseInt(e.target.value);
+                document.getElementById('iter-val').textContent = e.target.value;
+            });
+
+            // --- Touch and Mouse Controls ---
+            let isDragging = false;
+            let lastMousePos = { x: 0, y: 0 };
+            let initialPinchDistance = 0;
+
+            const onPointerDown = (e) => {
+                isDragging = true;
+                lastMousePos.x = e.clientX;
+                lastMousePos.y = e.clientY;
+            };
+            const onPointerUp = () => { isDragging = false; };
+            const onPointerMove = (e) => {
+                if (!isDragging) return;
+                const dx = (e.clientX - lastMousePos.x) / window.innerHeight;
+                const dy = (e.clientY - lastMousePos.y) / window.innerHeight;
+                uniforms.u_center.value.x -= dx / uniforms.u_zoom.value;
+                uniforms.u_center.value.y += dy / uniforms.u_zoom.value;
+                lastMousePos = { x: e.clientX, y: e.clientY };
+            };
+            const onWheel = (e) => {
+                e.preventDefault();
+                const zoomFactor = e.deltaY < 0 ? 1.2 : 1 / 1.2;
+                uniforms.u_zoom.value *= zoomFactor;
+            };
+
+            const onTouchStart = (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    lastMousePos.x = e.touches[0].clientX;
+                    lastMousePos.y = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    isDragging = false;
+                    initialPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                }
+            };
+
+            const onTouchMove = (e) => {
+                e.preventDefault();
+                if (e.touches.length === 1 && isDragging) {
+                    const dx = (e.touches[0].clientX - lastMousePos.x) / window.innerHeight;
+                    const dy = (e.touches[0].clientY - lastMousePos.y) / window.innerHeight;
+                    uniforms.u_center.value.x -= dx / uniforms.u_zoom.value;
+                    uniforms.u_center.value.y += dy / uniforms.u_zoom.value;
+                    lastMousePos.x = e.touches[0].clientX;
+                    lastMousePos.y = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    const currentPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    const zoomFactor = currentPinchDistance / initialPinchDistance;
+                    uniforms.u_zoom.value *= zoomFactor;
+                    initialPinchDistance = currentPinchDistance;
+                }
+            };
+            
+            mb_renderer.domElement.addEventListener('mousedown', onPointerDown);
+            window.addEventListener('mouseup', onPointerUp);
+            window.addEventListener('mousemove', onPointerMove);
+            mb_renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
+            mb_renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
+            mb_renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
+
+            const resizeObserver = new ResizeObserver(() => {
+                const { clientWidth, clientHeight } = container;
+                if(clientWidth > 0 && clientHeight > 0) {
+                    mb_renderer.setSize(clientWidth, clientHeight);
+                    uniforms.u_resolution.value.set(clientWidth, clientHeight);
+                }
+            });
+            resizeObserver.observe(container);
+            mb_renderer.setSize(container.clientWidth, container.clientHeight);
+            uniforms.u_resolution.value.set(container.clientWidth, container.clientHeight);
+
+            let renderLoopId;
+            const renderLoop = () => {
+                if(isColorAnimating) uniforms.u_time.value += 0.01;
+                mb_renderer.render(mb_scene, mb_camera);
+                renderLoopId = requestAnimationFrame(renderLoop);
+            };
+            renderLoop();
+
+            return () => {
+                cancelAnimationFrame(renderLoopId);
+                resizeObserver.disconnect();
+                mb_renderer.domElement.removeEventListener('mousedown', onPointerDown);
+                window.removeEventListener('mouseup', onPointerUp);
+                window.removeEventListener('mousemove', onPointerMove);
+                mb_renderer.domElement.removeEventListener('wheel', onWheel);
+                mb_renderer.domElement.removeEventListener('touchstart', onTouchStart);
+                mb_renderer.domElement.removeEventListener('touchmove', onTouchMove);
+                container.innerHTML = '';
+            };
+        }
+
         // --- UI & Controls ---
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingText = document.getElementById('loading-text');
@@ -941,11 +1157,13 @@
         }
         
         function updateAll() {
-            if (activeView !== 'wave_forms' && views[activeView] && views[activeView].update) {
+            if (activeView !== 'wave_forms' && activeView !== 'mandelbrot' && views[activeView] && views[activeView].update) {
                 views[activeView].update();
             }
-            updateInfoPanel();
-            updateControlsDisplay();
+            if (activeView !== 'wave_forms' && activeView !== 'mandelbrot') {
+                updateInfoPanel();
+                updateControlsDisplay();
+            }
         }
 
         function updateControlsDisplay() {
@@ -1032,17 +1250,17 @@
 
         function animate() { 
             const delta = clock.getDelta();
-            if(isAnimating && activeView !== 'wave_forms') {
+            if(isAnimating && activeView !== 'wave_forms' && activeView !== 'mandelbrot') {
                 sharedState.theta += delta * 0.5; // Adjust speed here
                 if(sharedState.theta > 4 * Math.PI) sharedState.theta -= 4 * Math.PI;
                 updateAll();
             }
             controls.update();
-            if (activeView !== 'wave_forms') {
+            if (activeView !== 'wave_forms' && activeView !== 'mandelbrot') {
                 renderer.render(scene, camera); 
             }
         }
-       
+        
         init();
     </script>
 </body>
