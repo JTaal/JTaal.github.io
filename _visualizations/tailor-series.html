@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive 3D Visualizer</title>
+    <title>3D Tailor Series</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- KaTeX for LaTeX rendering -->
@@ -165,7 +165,7 @@
 </head>
 <body>
     <header>
-        <h1 class="text-xl font-bold">Interactive 3D Visualizer</h1>
+        <h1 class="text-xl font-bold">3D Tailor series</h1>
         <div id="menu"></div>
         <div id="mobile-menu-container" class="relative">
             <button id="mobile-menu-button" class="menu-button">
@@ -225,25 +225,25 @@
 
     const scenes = {
         math_visualizer: {
-            title: '3D Math Visualizer',
+            title: 'Tailor Series',
             description: 'Visualizing functions and their Taylor series approximations. The blue surface is the true function. Use the controls to change the function, add terms to the series, and toggle the view mode.',
             init: initMathVisualizer,
         },
-        solar_system: {
-            title: 'Mini Solar System',
-            description: 'A mini solar system with a sun, a planet, and a moon. Open the settings panel and enable "Follow Target" to track the planet\'s orbit.',
-            init: initSolarSystem,
-        },
-        scene_one: {
-            title: 'Rotating Cube',
-            description: 'A simple example showing a rotating cube with a UI control to change its scale.',
-            init: initSceneOne,
-        },
-        scene_two: {
-            title: 'Starfield',
-            description: 'A second example demonstrating a particle-based starfield.',
-            init: initSceneTwo,
-        },
+        // solar_system: {
+        //     title: 'Mini Solar System',
+        //     description: 'A mini solar system with a sun, a planet, and a moon. Open the settings panel and enable "Follow Target" to track the planet\'s orbit.',
+        //     init: initSolarSystem,
+        // },
+        // scene_one: {
+        //     title: 'Rotating Cube',
+        //     description: 'A simple example showing a rotating cube with a UI control to change its scale.',
+        //     init: initSceneOne,
+        // },
+        // scene_two: {
+        //     title: 'Starfield',
+        //     description: 'A second example demonstrating a particle-based starfield.',
+        //     init: initSceneTwo,
+        // },
     };
 
     const factorial = (n) => (n <= 1 ? 1 : n * factorial(n - 1));
@@ -390,7 +390,7 @@
     };
 
     function initMathVisualizer() {
-        const MAX_TERMS = 16;
+        const MAX_TERMS = 160;
         const SEGMENTS = 40;
         let currentFuncKey = 'sin';
         let viewMode = 'cumulative'; // 'cumulative', 'individual', 'both'
