@@ -373,247 +373,6 @@
                         <input id="radius-slider" type="range" min="0.1" max="5.0" value="1.0" step="0.05">
                          <span id="radius-value" class="value-display">1.00</span>
                     </div>
-                    <button id="play-pause-button" cl
-            left: 0;
-            right: 0;
-            z-index: 20;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            background-color: rgba(3, 7, 18, 0.5);
-            backdrop-filter: blur(5px);
-            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
-        }
-        #menu { display: flex; gap: 10px; }
-        .menu-button, .mobile-menu-item, select {
-            background-color: rgba(55, 65, 81, 0.8);
-            border: 1px solid rgba(75, 85, 99, 0.9);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            font-weight: 500;
-        }
-        select { -webkit-appearance: none; appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em;}
-        .menu-button:hover, select:hover { background-color: #4338ca; transform: translateY(-2px); }
-        .menu-button.active { background-color: #4f46e5; box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); }
-        .mobile-menu-item { display: block; width: 100%; text-align: left; }
-        .mobile-menu-item.active { background-color: #4f46e5; }
-        
-        .control-group { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-        .control-group label { color: #9ca3af; font-size: 0.875rem; }
-        .value-display { font-weight: 600; min-width: 90px; text-align: center; background-color: #111827; padding: 0.25rem 0.5rem; border-radius: 6px; font-family: monospace; }
-        input[type="range"] { -webkit-appearance: none; width: 150px; height: 4px; background: #4b5563; border-radius: 2px; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: #818cf8; cursor: pointer; border-radius: 50%; }
-        
-        #settings-button, #fullscreen-button {
-            position: absolute; background-color: rgba(55, 65, 81, 0.8); backdrop-filter: blur(5px); border: 1px solid rgba(75, 85, 99, 0.9);
-            color: white; padding: 10px; border-radius: 50%; cursor: pointer; transition: all 0.3s;
-        }
-        #settings-button { top: 80px; right: 20px; z-index: 11; }
-        #fullscreen-button { bottom: 120px; right: 20px; z-index: 11; }
-        #settings-button:hover { background-color: #4338ca; transform: translateY(-2px) rotate(45deg); }
-        #fullscreen-button:hover { background-color: #4338ca; transform: translateY(-2px) scale(1.1); }
-        
-        #settings-panel {
-            top: 80px; right: 0; width: 300px; border-radius: 12px 0 0 12px; transform: translateX(100%);
-            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); max-height: calc(100vh - 100px); overflow-y: auto; z-index: 12;
-        }
-        #settings-panel.open { transform: translateX(0); }
-        #close-settings { font-size: 2.5rem; line-height: 1; padding: 0; background: none; border: none; cursor: pointer; }
-        
-        .formula-container {
-            background-color: #111827; padding: 0.75rem 1.5rem;
-            border-radius: 8px; font-size: 1.25rem; font-family: 'Georgia', serif; color: #e5e7eb; border: 1px solid #374151;
-            text-align: center; margin-bottom: 1rem;
-        }
-        .hidden { display: none !important; }
-        canvas { display: block; }
-        #main-ui-container canvas { cursor: grab; }
-        #main-ui-container canvas:active { cursor: grabbing; }
-        
-        #mobile-menu-container { display: none; }
-
-        #loading-overlay { transition: opacity 0.3s ease-in-out; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loader { border: 8px solid #374151; border-top-color: #4f46e5; animation: spin 1.5s linear infinite; }
-        
-        #mandelbrot-container { position: absolute; inset: 0; }
-
-        /* Styles for the Wave Forms view */
-        #wave-forms-container { height: 100%; width: 100%; position: absolute; inset: 0; display: flex; flex-direction: column; background-color: #000; }
-        .wf-view-container { flex-grow: 1; position: relative; display: none; }
-        .wf-view-container.active { display: block; }
-        .wf-overlay-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        .wf-controls-container { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(17, 24, 39, 0.8); padding: 1rem; border-radius: 12px; border: 1px solid #374151; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1rem; z-index: 101; width: 90%; max-width: 800px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px); pointer-events: auto; }
-        .wf-control-group { display: flex; align-items: center; gap: 0.75rem; color: #e5e7eb; }
-        .wf-control-group label { font-weight: 600; white-space: nowrap; color: #9ca3af; }
-        .wf-control-group input[type="range"] { width: 120px; }
-        footer.wf-footer { flex-shrink: 0; background-color: #111827; border-top: 1px solid #374151; z-index: 200; pointer-events: auto;}
-        .tab-button.active { background-color: #4f46e5; color: #ffffff; }
-
-        @media (max-width: 900px) {
-            #menu { display: none; }
-            #mobile-menu-container { display: block; }
-            header { padding: 0.75rem 1rem; }
-            #info-panel, #mandelbrot-info-panel, #wf-info-panel { left: 10px; right: 10px; max-width: none; }
-            #settings-button { top: 70px; right: 10px; }
-            #fullscreen-button { bottom: 120px; right: 10px; }
-            .formula-container { font-size: 1rem; width: 90%; margin-left: auto; margin-right: auto;}
-            #controls-panel, #mandelbrot-controls-panel { flex-direction: column; bottom: 10px; width: 95%; padding: 0.75rem; }
-        }
-    </style>
-</head>
-<body>
-    <div id="loading-overlay" class="hidden fixed inset-0 bg-gray-950 bg-opacity-80 flex flex-col items-center justify-center z-50 transition-opacity duration-300 ease-in-out">
-        <div class="loader rounded-full h-32 w-32 mb-4"></div>
-        <p id="loading-text" class="text-xl text-gray-300 font-medium">Updating...</p>
-    </div>
-    
-    <header>
-        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Complex Visualizer</h1>
-        <div id="menu"></div>
-        <div id="mobile-menu-container" class="relative">
-            <button id="mobile-menu-button" class="menu-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                <span id="mobile-menu-label">Views</span>
-            </button>
-            <div id="mobile-menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-30 space-y-1 p-1"></div>
-        </div>
-    </header>
-    
-    <div id="main-ui-container">
-        <!-- This will contain the canvas for non-special views -->
-    </div>
-    
-    <div id="wave-forms-container" class="hidden"></div>
-    <div id="mandelbrot-container" class="hidden"></div>
-    
-    <button id="fullscreen-button" title="Toggle Fullscreen">
-        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
-    </button>
-    
-    <button id="settings-button" title="Settings">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
-    
-    <div id="settings-panel" class="ui-panel hidden">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
-            <button id="close-settings" class="text-gray-400 hover:text-white">&times;</button>
-        </div>
-        <div class="space-y-6">
-            <div class="control-group text-left w-full">
-                <label for="graphics-slider" class="text-sm font-medium self-start w-full flex justify-between">
-                    <span>Graphics Quality:</span> <span id="graphics-quality-value">High</span>
-                </label>
-                <input id="graphics-slider" type="range" min="0.5" max="2" step="0.1" value="1.5" class="w-full">
-            </div>
-        </div>
-    </div>
-    
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-        let scene, camera, renderer, controls, clock;
-        let activeView = null;
-        let viewObjects = new THREE.Group();
-        let isAnimating = false;
-        let sharedState = {
-            theta: Math.PI / 4,
-            radius: 1.0
-        };
-        let viewCleanup = () => {};
-
-        const views = {
-            euler: {
-                title: "Euler's Identity",
-                description: "This view shows a complex number on the 2D complex plane. The vector from the origin has length 'r' (radius) and makes an angle 'θ' (theta) with the real axis.",
-                init: initEulerView
-            },
-            shader_helix: {
-                title: "Shader Helix",
-                description: "This view represents the function e^(iθ) as a helix in 3D space. The position on the complex plane rotates as the height (representing the angle θ) increases.",
-                init: initShaderHelixView
-            },
-            riemann: {
-                title: 'Riemann Sphere',
-                description: "This view shows a stereographic projection, mapping the infinite complex plane onto the surface of a finite sphere. Lines on the plane become circles on the sphere.",
-                init: initRiemannView
-            },
-            wave_forms: {
-                title: 'Wave Forms',
-                description: 'An isolated view showing sine and cosine waves. These two fundamental waves are the building blocks of the complex exponential function shown in the other views.',
-                init: initWaveFormsView
-            },
-            mandelbrot: {
-                title: 'Multibrot Set',
-                description: 'Explore the Multibrot sets. Pan by dragging and zoom with the scroll wheel or pinch gestures.',
-                init: initMandelbrotView
-            }
-        };
-
-        function init() {
-            clock = new THREE.Clock();
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('main-ui-container').appendChild(renderer.domElement);
-            
-            controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            
-            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-            dirLight.position.set(5, 10, 7.5);
-            scene.add(dirLight);
-
-            scene.add(viewObjects);
-
-            createMenu();
-            setupMobileMenu();
-            setupSettingsPanel();
-            setupFullscreen();
-
-            switchView('euler');
-
-            window.addEventListener('resize', onWindowResize);
-            renderer.setAnimationLoop(animate);
-        }
-        
-        function setupMainUI() {
-             document.getElementById('main-ui-container').innerHTML = `
-                <div id="info-panel" class="ui-panel">
-                    <div id="info-header">
-                        <h2 id="info-title" class="text-xl font-bold text-indigo-400"></h2>
-                        <div id="toggle-icon" class="text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
-                    </div>
-                    <div id="info-content" class="pt-4 space-y-3">
-                         <p id="info-description" class="text-gray-300"></p>
-                         <div class="formula-container">z = r(cos(θ) + i sin(θ)) = re<sup>iθ</sup></div>
-                         <div id="info-grid" class="info-grid mt-2">
-                             <dt>r (Radius):</dt><dd id="info-radius">1.00</dd>
-                             <dt>θ (Theta):</dt><dd id="info-theta">45°</dd>
-                             <dt>Rectangular:</dt><dd id="info-rectangular">0.71 + 0.71i</dd>
-                         </div>
-                    </div>
-                </div>
-                <div id="controls-panel" class="ui-panel">
-                    <div class="control-group">
-                        <div class="flex items-center justify-center gap-2 mb-1"><label for="theta-slider">Theta (θ)</label><span id="theta-value" class="value-display">45°</span></div>
-                        <input id="theta-slider" type="range" min="0" max="720" value="45" step="1">
-                    </div>
-                    <div class="control-group">
-                        <div class="flex items-center justify-center gap-2 mb-1"><label for="radius-slider">Radius (r)</label><span id="radius-value" class="value-display">1.00</span></div>
-                        <input id="radius-slider" type="range" min="0.1" max="5.0" value="1.0" step="0.05">
-                    </div>
                     <button id="play-pause-button" class="menu-button">Play</button>
                 </div>
             `;
@@ -1053,80 +812,38 @@
                     </div>
                 </div>
                 <div id="mandelbrot-controls-panel" class="ui-panel ui-element">
-                    <div class="control-group"><label>Power (n):</label><input type="range" id="power-slider" min="0" max="100" value="20"><span id="power-val" class="value-display">2.00</span></div>
-                    <div class="control-group"><label>Iterations:</label><input type="range" id="iter-slider" min="32" max="1024" value="128" step="16"><span id="iter-val" class="value-display">128</span></div>
-                    <div class="control-group"><label for="n1-mode">r Power (n1)</label><select id="n1-mode" class="menu-button"><option value="0">n</option><option value="1">1</option><option value="2">2n</option><option value="3">n/2</option></select></div>
-                    <div class="control-group"><label for="n2-mode">φ Power (n2)</label><select id="n2-mode" class="menu-button"><option value="0">n</option><option value="1">1</option><option value="2">2n</option><option value="3">n/2</option></select></div>
-                    <div class="control-group"><label for="color-palette">Color Palette</label>
-                        <select id="color-palette" class="menu-button">
-                            <optgroup label="Featured">
-                                <option value="deepSpace">Deep Space</option>
-                                <option value="volcanic">Volcanic</option>
-                                <option value="oceanic">Oceanic</option>
-                            </optgroup>
-                            <optgroup label="Abstract & Psychedelic">
-                                <option value="trippy">Trippy</option>
-                                <option value="synthwave">Synthwave</option>
-                                <option value="nebula">Nebula</option>
-                                <option value="aurora">Aurora</option>
-                                <option value="glitch">Glitch</option>
-                                <option value="iridescent">Iridescent</option>
-                                <option value="cosmic">Cosmic</option>
-                                <option value="kaleidoscope">Kaleidoscope</option>
-                                <option value="plasma">Plasma</option>
-                                <option value="dream">Dream</option>
-                            </optgroup>
-                            <optgroup label="Natural & Organic">
-                                <option value="forest">Forest</option>
-                                <option value="desert">Desert</option>
-                                <option value="coralReef">Coral Reef</option>
-                                <option value="sunset">Sunset</option>
-                                <option value="jungle">Jungle</option>
-                                <option value="arctic">Arctic</option>
-                                <option value="autumn">Autumn</option>
-                                <option value="spring">Spring</option>
-                                <option value="canyon">Canyon</option>
-                                <option value="meadow">Meadow</option>
-                            </optgroup>
-                            <optgroup label="Sci-Fi & Cyberpunk">
-                                <option value="matrix">Matrix</option>
-                                <option value="cyberpunk">Cyberpunk</option>
-                                <option value="alien">Alien</option>
-                                <option value="starship">Starship</option>
-                                <option value="hologram">Hologram</option>
-                                <option value="binary">Binary</option>
-                                <option value="laser">Laser</option>
-                                <option value="android">Android</option>
-                                <option value="quantum">Quantum</option>
-                                <option value="dystopian">Dystopian</option>
-                            </optgroup>
-                            <optgroup label="Monochromatic & Minimal">
-                                <option value="grayscale">Grayscale</option>
-                                <option value="sepia">Sepia</option>
-                                <option value="emerald">Emerald</option>
-                                <option value="ruby">Ruby</option>
-                                <option value="sapphire">Sapphire</option>
-                                <option value="amethyst">Amethyst</option>
-                                <option value="obsidian">Obsidian</option>
-                                <option value="ivory">Ivory</option>
-                                <option value="slate">Slate</option>
-                                <option value="quartz">Quartz</option>
-                            </optgroup>
-                            <optgroup label="Retro & Vintage">
-                                <option value="vaporwave">Vaporwave</option>
-                                <option value="popArt">Pop Art</option>
-                                <option value="artDeco">Art Deco</option>
-                                <option value="seventies">70s Groove</option>
-                                <option value="nineties">90s Vibe</option>
-                                <option value="filmNoir">Film Noir</option>
-                                <option value="steampunk">Steampunk</option>
-                                <option value="atomicAge">Atomic Age</option>
-                                <option value="vinyl">Vinyl</option>
-                                <option value="polaroid">Polaroid</option>
-                            </optgroup>
-                        </select>
+                     <div id="mandelbrot-main-controls">
+                        <div class="control-group flex-grow"><label class="flex-shrink-0">Power (n):</label><input type="range" id="power-slider" class="flex-grow" min="0" max="100" value="20"><span id="power-val" class="value-display">2.00</span></div>
+                        <button id="more-options-btn" class="menu-button flex-shrink-0">More</button>
                     </div>
-                    <button id="color-anim-btn" class="menu-button">Animate Colors</button>
+                    <div id="mandelbrot-extra-controls">
+                        <div class="control-group"><label>Iterations:</label><input type="range" id="iter-slider" min="32" max="1024" value="128" step="16"><span id="iter-val" class="value-display">128</span></div>
+                        <div class="control-group"><label for="n1-mode">r Power (n1)</label><select id="n1-mode" class="menu-button"><option value="0">n</option><option value="1">1</option><option value="2">2n</option><option value="3">n/2</option></select></div>
+                        <div class="control-group"><label for="n2-mode">φ Power (n2)</label><select id="n2-mode" class="menu-button"><option value="0">n</option><option value="1">1</option><option value="2">2n</option><option value="3">n/2</option></select></div>
+                        <div class="control-group"><label for="color-palette">Color Palette</label>
+                           <select id="color-palette" class="menu-button">
+                                <optgroup label="Featured">
+                                    <option value="deepSpace">Deep Space</option><option value="volcanic">Volcanic</option><option value="oceanic">Oceanic</option>
+                                </optgroup>
+                                <optgroup label="Abstract & Psychedelic">
+                                    <option value="trippy">Trippy</option><option value="synthwave">Synthwave</option><option value="nebula">Nebula</option><option value="aurora">Aurora</option><option value="glitch">Glitch</option><option value="iridescent">Iridescent</option><option value="cosmic">Cosmic</option><option value="kaleidoscope">Kaleidoscope</option><option value="plasma">Plasma</option><option value="dream">Dream</option>
+                                </optgroup>
+                                <optgroup label="Natural & Organic">
+                                    <option value="forest">Forest</option><option value="desert">Desert</option><option value="coralReef">Coral Reef</option><option value="sunset">Sunset</option><option value="jungle">Jungle</option><option value="arctic">Arctic</option><option value="autumn">Autumn</option><option value="spring">Spring</option><option value="canyon">Canyon</option><option value="meadow">Meadow</option>
+                                </optgroup>
+                                <optgroup label="Sci-Fi & Cyberpunk">
+                                    <option value="matrix">Matrix</option><option value="cyberpunk">Cyberpunk</option><option value="alien">Alien</option><option value="starship">Starship</option><option value="hologram">Hologram</option><option value="binary">Binary</option><option value="laser">Laser</option><option value="android">Android</option><option value="quantum">Quantum</option><option value="dystopian">Dystopian</option>
+                                </optgroup>
+                                <optgroup label="Monochromatic & Minimal">
+                                    <option value="grayscale">Grayscale</option><option value="sepia">Sepia</option><option value="emerald">Emerald</option><option value="ruby">Ruby</option><option value="sapphire">Sapphire</option><option value="amethyst">Amethyst</option><option value="obsidian">Obsidian</option><option value="ivory">Ivory</option><option value="slate">Slate</option><option value="quartz">Quartz</option>
+                                </optgroup>
+                                <optgroup label="Retro & Vintage">
+                                    <option value="vaporwave">Vaporwave</option><option value="popArt">Pop Art</option><option value="artDeco">Art Deco</option><option value="seventies">70s Groove</option><option value="nineties">90s Vibe</option><option value="filmNoir">Film Noir</option><option value="steampunk">Steampunk</option><option value="atomicAge">Atomic Age</option><option value="vinyl">Vinyl</option><option value="polaroid">Polaroid</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <button id="color-anim-btn" class="menu-button">Animate Colors</button>
+                    </div>
                 </div>
             `;
             document.getElementById('mandelbrot-info-panel').addEventListener('click', (e) => { if (e.target.closest('a')) return; e.currentTarget.classList.toggle('expanded'); });
@@ -1211,6 +928,12 @@
             document.getElementById('iter-slider').addEventListener('input', e => { uniforms.u_max_iterations.value = parseInt(e.target.value); document.getElementById('iter-val').textContent = e.target.value; });
             document.getElementById('n1-mode').addEventListener('change', e => uniforms.u_n1_mode.value = parseInt(e.target.value));
             document.getElementById('n2-mode').addEventListener('change', e => uniforms.u_n2_mode.value = parseInt(e.target.value));
+             const moreOptionsBtn = document.getElementById('more-options-btn');
+            const extraControls = document.getElementById('mandelbrot-extra-controls');
+            moreOptionsBtn.addEventListener('click', () => {
+                const isExpanded = extraControls.classList.toggle('expanded');
+                moreOptionsBtn.textContent = isExpanded ? 'Less' : 'More';
+            });
             let isDragging = false, lastMousePos = { x: 0, y: 0 }, initialPinchDistance = 0;
             const onPointerDown = (e) => { isDragging = true; lastMousePos.x = e.clientX; lastMousePos.y = e.clientY; };
             const onPointerUp = () => { isDragging = false; };
