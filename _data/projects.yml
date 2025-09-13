@@ -88,6 +88,12 @@
   visualization_url: /visualizations/neural-networks.html
   description: A short description goes here.
 
+- title: Pareto Front
+  author: Jasper Taal
+  thumbnail: /assets/images/pareto-front.png
+  visualization_url: /visualizations/pareto-front.html
+  description: A short description goes here.
+
 - title: Pipe Harmonics
   author: Jasper Taal
   thumbnail: /assets/images/pipe-harmonics.png
