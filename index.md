@@ -1,410 +1,1674 @@
----
-layout: index
-title: Jasper Taal | Visualizations & Projects
----
-
-
-<style>
-:root {
-    --skytales-pink: rgba(229, 46, 113, 0.5);
-}
-html {
-    scroll-behavior: smooth;
-}
-body {
-    background-color: #0a0a0f;
-    background-image: radial-gradient(ellipse at bottom, #1b2735 0%, #0a0a0f 100%);
-    font-family: 'Inter', sans-serif;
-    color: #e6edf3;
-}
-#three-container {
-    position: relative;
-    width: 100%;
-    /* width: 106%; */
-    height: 60vh;
-    background-image: url('https://JTaal.github.io/assets/images/gif/diffraction_pattern_parachute_2560p_side_view_transparant_cropped.gif');
-    background-size: 100%;
-    /* background-position: center 20%; */
-    /* background-position: center 10%; */
-    overflow: hidden;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-#viewer-overlay {
-    position: relative;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    /* background: rgba(0,0,0,0.2); */
-    /* backdrop-filter: blur(2px); */
-    border-radius: 1rem;
-}
-#logo-placeholder {
-    width: 60px;
-    height: 60px;
-    margin-bottom: 20px;
-    background-image: url("https://JTaal.github.io/assets/images/logo/logo.jpg");
-    /* background-size: 60%; */
-    background-size: contain;
-    background-color: white; 
-    background-repeat: no-repeat;
-    background-position: center;
-    border: 2px solid rgba(255,255,255,0.5);
-    border-radius: 50%;
-}
-#skytales-title {
-    font-size: 4.5rem;
-    font-family: 'Orbitron', sans-serif;
-    font-weight: 700;
-    text-transform: uppercase;
-    background: linear-gradient(45deg, #ff8a00, #e52e71, #9c27b0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 0 15px rgba(255, 107, 0, 0.5), 0 0 25px var(--skytales-pink);
-    margin: 0;
-}
-@media (max-width: 768px) {
-    #skytales-title {
-        font-size: 2.5rem;
-    }
-}
-#viewer-overlay .lead {
-    max-width: 600px;
-    color: #d1d5db;
-}
-
-#search {
-    background-color: #1f2937;
-    border-color: #374151;
-    color: #e6edf3;
-}
-#search::placeholder {
-    color: #d1d5db;
-}
-
-#dna-strip-container {
-    width: 100%;
-    height: 80px;
-    background: black;
-    overflow: hidden;
-    position: relative;
-}
-#dna-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-#gene-info {
-    width: 100%;
-    text-align: center;
-    padding: 8px 0;
-    background-color: #1f2937;
-    color: #d1d5db;
-    font-family: "Courier New", monospace;
-    font-size: 0.9rem;
-    border-top: 1px solid #374151;
-}
-.card {
-    transition: 
-        transform 0.3s ease,
-        box-shadow 0.3s ease,
-        filter 0.3s ease; /* add filter transition */
-    border: 1px solid #374151;
-    background-color: #111827;
-    filter: brightness(1); /* default brightness */
-}
-
-.card:hover,
-.card:focus-within {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 25px var(--skytales-pink);
-    filter: brightness(1.2); /* increase brightness */
-}
-
-/* Optional: if you want the .card-cover overlay to fade */
-.card-cover .d-flex {
-    background: linear-gradient(to top, rgba(0,0,0,0.3) 20%, transparent 100%);
-    transition: background 0.3s ease;
-}
-.card:hover .card-cover .d-flex,
-.card:focus-within .card-cover .d-flex {
-    background: linear-gradient(to top, rgba(0,0,0,0.001) 20%, transparent 100%);
-}
-
-
-.footer {
-    border-top: 1px solid #374151 !important;
-}
-.footer-icon {
-    width: 24px;
-    height: 24px;
-    fill: #8b949e;
-    transition: fill 0.2s ease-in-out;
-}
-.footer-icon:hover {
-    fill: #c9d1d9;
-}
-</style>
-<body>
-    <main>
-        <div id="three-container">
-            <div id="viewer-overlay">
-                <div id="logo-placeholder"></div>
-                <h1 id="skytales-title">SkyTales</h1>
-                <p class="lead mb-4 mt-3">
-                    Our sky tells the story of infinite possibility.
-                </p>
-            </div>
-        </div>
-        <div class="container px-4 py-5" id="custom-cards">
-            <h2 class="pb-2 border-bottom">Projects</h2>
-            <input id="search" class="form-control my-4" placeholder="Search projects or visualisations...">
-            <div class="row row-cols-1 row-cols-lg-2 align-items-stretch g-4 py-5">
-                {% for post in site.data.posts %}
-                <div class="col">
-                {% if post.post_url %}
-                <a href="{{ post.post_url | relative_url }}" class="text-decoration-none">
-                <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg"
-                style="background-image: url('{{ post.thumbnail | relative_url }}'); background-size: cover; background-position: center;">
-                <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1"
-                style="background-color: rgba(0,0,0,0.5);">
-                <h3 class="pt-5 mt-5 mb-4 display-6 lh-1 fw-bold">{{ post.title }}</h3>
-                <ul class="d-flex list-unstyled mt-auto"><li class="me-auto"><small>{{ post.description }}</small></li></ul>
-                </div>
-                </div>
-                </a>
-                {% elsif post.visualization_url %}
-                <a href="{{ post.visualization_url | relative_url }}" class="text-decoration-none">
-                <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg"
-                style="background-image: url('{{ post.thumbnail | relative_url }}'); background-size: cover; background-position: center;">
-                <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1"
-                style="background-color: rgba(0,0,0,0.5);">
-                <h3 class="pt-5 mt-5 mb-4 display-6 lh-1 fw-bold">{{ post.title }}</h3>
-                </div>
-                </div>
-                </a>
-                {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            <h2 class="pb-2 border-bottom">Visualisations</h2>
-            <div class="row row-cols-1 row-cols-lg-2 align-items-stretch g-4 py-5">
-                {% for project in site.data.projects %}
-                <div class="col">
-                {% if project.post_url %}
-                <a href="{{ project.post_url | relative_url }}" class="text-decoration-none">
-                <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg"
-                style="background-image: url('{{ project.thumbnail | relative_url }}'); background-size: cover; background-position: center;">
-                <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1"
-                style="background-color: rgba(0,0,0,0.5);">
-                <h3 class="pt-5 mt-5 mb-4 display-6 lh-1 fw-bold">{{ project.title }}</h3>
-                <ul class="d-flex list-unstyled mt-auto"><li class="me-auto"><small>{{ project.description }}</small></li></ul>
-                </div>
-                </div>
-                </a>
-                {% elsif project.visualization_url %}
-                <a href="{{ project.visualization_url | relative_url }}" class="text-decoration-none">
-                <div class="card card-cover h-100 overflow-hidden text-bg-dark rounded-4 shadow-lg"
-                style="background-image: url('{{ project.thumbnail | relative_url }}'); background-size: cover; background-position: center;">
-                <div class="d-flex flex-column h-100 p-5 pb-3 text-white text-shadow-1"
-                style="background-color: rgba(0,0,0,0.5);">
-                <h3 class="pt-5 mt-5 mb-4 display-6 lh-1 fw-bold">{{ project.title }}</h3>
-                </div>
-                </div>
-                </a>
-                {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            {% include how-to-cite.html %}
-        </div>
-        
-        <div id="dna-strip-container">
-            <canvas id="dna-canvas"></canvas>
-        </div>
-        <div id="gene-info">Fetching gene data...</div>
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-<script>
-const canvas = document.getElementById("dna-canvas");
-const ctx = canvas.getContext("2d");
-
-function resizeCanvas() {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-}
-window.addEventListener('resize', resizeCanvas, false);
-resizeCanvas();
-
-const bases = ["A","T","C","G"];
-
-const dnaColorThemes = {
-    classic: { A: "#ef4444", T: "#3b82f6", C: "#f59e0b", G: "#8b5cf6" },
-    synthwave: { A: "#ff00cc", T: "#00c6ff", C: "#f8b500", G: "#76ff03" },
-    forest: { A: "#65a30d", T: "#16a34a", C: "#f59e0b", G: "#78350f" },
-    pastel: { A: "#fecaca", T: "#bfdbfe", C: "#fed7aa", G: "#d8b4fe" },
-    monochrome: { A: "#f3f4f6", T: "#9ca3af", C: "#6b7280", G: "#374151" }
-};
-
-// --- DNA COLOR THEMES (Uncomment one to activate) ---
-let colors = dnaColorThemes.classic;
-// let colors = dnaColorThemes.synthwave;
-// let colors = dnaColorThemes.forest;
-// let colors = dnaColorThemes.pastel;
-// let colors = dnaColorThemes.monochrome;
-
-
-const NUCLEOTIDE_SPACING = 5;
-let dnaSeq = "";
-let dnaIndex = 0;
-let letterPairs = [];
-let frame = 0;
-
-let isGlobalGlitchActive = false;
-let globalGlitchTimeout = null;
-const globalGlitchChance = 0.002;
-const globalGlitchDuration = 1500;
-
-async function fetchGene() {
-    try {
-        const genes=[{id:"NM_007294.4",sym:"BRCA1"},{id:"NM_000546.6",sym:"TP53"}];
-        const g=genes[Math.floor(Math.random()*genes.length)];
-        document.getElementById("gene-info").textContent=`Fetching ${g.sym}...`;
-        const url=`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=${g.id}&rettype=fasta&retmode=text`;
-        const r=await fetch(url);
-        if(!r.ok) throw new Error();
-        const fasta=await r.text();
-        dnaSeq=fasta.split("\n").slice(1).join("").replace(/[^ATCG]/g,"");
-        document.getElementById("gene-info").textContent=`Visualizing ${g.sym}`;
-    } catch {
-        dnaSeq=Array.from({length:1000},()=>bases[Math.floor(Math.random()*4)]).join("");
-        document.getElementById("gene-info").textContent="Fallback: Random DNA Sequence";
-    }
-}
-
-function nextBase() {
-    return dnaSeq[dnaIndex++ % dnaSeq.length];
-}
-
-function spawnPair() {
-    const b = nextBase();
-    if (!b) return;
-    const pairBase = {A:"T",T:"A",C:"G","G":"C"}[b];
-    const x = canvas.width + 20;
-    letterPairs.push({
-        b1: { base: b, color: colors[b] },
-        b2: { base: pairBase, color: colors[pairBase] },
-        x: x
-    });
-}
-
-function draw() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.font="bold 14px monospace";
-    ctx.textAlign="center";
-    ctx.textBaseline="middle";
-
-    const canvasCenterY = canvas.height / 2;
-    const amplitude = 20;
-    const frequency = 0.04;
-    const individualGlitchChance = 0.01;
-    const glitchColor = "#34d399";
-
-    letterPairs.forEach(pair => {
-        const yOffset = amplitude * Math.sin(pair.x * frequency + frame * 0.05);
-        const scale = Math.cos(pair.x * frequency + frame * 0.05) * 0.4 + 0.6;
-        
-        const y1 = canvasCenterY - yOffset;
-        const y2 = canvasCenterY + yOffset;
-        
-        ctx.strokeStyle = 'rgba(100, 100, 100, 0.4)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(pair.x, y1);
-        ctx.lineTo(pair.x, y2);
-        ctx.stroke();
-
-        ctx.save();
-        ctx.globalAlpha = scale;
-        ctx.shadowBlur = 8;
-        
-        if (isGlobalGlitchActive) {
-            const topBase = Math.round(Math.random()).toString();
-            const bottomBase = Math.round(Math.random()).toString();
-            
-            ctx.shadowColor = glitchColor;
-            ctx.fillStyle = glitchColor;
-            ctx.fillText(topBase, pair.x, y1);
-            ctx.fillText(bottomBase, pair.x, y2);
-        } else {
-            let topBase = pair.b1.base;
-            let topColor = pair.b1.color;
-            if (Math.random() < individualGlitchChance) {
-                topBase = Math.round(Math.random()).toString();
-                topColor = glitchColor;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riemann Zeta Function Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
             }
-            ctx.shadowColor = topColor;
-            ctx.fillStyle = topColor;
-            ctx.fillText(topBase, pair.x, y1);
-            
-            let bottomBase = pair.b2.base;
-            let bottomColor = pair.b2.color;
-            if (Math.random() < individualGlitchChance) {
-                bottomBase = Math.round(Math.random()).toString();
-                bottomColor = glitchColor;
-            }
-            ctx.shadowColor = bottomColor;
-            ctx.fillStyle = bottomColor;
-            ctx.fillText(bottomBase, pair.x, y2);
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh; 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        .formula {
+            font-family: 'Georgia', serif;
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+            color: #d1d5db;
+            border: 1px solid #374151;
+            overflow-x: auto;
+        }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+         #menu {
+            display: flex;
+            gap: 10px;
+        }
+        .menu-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .menu-button:hover, .toggle-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
         }
         
-        ctx.restore();
-        pair.x -= 1.5;
-    });
+        #settings-button {
+            position: absolute;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+        }
+         #settings-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px) rotate(45deg);
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding-right: 2rem; 
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel.open { transform: translateX(0); }
+        #close-settings {
+            font-size: 2.5rem;
+            line-height: 1;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; background: #4b5563; border-radius: 2px; outline: none; opacity: 0.7; transition: opacity .2s; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: #818cf8; cursor: pointer; border-radius: 50%; }
+        input[type="color"] { -webkit-appearance: none; -moz-appearance: none; appearance: none; width: 100%; height: 40px; background-color: transparent; border: none; cursor: pointer; }
+        input[type="color"]::-webkit-color-swatch { border-radius: 8px; border: 1px solid #4b5563; }
+        input[type="color"]::-moz-color-swatch { border-radius: 8px; border: 1px solid #4b5563; }
 
-    letterPairs = letterPairs.filter(p => p.x > -20);
-}
+        .calculator-container { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+        .calculator-container input { width: 55px; padding: 5px; border-radius: 4px; border: 1px solid #666; background-color: #222; color: #eee; text-align: center; }
+        #zetaResult { margin-top: 10px; font-weight: bold; font-size: 1.1em; color: #4a90e2; text-align: center; }
 
-function animateDna() {
-    const lastPair = letterPairs[letterPairs.length - 1];
-    if (!lastPair || lastPair.x < canvas.width - NUCLEOTIDE_SPACING) {
-        spawnPair();
-    }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #4a90e2; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        #plotContainer, #plot2DContainer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #1a1a1a; display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 5;
+        }
+        #plotCanvas, #plot2DCanvas { border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #plotControls { margin-top: 15px; display: flex; align-items: center; gap: 10px; background: rgba(40, 40, 40, 0.8); padding: 10px; border-radius: 8px; }
+        #plotControls input { width: 80px; padding: 8px; border-radius: 5px; border: 1px solid #666; background-color: #222; color: #eee; text-align: center; }
+
+        .hidden { display: none !important; }
+        canvas { display: block; }
+
+        .mobile-menu-item { display: block; width: 100%; text-align: left; padding: 10px 16px; background-color: transparent; border: none; cursor: pointer; transition: background-color 0.2s; }
+        .mobile-menu-item:hover { background-color: #4338ca; }
+        .mobile-menu-item.active { background-color: #4f46e5; font-weight: bold; }
+        #mobile-menu-container { display: none; }
+        
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(18, 18, 18, 0.8); backdrop-filter: blur(4px);
+            z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: #e0e0e0; font-size: 1.5rem; letter-spacing: 0.1em;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        #loading-overlay.visible { opacity: 1; pointer-events: auto; }
+        #loading-text { margin-top: 1.5rem; font-size: 1rem; color: #a0a0a0;}
+        .loader {
+            width: 48px; height: 48px; border: 5px solid #FFF;
+            border-bottom-color: #4f46e5; border-radius: 50%;
+            display: inline-block; box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        #progress-bar-container { width: 200px; height: 8px; background-color: #374151; border-radius: 4px; overflow: hidden; margin-top: 1rem; }
+        #progress-bar { width: 0%; height: 100%; background-color: #6366f1; transition: width 0.1s linear; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            header h1 { font-size: 1.125rem; }
+            #menu { display: none !important; }
+            #mobile-menu-container { display: block; }
+            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
+            #controls-panel { padding: 0.75rem; gap: 0.75rem; justify-content: space-around; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay">
+        <span class="loader"></span>
+        <div id="loading-text">Computing...</div>
+        <div id="progress-bar-container" class="hidden"><div id="progress-bar"></div></div>
+    </div>
     
-    if (!isGlobalGlitchActive && Math.random() < globalGlitchChance) {
-        isGlobalGlitchActive = true;
-        clearTimeout(globalGlitchTimeout);
-        globalGlitchTimeout = setTimeout(() => {
-            isGlobalGlitchActive = false;
-        }, globalGlitchDuration);
-    }
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Zeta Function Explorer</h1>
+        <div class="flex items-center gap-4">
+            <div id="menu"></div>
+            <div id="mobile-menu-container" class="relative">
+                <button id="mobile-menu-button" class="menu-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <span id="mobile-menu-label">Views</span>
+                </button>
+                <div id="mobile-menu-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-30"></div>
+            </div>
+        </div>
+    </header>
 
-    draw();
-    frame++;
-    requestAnimationFrame(animateDna);
-}
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">Welcome!</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300"></p>
+             <div id="info-formula" class="formula"></div>
+             <div id="zeta-calculator-content" class="hidden">
+                 <h4 class="font-bold text-lg text-indigo-400 mt-4">Interactive Calculator</h4>
+                 <div class="calculator-container">
+                     <span>ζ(</span>
+                     <input type="number" id="zetaRealInput" value="-1" step="0.1">
+                     <span> + </span>
+                     <input type="number" id="zetaImagInput" value="0" step="0.1">
+                     <span>i )</span>
+                     <button id="calculateZetaBtn" class="toggle-button">Calculate</button>
+                 </div>
+                 <div id="zetaResult"></div>
 
-fetchGene().then(()=> animateDna());
+                 <h4 class="font-bold text-lg text-indigo-400 mt-4">Point Tracker</h4>
+                 <div class="calculator-container">
+                     <span>s = </span>
+                     <input type="number" id="pointRealInput" value="1.5" step="0.1">
+                     <span> + </span>
+                     <input type="number" id="pointImagInput" value="2" step="0.1">
+                     <span>i</span>
+                     <button id="plotPointBtn" class="toggle-button">Plot</button>
+                 </div>
+             </div>
+        </div>
+    </div>
+    
+    <div id="plotContainer">
+        <canvas id="plotCanvas"></canvas>
+        <div id="plotControls">
+            <button id="prevBtn" class="toggle-button">&lt;&lt; Prev</button>
+            <span id="plot-var-label">x = </span>
+            <input type="number" id="plotVarInput" value="0">
+            <button id="goBtn" class="toggle-button">Go</button>
+            <button id="combineWaveformBtn" class="toggle-button hidden">Combine</button>
+            <button id="nextBtn" class="toggle-button">Next &gt;&gt;</button>
+        </div>
+    </div>
+    
+    <div id="plot2DContainer">
+        <canvas id="plot2DCanvas"></canvas>
+    </div>
 
-document.addEventListener("DOMContentLoaded", function () {
-    const search=document.getElementById("search");
-    const cards=document.querySelectorAll("#custom-cards .col");
-    search.addEventListener("input",function(){
-        const q=this.value.toLowerCase();
-        cards.forEach(cardContainer=>{
-            const text=cardContainer.innerText.toLowerCase();
-            cardContainer.style.display=text.includes(q)?"":"none";
-        });
-    });
-});
-</script>
+    <div id="controls-panel" class="ui-panel"></div>
 
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+    </button>
+    
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-inherit z-10 py-2">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+
+        <div id="zeta-settings" class="space-y-6">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">VR</h4>
+             <div id="vr-button-container" class="my-2"></div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Grid Settings</h4>
+             <div class="control-group text-left w-full">
+                 <label for="gridSize" class="text-sm font-medium self-start w-full flex justify-between">Size: <span id="gridSizeValue">30</span></label>
+                 <input type="range" id="gridSize" min="10" max="10000" value="30">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="gridDensity" class="text-sm font-medium self-start w-full flex justify-between">Density: <span id="gridDensityValue">80</span></label>
+                 <input type="range" id="gridDensity" min="20" max="2000" value="80">
+             </div>
+              <div class="control-group text-left w-full">
+                 <label for="animationSpeed" class="text-sm font-medium self-start w-full flex justify-between">Speed (ms): <span id="animationSpeedValue">2000</span></label>
+                 <input type="range" id="animationSpeed" min="200" max="60000" value="2000">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="stripStartSlider" class="text-sm font-medium self-start w-full flex justify-between">Strip Start: <span id="stripStartValue">0.4</span></label>
+                 <input type="range" id="stripStartSlider" min="-20" max="20" value="0" step="0.1">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="stripWidth" class="text-sm font-medium self-start w-full flex justify-between">Strip Width: <span id="stripWidthValue">0.8</span></label>
+                 <input type="range" id="stripWidth" min="0.1" max="50.0" value="0.8" step="0.1">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="zDisplacementToggle" class="text-sm font-medium self-start w-full flex justify-between">3D Displacement:
+                     <label class="switch"><input type="checkbox" id="zDisplacementToggle" checked><span class="slider"></span></label>
+                 </label>
+             </div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Color Settings</h4>
+              <div class="control-group text-left w-full">
+                 <label for="stripOnlyColor" class="text-sm font-medium self-start w-full flex justify-between">Strip Only:
+                     <label class="switch"><input type="checkbox" id="stripOnlyColor"><span class="slider"></span></label>
+                 </label>
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="baseColor" class="text-sm font-medium self-start w-full">Base Color</label>
+                 <input type="color" id="baseColor" value="#ffffff">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="stripColor" class="text-sm font-medium self-start w-full">Strip Color</label>
+                 <input type="color" id="stripColor" value="#ffd700">
+             </div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Axis & Line Colors</h4>
+             <div class="control-group text-left w-full">
+                 <label for="boundaryColor" class="text-sm font-medium self-start w-full">Boundary Color</label>
+                 <input type="color" id="boundaryColor" value="#ffd700">
+             </div>
+              <div class="control-group text-left w-full">
+                 <label for="realAxisColor" class="text-sm font-medium self-start w-full">Real Axis:</label>
+                 <input type="color" id="realAxisColor" value="#ff4444">
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="imagAxisColor" class="text-sm font-medium self-start w-full">Imag Axis:</label>
+                 <input type="color" id="imagAxisColor" value="#4444ff">
+             </div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Label Settings</h4>
+             <div class="control-group text-left w-full">
+                <label for="labelSizeSlider" class="text-sm font-medium self-start w-full flex justify-between">
+                    Axis Label Size: <span id="labelSizeValue">1.00x</span>
+                </label>
+                <input type="range" id="labelSizeSlider" min="0.1" max="3" value="1" step="0.05">
+             </div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Zeros</h4>
+             <div class="control-group text-left w-full">
+                 <label for="riemannZerosToggle" class="text-sm font-medium self-start w-full flex justify-between">Show Non-Trivial Zeros:
+                     <label class="switch"><input type="checkbox" id="riemannZerosToggle" checked><span class="slider"></span></label>
+                 </label>
+             </div>
+             <div class="control-group text-left w-full">
+                 <label for="trivialZerosToggle" class="text-sm font-medium self-start w-full flex justify-between">Show Trivial Zeros:
+                     <label class="switch"><input type="checkbox" id="trivialZerosToggle" checked><span class="slider"></span></label>
+                 </label>
+             </div>
+        </div>
+        <div id="plot-settings" class="hidden space-y-6">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Plot Settings</h4>
+             <div class="control-group text-left w-full">
+                 <label for="plotRangeSlider" class="text-sm font-medium self-start w-full flex justify-between">Range: <span id="plotRangeValue">50</span></label>
+                 <input type="range" id="plotRangeSlider" min="10" max="500" value="50">
+             </div>
+             <div id="zeros-count-setting" class="control-group text-left w-full">
+                 <label for="zerosCountSlider" class="text-sm font-medium self-start w-full flex justify-between">Number of Zeros: <span id="zerosCountValue">10</span></label>
+                 <input type="range" id="zerosCountSlider" min="0" max="200" value="10" step="1">
+             </div>
+              <hr class="border-gray-600">
+              <details>
+                  <summary class="text-sm font-medium cursor-pointer">Advanced Plot Settings</summary>
+                   <div class="space-y-4 p-2">
+                       <div class="control-group text-left w-full">
+                           <label for="plotRangeMaxInput" class="text-xs">Range Slider Max:</label>
+                           <input type="number" id="plotRangeMaxInput" value="5000" class="w-24 bg-gray-700 border border-gray-600 rounded text-center">
+                       </div>
+                        <div class="control-group text-left w-full">
+                           <label for="zerosCountMaxInput" class="text-xs">Zeros Slider Max:</label>
+                           <input type="number" id="zerosCountMaxInput" value="2000" class="w-24 bg-gray-700 border border-gray-600 rounded text-center">
+                       </div>
+                       <button id="applyAdvancedSettings" class="toggle-button w-full">Apply</button>
+                   </div>
+              </details>
+        </div>
+    </div>
+    
+    <!-- Fly Controls Info Panel -->
+    <div id="fly-controls-info" class="hidden opacity-0 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900 bg-opacity-80 p-6 rounded-lg text-center z-50 pointer-events-none transition-opacity duration-500">
+        <h3 class="text-lg font-bold mb-2">Fly Controls Active</h3>
+        <p>Use <b>WASD</b> or <b>Arrow Keys</b> to move</p>
+        <p>Use <b>Mouse</b> to look around</p>
+        <p class="mt-4 text-sm text-gray-400">Click to lock mouse. Press <b>ESC</b> or <b>Right-Click</b> to exit.</p>
+    </div>
+
+    <!-- MathJax for LaTeX -->
+    <script>
+      MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }, svg: { fontCache: 'global' } };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { VRButton } from 'three/addons/webxr/VRButton.js';
+        
+        let scene, camera, renderer, orbitControls, flyControls, controller1, controller2;
+        let plane, customAxes, axesLabelGroup;
+        let riemannZeros, trivialZeros;
+        let userPoint = { mesh: null, s_original: null, s_transformed: null, s_continued: null };
+        let currentAnimation = new Map();
+        let isTransformed = false;
+        let isContinued = false;
+        
+        // === FLY-THROUGH CAMERA CONTROLS CLASS ===
+        class FlyControls {
+            constructor(camera, controller1, controller2) {
+                this.camera = camera;
+                this.controller1 = controller1;
+                this.controller2 = controller2;
+                this.moveSpeed = 0.2;
+                this.lookSpeed = 0.002;
+
+                this.movement = { forward: false, backward: false, left: false, right: false };
+                this.isLocked = false;
+
+                this.onKeyDown = this.onKeyDown.bind(this);
+                this.onKeyUp = this.onKeyUp.bind(this);
+                this.onMouseMove = this.onMouseMove.bind(this);
+                this.onClick = this.onClick.bind(this);
+                this.onPointerLockChange = this.onPointerLockChange.bind(this);
+                this.onContextMenu = this.onContextMenu.bind(this);
+            }
+
+            connect() {
+                document.addEventListener('keydown', this.onKeyDown);
+                document.addEventListener('keyup', this.onKeyUp);
+                document.addEventListener('mousemove', this.onMouseMove);
+                renderer.domElement.addEventListener('click', this.onClick);
+                document.addEventListener('pointerlockchange', this.onPointerLockChange);
+                renderer.domElement.addEventListener('contextmenu', this.onContextMenu);
+            }
+
+            disconnect() {
+                document.removeEventListener('keydown', this.onKeyDown);
+                document.removeEventListener('keyup', this.onKeyUp);
+                document.removeEventListener('mousemove', this.onMouseMove);
+                renderer.domElement.removeEventListener('click', this.onClick);
+                document.removeEventListener('pointerlockchange', this.onPointerLockChange);
+                renderer.domElement.removeEventListener('contextmenu', this.onContextMenu);
+                if (document.pointerLockElement === renderer.domElement) {
+                    document.exitPointerLock();
+                }
+            }
+
+            onClick() { renderer.domElement.requestPointerLock(); }
+
+            onPointerLockChange() { this.isLocked = (document.pointerLockElement === renderer.domElement); }
+
+            onContextMenu(event) {
+                event.preventDefault();
+                const toggle = document.getElementById('controlModeToggle');
+                if (toggle && toggle.checked) {
+                    toggle.click();
+                }
+            }
+
+            onKeyDown(event) {
+                switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': this.movement.forward = true; break;
+                    case 'ArrowLeft': case 'KeyA': this.movement.left = true; break;
+                    case 'ArrowDown': case 'KeyS': this.movement.backward = true; break;
+                    case 'ArrowRight': case 'KeyD': this.movement.right = true; break;
+                }
+            }
+
+            onKeyUp(event) {
+                 switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': this.movement.forward = false; break;
+                    case 'ArrowLeft': case 'KeyA': this.movement.left = false; break;
+                    case 'ArrowDown': case 'KeyS': this.movement.backward = false; break;
+                    case 'ArrowRight': case 'KeyD': this.movement.right = false; break;
+                }
+            }
+
+            onMouseMove(event) {
+                if (!this.isLocked) return;
+                const movementX = event.movementX || 0;
+                const movementY = event.movementY || 0;
+                const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+                euler.setFromQuaternion(this.camera.quaternion);
+                euler.y -= movementX * this.lookSpeed;
+                euler.x -= movementY * this.lookSpeed;
+                euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x));
+                this.camera.quaternion.setFromEuler(euler);
+            }
+
+            update() {
+                const direction = new THREE.Vector3();
+                direction.z = Number(this.movement.forward) - Number(this.movement.backward);
+                direction.x = Number(this.movement.left) - Number(this.movement.right);
+                direction.normalize();
+                if (this.movement.forward || this.movement.backward) this.camera.translateZ(-direction.z * this.moveSpeed);
+                if (this.movement.left || this.movement.right) this.camera.translateX(-direction.x * this.moveSpeed);
+            }
+
+            updateVR() {
+                const controller = this.controller1; // Assuming left controller for movement
+                if (controller && controller.gamepad && controller.gamepad.axes.length >= 4) {
+                    const moveVector = new THREE.Vector3(controller.gamepad.axes[2], 0, controller.gamepad.axes[3]);
+                    if (moveVector.length() > 0.1) { // Deadzone
+                        const headQuaternion = renderer.xr.getCamera().quaternion;
+                        moveVector.applyQuaternion(headQuaternion);
+                        // Project onto XZ plane and re-normalize for consistent speed
+                        moveVector.y = 0;
+                        moveVector.normalize();
+                        this.camera.position.addScaledVector(moveVector, -this.moveSpeed);
+                    }
+                }
+            }
+        }
+        
+        const views = {
+            'zeta_function': {
+                title: 'Zeta Function',
+                description: 'For Re(s) > 1, the zeta function is defined by the infinite sum shown below. This visualization uses analytic continuation to extend this definition to the complex plane. The highlighted region is the **Critical Strip**, where 0 < Re(s) < 1.',
+                formula: '$$\\zeta(s) = \\sum_{n=1}^{\\infty} \\frac{1}{n^s}$$',
+                setup: setup3DView
+            },
+            'zeta_2d': {
+                title: '2D Zeta Function',
+                description: 'This visualization uses "domain coloring" to show the behavior of ζ(s). The **color** at each point represents the phase (angle) of the output, while the **brightness** represents its magnitude. Zeros appear as black spots where all colors converge, and the pole at s=1 appears as a white spot where all colors meet again.',
+                formula: '$$s = x + iy \\quad \\mapsto \\quad \\zeta(s)$$',
+                setup: setup2DView
+            },
+            'zeros': {
+                title: 'Zeros on Critical Line',
+                description: 'This graph plots the real (blue) and imaginary (orange) parts of ζ(s) along the **Critical Line**, where the real part of s is fixed at 0.5. A "non-trivial zero" occurs where both lines cross the horizontal axis at the same time (marked with red dots). The Riemann Hypothesis conjectures that all non-trivial zeros lie on this line.',
+                formula: '$$s = 0.5 + it$$',
+                setup: setupZerosView
+            },
+            'prime_counting': {
+                title: 'Prime Counting Function',
+                description: 'This plot shows the prime-counting function $\\pi(x)$ (blue steps), which counts the number of primes less than or equal to $x$. It is famously approximated by the logarithmic integral Li(x) (orange curve).',
+                formula: '$$\\pi(x) \\approx \\text{Li}(x) = \\int_2^x \\frac{dt}{\\ln t}$$',
+                setup: setupPrimesView
+            }
+        };
+        let currentView = 'zeta_function';
+        
+        // DOM Elements
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        const progressBarContainer = document.getElementById('progress-bar-container');
+        const progressBar = document.getElementById('progress-bar');
+        const plotContainer = document.getElementById('plotContainer');
+        const plotCanvas = document.getElementById('plotCanvas');
+        const plotCtx = plotCanvas.getContext('2d');
+        const plot2DContainer = document.getElementById('plot2DContainer');
+        const plot2DCanvas = document.getElementById('plot2DCanvas');
+        const plot2DCtx = plot2DCanvas.getContext('2d');
+        const controlsPanel = document.getElementById('controls-panel');
+        const infoTitle = document.getElementById('info-title');
+        const infoDescription = document.getElementById('info-description');
+        const infoFormula = document.getElementById('info-formula');
+        const zetaCalculatorContent = document.getElementById('zeta-calculator-content');
+        
+        let plotVarOffset = 0;
+        let plotVarRange = 50;
+        let primesCache = [];
+
+        const knownZeros = [14.134725, 21.022040, 25.010858, 30.424876, 32.935062, 37.586178, 40.918719, 43.327073, 48.005151, 49.773832, 52.970321, 56.446248, 59.347044, 60.831779, 65.085804, 67.079811, 69.546402, 72.067158, 75.704691, 77.144840, 79.337375, 82.910381, 84.735493, 87.425275, 88.809111, 92.491899, 94.651344, 95.870634, 98.831194, 101.317851, 103.725538, 105.446622, 107.168611, 111.029536, 111.874659, 114.320221, 116.226689, 118.790783, 121.370125, 122.947209, 124.256819, 127.516684, 129.578704, 131.087688, 133.497737, 134.756590, 138.058333, 139.721187, 141.123708, 143.111845, 146.225555, 147.461932, 150.053521, 153.024660, 154.075433, 156.098223, 157.643399, 161.211499, 163.021074, 165.232313, 167.339592, 169.094553, 171.411139, 173.359648, 174.754439, 176.441131, 178.432881, 179.917424, 182.207806, 184.808018, 185.579434, 187.321773, 189.418201, 192.054162, 193.318265, 195.033280, 196.883832, 198.015709, 201.259909, 202.493394, 204.189617, 205.394691, 207.747806, 209.610512, 211.272183, 213.319690, 214.547031, 216.163351, 219.014908, 220.015693, 221.309015, 223.449766, 224.999663, 227.132532, 229.221142, 231.253434, 232.180231, 233.911225, 236.501913, 238.115831, 240.103033, 241.069744, 243.137812, 244.757888, 246.590379, 249.701831, 251.133221, 252.333908, 254.089443, 255.116910, 257.062823, 259.333069, 260.481177, 262.031754, 263.213192, 265.111109, 267.581691, 268.495933, 270.098904, 272.107561, 273.530635, 275.644342, 276.918538, 279.035349, 280.133195, 282.491845, 283.743125, 285.231229, 287.052601, 288.601556, 290.158398, 292.039232, 294.341484, 295.539367, 296.895999, 298.243542, 300.589895, 302.213233, 304.221873, 305.009726, 307.039257, 308.411651, 309.805853, 311.455246, 313.331238, 315.023363, 316.340003, 318.140653, 320.002979, 321.139975, 323.018596, 325.292487, 327.034261, 328.093473, 329.141569, 331.439169, 332.827725, 334.331553, 335.787724, 337.234853, 338.805437, 340.034293, 341.677553, 343.916334, 345.503350, 346.993098, 349.032231, 350.259250, 351.644410, 353.498871, 354.580112, 356.406983, 358.100913, 359.836476, 361.025345, 362.469959, 364.392736, 365.856942, 367.311738, 368.868852, 370.088203, 371.491321, 373.187375, 375.051509, 376.516583, 377.962299, 379.308892, 381.163333, 382.684810, 384.431787, 386.173813, 387.276231, 388.761019, 390.499896, 392.593719, 393.982391, 395.441926, 396.697486, 398.863378];
+
+        class Complex { constructor(re = 0, im = 0) { this.re = re; this.im = im; } add(c) { return new Complex(this.re + c.re, this.im + c.im); } sub(c) { return new Complex(this.re - c.re, this.im - c.im); } mul(c) { return new Complex(this.re * c.re - this.im * c.im, this.re * c.im + this.im * c.re); } div(c) { const d = c.re * c.re + c.im * c.im; if (d === 0) return new Complex(Infinity, Infinity); return new Complex((this.re * c.re + this.im * c.im) / d, (this.im * c.re - this.re * c.im) / d); } static fromPolar(r, theta) { return new Complex(r * Math.cos(theta), r * Math.sin(theta)); } magnitude() { return Math.sqrt(this.re * this.re + this.im * this.im); } phase() { return Math.atan2(this.im, this.re); } }
+        const g = 7; const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+        function gamma(z) { if (z.re < 0.5) { const pi = new Complex(Math.PI, 0); const one = new Complex(1, 0); const sinPiZ = sin(pi.mul(z)); if (sinPiZ.magnitude() < 1e-9) return new Complex(Infinity, Infinity); return pi.div(sin(pi.mul(z)).mul(gamma(one.sub(z)))); } else { z = z.sub(new Complex(1, 0)); let x = new Complex(p[0], 0); for (let i = 1; i < g + 2; i++) { x = x.add(new Complex(p[i], 0).div(z.add(new Complex(i, 0)))); } const t = z.add(new Complex(g + 0.5, 0)); const sqrt2pi = new Complex(Math.sqrt(2 * Math.PI), 0); let term1 = pow(t, z.add(new Complex(0.5, 0))); let term2 = exp(t.mul(new Complex(-1, 0))); return sqrt2pi.mul(term1).mul(term2).mul(x); } }
+        function zeta(s) { if (Math.abs(s.re - 1) < 1e-9 && Math.abs(s.im) < 1e-9) return new Complex(Infinity, Infinity); if (s.re < 0) { const one = new Complex(1, 0); const two = new Complex(2, 0); const pi = new Complex(Math.PI, 0); const reflected_s = one.sub(s); const term1 = pow(two, s); const term2 = pow(pi, s.sub(one)); const term3 = sin(pi.mul(s).div(two)); const term4 = gamma(one.sub(s)); const term5 = zeta(reflected_s); return term1.mul(term2).mul(term3).mul(term4).mul(term5); } const one = new Complex(1, 0); const two = new Complex(2, 0); const prefactor = one.div(one.sub(pow(two, one.sub(s)))); let eta_sum = new Complex(0, 0); for (let i = 1; i <= 1000; i++) { const term = pow(new Complex(i, 0), s.mul(new Complex(-1,0))); if (i % 2 === 1) { eta_sum = eta_sum.add(term); } else { eta_sum = eta_sum.sub(term); } } return prefactor.mul(eta_sum); }
+        function pow(base, exp) { if (base.magnitude() === 0) return new Complex(0,0); const logBase = new Complex(Math.log(base.magnitude()), base.phase()); const z = logBase.mul(exp); return Complex.fromPolar(Math.exp(z.re), z.im); }
+        function exp(c) { return Complex.fromPolar(Math.exp(c.re), c.im); }
+        function sin(c) { const ez = exp(new Complex(-c.im, c.re)); const e_iz = exp(new Complex(c.im, -c.re)); return ez.sub(e_iz).div(new Complex(0, 2)); }
+        
+        function makeTextSprite(message, options = {}) {
+            const { fontsize = 32, scale = [1.8, 0.9, 1.0] } = options;
+            const canvas = document.createElement('canvas'); const context = canvas.getContext('2d');
+            canvas.width = 128; canvas.height = 64;
+            context.font = `Bold ${fontsize}px Arial`; context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            context.textAlign = 'center'; context.textBaseline = 'middle';
+            context.fillText(message, canvas.width / 2, canvas.height / 2);
+            const texture = new THREE.CanvasTexture(canvas); const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial); sprite.scale.set(...scale);
+            sprite.position.copy(options.position || new THREE.Vector3()); return sprite;
+        }
+
+        function createPlane(width, height, segmentsW, segmentsH, stripWidth, stripStart) {
+            const geometry = new THREE.PlaneGeometry(width, height, segmentsW, segmentsH);
+            const boundaries = new Float32Array(geometry.attributes.position.count);
+            const positions = geometry.attributes.position.array;
+            const epsilon = (width / segmentsW) * 0.5;
+            for (let i = 0; i < positions.length / 3; i++) {
+                const x = positions[i * 3];
+                if (Math.abs(x - stripStart) < epsilon || Math.abs(x - (stripStart + stripWidth)) < epsilon) { boundaries[i] = 1.0; } 
+                else { boundaries[i] = 0.0; }
+            }
+            geometry.setAttribute('isBoundary', new THREE.BufferAttribute(boundaries, 1));
+
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    stripOnly: { value: 0.0 }, baseColor: { value: new THREE.Color(0xffffff) },
+                    stripColor: { value: new THREE.Color(0xffd700) }, boundaryColor: { value: new THREE.Color(0xff00ff) },
+                    stripWidth: { value: stripWidth },
+                    stripStart: { value: stripStart }
+                },
+                vertexShader: `
+                    attribute float isBoundary; varying vec3 vColor; varying float vIsBoundary;
+                    uniform float stripOnly; uniform vec3 baseColor; uniform vec3 stripColor;
+                    uniform float stripWidth;
+                    uniform float stripStart;
+                    vec3 hsv2rgb(vec3 c) { vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0); vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www); return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y); }
+                    void main() {
+                        vIsBoundary = isBoundary;
+                        float isStrip = step(stripStart, position.x) * (1.0 - step(stripStart + stripWidth, position.x));
+                        if (stripOnly > 0.5) { vColor = mix(baseColor, stripColor, isStrip); } 
+                        else { float angle = atan(position.y, position.x); float hue = (angle + 3.14159) / (2.0 * 3.14159); float saturation = 0.7 + 0.3 * isStrip; float value = 0.9 + 0.1 * isStrip; vColor = hsv2rgb(vec3(hue, saturation, value)); }
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }`,
+                fragmentShader: `
+                    varying vec3 vColor; varying float vIsBoundary; uniform vec3 boundaryColor;
+                    void main() { 
+                        if (vIsBoundary > 0.5) { gl_FragColor = vec4(boundaryColor, 1.0); } 
+                        else { gl_FragColor = vec4(vColor, 1.0); }
+                    }`,
+                side: THREE.DoubleSide, wireframe: true
+            });
+            const newPlane = new THREE.Mesh(geometry, material); newPlane.rotation.x = -Math.PI / 2; return newPlane;
+        }
+
+        function calculateTransformedPositions(positions, isContinuation, useZDisplacement) {
+            const newPositions = new Float32Array(positions.length);
+            const transformBoundary = 1.0; // The sum definition is for Re(s) > 1
+            for (let i = 0; i < positions.length; i += 3) {
+                const re = positions[i];
+                const im = positions[i + 1];
+                if (isContinuation || re > transformBoundary) {
+                    let s = new Complex(re, im); let z_s = zeta(s); let u = z_s.re; let v = z_s.im;
+                    const clampValue = 40;
+                    newPositions[i] = isFinite(u) ? Math.max(-clampValue, Math.min(clampValue, u)) : clampValue * Math.sign(u || 0);
+                    newPositions[i+1] = isFinite(v) ? Math.max(-clampValue, Math.min(clampValue, v)) : clampValue * Math.sign(v || 0);
+                    if (useZDisplacement) {
+                        const dx = newPositions[i] - re; const dy = newPositions[i + 1] - im;
+                        newPositions[i + 2] = Math.sqrt(dx * dx + dy * dy) * 0.2;
+                    } else { newPositions[i + 2] = 0; }
+                } else { newPositions[i] = re; newPositions[i+1] = im; newPositions[i+2] = positions[i+2]; }
+            }
+            return newPositions;
+        }
+        
+        function calculateGroupTransformedPositions(group, isContinuation, useZDisplacement) {
+            const newPositions = new Float32Array(group.children.length * 3);
+            const transformBoundary = 1.0;
+
+            group.children.forEach((child, index) => {
+                const originalPos = child.userData.originalPosition;
+                const s = new Complex(originalPos.x, -originalPos.z);
+                let targetPos = originalPos.clone();
+
+                if (isContinuation || s.re > transformBoundary) {
+                    let z_s = zeta(s);
+                    let u = z_s.re;
+                    let v = z_s.im;
+                    const clampValue = 40;
+
+                    targetPos.x = isFinite(u) ? Math.max(-clampValue, Math.min(clampValue, u)) : clampValue * Math.sign(u || 0);
+                    targetPos.z = isFinite(v) ? -Math.max(-clampValue, Math.min(clampValue, v)) : -clampValue * Math.sign(v || 0);
+                    targetPos.y = 0.1;
+
+                    if (useZDisplacement) {
+                        const dx = targetPos.x - originalPos.x;
+                        const dz = -targetPos.z - (-originalPos.z); // Compare imag parts
+                        targetPos.y = Math.sqrt(dx * dx + dz * dz) * 0.2;
+                    }
+                }
+                targetPos.toArray(newPositions, index * 3);
+            });
+            return newPositions;
+        }
+
+        function animateObject(threeObj, endPos, duration) {
+            const startPos = threeObj.geometry.attributes.position.array.slice();
+            const animationId = Math.random();
+            currentAnimation.set(threeObj.uuid, animationId);
+            const startTime = performance.now();
+            
+            function animate() {
+                if (currentAnimation.get(threeObj.uuid) !== animationId) return;
+                const elapsed = performance.now() - startTime;
+                let progress = Math.min(elapsed / duration, 1.0);
+                progress = progress * progress * (3 - 2 * progress);
+                
+                const positions = threeObj.geometry.attributes.position.array;
+                for (let i = 0; i < positions.length; i++) {
+                    positions[i] = startPos[i] + (endPos[i] - startPos[i]) * progress;
+                }
+                threeObj.geometry.attributes.position.needsUpdate = true;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    currentAnimation.delete(threeObj.uuid);
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function animateGroup(group, getTargetPositionsFn, duration) {
+            const endPositions = getTargetPositionsFn();
+            group.children.forEach((child, index) => {
+                const startPos = child.position.clone();
+                const endPos = new THREE.Vector3().fromArray(endPositions, index * 3);
+                
+                const animationId = Math.random();
+                currentAnimation.set(child.uuid, animationId);
+                const startTime = performance.now();
+
+                function animate() {
+                    if (currentAnimation.get(child.uuid) !== animationId) return;
+                     const elapsed = performance.now() - startTime;
+                    let progress = Math.min(elapsed / duration, 1.0);
+                    progress = progress * progress * (3 - 2 * progress);
+                    
+                    child.position.lerpVectors(startPos, endPos, progress);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        currentAnimation.delete(child.uuid);
+                    }
+                }
+                requestAnimationFrame(animate);
+            });
+        }
+        
+        function createCustomAxes(width, height) {
+            const group = new THREE.Group(); const halfWidth = width / 2; const halfHeight = height / 2;
+            const realMaterial = new THREE.LineBasicMaterial();
+            const realPoints = [new THREE.Vector3(-halfWidth, 0, 0), new THREE.Vector3(halfWidth, 0, 0)];
+            const realGeometry = new THREE.BufferGeometry().setFromPoints(realPoints);
+            const realAxis = new THREE.Line(realGeometry, realMaterial); realAxis.name = 'realAxis';
+            const imagMaterial = new THREE.LineBasicMaterial();
+            const imagPoints = [new THREE.Vector3(0, 0, -halfHeight), new THREE.Vector3(0, 0, halfHeight)];
+            const imagGeometry = new THREE.BufferGeometry().setFromPoints(imagPoints);
+            const imagAxis = new THREE.Line(imagGeometry, imagMaterial); imagAxis.name = 'imagAxis';
+            group.add(realAxis); group.add(imagAxis); return group;
+        }
+        
+        function init() {
+            init3DScene();
+            setupUI();
+            switchView('zeta_function');
+        }
+
+        function init3DScene() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
+            document.body.insertBefore(renderer.domElement, document.body.firstChild);
+            document.getElementById('vr-button-container').appendChild(VRButton.createButton(renderer));
+
+            controller1 = renderer.xr.getController(0);
+            scene.add(controller1);
+            controller2 = renderer.xr.getController(1);
+            scene.add(controller2);
+            
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            flyControls = new FlyControls(camera, controller1, controller2);
+            
+            const onSelectStart = () => {
+                const transformBtn = document.getElementById('transformBtn');
+                const continueBtn = document.getElementById('continueBtn');
+                if (transformBtn && !transformBtn.classList.contains('hidden')) {
+                    transformBtn.click();
+                } else if (continueBtn && !continueBtn.classList.contains('hidden')) {
+                    continueBtn.click();
+                }
+            };
+
+            controller1.addEventListener('selectstart', onSelectStart);
+            controller2.addEventListener('selectstart', onSelectStart);
+            
+            camera.position.set(0, 25, 35);
+            createZeroMarkers(parseInt(document.getElementById('gridSize').value));
+            renderer.setAnimationLoop(animationLoop);
+        }
+        
+        function animationLoop() {
+            if (currentView === 'zeta_function') {
+                if (renderer.xr.isPresenting) {
+                    flyControls.updateVR();
+                } else {
+                    const flyToggle = document.getElementById('controlModeToggle');
+                    if (flyToggle && flyToggle.checked) {
+                        flyControls.update();
+                    } else {
+                        orbitControls.update();
+                    }
+                }
+                renderer.render(scene, camera);
+            }
+        }
+
+
+        function setupUI() {
+            createMenu();
+            setupMobileMenu();
+            document.getElementById('info-panel').addEventListener('click', (e) => {
+                if (e.target.closest('input') || e.target.closest('button')) return;
+                e.currentTarget.classList.toggle('expanded');
+            });
+            const settingsPanel = document.getElementById('settings-panel');
+            document.getElementById('settings-button').addEventListener('click', () => {
+                 settingsPanel.classList.remove('hidden');
+                 requestAnimationFrame(() => settingsPanel.classList.add('open'));
+            });
+            document.getElementById('close-settings').addEventListener('click', () => {
+                settingsPanel.classList.remove('open');
+            });
+            settingsPanel.addEventListener('transitionend', (event) => {
+                if (event.propertyName !== 'transform' || settingsPanel.classList.contains('open')) return;
+                settingsPanel.classList.add('hidden');
+            });
+            setupZetaCalculatorListeners();
+            setupSettingsPanelListeners();
+            setupPlotControlsListeners();
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        function switchView(viewKey) {
+            if (!views[viewKey]) return;
+            currentView = viewKey;
+            
+            const view = views[viewKey];
+            infoTitle.textContent = view.title;
+            infoDescription.innerHTML = view.description;
+            infoFormula.innerHTML = view.formula;
+            if (window.MathJax) {
+                if (typeof MathJax.typesetPromise === 'function') {
+                    MathJax.typesetPromise();
+                } else if (MathJax.startup && MathJax.startup.promise) {
+                    MathJax.startup.promise.then(() => MathJax.typeset());
+                }
+            }
+            
+            document.querySelectorAll('.menu-button, .mobile-menu-item').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.id.includes(viewKey)) btn.classList.add('active');
+            });
+            document.getElementById('mobile-menu-label').textContent = view.title;
+            
+            const isZerosView = viewKey === 'zeros';
+            document.getElementById('combineWaveformBtn').classList.toggle('hidden', !isZerosView);
+
+            const is3DView = viewKey === 'zeta_function';
+            document.getElementById('zeta-settings').classList.toggle('hidden', !is3DView);
+            document.getElementById('plot-settings').classList.toggle('hidden', is3DView);
+
+            view.setup();
+        }
+
+        function setup3DView() {
+            plotContainer.style.display = 'none';
+            plot2DContainer.style.display = 'none';
+            if (renderer) renderer.domElement.style.display = 'block';
+            controlsPanel.classList.remove('hidden');
+            zetaCalculatorContent.classList.remove('hidden');
+            if (riemannZeros) riemannZeros.visible = document.getElementById('riemannZerosToggle').checked;
+            if (trivialZeros) trivialZeros.visible = document.getElementById('trivialZerosToggle').checked;
+            setup3DControls();
+            regenerateGrid();
+            calculateAndDisplayZeta();
+        }
+        
+        function hideAll3DObjects() {
+            plotContainer.style.display = 'none';
+            plot2DContainer.style.display = 'none';
+            if (renderer) renderer.domElement.style.display = 'none';
+            controlsPanel.classList.add('hidden');
+            zetaCalculatorContent.classList.add('hidden');
+            if (riemannZeros) riemannZeros.visible = false;
+            if (trivialZeros) trivialZeros.visible = false;
+        }
+
+        function setupPlotView(varName, range, drawFn) {
+            hideAll3DObjects();
+            plotContainer.style.display = 'flex';
+            
+            plotVarRange = range;
+            document.getElementById('plotRangeSlider').value = range;
+            document.getElementById('plotRangeValue').textContent = range;
+            document.getElementById('plot-var-label').textContent = `${varName} = `;
+            document.getElementById('plotVarInput').value = plotVarOffset.toFixed(0);
+            drawFn();
+        }
+        
+        function setupZerosView() {
+            plotVarOffset = 0;
+            const currentRange = parseInt(document.getElementById('plotRangeSlider').value);
+            setupPlotView('t', currentRange, drawZerosPlot);
+        }
+
+        function setupPrimesView() {
+            plotVarOffset = 0;
+            const currentRange = parseInt(document.getElementById('plotRangeSlider').value);
+            sieve(currentRange + 200); 
+            setupPlotView('x', currentRange, drawPrimesPlot);
+        }
+        
+        function setup2DView() {
+            hideAll3DObjects();
+            plot2DContainer.style.display = 'flex';
+            setup2DControls();
+            draw2DPlot();
+        }
+        
+        async function regenerateGrid() {
+            showLoading("Regenerating Grid...");
+            await new Promise(resolve => setTimeout(resolve, 20));
+            
+            const size = parseInt(document.getElementById('gridSize').value);
+            const density = parseInt(document.getElementById('gridDensity').value);
+            const stripWidth = parseFloat(document.getElementById('stripWidth').value);
+            const stripStart = parseFloat(document.getElementById('stripStartSlider').value);
+            const useZDisplacement = document.getElementById('zDisplacementToggle').checked;
+            
+            if (plane) { scene.remove(plane); plane.geometry.dispose(); plane.material.dispose(); }
+            plane = createPlane(size, size, density, density, stripWidth, stripStart);
+            updateColors();
+            scene.add(plane);
+            plane.userData.originalPositions = new Float32Array(plane.geometry.attributes.position.array);
+            
+            createZeroMarkers(size);
+
+            regenerateAxesAndLabels();
+
+            if (isTransformed || isContinued) {
+                const targetPlanePos = calculateTransformedPositions(plane.userData.originalPositions, isContinued, useZDisplacement);
+                plane.geometry.attributes.position.copyArray(targetPlanePos);
+                plane.geometry.attributes.position.needsUpdate = true;
+
+                const targetRiemannPos = calculateGroupTransformedPositions(riemannZeros, isContinued, useZDisplacement);
+                riemannZeros.children.forEach((child, i) => child.position.fromArray(targetRiemannPos, i * 3));
+                
+                const targetTrivialPos = calculateGroupTransformedPositions(trivialZeros, isContinued, useZDisplacement);
+                trivialZeros.children.forEach((child, i) => child.position.fromArray(targetTrivialPos, i * 3));
+
+                const targetLabelPos = calculateGroupTransformedPositions(axesLabelGroup, isContinued, useZDisplacement);
+                axesLabelGroup.children.forEach((child, i) => child.position.fromArray(targetLabelPos, i * 3));
+            }
+
+
+            hideLoading();
+        }
+        
+        function regenerateAxesAndLabels() {
+            const size = parseInt(document.getElementById('gridSize').value);
+            if (customAxes) scene.remove(customAxes);
+            if (axesLabelGroup) scene.remove(axesLabelGroup);
+
+            customAxes = createCustomAxes(size, size);
+            scene.add(customAxes); 
+            updateColors();
+            
+            axesLabelGroup = new THREE.Group();
+            
+            const labelSizeMultiplier = parseFloat(document.getElementById('labelSizeSlider')?.value || 1.0);
+            const scaleFactor = 0.7 * labelSizeMultiplier; // Decoupled from grid size
+            const labelOffset = size * 0.1;
+            
+            const reSprite = makeTextSprite("Re", { position: new THREE.Vector3(size/2 + labelOffset, 0.1, 0), scale: [scaleFactor * 1.8, scaleFactor * 0.9, 1.0] });
+            reSprite.userData.originalPosition = reSprite.position.clone();
+            axesLabelGroup.add(reSprite);
+
+            const imSprite = makeTextSprite("Im", { position: new THREE.Vector3(0, 0.1, size/2 + labelOffset), scale: [scaleFactor * 1.8, scaleFactor * 0.9, 1.0] });
+            imSprite.userData.originalPosition = imSprite.position.clone();
+            axesLabelGroup.add(imSprite);
+
+            for (let i = -Math.floor(size/2); i <= Math.floor(size/2); i++) {
+                if (i === 0) continue;
+                const commonOptions = { fontsize: 28, scale: [scaleFactor * 1.5, scaleFactor * 0.75, 1.0] };
+                
+                const imagLabel = makeTextSprite(`${i}i`, { ...commonOptions, position: new THREE.Vector3(0, 0.1, i) });
+                imagLabel.userData.originalPosition = imagLabel.position.clone();
+                axesLabelGroup.add(imagLabel);
+
+                const realLabel = makeTextSprite(`${i}`, { ...commonOptions, position: new THREE.Vector3(i, 0.1, 0) });
+                realLabel.userData.originalPosition = realLabel.position.clone();
+                axesLabelGroup.add(realLabel);
+            }
+            
+            const zeroLabel = makeTextSprite("0", { fontsize: 28, scale: [scaleFactor, scaleFactor*0.5, 1.0], position: new THREE.Vector3(-0.5, 0.1, -0.5) });
+            zeroLabel.userData.originalPosition = zeroLabel.position.clone();
+            axesLabelGroup.add(zeroLabel);
+            
+            scene.add(axesLabelGroup);
+        }
+
+        function createMenu() {
+            const menuDiv = document.getElementById('menu');
+            const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+            menuDiv.innerHTML = ''; mobileMenuDropdown.innerHTML = '';
+
+            Object.keys(views).forEach(key => {
+                const view = views[key];
+                const button = document.createElement('button');
+                button.id = `btn-${key}`; button.className = 'menu-button';
+                button.textContent = view.title; button.onclick = () => switchView(key);
+                menuDiv.appendChild(button);
+
+                const mobileButton = document.createElement('button');
+                mobileButton.id = `mobile-btn-${key}`; mobileButton.className = 'mobile-menu-item text-white';
+                mobileButton.textContent = view.title;
+                mobileButton.onclick = () => { switchView(key); mobileMenuDropdown.classList.add('hidden'); };
+                mobileMenuDropdown.appendChild(mobileButton);
+            });
+        }
+        
+        function setupMobileMenu() {
+            const menuButton = document.getElementById('mobile-menu-button');
+            const dropdown = document.getElementById('mobile-menu-dropdown');
+            menuButton.addEventListener('click', (event) => { event.stopPropagation(); dropdown.classList.toggle('hidden'); });
+            window.addEventListener('click', () => { if (!dropdown.classList.contains('hidden')) dropdown.classList.add('hidden'); });
+        }
+        
+        function handleEscapeKey(event) {
+            if (event.key === 'Escape') {
+                const toggle = document.getElementById('controlModeToggle');
+                if (toggle && toggle.checked) {
+                    toggle.click(); 
+                }
+            }
+        }
+        
+        function setup3DControls() {
+            controlsPanel.innerHTML = `
+                <button id="transformBtn" class="toggle-button">Transform</button>
+                <button id="continueBtn" class="toggle-button hidden">Analytically Continue</button>
+                <button id="resetBtn" class="toggle-button hidden">Reset</button>
+                <div class="flex items-center gap-2 border-l-2 border-gray-600 pl-4">
+                  <span class="text-sm text-gray-400">Orbit</span>
+                  <label class="switch"><input type="checkbox" id="controlModeToggle"><span class="slider"></span></label>
+                  <span class="text-sm text-gray-400">Fly</span>
+                </div>
+            `;
+            const transformBtn = document.getElementById('transformBtn');
+            const continueBtn = document.getElementById('continueBtn');
+            const resetBtn = document.getElementById('resetBtn');
+
+            document.getElementById('controlModeToggle').addEventListener('change', (e) => {
+                const flyInfo = document.getElementById('fly-controls-info');
+                if (e.target.checked) { // Switch to Fly
+                    orbitControls.enabled = false;
+                    flyControls.connect();
+                    flyInfo.classList.remove('hidden');
+                    setTimeout(() => flyInfo.classList.remove('opacity-0'), 100);
+                    setTimeout(() => {
+                        flyInfo.classList.add('opacity-0');
+                        setTimeout(() => flyInfo.classList.add('hidden'), 500);
+                    }, 4000);
+                    document.addEventListener('keydown', handleEscapeKey);
+                } else { // Switch to Orbit
+                    orbitControls.enabled = true;
+                    flyControls.disconnect();
+                    document.removeEventListener('keydown', handleEscapeKey);
+                }
+            });
+
+            transformBtn.addEventListener('click', () => {
+                const speed = parseInt(document.getElementById('animationSpeed').value);
+                const useZ = document.getElementById('zDisplacementToggle').checked;
+                isTransformed = true;
+                
+                animateObject(plane, calculateTransformedPositions(plane.userData.originalPositions, false, useZ), speed);
+                animateGroup(riemannZeros, () => calculateGroupTransformedPositions(riemannZeros, false, useZ), speed);
+                animateGroup(trivialZeros, () => calculateGroupTransformedPositions(trivialZeros, false, useZ), speed);
+                animateGroup(axesLabelGroup, () => calculateGroupTransformedPositions(axesLabelGroup, false, useZ), speed);
+                if(userPoint.mesh) animateSingleObject(userPoint.mesh, getTransformedPointPosition(false), speed);
+
+                transformBtn.classList.add('hidden'); continueBtn.classList.remove('hidden'); resetBtn.classList.remove('hidden');
+            });
+            continueBtn.addEventListener('click', () => {
+                const speed = parseInt(document.getElementById('animationSpeed').value);
+                const useZ = document.getElementById('zDisplacementToggle').checked;
+                isContinued = true;
+
+                animateObject(plane, calculateTransformedPositions(plane.userData.originalPositions, true, useZ), speed);
+                animateGroup(riemannZeros, () => calculateGroupTransformedPositions(riemannZeros, true, useZ), speed);
+                animateGroup(trivialZeros, () => calculateGroupTransformedPositions(trivialZeros, true, useZ), speed);
+                animateGroup(axesLabelGroup, () => calculateGroupTransformedPositions(axesLabelGroup, true, useZ), speed);
+                if(userPoint.mesh) animateSingleObject(userPoint.mesh, getTransformedPointPosition(true), speed);
+                
+                continueBtn.classList.add('hidden');
+            });
+            resetBtn.addEventListener('click', () => {
+                const speed = parseInt(document.getElementById('animationSpeed').value);
+                isTransformed = false; isContinued = false;
+
+                animateObject(plane, plane.userData.originalPositions, speed);
+                animateGroup(riemannZeros, () => getOriginalPositionsArray(riemannZeros), speed);
+                animateGroup(trivialZeros, () => getOriginalPositionsArray(trivialZeros), speed);
+                animateGroup(axesLabelGroup, () => getOriginalPositionsArray(axesLabelGroup), speed);
+                if(userPoint.mesh) animateSingleObject(userPoint.mesh, userPoint.mesh.userData.originalPosition, speed);
+
+                transformBtn.classList.remove('hidden'); continueBtn.classList.add('hidden'); resetBtn.classList.add('hidden');
+            });
+        }
+        
+        function drawZerosPlot() {
+            const width = Math.min(window.innerWidth * 0.95, 1000);
+            const height = Math.min(window.innerHeight * 0.8, 600);
+            plotCanvas.width = width;
+            plotCanvas.height = height;
+            const tMin = plotVarOffset, tMax = plotVarOffset + plotVarRange;
+            const yMin = -4, yMax = 4;
+            const padding = 60;
+            const plotWidth = width - 2 * padding;
+            const plotHeight = height - 2 * padding;
+            function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; }
+            function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; }
+            plotCtx.fillStyle = '#1a1a1a';
+            plotCtx.fillRect(0, 0, width, height);
+            plotCtx.strokeStyle = '#888';
+            plotCtx.lineWidth = 1;
+            plotCtx.beginPath();
+            plotCtx.moveTo(padding, toScreenY(0));
+            plotCtx.lineTo(width - padding, toScreenY(0));
+            plotCtx.moveTo(toScreenX(tMin), padding);
+            plotCtx.lineTo(toScreenX(tMin), height - padding);
+            plotCtx.stroke();
+            plotCtx.fillStyle = '#ccc';
+            plotCtx.font = '12px Arial';
+            plotCtx.textAlign = 'center';
+            plotCtx.textBaseline = 'top';
+            for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) {
+                plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5);
+            }
+            plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width / 2, height - 25);
+            plotCtx.textAlign = 'right';
+            plotCtx.textBaseline = 'middle';
+            for (let y = yMin; y <= yMax; y += 1) {
+                if (y !== 0) plotCtx.fillText(y, padding - 10, toScreenY(y));
+            }
+
+            const combineBtn = document.getElementById('combineWaveformBtn');
+            const isCombined = combineBtn && combineBtn.classList.contains('active');
+
+            if (isCombined) {
+                // Draw Combined Magnitude
+                plotCtx.lineWidth = 2;
+                plotCtx.strokeStyle = '#c084fc'; // A nice purple
+                plotCtx.beginPath();
+                let first = true;
+                for (let t = tMin; t < tMax; t += 0.1) {
+                    const s = new Complex(0.5, t);
+                    const z = zeta(s);
+                    const mag = z.magnitude();
+                    if (isFinite(mag)) {
+                        if (first) {
+                            plotCtx.moveTo(toScreenX(t), toScreenY(mag));
+                            first = false;
+                        } else {
+                            plotCtx.lineTo(toScreenX(t), toScreenY(mag));
+                        }
+                    }
+                }
+                plotCtx.stroke();
+
+                // Legend for magnitude
+                plotCtx.fillStyle = '#c084fc';
+                plotCtx.fillRect(width - padding - 100, padding, 10, 10);
+                plotCtx.fillStyle = '#ccc';
+                plotCtx.textAlign = 'left';
+                plotCtx.fillText('|ζ(0.5 + it)|', width - padding - 85, padding + 5);
+            } else {
+                // Draw Separate Real/Imaginary Parts
+                plotCtx.lineWidth = 2;
+                ['#4a90e2', '#f5a623'].forEach((color, index) => {
+                    plotCtx.strokeStyle = color;
+                    plotCtx.beginPath();
+                    let first = true;
+                    for (let t = tMin; t < tMax; t += 0.1) {
+                        const s = new Complex(0.5, t);
+                        const z = zeta(s);
+                        const val = (index === 0) ? z.re : z.im;
+                        if (isFinite(val)) {
+                            if (first) {
+                                plotCtx.moveTo(toScreenX(t), toScreenY(val));
+                                first = false;
+                            } else {
+                                plotCtx.lineTo(toScreenX(t), toScreenY(val));
+                            }
+                        }
+                    }
+                    plotCtx.stroke();
+                });
+                // Legend for separate parts
+                plotCtx.fillStyle = '#4a90e2';
+                plotCtx.fillRect(width - padding - 100, padding, 10, 10);
+                plotCtx.fillStyle = '#ccc';
+                plotCtx.textAlign = 'left';
+                plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5);
+                plotCtx.fillStyle = '#f5a623';
+                plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10);
+                plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25);
+            }
+
+            // Draw zeros on top
+            plotCtx.fillStyle = 'red';
+            plotCtx.font = 'bold 12px Arial';
+            knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => {
+                const x = toScreenX(t);
+                plotCtx.beginPath();
+                plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI);
+                plotCtx.fill();
+                plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15);
+            });
+        }
+
+
+        function drawPrimePlotBase(width, height) {
+            const xMin = plotVarOffset, xMax = plotVarOffset + plotVarRange;
+            if (primesCache.length === 0 || xMax > primesCache[primesCache.length - 1]) sieve(xMax + 100);
+            const yMin = 0, yMax = pi_x(xMax) * 1.1;
+            const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding;
+            
+            function toScreenX(x) { return padding + (x - xMin) / (xMax - xMin) * plotWidth; }
+            function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; }
+            
+            plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height);
+            plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(padding, padding); plotCtx.lineTo(padding, height - padding); plotCtx.stroke();
+
+            plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top';
+            const xTickStep = Math.max(1, Math.ceil(plotVarRange / 10));
+            for (let x = Math.ceil(xMin / xTickStep) * xTickStep; x <= xMax; x += xTickStep) { if (x > xMin) plotCtx.fillText(x, toScreenX(x), height - padding + 5); }
+            plotCtx.fillText("x", width/2, height - 25);
+            
+            plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle';
+            const yTickStep = Math.max(1, Math.ceil(yMax / 10));
+            for (let y = 0; y <= yMax; y += yTickStep) { if (y > 0) plotCtx.fillText(Math.round(y), padding - 10, toScreenY(y)); }
+
+            // Plot pi(x)
+            plotCtx.strokeStyle = '#4a90e2'; plotCtx.lineWidth = 2; plotCtx.beginPath();
+            let lastY = toScreenY(pi_x(xMin)); plotCtx.moveTo(toScreenX(xMin), lastY);
+            for (let x = Math.floor(xMin); x <= xMax; x++) {
+                const y = pi_x(x); const screenY = toScreenY(y);
+                if (Math.abs(screenY - lastY) > 0.01) {
+                    plotCtx.lineTo(toScreenX(x), lastY);
+                    plotCtx.lineTo(toScreenX(x), screenY);
+                    lastY = screenY;
+                }
+            }
+            plotCtx.lineTo(toScreenX(xMax), lastY); plotCtx.stroke();
+            
+            // Plot Li(x)
+            plotCtx.strokeStyle = '#f5a623'; plotCtx.beginPath();
+            for (let x = Math.max(2, xMin); x <= xMax; x += 0.5) {
+                plotCtx.lineTo(toScreenX(x), toScreenY(logIntegral(x)));
+            }
+            plotCtx.stroke();
+        }
+
+        function drawPrimesPlot() {
+            const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.8, 600);
+            plotCanvas.width = width; plotCanvas.height = height;
+            drawPrimePlotBase(width, height);
+            
+            const padding = 60;
+            plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(padding + 10, padding + 10, 10, 10);
+            plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('π(x) (Actual Prime Count)', padding + 25, padding + 15);
+            plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(padding + 10, padding + 30, 10, 10);
+            plotCtx.fillText('Li(x) (Logarithmic Integral Approx.)', padding + 25, padding + 35);
+        }
+        
+        function sieve(n) {
+            const isPrime = new Array(n + 1).fill(true);
+            isPrime[0] = isPrime[1] = false;
+            for (let p = 2; p * p <= n; p++) {
+                if (isPrime[p]) { for (let i = p * p; i <= n; i += p) isPrime[i] = false; }
+            }
+            primesCache = [];
+            for(let i = 2; i <= n; i++) if(isPrime[i]) primesCache.push(i);
+        }
+        function pi_x(x) {
+            let count = 0;
+            for(const p of primesCache) {
+                if (p <= x) count++;
+                else break;
+            }
+            return count;
+        }
+        function logIntegral(x) {
+            if (x < 2) return 0;
+            let sum = 0; const dx = 0.1;
+            for (let t = 2; t < x; t += dx) { sum += (1 / Math.log(t)) * dx; }
+            return sum;
+        }
+        
+        function onWindowResize() {
+            if (camera) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+            }
+            if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
+            updateCurrentPlot();
+        }
+        
+        function setupZetaCalculatorListeners() {
+            document.getElementById('calculateZetaBtn').addEventListener('click', calculateAndDisplayZeta);
+            document.getElementById('plotPointBtn').addEventListener('click', () => {
+                const re = parseFloat(document.getElementById('pointRealInput').value) || 0;
+                const im = parseFloat(document.getElementById('pointImagInput').value) || 0;
+                const s = new Complex(re, im);
+                createUserPoint(s);
+            });
+        }
+
+        function calculateAndDisplayZeta() {
+            const re = parseFloat(document.getElementById('zetaRealInput').value) || 0;
+            const im = parseFloat(document.getElementById('zetaImagInput').value) || 0;
+            const s = new Complex(re, im);
+            const result = zeta(s);
+            const resultDiv = document.getElementById('zetaResult');
+            if (!isFinite(result.re) || !isFinite(result.im)) {
+                resultDiv.textContent = "Result is infinite (pole at s=1)";
+            } else {
+                const realPart = result.re.toFixed(4);
+                const imagPart = result.im.toFixed(4);
+                resultDiv.textContent = `${realPart} ${imagPart >= 0 ? '+' : '-'} ${Math.abs(imagPart)}i`;
+            }
+        }
+        
+        function setupSettingsPanelListeners() {
+            document.getElementById('gridSize').addEventListener('input', (e) => { document.getElementById('gridSizeValue').textContent = e.target.value; regenerateGrid(); });
+            document.getElementById('gridDensity').addEventListener('input', (e) => { document.getElementById('gridDensityValue').textContent = e.target.value; regenerateGrid(); });
+            document.getElementById('animationSpeed').addEventListener('input', (e) => { document.getElementById('animationSpeedValue').textContent = e.target.value; });
+            document.getElementById('stripWidth').addEventListener('input', (e) => { document.getElementById('stripWidthValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
+            document.getElementById('stripStartSlider').addEventListener('input', (e) => { document.getElementById('stripStartValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
+            
+            document.getElementById('labelSizeSlider').addEventListener('input', (e) => {
+                document.getElementById('labelSizeValue').textContent = `${parseFloat(e.target.value).toFixed(2)}x`;
+                regenerateAxesAndLabels();
+                if (isTransformed || isContinued) {
+                    const useZ = document.getElementById('zDisplacementToggle').checked;
+                    const targetLabelPos = calculateGroupTransformedPositions(axesLabelGroup, isContinued, useZ);
+                    axesLabelGroup.children.forEach((child, i) => child.position.fromArray(targetLabelPos, i * 3));
+                }
+            });
+
+            document.getElementById('zDisplacementToggle').addEventListener('input', () => {
+                 const useZ = document.getElementById('zDisplacementToggle').checked;
+                 const speed = parseInt(document.getElementById('animationSpeed').value);
+                 
+                 let targetPlanePos = isContinued ? calculateTransformedPositions(plane.userData.originalPositions, true, useZ) :
+                                       isTransformed ? calculateTransformedPositions(plane.userData.originalPositions, false, useZ) :
+                                       plane.userData.originalPositions;
+                 
+                 let targetRiemannPos = calculateGroupTransformedPositions(riemannZeros, isContinued, useZ);
+                 let targetTrivialPos = calculateGroupTransformedPositions(trivialZeros, isContinued, useZ);
+                 let targetLabelPos = calculateGroupTransformedPositions(axesLabelGroup, isContinued, useZ);
+
+                 
+                 if (userPoint.mesh) {
+                     const targetPointPos = getTransformedPointPosition(isContinued);
+                     animateSingleObject(userPoint.mesh, targetPointPos, speed);
+                 }
+
+                 animateObject(plane, targetPlanePos, speed);
+                 animateGroup(riemannZeros, () => targetRiemannPos, speed);
+                 animateGroup(trivialZeros, () => targetTrivialPos, speed);
+                 animateGroup(axesLabelGroup, () => targetLabelPos, speed);
+            });
+            ['stripOnlyColor', 'baseColor', 'stripColor', 'boundaryColor', 'realAxisColor', 'imagAxisColor'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateColors);
+            });
+
+            document.getElementById('plotRangeSlider').addEventListener('input', (e) => {
+                plotVarRange = parseInt(e.target.value);
+                document.getElementById('plotRangeValue').textContent = plotVarRange;
+                updateCurrentPlot();
+            });
+
+            document.getElementById('riemannZerosToggle').addEventListener('change', (e) => {
+                if (riemannZeros) riemannZeros.visible = e.target.checked;
+            });
+            document.getElementById('trivialZerosToggle').addEventListener('change', (e) => {
+                 if (trivialZeros) trivialZeros.visible = e.target.checked;
+            });
+        }
+        
+        function getOriginalPositionsArray(group) {
+            const positions = new Float32Array(group.children.length * 3);
+            group.children.forEach((child, i) => child.userData.originalPosition.toArray(positions, i * 3));
+            return positions;
+        }
+
+        function updateCurrentPlot() {
+            if (currentView === 'zeros') drawZerosPlot();
+            else if (currentView === 'prime_counting') drawPrimesPlot();
+            else if (currentView === 'zeta_2d') draw2DPlot();
+        }
+
+        function setupPlotControlsListeners() {
+            const input = document.getElementById('plotVarInput');
+            const goBtn = document.getElementById('goBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            const combineBtn = document.getElementById('combineWaveformBtn');
+
+            combineBtn.addEventListener('click', () => {
+                combineBtn.classList.toggle('active');
+                combineBtn.textContent = combineBtn.classList.contains('active') ? 'Separate' : 'Combine';
+                updateCurrentPlot();
+            });
+
+            nextBtn.addEventListener('click', () => { plotVarOffset += plotVarRange; input.value = plotVarOffset.toFixed(0); updateCurrentPlot(); });
+            prevBtn.addEventListener('click', () => { plotVarOffset = Math.max(0, plotVarOffset - plotVarRange); input.value = plotVarOffset.toFixed(0); updateCurrentPlot(); });
+            goBtn.addEventListener('click', () => { const val = parseFloat(input.value); if (!isNaN(val)) { plotVarOffset = Math.max(0, val); updateCurrentPlot(); } });
+            input.addEventListener('keyup', (event) => { if (event.key === 'Enter') goBtn.click(); });
+        }
+        
+        function updateColors() {
+            if (!plane || !customAxes) return;
+            plane.material.uniforms.stripOnly.value = document.getElementById('stripOnlyColor').checked ? 1.0 : 0.0;
+            plane.material.uniforms.baseColor.value.set(document.getElementById('baseColor').value);
+            plane.material.uniforms.stripColor.value.set(document.getElementById('stripColor').value);
+            plane.material.uniforms.boundaryColor.value.set(document.getElementById('boundaryColor').value);
+            plane.material.uniforms.stripWidth.value = parseFloat(document.getElementById('stripWidth').value);
+            plane.material.uniforms.stripStart.value = parseFloat(document.getElementById('stripStartSlider').value);
+            const realAxis = customAxes.getObjectByName('realAxis');
+            const imagAxis = customAxes.getObjectByName('imagAxis');
+            if(realAxis) realAxis.material.color.set(document.getElementById('realAxisColor').value);
+            if(imagAxis) imagAxis.material.color.set(document.getElementById('imagAxisColor').value);
+        }
+        
+        // --- 2D Plot specific ---
+        let current2DParams = {xMin: -10, xMax: 10, yMin: -25, yMax: 25, resolution: 1.0};
+        let isDrawing2D = false;
+        
+        function hsvToRgb(h, s, v) {
+            let r, g, b; let i = Math.floor(h * 6); let f = h * 6 - i;
+            let p = v * (1 - s); let q = v * (1 - f * s); let t = v * (1 - (1 - f) * s);
+            switch (i % 6) {
+                case 0: r = v, g = t, b = p; break; case 1: r = q, g = v, b = p; break;
+                case 2: r = p, g = v, b = t; break; case 3: r = p, g = q, b = v; break;
+                case 4: r = t, g = p, b = v; break; case 5: r = v, g = p, b = q; break;
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+        
+        async function draw2DPlot() {
+            if (isDrawing2D) return;
+            isDrawing2D = true;
+            showLoading("Generating 2D Plot...", true);
+            await new Promise(resolve => setTimeout(resolve, 20));
+
+            const canvas = plot2DCanvas;
+            const ctx = plot2DCtx;
+            const size = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8, 800);
+            
+            const {xMin, xMax, yMin, yMax, resolution} = current2DParams;
+            const width = Math.floor(size * resolution);
+            const height = Math.floor(size * resolution);
+            if(canvas.width !== width) canvas.width = width;
+            if(canvas.height !== height) canvas.height = height;
+
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, width, height);
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            
+            const xRange = xMax - xMin;
+            const yRange = yMax - yMin;
+
+            for (let i = 0; i < height; i++) {
+                for (let j = 0; j < width; j++) {
+                    const re = xMin + (j / width) * xRange;
+                    const im = yMax - (i / height) * yRange;
+                    const z = zeta(new Complex(re, im));
+                    const mag = z.magnitude();
+                    const phase = z.phase();
+                    
+                    const hue = (phase / (2 * Math.PI)) + 0.5;
+                    const lightness = (1 - 1 / (1 + mag*0.5));
+                    
+                    const [r, g, b] = hsvToRgb(hue, 0.85, lightness);
+                    
+                    const index = (i * width + j) * 4;
+                    data[index] = r; data[index+1] = g; data[index+2] = b; data[index+3] = 255;
+                }
+                 if (i % 10 === 0) { // Update canvas periodically to feel responsive
+                     ctx.putImageData(imageData, 0, 0);
+                     updateProgress((i / height) * 100);
+                     await new Promise(resolve => setTimeout(resolve, 0));
+                 }
+            }
+            ctx.putImageData(imageData, 0, 0);
+            isDrawing2D = false;
+            hideLoading();
+        }
+
+        function setup2DControls() {
+            controlsPanel.innerHTML = `
+                <div class="control-group text-white text-xs md:text-sm">
+                    Re: [<span id="reMinVal">-10</span>, <span id="reMaxVal">10</span>] 
+                </div>
+                <div class="control-group text-white text-xs md:text-sm">
+                    Im: [<span id="imMinVal">-25</span>, <span id="imMaxVal">25</span>] 
+                </div>
+                 <div class="control-group text-white text-xs md:text-sm">
+                    Resolution: <span id="resVal">1.0</span>x
+                </div>
+                <button id="redraw2DBtn" class="toggle-button">Redraw</button>
+            `;
+            document.getElementById('redraw2DBtn').addEventListener('click', draw2DPlot);
+        }
+        
+        function createZeroMarkers(size) {
+            if (riemannZeros) scene.remove(riemannZeros);
+            if (trivialZeros) scene.remove(trivialZeros);
+            
+            const halfSize = size / 2;
+            const sphereSize = 0.15; // Fixed size
+            const sphereGeometry = new THREE.SphereGeometry(sphereSize, 16, 8);
+            
+            const riemannMaterial = new THREE.MeshBasicMaterial({ color: 0xff4444, toneMapped: false });
+            riemannZeros = new THREE.Group();
+            knownZeros.forEach(t => {
+                if (t > halfSize) return;
+
+                const z1 = new THREE.Mesh(sphereGeometry, riemannMaterial);
+                z1.position.set(0.5, 0.1, -t);
+                z1.userData.originalPosition = z1.position.clone();
+                riemannZeros.add(z1);
+
+                const z2 = new THREE.Mesh(sphereGeometry, riemannMaterial);
+                z2.position.set(0.5, 0.1, t);
+                z2.userData.originalPosition = z2.position.clone();
+                riemannZeros.add(z2);
+            });
+            scene.add(riemannZeros);
+            
+            const trivialMaterial = new THREE.MeshBasicMaterial({ color: 0x00aaff, toneMapped: false });
+            trivialZeros = new THREE.Group();
+            for (let i = 1; ; i++) {
+                const x = -2 * i;
+                if (x < -halfSize) break;
+                const z = new THREE.Mesh(sphereGeometry, trivialMaterial);
+                z.position.set(x, 0.1, 0);
+                z.userData.originalPosition = z.position.clone();
+                trivialZeros.add(z);
+            }
+            scene.add(trivialZeros);
+            
+            riemannZeros.visible = document.getElementById('riemannZerosToggle').checked;
+            trivialZeros.visible = document.getElementById('trivialZerosToggle').checked;
+        }
+
+        function createUserPoint(s) {
+            if (userPoint.mesh) {
+                scene.remove(userPoint.mesh);
+            }
+            const sphereSize = 0.2; // Fixed size
+            const geometry = new THREE.SphereGeometry(sphereSize, 16, 8);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ffff, toneMapped: false });
+            userPoint.mesh = new THREE.Mesh(geometry, material);
+            userPoint.mesh.userData.originalPosition = new THREE.Vector3(s.re, 0.1, -s.im);
+            userPoint.s_original = s;
+            userPoint.s_transformed = null;
+            userPoint.s_continued = null;
+            
+            let currentPos = getTransformedPointPosition(isContinued);
+            userPoint.mesh.position.copy(currentPos);
+            
+            scene.add(userPoint.mesh);
+        }
+
+        function getTransformedPointPosition(isContinuation) {
+            const useZ = document.getElementById('zDisplacementToggle').checked;
+            const s = userPoint.s_original;
+            if(!s) return new THREE.Vector3();
+            
+            const transformBoundary = 1.0;
+            let targetS;
+
+            if(isContinuation || s.re > transformBoundary) {
+                 if(isContinuation && !userPoint.s_continued) userPoint.s_continued = zeta(s);
+                 else if (!userPoint.s_transformed) userPoint.s_transformed = zeta(s);
+                 
+                 targetS = isContinuation ? userPoint.s_continued : userPoint.s_transformed;
+            } else {
+                 return userPoint.mesh.userData.originalPosition.clone();
+            }
+
+            const targetPos = new THREE.Vector3(targetS.re, 0.1, -targetS.im);
+            if (useZ) {
+                const startPos = userPoint.mesh.userData.originalPosition;
+                const distance = targetPos.distanceTo(startPos);
+                targetPos.y = distance * 0.2;
+            }
+            return targetPos;
+        }
+        
+        function animateSingleObject(mesh, targetPosition, duration) {
+            const startPos = mesh.position.clone();
+            const animationId = Math.random();
+            currentAnimation.set(mesh.uuid, animationId);
+            const startTime = performance.now();
+
+            function animate() {
+                if (currentAnimation.get(mesh.uuid) !== animationId) return;
+                const elapsed = performance.now() - startTime;
+                let progress = Math.min(elapsed / duration, 1.0);
+                progress = progress * progress * (3 - 2 * progress); // Ease-in-out
+                
+                mesh.position.lerpVectors(startPos, targetPosition, progress);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    currentAnimation.delete(mesh.uuid);
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        
+        function showLoading(text = "Computing...", showProgress = false) {
+            loadingText.textContent = text;
+            progressBarContainer.classList.toggle('hidden', !showProgress);
+            progressBar.style.width = '0%';
+            loadingOverlay.classList.add('visible');
+        }
+        function hideLoading() { loadingOverlay.classList.remove('visible'); }
+        function updateProgress(percent) { progressBar.style.width = `${percent}%`; }
+
+        init();
+
+    </script>
+</body>
+</html>
 

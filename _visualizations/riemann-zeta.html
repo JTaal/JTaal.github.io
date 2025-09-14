@@ -281,6 +281,7 @@
             <span id="plot-var-label">x = </span>
             <input type="number" id="plotVarInput" value="0">
             <button id="goBtn" class="toggle-button">Go</button>
+            <button id="combineWaveformBtn" class="toggle-button hidden">Combine</button>
             <button id="nextBtn" class="toggle-button">Next &gt;&gt;</button>
         </div>
     </div>
@@ -881,6 +882,9 @@
             });
             document.getElementById('mobile-menu-label').textContent = view.title;
             
+            const isZerosView = viewKey === 'zeros';
+            document.getElementById('combineWaveformBtn').classList.toggle('hidden', !isZerosView);
+
             const is3DView = viewKey === 'zeta_function';
             document.getElementById('zeta-settings').classList.toggle('hidden', !is3DView);
             document.getElementById('plot-settings').classList.toggle('hidden', is3DView);
@@ -1136,44 +1140,116 @@
         }
         
         function drawZerosPlot() {
-            const width = Math.min(window.innerWidth * 0.95, 1000); const height = Math.min(window.innerHeight * 0.8, 600);
-            plotCanvas.width = width; plotCanvas.height = height;
-            const tMin = plotVarOffset, tMax = plotVarOffset + plotVarRange; const yMin = -4, yMax = 4;
-            const padding = 60; const plotWidth = width - 2 * padding; const plotHeight = height - 2 * padding;
+            const width = Math.min(window.innerWidth * 0.95, 1000);
+            const height = Math.min(window.innerHeight * 0.8, 600);
+            plotCanvas.width = width;
+            plotCanvas.height = height;
+            const tMin = plotVarOffset, tMax = plotVarOffset + plotVarRange;
+            const yMin = -4, yMax = 4;
+            const padding = 60;
+            const plotWidth = width - 2 * padding;
+            const plotHeight = height - 2 * padding;
             function toScreenX(t) { return padding + (t - tMin) / (tMax - tMin) * plotWidth; }
             function toScreenY(y) { return height - padding - (y - yMin) / (yMax - yMin) * plotHeight; }
-            plotCtx.fillStyle = '#1a1a1a'; plotCtx.fillRect(0, 0, width, height);
-            plotCtx.strokeStyle = '#888'; plotCtx.lineWidth = 1; plotCtx.beginPath(); plotCtx.moveTo(padding, toScreenY(0)); plotCtx.lineTo(width - padding, toScreenY(0)); plotCtx.moveTo(toScreenX(tMin), padding); plotCtx.lineTo(toScreenX(tMin), height - padding); plotCtx.stroke();
-            plotCtx.fillStyle = '#ccc'; plotCtx.font = '12px Arial'; plotCtx.textAlign = 'center'; plotCtx.textBaseline = 'top';
-            for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) { plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5); }
-            plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width/2, height - 25);
-            plotCtx.textAlign = 'right'; plotCtx.textBaseline = 'middle';
-            for (let y = yMin; y <= yMax; y += 1) { if(y!==0) plotCtx.fillText(y, padding - 10, toScreenY(y)); }
-            plotCtx.lineWidth = 2;
-            ['#4a90e2', '#f5a623'].forEach((color, index) => {
-                plotCtx.strokeStyle = color; plotCtx.beginPath(); let first = true;
+            plotCtx.fillStyle = '#1a1a1a';
+            plotCtx.fillRect(0, 0, width, height);
+            plotCtx.strokeStyle = '#888';
+            plotCtx.lineWidth = 1;
+            plotCtx.beginPath();
+            plotCtx.moveTo(padding, toScreenY(0));
+            plotCtx.lineTo(width - padding, toScreenY(0));
+            plotCtx.moveTo(toScreenX(tMin), padding);
+            plotCtx.lineTo(toScreenX(tMin), height - padding);
+            plotCtx.stroke();
+            plotCtx.fillStyle = '#ccc';
+            plotCtx.font = '12px Arial';
+            plotCtx.textAlign = 'center';
+            plotCtx.textBaseline = 'top';
+            for (let t = Math.ceil(tMin / 5) * 5; t <= tMax; t += 5) {
+                plotCtx.fillText(t, toScreenX(t), toScreenY(0) + 5);
+            }
+            plotCtx.fillText("t (imaginary component of s = 0.5 + it)", width / 2, height - 25);
+            plotCtx.textAlign = 'right';
+            plotCtx.textBaseline = 'middle';
+            for (let y = yMin; y <= yMax; y += 1) {
+                if (y !== 0) plotCtx.fillText(y, padding - 10, toScreenY(y));
+            }
+
+            const combineBtn = document.getElementById('combineWaveformBtn');
+            const isCombined = combineBtn && combineBtn.classList.contains('active');
+
+            if (isCombined) {
+                // Draw Combined Magnitude
+                plotCtx.lineWidth = 2;
+                plotCtx.strokeStyle = '#c084fc'; // A nice purple
+                plotCtx.beginPath();
+                let first = true;
                 for (let t = tMin; t < tMax; t += 0.1) {
-                    const s = new Complex(0.5, t); const z = zeta(s);
-                    const val = (index === 0) ? z.re : z.im;
-                    if (isFinite(val)) {
-                        if (first) { plotCtx.moveTo(toScreenX(t), toScreenY(val)); first = false; }
-                        else { plotCtx.lineTo(toScreenX(t), toScreenY(val)); }
+                    const s = new Complex(0.5, t);
+                    const z = zeta(s);
+                    const mag = z.magnitude();
+                    if (isFinite(mag)) {
+                        if (first) {
+                            plotCtx.moveTo(toScreenX(t), toScreenY(mag));
+                            first = false;
+                        } else {
+                            plotCtx.lineTo(toScreenX(t), toScreenY(mag));
+                        }
                     }
                 }
                 plotCtx.stroke();
-            });
-            plotCtx.fillStyle = 'red'; plotCtx.font = 'bold 12px Arial';
+
+                // Legend for magnitude
+                plotCtx.fillStyle = '#c084fc';
+                plotCtx.fillRect(width - padding - 100, padding, 10, 10);
+                plotCtx.fillStyle = '#ccc';
+                plotCtx.textAlign = 'left';
+                plotCtx.fillText('|ζ(0.5 + it)|', width - padding - 85, padding + 5);
+            } else {
+                // Draw Separate Real/Imaginary Parts
+                plotCtx.lineWidth = 2;
+                ['#4a90e2', '#f5a623'].forEach((color, index) => {
+                    plotCtx.strokeStyle = color;
+                    plotCtx.beginPath();
+                    let first = true;
+                    for (let t = tMin; t < tMax; t += 0.1) {
+                        const s = new Complex(0.5, t);
+                        const z = zeta(s);
+                        const val = (index === 0) ? z.re : z.im;
+                        if (isFinite(val)) {
+                            if (first) {
+                                plotCtx.moveTo(toScreenX(t), toScreenY(val));
+                                first = false;
+                            } else {
+                                plotCtx.lineTo(toScreenX(t), toScreenY(val));
+                            }
+                        }
+                    }
+                    plotCtx.stroke();
+                });
+                // Legend for separate parts
+                plotCtx.fillStyle = '#4a90e2';
+                plotCtx.fillRect(width - padding - 100, padding, 10, 10);
+                plotCtx.fillStyle = '#ccc';
+                plotCtx.textAlign = 'left';
+                plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5);
+                plotCtx.fillStyle = '#f5a623';
+                plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10);
+                plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25);
+            }
+
+            // Draw zeros on top
+            plotCtx.fillStyle = 'red';
+            plotCtx.font = 'bold 12px Arial';
             knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => {
                 const x = toScreenX(t);
-                plotCtx.beginPath(); plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI); plotCtx.fill();
+                plotCtx.beginPath();
+                plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI);
+                plotCtx.fill();
                 plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15);
             });
-            // Legend
-            plotCtx.fillStyle = '#4a90e2'; plotCtx.fillRect(width - padding - 100, padding, 10, 10);
-            plotCtx.fillStyle = '#ccc'; plotCtx.textAlign = 'left'; plotCtx.fillText('Re(ζ(0.5 + it))', width - padding - 85, padding + 5);
-            plotCtx.fillStyle = '#f5a623'; plotCtx.fillRect(width - padding - 100, padding + 20, 10, 10);
-            plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25);
         }
+
 
         function drawPrimePlotBase(width, height) {
             const xMin = plotVarOffset, xMax = plotVarOffset + plotVarRange;
@@ -1362,6 +1438,13 @@
             const goBtn = document.getElementById('goBtn');
             const nextBtn = document.getElementById('nextBtn');
             const prevBtn = document.getElementById('prevBtn');
+            const combineBtn = document.getElementById('combineWaveformBtn');
+
+            combineBtn.addEventListener('click', () => {
+                combineBtn.classList.toggle('active');
+                combineBtn.textContent = combineBtn.classList.contains('active') ? 'Separate' : 'Combine';
+                updateCurrentPlot();
+            });
 
             nextBtn.addEventListener('click', () => { plotVarOffset += plotVarRange; input.value = plotVarOffset.toFixed(0); updateCurrentPlot(); });
             prevBtn.addEventListener('click', () => { plotVarOffset = Math.max(0, plotVarOffset - plotVarRange); input.value = plotVarOffset.toFixed(0); updateCurrentPlot(); });
@@ -1588,5 +1671,4 @@
     </script>
 </body>
 </html>
-
 
