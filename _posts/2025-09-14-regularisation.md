@@ -17,13 +17,13 @@ Instead of keeping it abstract, this post introduces an **interactive 3D Regular
 
 ## What is Regularisation?  
 
-When fitting a model, we usually solve:  
+When fitting a model, we usually solve the least sum of squares (OLS):  
 
 $$
 \hat{\beta} = \arg \min_{\beta} \ \|y - X\beta\|_2^2
 $$
 
-The issue? With too many features or high-degree polynomials, the model can **overfit** noise.  
+The issue? With too many features or high-degree polynomials and too few samples, the model can **overfit** noise due to supercollinearity and under representation.  
 
 Regularisation adds a penalty:  
 
