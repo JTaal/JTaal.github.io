@@ -308,11 +308,11 @@
              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Grid Settings</h4>
              <div class="control-group text-left w-full">
                  <label for="gridSize" class="text-sm font-medium self-start w-full flex justify-between">Size: <span id="gridSizeValue">30</span></label>
-                 <input type="range" id="gridSize" min="10" max="2000" value="30">
+                 <input type="range" id="gridSize" min="10" max="10000" value="30">
              </div>
              <div class="control-group text-left w-full">
                  <label for="gridDensity" class="text-sm font-medium self-start w-full flex justify-between">Density: <span id="gridDensityValue">80</span></label>
-                 <input type="range" id="gridDensity" min="20" max="1000" value="80">
+                 <input type="range" id="gridDensity" min="20" max="2000" value="80">
              </div>
               <div class="control-group text-left w-full">
                  <label for="animationSpeed" class="text-sm font-medium self-start w-full flex justify-between">Speed (ms): <span id="animationSpeedValue">2000</span></label>
@@ -361,6 +361,14 @@
                  <input type="color" id="imagAxisColor" value="#4444ff">
              </div>
              <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Label Settings</h4>
+             <div class="control-group text-left w-full">
+                <label for="labelSizeSlider" class="text-sm font-medium self-start w-full flex justify-between">
+                    Axis Label Size: <span id="labelSizeValue">1.00x</span>
+                </label>
+                <input type="range" id="labelSizeSlider" min="0.1" max="3" value="1" step="0.05">
+             </div>
+             <hr class="border-gray-600">
              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Zeros</h4>
              <div class="control-group text-left w-full">
                  <label for="riemannZerosToggle" class="text-sm font-medium self-start w-full flex justify-between">Show Non-Trivial Zeros:
@@ -385,18 +393,18 @@
              </div>
               <hr class="border-gray-600">
               <details>
-                <summary class="text-sm font-medium cursor-pointer">Advanced Plot Settings</summary>
-                 <div class="space-y-4 p-2">
-                     <div class="control-group text-left w-full">
-                         <label for="plotRangeMaxInput" class="text-xs">Range Slider Max:</label>
-                         <input type="number" id="plotRangeMaxInput" value="5000" class="w-24 bg-gray-700 border border-gray-600 rounded text-center">
-                     </div>
-                      <div class="control-group text-left w-full">
-                         <label for="zerosCountMaxInput" class="text-xs">Zeros Slider Max:</label>
-                         <input type="number" id="zerosCountMaxInput" value="2000" class="w-24 bg-gray-700 border border-gray-600 rounded text-center">
-                     </div>
-                     <button id="applyAdvancedSettings" class="toggle-button w-full">Apply</button>
-                 </div>
+                  <summary class="text-sm font-medium cursor-pointer">Advanced Plot Settings</summary>
+                   <div class="space-y-4 p-2">
+                       <div class="control-group text-left w-full">
+                           <label for="plotRangeMaxInput" class="text-xs">Range Slider Max:</label>
+                           <input type="number" id="plotRangeMaxInput" value="5000" class="w-24 bg-gray-700 border border-gray-600 rounded text-center">
+                       </div>
+                        <div class="control-group text-left w-full">
+                           <label for="zerosCountMaxInput" class="text-xs">Zeros Slider Max:</label>
+                           <input type="number" id="zerosCountMaxInput" value="2000" class="w-24 bg-gray-700 border border-gray-600 rounded text-center">
+                       </div>
+                       <button id="applyAdvancedSettings" class="toggle-button w-full">Apply</button>
+                   </div>
               </details>
         </div>
     </div>
@@ -418,73 +426,10 @@
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { VRButton } from 'three/addons/webxr/VRButton.js';
         
-        // --- WebXR Button Helper Class ---
-        class VRButton {
-            static createButton( renderer ) {
-                const button = document.createElement( 'button' );
-                function showEnterVR( /*device*/ ) {
-                    let currentSession = null;
-                    async function onSessionStarted( session ) {
-                        session.addEventListener( 'end', onSessionEnded );
-                        await renderer.xr.setSession( session );
-                        button.textContent = 'EXIT VR';
-                        currentSession = session;
-                    }
-                    function onSessionEnded( /*event*/ ) {
-                        currentSession.removeEventListener( 'end', onSessionEnded );
-                        button.textContent = 'ENTER VR';
-                        currentSession = null;
-                    }
-                    button.style.display = '';
-                    button.style.cursor = 'pointer';
-                    button.classList.add('menu-button');
-                    button.textContent = 'ENTER VR';
-                    button.onmouseenter = function () { button.style.opacity = '1.0'; };
-                    button.onmouseleave = function () { button.style.opacity = '0.9'; };
-                    button.onclick = function () {
-                        if ( currentSession === null ) {
-                            const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking', 'layers' ] };
-                            navigator.xr.requestSession( 'immersive-vr', sessionInit ).then( onSessionStarted );
-                        } else {
-                            currentSession.end();
-                        }
-                    };
-                }
-                function disableButton() {
-                    button.style.display = 'none';
-                    button.style.cursor = 'auto';
-                    button.onmouseenter = null;
-                    button.onmouseleave = null;
-                    button.onclick = null;
-                }
-                function showWebXRNotFound() {
-                    disableButton();
-                    button.textContent = 'VR NOT SUPPORTED';
-                }
-                if ( 'xr' in navigator ) {
-                    button.id = 'VRButton';
-                    navigator.xr.isSessionSupported( 'immersive-vr' ).then( function ( supported ) {
-                        supported ? showEnterVR() : showWebXRNotFound();
-                    } ).catch( showWebXRNotFound );
-                    return button;
-                } else {
-                    const message = document.createElement( 'a' );
-                    if ( window.isSecureContext === false ) {
-                        message.href = document.location.href.replace( /^http:/, 'https:' );
-                        message.innerHTML = 'WEBXR NEEDS HTTPS'; 
-                    } else {
-                        message.href = 'https://immersiveweb.dev/';
-                        message.innerHTML = 'WEBXR NOT AVAILABLE';
-                    }
-                    message.style.textDecoration = 'none';
-                    return message;
-                }
-            }
-        }
-
         let scene, camera, renderer, orbitControls, flyControls, controller1, controller2;
-        let plane, customAxes, axesLabels = [];
+        let plane, customAxes, axesLabelGroup;
         let riemannZeros, trivialZeros;
         let userPoint = { mesh: null, s_original: null, s_transformed: null, s_continued: null };
         let currentAnimation = new Map();
@@ -715,7 +660,7 @@
 
         function calculateTransformedPositions(positions, isContinuation, useZDisplacement) {
             const newPositions = new Float32Array(positions.length);
-            const transformBoundary = 0.5;
+            const transformBoundary = 1.0; // The sum definition is for Re(s) > 1
             for (let i = 0; i < positions.length; i += 3) {
                 const re = positions[i];
                 const im = positions[i + 1];
@@ -733,15 +678,32 @@
             return newPositions;
         }
         
-        function calculateZeroTransformedPositions(meshGroup, useZDisplacement) {
-            const newPositions = new Float32Array(meshGroup.children.length * 3);
-            meshGroup.children.forEach((child, index) => {
-                const target = new THREE.Vector3(0, 0, 0);
-                if (useZDisplacement) {
-                    const distance = child.userData.originalPosition.length();
-                    target.y = distance * 0.2;
+        function calculateGroupTransformedPositions(group, isContinuation, useZDisplacement) {
+            const newPositions = new Float32Array(group.children.length * 3);
+            const transformBoundary = 1.0;
+
+            group.children.forEach((child, index) => {
+                const originalPos = child.userData.originalPosition;
+                const s = new Complex(originalPos.x, -originalPos.z);
+                let targetPos = originalPos.clone();
+
+                if (isContinuation || s.re > transformBoundary) {
+                    let z_s = zeta(s);
+                    let u = z_s.re;
+                    let v = z_s.im;
+                    const clampValue = 40;
+
+                    targetPos.x = isFinite(u) ? Math.max(-clampValue, Math.min(clampValue, u)) : clampValue * Math.sign(u || 0);
+                    targetPos.z = isFinite(v) ? -Math.max(-clampValue, Math.min(clampValue, v)) : -clampValue * Math.sign(v || 0);
+                    targetPos.y = 0.1;
+
+                    if (useZDisplacement) {
+                        const dx = targetPos.x - originalPos.x;
+                        const dz = -targetPos.z - (-originalPos.z); // Compare imag parts
+                        targetPos.y = Math.sqrt(dx * dx + dz * dz) * 0.2;
+                    }
                 }
-                target.toArray(newPositions, index * 3);
+                targetPos.toArray(newPositions, index * 3);
             });
             return newPositions;
         }
@@ -822,7 +784,7 @@
 
         function init3DScene() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.xr.enabled = true;
@@ -905,7 +867,6 @@
             infoTitle.textContent = view.title;
             infoDescription.innerHTML = view.description;
             infoFormula.innerHTML = view.formula;
-            // Safer MathJax typesetting
             if (window.MathJax) {
                 if (typeof MathJax.typesetPromise === 'function') {
                     MathJax.typesetPromise();
@@ -1000,41 +961,68 @@
             
             createZeroMarkers(size);
 
+            regenerateAxesAndLabels();
+
             if (isTransformed || isContinued) {
                 const targetPlanePos = calculateTransformedPositions(plane.userData.originalPositions, isContinued, useZDisplacement);
                 plane.geometry.attributes.position.copyArray(targetPlanePos);
                 plane.geometry.attributes.position.needsUpdate = true;
 
-                const targetRiemannPos = calculateZeroTransformedPositions(riemannZeros, useZDisplacement);
+                const targetRiemannPos = calculateGroupTransformedPositions(riemannZeros, isContinued, useZDisplacement);
                 riemannZeros.children.forEach((child, i) => child.position.fromArray(targetRiemannPos, i * 3));
                 
-                const targetTrivialPos = calculateZeroTransformedPositions(trivialZeros, useZDisplacement);
+                const targetTrivialPos = calculateGroupTransformedPositions(trivialZeros, isContinued, useZDisplacement);
                 trivialZeros.children.forEach((child, i) => child.position.fromArray(targetTrivialPos, i * 3));
+
+                const targetLabelPos = calculateGroupTransformedPositions(axesLabelGroup, isContinued, useZDisplacement);
+                axesLabelGroup.children.forEach((child, i) => child.position.fromArray(targetLabelPos, i * 3));
             }
 
-            regenerateAxesAndLabels();
+
             hideLoading();
         }
         
         function regenerateAxesAndLabels() {
             const size = parseInt(document.getElementById('gridSize').value);
             if (customAxes) scene.remove(customAxes);
-            customAxes = createCustomAxes(size, size);
-            scene.add(customAxes); updateColors();
-            
-            axesLabels.forEach(label => scene.remove(label)); axesLabels = [];
-            axesLabels.push(makeTextSprite("Re", { position: new THREE.Vector3(size/2 + 3, 0.1, 0) }));
-            axesLabels.push(makeTextSprite("Im", { position: new THREE.Vector3(0, 0.1, size/2 + 3) }));
+            if (axesLabelGroup) scene.remove(axesLabelGroup);
 
-            const labelStep = Math.max(1, Math.round(size / 10));
+            customAxes = createCustomAxes(size, size);
+            scene.add(customAxes); 
+            updateColors();
+            
+            axesLabelGroup = new THREE.Group();
+            
+            const labelSizeMultiplier = parseFloat(document.getElementById('labelSizeSlider')?.value || 1.0);
+            const scaleFactor = 0.7 * labelSizeMultiplier; // Decoupled from grid size
+            const labelOffset = size * 0.1;
+            
+            const reSprite = makeTextSprite("Re", { position: new THREE.Vector3(size/2 + labelOffset, 0.1, 0), scale: [scaleFactor * 1.8, scaleFactor * 0.9, 1.0] });
+            reSprite.userData.originalPosition = reSprite.position.clone();
+            axesLabelGroup.add(reSprite);
+
+            const imSprite = makeTextSprite("Im", { position: new THREE.Vector3(0, 0.1, size/2 + labelOffset), scale: [scaleFactor * 1.8, scaleFactor * 0.9, 1.0] });
+            imSprite.userData.originalPosition = imSprite.position.clone();
+            axesLabelGroup.add(imSprite);
+
             for (let i = -Math.floor(size/2); i <= Math.floor(size/2); i++) {
-                if (i === 0 || i % labelStep !== 0) continue;
-                const commonOptions = { fontsize: 28, scale: [1.5, 0.75, 1.0] };
-                axesLabels.push(makeTextSprite(`${i}i`, { ...commonOptions, position: new THREE.Vector3(0, 0.1, i) }));
-                axesLabels.push(makeTextSprite(`${i}`, { ...commonOptions, position: new THREE.Vector3(i, 0.1, 0) }));
+                if (i === 0) continue;
+                const commonOptions = { fontsize: 28, scale: [scaleFactor * 1.5, scaleFactor * 0.75, 1.0] };
+                
+                const imagLabel = makeTextSprite(`${i}i`, { ...commonOptions, position: new THREE.Vector3(0, 0.1, i) });
+                imagLabel.userData.originalPosition = imagLabel.position.clone();
+                axesLabelGroup.add(imagLabel);
+
+                const realLabel = makeTextSprite(`${i}`, { ...commonOptions, position: new THREE.Vector3(i, 0.1, 0) });
+                realLabel.userData.originalPosition = realLabel.position.clone();
+                axesLabelGroup.add(realLabel);
             }
-            axesLabels.push(makeTextSprite("0", { fontsize: 28, scale: [1.5, 0.75, 1.0], position: new THREE.Vector3(-0.5, 0.1, -0.5) }));
-            axesLabels.forEach(label => scene.add(label));
+            
+            const zeroLabel = makeTextSprite("0", { fontsize: 28, scale: [scaleFactor, scaleFactor*0.5, 1.0], position: new THREE.Vector3(-0.5, 0.1, -0.5) });
+            zeroLabel.userData.originalPosition = zeroLabel.position.clone();
+            axesLabelGroup.add(zeroLabel);
+            
+            scene.add(axesLabelGroup);
         }
 
         function createMenu() {
@@ -1110,33 +1098,39 @@
             transformBtn.addEventListener('click', () => {
                 const speed = parseInt(document.getElementById('animationSpeed').value);
                 const useZ = document.getElementById('zDisplacementToggle').checked;
-
+                isTransformed = true;
+                
                 animateObject(plane, calculateTransformedPositions(plane.userData.originalPositions, false, useZ), speed);
-                animateGroup(riemannZeros, () => calculateZeroTransformedPositions(riemannZeros, useZ), speed);
-                animateGroup(trivialZeros, () => calculateZeroTransformedPositions(trivialZeros, useZ), speed);
+                animateGroup(riemannZeros, () => calculateGroupTransformedPositions(riemannZeros, false, useZ), speed);
+                animateGroup(trivialZeros, () => calculateGroupTransformedPositions(trivialZeros, false, useZ), speed);
+                animateGroup(axesLabelGroup, () => calculateGroupTransformedPositions(axesLabelGroup, false, useZ), speed);
                 if(userPoint.mesh) animateSingleObject(userPoint.mesh, getTransformedPointPosition(false), speed);
 
-                isTransformed = true;
                 transformBtn.classList.add('hidden'); continueBtn.classList.remove('hidden'); resetBtn.classList.remove('hidden');
             });
             continueBtn.addEventListener('click', () => {
                 const speed = parseInt(document.getElementById('animationSpeed').value);
                 const useZ = document.getElementById('zDisplacementToggle').checked;
-                
-                const continuedPlanePos = calculateTransformedPositions(plane.userData.originalPositions, true, useZ);
-                animateObject(plane, continuedPlanePos, speed);
+                isContinued = true;
+
+                animateObject(plane, calculateTransformedPositions(plane.userData.originalPositions, true, useZ), speed);
+                animateGroup(riemannZeros, () => calculateGroupTransformedPositions(riemannZeros, true, useZ), speed);
+                animateGroup(trivialZeros, () => calculateGroupTransformedPositions(trivialZeros, true, useZ), speed);
+                animateGroup(axesLabelGroup, () => calculateGroupTransformedPositions(axesLabelGroup, true, useZ), speed);
                 if(userPoint.mesh) animateSingleObject(userPoint.mesh, getTransformedPointPosition(true), speed);
                 
-                continueBtn.classList.add('hidden'); isContinued = true;
+                continueBtn.classList.add('hidden');
             });
             resetBtn.addEventListener('click', () => {
                 const speed = parseInt(document.getElementById('animationSpeed').value);
+                isTransformed = false; isContinued = false;
+
                 animateObject(plane, plane.userData.originalPositions, speed);
                 animateGroup(riemannZeros, () => getOriginalPositionsArray(riemannZeros), speed);
                 animateGroup(trivialZeros, () => getOriginalPositionsArray(trivialZeros), speed);
+                animateGroup(axesLabelGroup, () => getOriginalPositionsArray(axesLabelGroup), speed);
                 if(userPoint.mesh) animateSingleObject(userPoint.mesh, userPoint.mesh.userData.originalPosition, speed);
 
-                isTransformed = false; isContinued = false;
                 transformBtn.classList.remove('hidden'); continueBtn.classList.add('hidden'); resetBtn.classList.add('hidden');
             });
         }
@@ -1299,17 +1293,29 @@
             document.getElementById('animationSpeed').addEventListener('input', (e) => { document.getElementById('animationSpeedValue').textContent = e.target.value; });
             document.getElementById('stripWidth').addEventListener('input', (e) => { document.getElementById('stripWidthValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
             document.getElementById('stripStartSlider').addEventListener('input', (e) => { document.getElementById('stripStartValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
+            
+            document.getElementById('labelSizeSlider').addEventListener('input', (e) => {
+                document.getElementById('labelSizeValue').textContent = `${parseFloat(e.target.value).toFixed(2)}x`;
+                regenerateAxesAndLabels();
+                if (isTransformed || isContinued) {
+                    const useZ = document.getElementById('zDisplacementToggle').checked;
+                    const targetLabelPos = calculateGroupTransformedPositions(axesLabelGroup, isContinued, useZ);
+                    axesLabelGroup.children.forEach((child, i) => child.position.fromArray(targetLabelPos, i * 3));
+                }
+            });
 
             document.getElementById('zDisplacementToggle').addEventListener('input', () => {
                  const useZ = document.getElementById('zDisplacementToggle').checked;
                  const speed = parseInt(document.getElementById('animationSpeed').value);
                  
                  let targetPlanePos = isContinued ? calculateTransformedPositions(plane.userData.originalPositions, true, useZ) :
-                                     isTransformed ? calculateTransformedPositions(plane.userData.originalPositions, false, useZ) :
-                                     plane.userData.originalPositions;
+                                       isTransformed ? calculateTransformedPositions(plane.userData.originalPositions, false, useZ) :
+                                       plane.userData.originalPositions;
                  
-                 let targetRiemannPos = isTransformed ? calculateZeroTransformedPositions(riemannZeros, useZ) : getOriginalPositionsArray(riemannZeros);
-                 let targetTrivialPos = isTransformed ? calculateZeroTransformedPositions(trivialZeros, useZ) : getOriginalPositionsArray(trivialZeros);
+                 let targetRiemannPos = calculateGroupTransformedPositions(riemannZeros, isContinued, useZ);
+                 let targetTrivialPos = calculateGroupTransformedPositions(trivialZeros, isContinued, useZ);
+                 let targetLabelPos = calculateGroupTransformedPositions(axesLabelGroup, isContinued, useZ);
+
                  
                  if (userPoint.mesh) {
                      const targetPointPos = getTransformedPointPosition(isContinued);
@@ -1319,6 +1325,7 @@
                  animateObject(plane, targetPlanePos, speed);
                  animateGroup(riemannZeros, () => targetRiemannPos, speed);
                  animateGroup(trivialZeros, () => targetTrivialPos, speed);
+                 animateGroup(axesLabelGroup, () => targetLabelPos, speed);
             });
             ['stripOnlyColor', 'baseColor', 'stripColor', 'boundaryColor', 'realAxisColor', 'imagAxisColor'].forEach(id => {
                 document.getElementById(id).addEventListener('input', updateColors);
@@ -1463,7 +1470,8 @@
             if (trivialZeros) scene.remove(trivialZeros);
             
             const halfSize = size / 2;
-            const sphereGeometry = new THREE.SphereGeometry(0.15, 16, 8);
+            const sphereSize = 0.15; // Fixed size
+            const sphereGeometry = new THREE.SphereGeometry(sphereSize, 16, 8);
             
             const riemannMaterial = new THREE.MeshBasicMaterial({ color: 0xff4444, toneMapped: false });
             riemannZeros = new THREE.Group();
@@ -1502,7 +1510,8 @@
             if (userPoint.mesh) {
                 scene.remove(userPoint.mesh);
             }
-            const geometry = new THREE.SphereGeometry(0.2, 16, 8);
+            const sphereSize = 0.2; // Fixed size
+            const geometry = new THREE.SphereGeometry(sphereSize, 16, 8);
             const material = new THREE.MeshBasicMaterial({ color: 0x00ffff, toneMapped: false });
             userPoint.mesh = new THREE.Mesh(geometry, material);
             userPoint.mesh.userData.originalPosition = new THREE.Vector3(s.re, 0.1, -s.im);
@@ -1521,17 +1530,14 @@
             const s = userPoint.s_original;
             if(!s) return new THREE.Vector3();
             
+            const transformBoundary = 1.0;
             let targetS;
-            if(isContinuation) {
-                 if (!userPoint.s_continued) userPoint.s_continued = zeta(s);
-                 targetS = userPoint.s_continued;
-            } else if (isTransformed) {
-                if (s.re > 1) { // Transform boundary is 1 for standard sum
-                     if (!userPoint.s_transformed) userPoint.s_transformed = zeta(s);
-                     targetS = userPoint.s_transformed;
-                } else {
-                     return userPoint.mesh.userData.originalPosition.clone();
-                }
+
+            if(isContinuation || s.re > transformBoundary) {
+                 if(isContinuation && !userPoint.s_continued) userPoint.s_continued = zeta(s);
+                 else if (!userPoint.s_transformed) userPoint.s_transformed = zeta(s);
+                 
+                 targetS = isContinuation ? userPoint.s_continued : userPoint.s_transformed;
             } else {
                  return userPoint.mesh.userData.originalPosition.clone();
             }
@@ -1582,7 +1588,5 @@
     </script>
 </body>
 </html>
-
-
 
 
