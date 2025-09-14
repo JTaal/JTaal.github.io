@@ -52,10 +52,7 @@ The visualizer lets you:
 - Display **covariance matrices, determinants, and bias terms**  
 - Toggle **2D/3D views, mesh styles, and penalty constraints**  
 
----
-
-## Features in Action  
-
+functionally:
 - **Data Distributions:** Multiple Gaussians show how variance and correlation shape covariance.  
 - **Penalty Geometry:**  
   - L1 → Octahedron (diamond constraint)  
@@ -65,7 +62,7 @@ The visualizer lets you:
 
 ---
 
-## Formulas  
+## 2D Formulas  
 
 - **Covariance Matrix:**  
 
