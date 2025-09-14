@@ -364,10 +364,10 @@
              <hr class="border-gray-600">
              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Label Settings</h4>
              <div class="control-group text-left w-full">
-                <label for="labelSizeSlider" class="text-sm font-medium self-start w-full flex justify-between">
-                    Axis Label Size: <span id="labelSizeValue">1.00x</span>
-                </label>
-                <input type="range" id="labelSizeSlider" min="0.1" max="3" value="1" step="0.05">
+               <label for="labelSizeSlider" class="text-sm font-medium self-start w-full flex justify-between">
+                   Axis Label Size: <span id="labelSizeValue">1.00x</span>
+               </label>
+               <input type="range" id="labelSizeSlider" min="0.1" max="3" value="1" step="0.05">
              </div>
              <hr class="border-gray-600">
              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Zeros</h4>
@@ -415,7 +415,13 @@
         <h3 class="text-lg font-bold mb-2">Fly Controls Active</h3>
         <p>Use <b>WASD</b> or <b>Arrow Keys</b> to move</p>
         <p>Use <b>Mouse</b> to look around</p>
+        <p>Use <b>Scroll Wheel</b> to change speed</p>
         <p class="mt-4 text-sm text-gray-400">Click to lock mouse. Press <b>ESC</b> or <b>Right-Click</b> to exit.</p>
+    </div>
+
+    <!-- Fly Controls Speed Indicator -->
+    <div id="fly-speed-indicator" class="hidden opacity-0 absolute bottom-24 left-1/2 -translate-x-1/2 bg-gray-900 bg-opacity-70 px-4 py-2 rounded-lg text-white z-50 pointer-events-none transition-opacity duration-300">
+        Speed: <span id="fly-speed-value">0.20</span>
     </div>
 
     <!-- MathJax for LaTeX -->
@@ -448,6 +454,7 @@
 
                 this.movement = { forward: false, backward: false, left: false, right: false };
                 this.isLocked = false;
+                this.speedIndicatorTimeout = null;
 
                 this.onKeyDown = this.onKeyDown.bind(this);
                 this.onKeyUp = this.onKeyUp.bind(this);
@@ -455,6 +462,7 @@
                 this.onClick = this.onClick.bind(this);
                 this.onPointerLockChange = this.onPointerLockChange.bind(this);
                 this.onContextMenu = this.onContextMenu.bind(this);
+                this.onWheel = this.onWheel.bind(this);
             }
 
             connect() {
@@ -464,6 +472,7 @@
                 renderer.domElement.addEventListener('click', this.onClick);
                 document.addEventListener('pointerlockchange', this.onPointerLockChange);
                 renderer.domElement.addEventListener('contextmenu', this.onContextMenu);
+                document.addEventListener('wheel', this.onWheel);
             }
 
             disconnect() {
@@ -473,6 +482,7 @@
                 renderer.domElement.removeEventListener('click', this.onClick);
                 document.removeEventListener('pointerlockchange', this.onPointerLockChange);
                 renderer.domElement.removeEventListener('contextmenu', this.onContextMenu);
+                document.removeEventListener('wheel', this.onWheel);
                 if (document.pointerLockElement === renderer.domElement) {
                     document.exitPointerLock();
                 }
@@ -506,6 +516,38 @@
                     case 'ArrowDown': case 'KeyS': this.movement.backward = false; break;
                     case 'ArrowRight': case 'KeyD': this.movement.right = false; break;
                 }
+            }
+
+            onWheel(event) {
+                if (!this.isLocked) return;
+                event.preventDefault();
+
+                const scrollFactor = 1.1;
+                const scrollAmount = event.deltaY < 0 ? scrollFactor : 1 / scrollFactor;
+                this.moveSpeed *= scrollAmount;
+                this.moveSpeed = Math.max(0.01, Math.min(this.moveSpeed, 20));
+
+                this.showSpeedIndicator();
+            }
+            
+            showSpeedIndicator() {
+                const indicator = document.getElementById('fly-speed-indicator');
+                const speedValue = document.getElementById('fly-speed-value');
+                if (!indicator || !speedValue) return;
+
+                speedValue.textContent = this.moveSpeed.toFixed(2);
+                indicator.classList.remove('hidden', 'opacity-0');
+
+                if (this.speedIndicatorTimeout) {
+                    clearTimeout(this.speedIndicatorTimeout);
+                }
+
+                this.speedIndicatorTimeout = setTimeout(() => {
+                    indicator.classList.add('opacity-0');
+                    indicator.addEventListener('transitionend', () => {
+                        indicator.classList.add('hidden');
+                    }, { once: true });
+                }, 1500);
             }
 
             onMouseMove(event) {
@@ -1385,8 +1427,8 @@
                  const speed = parseInt(document.getElementById('animationSpeed').value);
                  
                  let targetPlanePos = isContinued ? calculateTransformedPositions(plane.userData.originalPositions, true, useZ) :
-                                       isTransformed ? calculateTransformedPositions(plane.userData.originalPositions, false, useZ) :
-                                       plane.userData.originalPositions;
+                                      isTransformed ? calculateTransformedPositions(plane.userData.originalPositions, false, useZ) :
+                                      plane.userData.originalPositions;
                  
                  let targetRiemannPos = calculateGroupTransformedPositions(riemannZeros, isContinued, useZ);
                  let targetTrivialPos = calculateGroupTransformedPositions(trivialZeros, isContinued, useZ);
@@ -1394,8 +1436,8 @@
 
                  
                  if (userPoint.mesh) {
-                     const targetPointPos = getTransformedPointPosition(isContinued);
-                     animateSingleObject(userPoint.mesh, targetPointPos, speed);
+                      const targetPointPos = getTransformedPointPosition(isContinued);
+                      animateSingleObject(userPoint.mesh, targetPointPos, speed);
                  }
 
                  animateObject(plane, targetPlanePos, speed);
@@ -1671,4 +1713,3 @@
     </script>
 </body>
 </html>
-
