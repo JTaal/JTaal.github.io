@@ -3,10 +3,10 @@
   thumbnail: /assets/images/3D-basis-vectors.png
   visualization_url: /visualizations/3D-basis-vectors.html
 
-- title: Blackhole Entropy
+- title: Blackhole
   author: Jasper Taal
-  thumbnail: /assets/images/blackhole-entropy.png
-  visualization_url: /visualizations/blackhole-entropy.html
+  thumbnail: /assets/images/blackhole.png
+  visualization_url: /visualizations/blackhole.html
 
 - title: Chaos Relativity
   author: Jasper Taal
