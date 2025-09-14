@@ -2,7 +2,7 @@
 layout: post
 title: "Explaining the 4D Complex Chirp Visualization"
 date: 2025-08-27
-visualization_url: /visualizations/complex-chirp.html
+visualization_url: /visualizations/chirp.html
 # permalink: /blog/:year/:month/:day/:title/
 # permalink: /:categories/:year/:month/:day/:title/
 ---
