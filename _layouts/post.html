@@ -3,67 +3,92 @@ layout: default
 ---
 
 <style>
-  /* Dark theme base */
+  :root {
+    --bg-gradient: linear-gradient(135deg, #1e293b, #0f172a);
+    --text-color: #f8fafc;
+    --muted-color: #94a3b8;
+    --link-color: #60a5fa;
+    --link-hover: #93c5fd;
+  }
+  body.light-mode {
+    --bg-gradient: #f8fafc;
+    --text-color: #0f172a;
+    --muted-color: #475569;
+    --link-color: #2563eb;
+    --link-hover: #1d4ed8;
+  }
+
   body {
-    background-color: #0a0f1a;
-    color: #e2e8f0;
+    background: var(--bg-gradient);
+    color: var(--text-color);
     font-family: 'Inter', system-ui, sans-serif;
     line-height: 1.7;
+    margin: 0;
+    transition: background 0.3s ease, color 0.3s ease;
   }
 
   a {
-    color: #60a5fa;
+    color: var(--link-color);
     text-decoration: none;
     transition: color 0.2s ease;
   }
   a:hover {
-    color: #93c5fd;
+    color: var(--link-hover);
   }
 
   /* Fade-in animation */
   @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
-  .fade-in {
-    opacity: 0;
-    animation: fadeInUp 0.8s ease forwards;
-  }
+  .fade-in { opacity: 0; animation: fadeInUp 0.8s ease forwards; }
   .fade-delay-1 { animation-delay: 0.2s; }
   .fade-delay-2 { animation-delay: 0.4s; }
   .fade-delay-3 { animation-delay: 0.6s; }
   .fade-delay-4 { animation-delay: 0.8s; }
 
+  /* Theme toggle button */
+  .theme-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: var(--link-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    z-index: 1000;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .theme-toggle:hover {
+    background: var(--link-hover);
+  }
+
   /* Hero section */
   .post-hero {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
     padding: 3rem 1rem;
     text-align: center;
     margin-bottom: 3rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     border-bottom: 1px solid rgba(255,255,255,0.05);
   }
   .post-hero h1 {
     font-weight: 800;
     font-size: 2.5rem;
-    color: #f8fafc;
   }
   .post-hero .meta {
     opacity: 0.75;
     font-size: 0.95rem;
+    color: var(--muted-color);
   }
 
   /* Post content */
   .post-content p {
     margin-bottom: 1.25rem;
     font-size: 1.05rem;
-    color: #cbd5e1;
   }
 
   /* Visualization section */
@@ -73,34 +98,25 @@ layout: default
     box-shadow: 0 8px 24px rgba(0,0,0,0.6);
     transition: transform 0.2s ease;
   }
-  .viz-container iframe:hover {
-    transform: scale(1.01);
-  }
+  .viz-container iframe:hover { transform: scale(1.01); }
 
   /* Citation section */
   .citation-section {
-    background: #1e293b;
+    background: rgba(0,0,0,0.2);
     border-radius: 0.75rem;
     padding: 1.5rem;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   }
-  .citation-section h3 {
-    color: #f1f5f9;
-  }
-  .citation-section p {
-    color: #94a3b8;
-  }
+  .citation-section h3 { margin-top: 0; }
+  .citation-section p { color: var(--muted-color); }
 
   /* Copy button */
-  .cite-container {
-    position: relative;
-    margin-top: 1rem;
-  }
+  .cite-container { position: relative; margin-top: 1rem; }
   .copy-btn {
     position: absolute;
     top: 0.75rem;
     right: 0.75rem;
-    background-color: #3b82f6;
+    background-color: var(--link-color);
     color: white;
     border: none;
     padding: 0.5rem;
@@ -111,30 +127,34 @@ layout: default
     justify-content: center;
     transition: background-color 0.2s ease-in-out, transform 0.15s ease;
   }
-  .copy-btn:hover {
-    background-color: #2563eb;
-    transform: translateY(-1px);
-  }
-  .copy-btn.copied {
-    background-color: #16a34a;
-  }
-  .copy-btn svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-  }
+  .copy-btn:hover { background-color: var(--link-hover); transform: translateY(-1px); }
+  .copy-btn.copied { background-color: #16a34a; }
+  .copy-btn svg { width: 16px; height: 16px; stroke: currentColor; }
 
   /* BibTeX code block */
   pre#bibtex-code {
-    background: #0f172a;
-    color: #f8fafc;
+    background: rgba(0,0,0,0.3);
+    color: var(--text-color);
     padding: 1rem;
     border-radius: 0.5rem;
     overflow-x: auto;
     font-size: 0.9rem;
     border: 1px solid rgba(255,255,255,0.05);
   }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .post-hero h1 { font-size: 1.75rem; }
+    .theme-toggle { padding: 0.4rem 0.6rem; font-size: 0.85rem; }
+  }
+  @media (min-width: 1600px) {
+    .container { max-width: 1400px; }
+  }
 </style>
+
+<button class="theme-toggle" onclick="toggleTheme()">
+  <span id="theme-icon">🌙</span> Theme
+</button>
 
 <div class="post-hero fade-in fade-delay-1">
   <h1>{{ page.title }}</h1>
@@ -153,20 +173,12 @@ layout: default
       {% if page.visualization_url %}
       <hr class="my-5" style="border-color: rgba(255,255,255,0.1);">
       <div class="text-center viz-container fade-in fade-delay-3">
-        <h2 class="fw-bolder text-light">Interactive Visualization</h2>
+        <h2 class="fw-bolder">Interactive Visualization</h2>
         <p class="text-muted">Interact with the visualization below or open it in a new full-screen tab.</p>
-        
         <div class="ratio ratio-16x9 my-4">
-          <iframe 
-            src="{{ page.visualization_url | relative_url }}" 
-            title="{{ page.title }} Visualization" 
-            allowfullscreen>
-          </iframe>
+          <iframe src="{{ page.visualization_url | relative_url }}" title="{{ page.title }} Visualization" allowfullscreen></iframe>
         </div>
-        
-        <a href="{{ page.visualization_url | relative_url }}" class="btn btn-primary btn-lg shadow-sm" target="_blank" rel="noopener noreferrer">
-          Open Fullscreen
-        </a>
+        <a href="{{ page.visualization_url | relative_url }}" class="btn btn-primary btn-lg shadow-sm" target="_blank" rel="noopener noreferrer">Open Fullscreen</a>
       </div>
       {% endif %}
 
@@ -174,12 +186,11 @@ layout: default
       <div class="citation-section fade-in fade-delay-4">
         <h3 class="fw-bolder mb-2">How to Cite This Post</h3>
         <p>Use the following BibTeX entry to cite this post in your research.</p>
-        
         <div class="cite-container">
           <button class="copy-btn" onclick="copyToClipboard('bibtex-code', this)" aria-label="Copy to clipboard" title="Copy to clipboard">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
-          <pre id="bibtex-code"><code>@misc{Taal{{ page.date | date: "%Y" }}{{ page.title | slugify }},
+<pre id="bibtex-code"><code>@misc{Taal{{ page.date | date: "%Y" }}{{ page.title | slugify }},
   author  = {Taal, Jasper},
   title   = { {{ page.title }} },
   year    = { {{ page.date | date: "%Y" }} },
@@ -188,7 +199,6 @@ layout: default
 }</code></pre>
         </div>
       </div>
-
     </div>
   </div>
 </div>
