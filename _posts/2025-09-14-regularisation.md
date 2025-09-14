@@ -12,7 +12,7 @@ description: Explanation of fundamental regularisation techniques.
 
 ## Introduction  
 Regularisation is one of the most powerful techniques in machine learning to combat **overfitting** and improve **generalization**.  
-Instead of keeping it abstract, this post introduces an **interactive 3D Regularisation Visualizer** built with Three.js and TailwindCSS.  
+Instead of keeping it abstract, this post introduces an **interactive 3D Regularisation Visualizer**. 
 
 ---
 
