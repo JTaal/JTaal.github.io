@@ -4,7 +4,7 @@ title: "Explaining the 4D Complex Chirp Visualization"
 date: 2025-08-27
 visualization_url: /visualizations/chirp.html
 description: An interactive visualization that represents a four-dimensional concept in a 3D space.
-permalink: /:year/:month/:day/:title/
+# permalink: /:year/:month/:day/:title/
 # permalink: /blog/:year/:month/:day/:title/
 # permalink: /:categories/:year/:month/:day/:title/
 ---
