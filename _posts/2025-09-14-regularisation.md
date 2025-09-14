@@ -2,6 +2,7 @@
 layout: post
 title: "Visualizing Regularisation in 3D with Ridge and Lasso"
 date: 2025-09-14
+last_modified_at: 2025-09-12
 visualization_url: /visualizations/regularisation.html
 description: Explanation of fundamental regularisation techniques.
 # categories: [Machine Learning, Visualization]
