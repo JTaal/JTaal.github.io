@@ -6,7 +6,7 @@ visualization_url: /visualizations/regularisation.html
 categories: [Machine Learning, Visualization]
 tags: [Regularisation, Ridge, Lasso, Three.js, TailwindCSS]
 description: Explanation of fundamental regularisation techniques.
-# permalink: /blog/:year/:month/:day/:title/
+permalink: /:year/:month/:day/:title/
 ---
 
 ## Introduction  
