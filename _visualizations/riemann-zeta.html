@@ -302,8 +302,9 @@
         </div>
 
         <div id="zeta-settings" class="space-y-6">
-             <h4 class="text-lg font-bold text-gray-300 text-left w-full">VR Settings</h4>
-             <div id="vr-button-container"></div>
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">VR</h4>
+             <div id="vr-button-container" class="my-2"></div>
+             <hr class="border-gray-600">
              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Grid Settings</h4>
              <div class="control-group text-left w-full">
                  <label for="gridSize" class="text-sm font-medium self-start w-full flex justify-between">Size: <span id="gridSizeValue">30</span></label>
@@ -405,7 +406,7 @@
         <h3 class="text-lg font-bold mb-2">Fly Controls Active</h3>
         <p>Use <b>WASD</b> or <b>Arrow Keys</b> to move</p>
         <p>Use <b>Mouse</b> to look around</p>
-        <p class="mt-4 text-sm text-gray-400">Click on the visualization to lock mouse. Press ESC to exit.</p>
+        <p class="mt-4 text-sm text-gray-400">Click to lock mouse. Press <b>ESC</b> or <b>Right-Click</b> to exit.</p>
     </div>
 
     <!-- MathJax for LaTeX -->
@@ -507,6 +508,7 @@
                 this.onMouseMove = this.onMouseMove.bind(this);
                 this.onClick = this.onClick.bind(this);
                 this.onPointerLockChange = this.onPointerLockChange.bind(this);
+                this.onContextMenu = this.onContextMenu.bind(this);
             }
 
             connect() {
@@ -515,6 +517,7 @@
                 document.addEventListener('mousemove', this.onMouseMove);
                 renderer.domElement.addEventListener('click', this.onClick);
                 document.addEventListener('pointerlockchange', this.onPointerLockChange);
+                renderer.domElement.addEventListener('contextmenu', this.onContextMenu);
             }
 
             disconnect() {
@@ -523,6 +526,7 @@
                 document.removeEventListener('mousemove', this.onMouseMove);
                 renderer.domElement.removeEventListener('click', this.onClick);
                 document.removeEventListener('pointerlockchange', this.onPointerLockChange);
+                renderer.domElement.removeEventListener('contextmenu', this.onContextMenu);
                 if (document.pointerLockElement === renderer.domElement) {
                     document.exitPointerLock();
                 }
@@ -531,6 +535,14 @@
             onClick() { renderer.domElement.requestPointerLock(); }
 
             onPointerLockChange() { this.isLocked = (document.pointerLockElement === renderer.domElement); }
+
+            onContextMenu(event) {
+                event.preventDefault();
+                const toggle = document.getElementById('controlModeToggle');
+                if (toggle && toggle.checked) {
+                    toggle.click();
+                }
+            }
 
             onKeyDown(event) {
                 switch (event.code) {
@@ -1570,4 +1582,7 @@
     </script>
 </body>
 </html>
+
+
+
 

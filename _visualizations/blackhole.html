@@ -330,7 +330,7 @@
         <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Black Hole Simulator</h1>
     </header>
 
-    <div id="fly-mode-warning" class="hidden">Press [ESC] to release controls</div>
+    <div id="fly-mode-warning" class="hidden">Press [ESC] or Right-Click to release controls</div>
     <div id="speed-indicator">Speed: 1.0x</div>
 
     <div id="info-panel" class="ui-panel">
@@ -528,7 +528,7 @@
     let gridColor = '#CCCCCC';
     let gridScale = 1.0;
     let gridLineCount = 15;
-    let gridSliceMode = '3d'; // '3d', 'x', 'y', 'z'
+    let gridSliceMode = '3d'; // '3d', 'x', 'y', 'z', 'none'
     let gridSliceThickness = 0; // In layers
     let blackHoleSpin = 0.0;
 
@@ -590,7 +590,7 @@
         window.addEventListener('keyup', (e) => { keyState[e.code] = false; });
         
         window.addEventListener('wheel', handleMouseWheel, false);
-        window.addEventListener('contextmenu', (e) => {
+        renderer.domElement.addEventListener('contextmenu', (e) => {
             if (flyModeEnabled) {
                 e.preventDefault();
                 setFlyMode(false);
@@ -997,7 +997,6 @@
         let vectorFieldVisible = false;
         let lightRaysVisible = true;
         let geodesicLinesVisible = false;
-        let gridVisible = true;
         let particlesVisible = true;
 
         const GRID_SIZE = 20;
@@ -1147,7 +1146,7 @@
                     <div class="flex items-center gap-2 flex-wrap justify-center">
                         <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
                         <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
-                        <button id="grid-toggle" class="toggle-button active text-xs p-2">Grid: On</button>
+                        <button id="grid-slice-toggle" class="toggle-button active text-xs p-2">Grid: 3D</button>
                         <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
                         <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
                         <button id="geodesic-toggle" class="toggle-button text-xs p-2">Geodesics: Off</button>
@@ -1173,7 +1172,7 @@
             const vectorFieldToggle = document.getElementById('vector-field-toggle');
             const lightRaysToggle = document.getElementById('light-rays-toggle');
             const geodesicToggle = document.getElementById('geodesic-toggle');
-            const gridToggle = document.getElementById('grid-toggle');
+            const gridSliceToggle = document.getElementById('grid-slice-toggle');
             const particleToggle = document.getElementById('particle-toggle');
             const pauseButton = document.getElementById('pause-toggle');
             const resetButton = document.getElementById('reset-button');
@@ -1201,11 +1200,23 @@
                 e.target.textContent = `Geodesics: ${geodesicLinesVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', geodesicLinesVisible);
             });
-            gridToggle.addEventListener('click', (e) => {
-                gridVisible = !gridVisible;
-                e.target.textContent = `Grid: ${gridVisible ? 'On' : 'Off'}`;
-                e.target.classList.toggle('active', gridVisible);
+
+            const sliceModes = ['3d', 'x', 'y', 'z', 'none'];
+            let currentSliceIndex = 0;
+            gridSliceToggle.addEventListener('click', (e) => {
+                currentSliceIndex = (currentSliceIndex + 1) % sliceModes.length;
+                gridSliceMode = sliceModes[currentSliceIndex];
+                const modeText = { 
+                    '3d': 'Grid: 3D', 
+                    'x': 'Slice: YZ', 
+                    'y': 'Slice: XZ', 
+                    'z': 'Slice: XY',
+                    'none': 'Grid: Off'
+                };
+                e.target.textContent = modeText[gridSliceMode];
+                e.target.classList.toggle('active', gridSliceMode !== 'none');
             });
+            
             particleToggle.addEventListener('click', (e) => {
                 particlesVisible = !particlesVisible;
                 e.target.textContent = `Particles: ${particlesVisible ? 'On' : 'Off'}`;
@@ -1216,7 +1227,10 @@
                 e.target.textContent = isPaused ? 'Resume' : 'Pause';
                 e.target.classList.toggle('active', isPaused);
             });
-            controlModeToggle.addEventListener('change', (e) => setFlyMode(e.target.checked));
+            controlModeToggle.addEventListener('change', (e) => {
+                setFlyMode(e.target.checked)
+                e.target.blur(); // Unfocus the switch immediately after interaction
+            });
             resetButton.addEventListener('click', resetSimulation);
         }
 
@@ -1318,18 +1332,21 @@
                     positions.needsUpdate = true;
                 });
             }
-            staticGridGroup.visible = gridVisible;
-            if (gridVisible) {
+            
+            staticGridGroup.visible = gridSliceMode !== 'none';
+            if (gridSliceMode !== 'none') {
                 const step = (SIMULATION_RADIUS * 2) / (gridLineCount - 1);
                 const tolerance = gridSliceThickness * step;
                 staticGridGroup.userData.lines.forEach(item => {
+                    let isVisible = false;
                     const s = item.start, e = item.end;
                     switch (gridSliceMode) {
-                        case '3d': item.line.visible = true; break;
-                        case 'x': item.line.visible = (s.x === e.x && (s.z === e.z || s.y === e.y) && Math.abs(s.x) <= tolerance); break;
-                        case 'y': item.line.visible = (s.y === e.y && (s.z === e.z || s.x === e.x) && Math.abs(s.y) <= tolerance); break;
-                        case 'z': item.line.visible = (s.z === e.z && (s.y === e.y || s.x === e.x) && Math.abs(s.z) <= tolerance); break;
+                        case '3d': isVisible = true; break;
+                        case 'x': isVisible = (s.x === e.x && (s.z === e.z || s.y === e.y) && Math.abs(s.x) <= tolerance); break;
+                        case 'y': isVisible = (s.y === e.y && (s.z === e.z || s.x === e.x) && Math.abs(s.y) <= tolerance); break;
+                        case 'z': isVisible = (s.z === e.z && (s.y === e.y || s.x === e.x) && Math.abs(s.z) <= tolerance); break;
                     }
+                    item.line.visible = isVisible;
                 });
                 staticGridGroup.scale.setScalar(gridScale);
                 staticGridGroup.userData.lines.forEach(item => {
@@ -1524,5 +1541,4 @@
 </script>
 </body>
 </html>
-
 
