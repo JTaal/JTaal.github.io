@@ -360,15 +360,15 @@
     <div id="controls-panel" class="ui-panel"></div>
 
     <button id="fullscreen-button" title="Toggle Fullscreen">
-        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
         </svg>
-        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
         </svg>
     </button>
     <button id="settings-button" title="Settings">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
             <circle cx="12" cy="12" r="3"></circle>
         </svg>
@@ -435,6 +435,10 @@
                     <span id="particle-size-value">0.10</span>
                 </label>
                 <input id="particle-size-slider" type="range" min="0.02" max="0.5" step="0.01" value="0.1" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">Geodesic Lines</label>
+                <button id="geodesic-toggle" class="toggle-button w-full">Off</button>
             </div>
               <hr class="border-gray-600">
               <h4 class="text-lg font-bold text-gray-300 text-left w-full">Grid Settings</h4>
@@ -532,7 +536,14 @@
     let gridSliceThickness = 0; // In layers
     let blackHoleSpin = 0.0;
 
+    // --- Visualization State ---
+    let vectorFieldVisible = false;
+    let lightRaysVisible = true;
+    let geodesicLinesVisible = false;
+    let particlesVisible = true;
+
     let followObject = null;
+    let vectorField, flowingParticles, geodesicGroup, gridGroup, lightRayGroup;
     
     // --- Main simulation functions ---
     let currentCleanup = () => {};
@@ -872,6 +883,7 @@
         const gridThicknessControl = document.getElementById('grid-thickness-control');
         const gridThicknessSlider = document.getElementById('grid-thickness-slider');
         const gridThicknessValue = document.getElementById('grid-thickness-value');
+        const geodesicToggle = document.getElementById('geodesic-toggle');
         
         const sliceModes = ['3d', 'x', 'y', 'z'];
         let currentSliceIndex = 0;
@@ -886,6 +898,14 @@
         gridThicknessSlider.addEventListener('input', e => {
             gridSliceThickness = parseInt(e.target.value, 10);
             gridThicknessValue.textContent = `${gridSliceThickness} layer${gridSliceThickness === 1 ? '' : 's'}`;
+        });
+
+        geodesicToggle.addEventListener('click', (e) => {
+            geodesicLinesVisible = !geodesicLinesVisible;
+            e.target.textContent = geodesicLinesVisible ? 'On' : 'Off';
+            e.target.classList.toggle('active', geodesicLinesVisible);
+            updateVisuals();
+            renderer.render(scene, camera);
         });
 
         function toggleSettingsPanel() {
@@ -989,15 +1009,19 @@
         return currentParticleSystem;
     }
 
+    function updateVisuals() {
+        if (vectorField) vectorField.visible = vectorFieldVisible;
+        if (flowingParticles) flowingParticles.visible = particlesVisible;
+        if (geodesicGroup) geodesicGroup.visible = geodesicLinesVisible;
+        if (gridGroup) gridGroup.visible = gridSliceMode !== 'none';
+        if (lightRayGroup) lightRayGroup.visible = lightRaysVisible;
+    }
+
     function initBlackHole() {
         const G = 1, c = 10, STAR_THRESHOLD = 3.0;
         let mass = 1.0;
         let time = 0;
         let entropyText, radiusText, kappaText, ratioText, lorentzText;
-        let vectorFieldVisible = false;
-        let lightRaysVisible = true;
-        let geodesicLinesVisible = false;
-        let particlesVisible = true;
 
         const GRID_SIZE = 20;
         const GRID_SPACING = 5;
@@ -1016,7 +1040,7 @@
         const horizonOutline = new THREE.Mesh(new THREE.TorusGeometry(1, 0.1, 16, 100), new THREE.MeshBasicMaterial({ color: 0xffa500, side: THREE.DoubleSide }));
         activeSceneObjects.add(horizonOutline);
 
-        const vectorField = new THREE.Group();
+        vectorField = new THREE.Group();
         const arrows = [];
         for (let x = -GRID_SIZE; x <= GRID_SIZE; x++) {
             for (let y = -GRID_SIZE; y <= GRID_SIZE; y++) {
@@ -1031,10 +1055,10 @@
         }
         activeSceneObjects.add(vectorField);
 
-        const flowingParticles = createParticles(particleCount, 0xffffff);
+        flowingParticles = createParticles(particleCount, 0xffffff);
         flowingParticles.material.size = 0.08;
 
-        const geodesicGroup = new THREE.Group();
+        geodesicGroup = new THREE.Group();
         const geodesicLines = [];
         const NUM_GEODESICS = 100;
         const GEO_POINTS = 200;
@@ -1068,8 +1092,8 @@
         }
         activeSceneObjects.add(geodesicGroup);
 
-        const staticGridGroup = new THREE.Group();
-        staticGridGroup.userData.lines = [];
+        gridGroup = new THREE.Group();
+        gridGroup.userData.lines = [];
         const gridLineMaterial = new THREE.LineBasicMaterial({ color: new THREE.Color(gridColor), transparent: true, opacity: 0.5 });
         const gridLineSegments = 50;
         const gridStep = (SIMULATION_RADIUS * 2) / (gridLineCount - 1);
@@ -1078,24 +1102,25 @@
             const current = -SIMULATION_RADIUS + i * gridStep;
             for (let j = 0; j < gridLineCount; j++) {
                 const z = -SIMULATION_RADIUS + j * gridStep;
-                staticGridGroup.userData.lines.push({ start: new THREE.Vector3(-SIMULATION_RADIUS, current, z), end: new THREE.Vector3(SIMULATION_RADIUS, current, z) });
-                staticGridGroup.userData.lines.push({ start: new THREE.Vector3(current, -SIMULATION_RADIUS, z), end: new THREE.Vector3(current, SIMULATION_RADIUS, z) });
+                gridGroup.userData.lines.push({ start: new THREE.Vector3(-SIMULATION_RADIUS, current, z), end: new THREE.Vector3(SIMULATION_RADIUS, current, z) });
+                gridGroup.userData.lines.push({ start: new THREE.Vector3(current, -SIMULATION_RADIUS, z), end: new THREE.Vector3(current, SIMULATION_RADIUS, z) });
             }
             for (let j = 0; j < gridLineCount; j++) {
                 const y = -SIMULATION_RADIUS + j * gridStep;
-                staticGridGroup.userData.lines.push({ start: new THREE.Vector3(-SIMULATION_RADIUS, y, current), end: new THREE.Vector3(SIMULATION_RADIUS, y, current) });
-                staticGridGroup.userData.lines.push({ start: new THREE.Vector3(current, y, -SIMULATION_RADIUS), end: new THREE.Vector3(current, y, SIMULATION_RADIUS) });
+                gridGroup.userData.lines.push({ start: new THREE.Vector3(-SIMULATION_RADIUS, y, current), end: new THREE.Vector3(SIMULATION_RADIUS, y, current) });
+                gridGroup.userData.lines.push({ start: new THREE.Vector3(current, y, -SIMULATION_RADIUS), end: new THREE.Vector3(current, y, SIMULATION_RADIUS) });
             }
         }
 
-        staticGridGroup.userData.lines.forEach(data => {
+        gridGroup.userData.lines.forEach(data => {
             const points = Array.from({length: gridLineSegments + 1}, (_, i) => data.start.clone().lerp(data.end, i/gridLineSegments));
             let geom = new THREE.BufferGeometry().setFromPoints(points);
             data.line = new THREE.Line(geom, gridLineMaterial.clone());
             data.originalVertices = points;
-            staticGridGroup.add(data.line);
+            gridGroup.add(data.line);
         });
-        activeSceneObjects.add(staticGridGroup);
+        activeSceneObjects.add(gridGroup);
+
 
         const resetParticle = (p) => {
             const gridX = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
@@ -1110,7 +1135,8 @@
         };
         particles.forEach(resetParticle);
 
-        const lightRayGroup = new THREE.Group();
+
+        lightRayGroup = new THREE.Group();
         const MAX_RAYS = 200, NUM_WAVE_POINTS = 20;
         const rays = [];
         for (let i = 0; i < MAX_RAYS; i++) {
@@ -1145,11 +1171,12 @@
                     <label class="text-sm font-medium">Mass (10^x Solar): <span id="mass-value">1.00e+0</span></label>
                     <div class="flex items-center gap-2 flex-wrap justify-center">
                         <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
-                        <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
-                        <button id="grid-slice-toggle" class="toggle-button active text-xs p-2">Grid: 3D</button>
-                        <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
-                        <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
-                        <button id="geodesic-toggle" class="toggle-button text-xs p-2">Geodesics: Off</button>
+                        <div>
+                            <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
+                            <button id="grid-slice-toggle" class="toggle-button active text-xs p-2">Grid: 3D</button>
+                            <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
+                            <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
+                        </div>
                     </div>
                </div>
                <div class="flex items-center gap-4 flex-wrap justify-center">
@@ -1171,7 +1198,6 @@
             const massSlider = document.getElementById('mass-slider');
             const vectorFieldToggle = document.getElementById('vector-field-toggle');
             const lightRaysToggle = document.getElementById('light-rays-toggle');
-            const geodesicToggle = document.getElementById('geodesic-toggle');
             const gridSliceToggle = document.getElementById('grid-slice-toggle');
             const particleToggle = document.getElementById('particle-toggle');
             const pauseButton = document.getElementById('pause-toggle');
@@ -1189,16 +1215,15 @@
                 vectorFieldVisible = !vectorFieldVisible;
                 e.target.textContent = `Vectors: ${vectorFieldVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', vectorFieldVisible);
+                updateVisuals();
+                renderer.render(scene, camera);
             });
             lightRaysToggle.addEventListener('click', (e) => {
                 lightRaysVisible = !lightRaysVisible;
                 e.target.textContent = `Light Rays: ${lightRaysVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', lightRaysVisible);
-            });
-            geodesicToggle.addEventListener('click', (e) => {
-                geodesicLinesVisible = !geodesicLinesVisible;
-                e.target.textContent = `Geodesics: ${geodesicLinesVisible ? 'On' : 'Off'}`;
-                e.target.classList.toggle('active', geodesicLinesVisible);
+                updateVisuals();
+                renderer.render(scene, camera);
             });
 
             const sliceModes = ['3d', 'x', 'y', 'z', 'none'];
@@ -1215,12 +1240,16 @@
                 };
                 e.target.textContent = modeText[gridSliceMode];
                 e.target.classList.toggle('active', gridSliceMode !== 'none');
+                updateVisuals();
+                renderer.render(scene, camera);
             });
             
             particleToggle.addEventListener('click', (e) => {
                 particlesVisible = !particlesVisible;
                 e.target.textContent = `Particles: ${particlesVisible ? 'On' : 'Off'}`;
                 e.target.classList.toggle('active', particlesVisible);
+                updateVisuals();
+                renderer.render(scene, camera);
             });
             pauseButton.addEventListener('click', (e) => {
                 isPaused = !isPaused;
@@ -1263,7 +1292,8 @@
 
             const spinAxis = new THREE.Vector3(0, 1, 0);
 
-            vectorField.visible = vectorFieldVisible;
+            updateVisuals();
+
             if (vectorFieldVisible) {
                 arrows.forEach(arrow => {
                     const r = arrow.position.length();
@@ -1276,7 +1306,6 @@
                 });
             }
 
-            flowingParticles.visible = particlesVisible;
             if (particlesVisible) {
                 const particlePositions = flowingParticles.geometry.attributes.position;
                 particles.forEach((p, i) => {
@@ -1302,7 +1331,6 @@
                 particlePositions.needsUpdate = true;
             }
 
-            geodesicGroup.visible = geodesicLinesVisible;
             if (geodesicLinesVisible) {
                 geodesicLines.forEach(item => {
                     const positions = item.line.geometry.attributes.position;
@@ -1333,11 +1361,10 @@
                 });
             }
             
-            staticGridGroup.visible = gridSliceMode !== 'none';
             if (gridSliceMode !== 'none') {
                 const step = (SIMULATION_RADIUS * 2) / (gridLineCount - 1);
                 const tolerance = gridSliceThickness * step;
-                staticGridGroup.userData.lines.forEach(item => {
+                gridGroup.userData.lines.forEach(item => {
                     let isVisible = false;
                     const s = item.start, e = item.end;
                     switch (gridSliceMode) {
@@ -1348,8 +1375,8 @@
                     }
                     item.line.visible = isVisible;
                 });
-                staticGridGroup.scale.setScalar(gridScale);
-                staticGridGroup.userData.lines.forEach(item => {
+                gridGroup.scale.setScalar(gridScale);
+                gridGroup.userData.lines.forEach(item => {
                     if (!item.line.visible) return;
                     item.line.material.color.set(gridColor);
                     const positions = item.line.geometry.attributes.position;
@@ -1372,7 +1399,6 @@
                 });
             }
 
-            lightRayGroup.visible = lightRaysVisible;
             if(lightRaysVisible) {
                 rays.forEach((ray) => {
                     const r = ray.position.length();
@@ -1530,7 +1556,28 @@
             controls.update(); 
         }
         
-        if(!isPaused && currentUpdate) currentUpdate(delta); 
+        if(!isPaused && currentUpdate) {
+            currentUpdate(delta); 
+        } else {
+            // Even if paused, we need to update the grid if the slice mode changed
+            if(gridGroup) {
+                 if (gridSliceMode !== 'none') {
+                    const step = (SIMULATION_RADIUS * 2) / (gridLineCount - 1);
+                    const tolerance = gridSliceThickness * step;
+                    gridGroup.userData.lines.forEach(item => {
+                        let isVisible = false;
+                        const s = item.start, e = item.end;
+                        switch (gridSliceMode) {
+                            case '3d': isVisible = true; break;
+                            case 'x': isVisible = (s.x === e.x && (s.z === e.z || s.y === e.y) && Math.abs(s.x) <= tolerance); break;
+                            case 'y': isVisible = (s.y === e.y && (s.z === e.z || s.x === e.x) && Math.abs(s.y) <= tolerance); break;
+                            case 'z': isVisible = (s.z === e.z && (s.y === e.y || s.x === e.x) && Math.abs(s.z) <= tolerance); break;
+                        }
+                        item.line.visible = isVisible;
+                    });
+                }
+            }
+        }
         
         handleVRControllers(delta);
         updateCameraFollow();
