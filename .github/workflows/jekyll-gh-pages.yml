@@ -1,4 +1,4 @@
-name: Deploy Jekyll with GitHub Pages dependencies preinstalled
+name: Deploy Jekyll with auto front matter dates
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # changed to write so we can commit back
+  contents: write   # allow committing back
   pages: write
   id-token: write
 
@@ -21,9 +21,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # needed if you later want to use git commit dates
+          fetch-depth: 0  # full history so git log works
 
-      # Detect changed markdown files
       - name: Filter changed Markdown files
         uses: dorny/paths-filter@v3
         id: filter
@@ -33,26 +32,37 @@ jobs:
             markdown:
               - added|modified: '*.md'
 
-      # Update last_modified_at in those files
-      - name: Update last_modified_at in changed files
+      - name: Update front matter dates
         if: ${{ steps.filter.outputs.markdown == 'true' }}
         run: |
           for file in ${{ steps.filter.outputs.markdown_files }}; do
             echo "Updating $file"
-            # Replace existing last_modified_at or insert if missing
-            if grep -q '^last_modified_at:' "$file"; then
-              sed -i "0,/^last_modified_at:.*/s//last_modified_at: $(date +'%Y-%m-%dT%H:%M:%S%:z')/" "$file"
+
+            # Get original creation date from first commit
+            created=$(git log --diff-filter=A --follow --format=%aI -- "$file" | tail -1)
+            # Get current timestamp for last_modified_at
+            modified=$(date +'%Y-%m-%dT%H:%M:%S%:z')
+
+            # Update or insert 'date:'
+            if grep -q '^date:' "$file"; then
+              sed -i "0,/^date:.*/s//date: $created/" "$file"
             else
-              sed -i "1ilast_modified_at: $(date +'%Y-%m-%dT%H:%M:%S%:z')" "$file"
+              sed -i "1idate: $created" "$file"
+            fi
+
+            # Update or insert 'last_modified_at:'
+            if grep -q '^last_modified_at:' "$file"; then
+              sed -i "0,/^last_modified_at:.*/s//last_modified_at: $modified/" "$file"
+            else
+              sed -i "1ilast_modified_at: $modified" "$file"
             fi
           done
 
-      # Commit the changes back
       - name: Commit changes
         if: ${{ steps.filter.outputs.markdown == 'true' }}
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: update last_modified_at for modified markdown files"
+          commit_message: "chore: update front matter dates for modified markdown files"
           branch: ${{ github.ref_name }}
 
       - name: Setup Pages
