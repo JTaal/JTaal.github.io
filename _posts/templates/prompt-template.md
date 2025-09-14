@@ -3,6 +3,7 @@ layout: post
 title: "POST_TITLE" # Replace with the actual post title
 date: YYYY-MM-DD # Replace with the publication date
 visualization_url: /visualizations/FILE_NAME.html # Replace or remove if not needed
+description: PLACEHOLDER_DESCRIPTION_TEXT # Replace with a very brief description of the post
 # permalink: /blog/:year/:month/:day/:title/ # Optional permalink structure
 # categories: [CATEGORY1, CATEGORY2] # Optional categories
 # tags: [TAG1, TAG2] # Optional tags
