@@ -20,11 +20,12 @@ body {
 #three-container {
     position: relative;
     width: 100%;
-    //width: 106%;
+    /* width: 106%; */
     height: 60vh;
-    background-image: url('https://JTaal.github.io/assets/images/gif/diffraction_pattern_parachute_2560p_side_view_transparant.gif');
-    background-size: 165%;
-    background-position: center 10%;
+    background-image: url('https://JTaal.github.io/assets/images/gif/diffraction_pattern_parachute_2560p_side_view_transparant_cropped.gif');
+    background-size: 100%;
+    /* background-position: center 20%; */
+    /* background-position: center 10%; */
     overflow: hidden;
     color: white;
     display: flex;
@@ -45,11 +46,13 @@ body {
     border-radius: 1rem;
 }
 #logo-placeholder {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     margin-bottom: 20px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%23ffffff' stroke-width='4'%3E%3Cpath d='M50 10 L61.8 38.2 L90.5 38.2 L69.3 55.9 L78.8 85 L50 66.9 L21.2 85 L30.7 55.9 L9.5 38.2 L38.2 38.2 Z'/%3E%3C/svg%3E");
-    background-size: 60%;
+    background-image: url("https://JTaal.github.io/assets/images/logo/logo.jpg");
+    /* background-size: 60%; */
+    background-size: contain;
+    background-color: white; 
     background-repeat: no-repeat;
     background-position: center;
     border: 2px solid rgba(255,255,255,0.5);
@@ -120,8 +123,8 @@ body {
 .card h3 { font-size: 1.3rem; }
 .card small { font-size: 0.85rem; color: #ddd; }
 .card-cover .d-flex {
-    <!-- background: linear-gradient(to top, rgba(0,0,0,0.85) 20%, transparent 100%); -->
-    background: linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent 100%);
+    /* background: linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent 100%); */
+    background: linear-gradient(to top, rgba(0,0,0,0.1) 20%, transparent 100%);
 }
 
 .footer {

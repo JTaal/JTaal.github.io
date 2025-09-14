@@ -112,20 +112,32 @@ body {
     border-top: 1px solid #374151;
 }
 .card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: 
+        transform 0.3s ease,
+        box-shadow 0.3s ease,
+        filter 0.3s ease; /* add filter transition */
     border: 1px solid #374151;
     background-color: #111827;
+    filter: brightness(1); /* default brightness */
 }
-.card:hover {
+
+.card:hover,
+.card:focus-within {
     transform: translateY(-5px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 25px var(--skytales-pink);
+    filter: brightness(1.2); /* increase brightness */
 }
-.card h3 { font-size: 1.3rem; }
-.card small { font-size: 0.85rem; color: #ddd; }
+
+/* Optional: if you want the .card-cover overlay to fade */
 .card-cover .d-flex {
-    /* background: linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent 100%); */
     background: linear-gradient(to top, rgba(0,0,0,0.1) 20%, transparent 100%);
+    transition: background 0.3s ease;
 }
+.card:hover .card-cover .d-flex,
+.card:focus-within .card-cover .d-flex {
+    background: linear-gradient(to top, rgba(0,0,0,0.05) 20%, transparent 100%);
+}
+
 
 .footer {
     border-top: 1px solid #374151 !important;
