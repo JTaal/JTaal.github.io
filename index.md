@@ -130,12 +130,12 @@ body {
 
 /* Optional: if you want the .card-cover overlay to fade */
 .card-cover .d-flex {
-    background: linear-gradient(to top, rgba(0,0,0,0.1) 20%, transparent 100%);
+    background: linear-gradient(to top, rgba(0,0,0,0.3) 20%, transparent 100%);
     transition: background 0.3s ease;
 }
 .card:hover .card-cover .d-flex,
 .card:focus-within .card-cover .d-flex {
-    background: linear-gradient(to top, rgba(0,0,0,0.05) 20%, transparent 100%);
+    background: linear-gradient(to top, rgba(0,0,0,0.001) 20%, transparent 100%);
 }
 
 
