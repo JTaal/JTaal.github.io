@@ -83,6 +83,6 @@ projects.sort(key=lambda p: p["title"])
 with open(projects_file, "w", encoding="utf-8") as f:
     for project in projects:
         yaml.dump([project], f, sort_keys=False, allow_unicode=True)
-        f.write("\n")
+        f.write("\n") # blank line between entries
 
 print(f"✅ Generated {len(projects)} project entries in {projects_file}")
