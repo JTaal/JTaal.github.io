@@ -1,16 +1,63 @@
 ---
 layout: default
 ---
+
 <style>
-  /* Styles for the citation copy button */
+  /* General typography & layout */
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    line-height: 1.7;
+  }
+  .post-hero {
+    background: linear-gradient(135deg, #4f46e5, #3b82f6);
+    color: white;
+    padding: 3rem 1rem;
+    border-radius: 0 0 1rem 1rem;
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  .post-hero h1 {
+    font-weight: 800;
+    font-size: 2.5rem;
+  }
+  .post-hero .meta {
+    opacity: 0.85;
+    font-size: 0.95rem;
+  }
+
+  /* Post content */
+  .post-content p {
+    margin-bottom: 1.25rem;
+    font-size: 1.05rem;
+  }
+
+  /* Visualization section */
+  .viz-container iframe {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease;
+  }
+  .viz-container iframe:hover {
+    transform: scale(1.01);
+  }
+
+  /* Citation section */
+  .citation-section {
+    background: #f8fafc;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
   .cite-container {
     position: relative;
+    margin-top: 1rem;
   }
   .copy-btn {
     position: absolute;
     top: 0.75rem;
     right: 0.75rem;
-    background-color: #555;
+    background-color: #4f46e5;
     color: white;
     border: none;
     padding: 0.5rem;
@@ -19,44 +66,51 @@ layout: default
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s ease-in-out;
+    transition: background-color 0.2s ease-in-out, transform 0.15s ease;
   }
   .copy-btn:hover {
-    background-color: #777;
+    background-color: #4338ca;
+    transform: translateY(-1px);
   }
   .copy-btn.copied {
-    background-color: #28a745; /* Green color for success */
+    background-color: #16a34a;
   }
   .copy-btn svg {
     width: 16px;
     height: 16px;
     stroke: currentColor;
   }
+  pre#bibtex-code {
+    background: #1e293b;
+    color: #f8fafc;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    font-size: 0.9rem;
+  }
 </style>
+
+<div class="post-hero">
+  <h1>{{ page.title }}</h1>
+  <div class="meta">Posted on {{ page.date | date: "%B %d, %Y" }}</div>
+</div>
 
 <div class="container my-5">
   <div class="row justify-content-center">
     <div class="col-lg-8">
       <article class="post">
-        <header class="mb-4">
-          <h1 class="fw-bolder mb-1">{{ page.title }}</h1>
-          <div class="text-muted fst-italic mb-2">Posted on {{ page.date | date: "%B %d, %Y" }}</div>
-        </header>
-        
         <section class="post-content mb-5">
           {{ content }}
         </section>
       </article>
 
-      <!-- Check for a visualization link in the post's front matter -->
       {% if page.visualization_url %}
       <hr class="my-5">
-      <div class="text-center">
+      <div class="text-center viz-container">
         <h2 class="fw-bolder">Interactive Visualization</h2>
         <p class="text-muted">Interact with the visualization below or open it in a new full-screen tab.</p>
         
-        <!-- Embedded Visualization using an iframe -->
-        <div class="ratio ratio-16x9 border rounded-3 shadow-sm my-4">
+        <div class="ratio ratio-16x9 my-4">
           <iframe 
             src="{{ page.visualization_url | relative_url }}" 
             title="{{ page.title }} Visualization" 
@@ -64,25 +118,22 @@ layout: default
           </iframe>
         </div>
         
-        <!-- Link to open the visualization in a new tab -->
-        <a href="{{ page.visualization_url | relative_url }}" class="btn btn-primary btn-lg" target="_blank" rel="noopener noreferrer">
+        <a href="{{ page.visualization_url | relative_url }}" class="btn btn-primary btn-lg shadow-sm" target="_blank" rel="noopener noreferrer">
           Open Fullscreen
         </a>
       </div>
       {% endif %}
 
-      <!-- Automatic BibTeX Citation Section with Copy Button -->
       <hr class="my-5">
       <div class="citation-section">
-        <h3 class="fw-bolder">How to Cite This Post</h3>
+        <h3 class="fw-bolder mb-2">How to Cite This Post</h3>
         <p class="text-muted">Use the following BibTeX entry to cite this post in your research.</p>
         
         <div class="cite-container">
-          <button class="copy-btn" onclick="copyToClipboard('bibtex-code', this)" aria-label="Copy to clipboard">
-            <!-- Initial Copy Icon -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <button class="copy-btn" onclick="copyToClipboard('bibtex-code', this)" aria-label="Copy to clipboard" title="Copy to clipboard">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
-          <pre id="bibtex-code" class="bg-dark text-white p-3 rounded-3"><code>@misc{Taal{{ page.date | date: "%Y" }}{{ page.title | slugify }},
+          <pre id="bibtex-code"><code>@misc{Taal{{ page.date | date: "%Y" }}{{ page.title | slugify }},
   author  = {Taal, Jasper},
   title   = { {{ page.title }} },
   year    = { {{ page.date | date: "%Y" }} },
@@ -97,27 +148,18 @@ layout: default
 </div>
 
 <script>
-// Reusable script for the copy-to-clipboard functionality
-const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
 
 function copyToClipboard(elementId, button) {
   const text = document.getElementById(elementId).innerText;
-  
-  navigator.clipboard.writeText(text).then(function() {
-    // On success, change the icon and class
+  navigator.clipboard.writeText(text).then(() => {
     button.innerHTML = checkIcon;
     button.classList.add('copied');
-    
-    // After 2 seconds, revert the icon and class
     setTimeout(() => {
       button.innerHTML = copyIcon;
       button.classList.remove('copied');
     }, 2000);
-
-  }, function(err) {
-    // Log error if copying fails
-    console.error('Could not copy text: ', err);
-  });
+  }).catch(err => console.error('Copy failed', err));
 }
 </script>
