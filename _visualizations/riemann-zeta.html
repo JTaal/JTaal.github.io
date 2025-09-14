@@ -227,13 +227,15 @@
     
     <header>
         <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Zeta Function Explorer</h1>
-        <div id="menu"></div>
-        <div id="mobile-menu-container" class="relative">
-            <button id="mobile-menu-button" class="menu-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                <span id="mobile-menu-label">Views</span>
-            </button>
-            <div id="mobile-menu-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-30"></div>
+        <div class="flex items-center gap-4">
+            <div id="menu"></div>
+            <div id="mobile-menu-container" class="relative">
+                <button id="mobile-menu-button" class="menu-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <span id="mobile-menu-label">Views</span>
+                </button>
+                <div id="mobile-menu-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-30"></div>
+            </div>
         </div>
     </header>
 
@@ -248,26 +250,26 @@
              <p id="info-description" class="text-gray-300"></p>
              <div id="info-formula" class="formula"></div>
              <div id="zeta-calculator-content" class="hidden">
-                <h4 class="font-bold text-lg text-indigo-400 mt-4">Interactive Calculator</h4>
-                <div class="calculator-container">
-                    <span>ζ(</span>
-                    <input type="number" id="zetaRealInput" value="-1" step="0.1">
-                    <span> + </span>
-                    <input type="number" id="zetaImagInput" value="0" step="0.1">
-                    <span>i )</span>
-                    <button id="calculateZetaBtn" class="toggle-button">Calculate</button>
-                </div>
-                <div id="zetaResult"></div>
+                 <h4 class="font-bold text-lg text-indigo-400 mt-4">Interactive Calculator</h4>
+                 <div class="calculator-container">
+                     <span>ζ(</span>
+                     <input type="number" id="zetaRealInput" value="-1" step="0.1">
+                     <span> + </span>
+                     <input type="number" id="zetaImagInput" value="0" step="0.1">
+                     <span>i )</span>
+                     <button id="calculateZetaBtn" class="toggle-button">Calculate</button>
+                 </div>
+                 <div id="zetaResult"></div>
 
-                <h4 class="font-bold text-lg text-indigo-400 mt-4">Point Tracker</h4>
-                <div class="calculator-container">
-                    <span>s = </span>
-                    <input type="number" id="pointRealInput" value="1.5" step="0.1">
-                    <span> + </span>
-                    <input type="number" id="pointImagInput" value="2" step="0.1">
-                    <span>i</span>
-                    <button id="plotPointBtn" class="toggle-button">Plot</button>
-                </div>
+                 <h4 class="font-bold text-lg text-indigo-400 mt-4">Point Tracker</h4>
+                 <div class="calculator-container">
+                     <span>s = </span>
+                     <input type="number" id="pointRealInput" value="1.5" step="0.1">
+                     <span> + </span>
+                     <input type="number" id="pointImagInput" value="2" step="0.1">
+                     <span>i</span>
+                     <button id="plotPointBtn" class="toggle-button">Plot</button>
+                 </div>
              </div>
         </div>
     </div>
@@ -298,7 +300,10 @@
             <h3 class="text-xl font-bold text-gray-200">Settings</h3>
             <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
         </div>
+
         <div id="zeta-settings" class="space-y-6">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">VR Settings</h4>
+             <div id="vr-button-container"></div>
              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Grid Settings</h4>
              <div class="control-group text-left w-full">
                  <label for="gridSize" class="text-sm font-medium self-start w-full flex justify-between">Size: <span id="gridSizeValue">30</span></label>
@@ -313,8 +318,8 @@
                  <input type="range" id="animationSpeed" min="200" max="60000" value="2000">
              </div>
              <div class="control-group text-left w-full">
-                <label for="stripStartSlider" class="text-sm font-medium self-start w-full flex justify-between">Strip Start: <span id="stripStartValue">0.4</span></label>
-                <input type="range" id="stripStartSlider" min="-20" max="20" value="0" step="0.1">
+                 <label for="stripStartSlider" class="text-sm font-medium self-start w-full flex justify-between">Strip Start: <span id="stripStartValue">0.4</span></label>
+                 <input type="range" id="stripStartSlider" min="-20" max="20" value="0" step="0.1">
              </div>
              <div class="control-group text-left w-full">
                  <label for="stripWidth" class="text-sm font-medium self-start w-full flex justify-between">Strip Width: <span id="stripWidthValue">0.8</span></label>
@@ -322,14 +327,14 @@
              </div>
              <div class="control-group text-left w-full">
                  <label for="zDisplacementToggle" class="text-sm font-medium self-start w-full flex justify-between">3D Displacement:
-                    <label class="switch"><input type="checkbox" id="zDisplacementToggle" checked><span class="slider"></span></label>
-                </label>
+                     <label class="switch"><input type="checkbox" id="zDisplacementToggle" checked><span class="slider"></span></label>
+                 </label>
              </div>
              <hr class="border-gray-600">
              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Color Settings</h4>
               <div class="control-group text-left w-full">
                  <label for="stripOnlyColor" class="text-sm font-medium self-start w-full flex justify-between">Strip Only:
-                    <label class="switch"><input type="checkbox" id="stripOnlyColor"><span class="slider"></span></label>
+                     <label class="switch"><input type="checkbox" id="stripOnlyColor"><span class="slider"></span></label>
                  </label>
              </div>
              <div class="control-group text-left w-full">
@@ -358,13 +363,13 @@
              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Zeros</h4>
              <div class="control-group text-left w-full">
                  <label for="riemannZerosToggle" class="text-sm font-medium self-start w-full flex justify-between">Show Non-Trivial Zeros:
-                    <label class="switch"><input type="checkbox" id="riemannZerosToggle" checked><span class="slider"></span></label>
-                </label>
+                     <label class="switch"><input type="checkbox" id="riemannZerosToggle" checked><span class="slider"></span></label>
+                 </label>
              </div>
              <div class="control-group text-left w-full">
                  <label for="trivialZerosToggle" class="text-sm font-medium self-start w-full flex justify-between">Show Trivial Zeros:
-                    <label class="switch"><input type="checkbox" id="trivialZerosToggle" checked><span class="slider"></span></label>
-                </label>
+                     <label class="switch"><input type="checkbox" id="trivialZerosToggle" checked><span class="slider"></span></label>
+                 </label>
              </div>
         </div>
         <div id="plot-settings" class="hidden space-y-6">
@@ -381,20 +386,28 @@
               <details>
                 <summary class="text-sm font-medium cursor-pointer">Advanced Plot Settings</summary>
                  <div class="space-y-4 p-2">
-                    <div class="control-group text-left w-full">
-                        <label for="plotRangeMaxInput" class="text-xs">Range Slider Max:</label>
-                        <input type="number" id="plotRangeMaxInput" value="5000" class="w-24 bg-gray-700 border border-gray-600 rounded text-center">
-                    </div>
                      <div class="control-group text-left w-full">
-                        <label for="zerosCountMaxInput" class="text-xs">Zeros Slider Max:</label>
-                        <input type="number" id="zerosCountMaxInput" value="2000" class="w-24 bg-gray-700 border border-gray-600 rounded text-center">
-                    </div>
-                    <button id="applyAdvancedSettings" class="toggle-button w-full">Apply</button>
+                         <label for="plotRangeMaxInput" class="text-xs">Range Slider Max:</label>
+                         <input type="number" id="plotRangeMaxInput" value="5000" class="w-24 bg-gray-700 border border-gray-600 rounded text-center">
+                     </div>
+                      <div class="control-group text-left w-full">
+                         <label for="zerosCountMaxInput" class="text-xs">Zeros Slider Max:</label>
+                         <input type="number" id="zerosCountMaxInput" value="2000" class="w-24 bg-gray-700 border border-gray-600 rounded text-center">
+                     </div>
+                     <button id="applyAdvancedSettings" class="toggle-button w-full">Apply</button>
                  </div>
               </details>
         </div>
     </div>
     
+    <!-- Fly Controls Info Panel -->
+    <div id="fly-controls-info" class="hidden opacity-0 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900 bg-opacity-80 p-6 rounded-lg text-center z-50 pointer-events-none transition-opacity duration-500">
+        <h3 class="text-lg font-bold mb-2">Fly Controls Active</h3>
+        <p>Use <b>WASD</b> or <b>Arrow Keys</b> to move</p>
+        <p>Use <b>Mouse</b> to look around</p>
+        <p class="mt-4 text-sm text-gray-400">Click on the visualization to lock mouse. Press ESC to exit.</p>
+    </div>
+
     <!-- MathJax for LaTeX -->
     <script>
       MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }, svg: { fontCache: 'global' } };
@@ -404,14 +417,175 @@
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        
+        // --- WebXR Button Helper Class ---
+        class VRButton {
+            static createButton( renderer ) {
+                const button = document.createElement( 'button' );
+                function showEnterVR( /*device*/ ) {
+                    let currentSession = null;
+                    async function onSessionStarted( session ) {
+                        session.addEventListener( 'end', onSessionEnded );
+                        await renderer.xr.setSession( session );
+                        button.textContent = 'EXIT VR';
+                        currentSession = session;
+                    }
+                    function onSessionEnded( /*event*/ ) {
+                        currentSession.removeEventListener( 'end', onSessionEnded );
+                        button.textContent = 'ENTER VR';
+                        currentSession = null;
+                    }
+                    button.style.display = '';
+                    button.style.cursor = 'pointer';
+                    button.classList.add('menu-button');
+                    button.textContent = 'ENTER VR';
+                    button.onmouseenter = function () { button.style.opacity = '1.0'; };
+                    button.onmouseleave = function () { button.style.opacity = '0.9'; };
+                    button.onclick = function () {
+                        if ( currentSession === null ) {
+                            const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking', 'layers' ] };
+                            navigator.xr.requestSession( 'immersive-vr', sessionInit ).then( onSessionStarted );
+                        } else {
+                            currentSession.end();
+                        }
+                    };
+                }
+                function disableButton() {
+                    button.style.display = 'none';
+                    button.style.cursor = 'auto';
+                    button.onmouseenter = null;
+                    button.onmouseleave = null;
+                    button.onclick = null;
+                }
+                function showWebXRNotFound() {
+                    disableButton();
+                    button.textContent = 'VR NOT SUPPORTED';
+                }
+                if ( 'xr' in navigator ) {
+                    button.id = 'VRButton';
+                    navigator.xr.isSessionSupported( 'immersive-vr' ).then( function ( supported ) {
+                        supported ? showEnterVR() : showWebXRNotFound();
+                    } ).catch( showWebXRNotFound );
+                    return button;
+                } else {
+                    const message = document.createElement( 'a' );
+                    if ( window.isSecureContext === false ) {
+                        message.href = document.location.href.replace( /^http:/, 'https:' );
+                        message.innerHTML = 'WEBXR NEEDS HTTPS'; 
+                    } else {
+                        message.href = 'https://immersiveweb.dev/';
+                        message.innerHTML = 'WEBXR NOT AVAILABLE';
+                    }
+                    message.style.textDecoration = 'none';
+                    return message;
+                }
+            }
+        }
 
-        let scene, camera, renderer, controls;
+        let scene, camera, renderer, orbitControls, flyControls, controller1, controller2;
         let plane, customAxes, axesLabels = [];
         let riemannZeros, trivialZeros;
         let userPoint = { mesh: null, s_original: null, s_transformed: null, s_continued: null };
         let currentAnimation = new Map();
         let isTransformed = false;
         let isContinued = false;
+        
+        // === FLY-THROUGH CAMERA CONTROLS CLASS ===
+        class FlyControls {
+            constructor(camera, controller1, controller2) {
+                this.camera = camera;
+                this.controller1 = controller1;
+                this.controller2 = controller2;
+                this.moveSpeed = 0.2;
+                this.lookSpeed = 0.002;
+
+                this.movement = { forward: false, backward: false, left: false, right: false };
+                this.isLocked = false;
+
+                this.onKeyDown = this.onKeyDown.bind(this);
+                this.onKeyUp = this.onKeyUp.bind(this);
+                this.onMouseMove = this.onMouseMove.bind(this);
+                this.onClick = this.onClick.bind(this);
+                this.onPointerLockChange = this.onPointerLockChange.bind(this);
+            }
+
+            connect() {
+                document.addEventListener('keydown', this.onKeyDown);
+                document.addEventListener('keyup', this.onKeyUp);
+                document.addEventListener('mousemove', this.onMouseMove);
+                renderer.domElement.addEventListener('click', this.onClick);
+                document.addEventListener('pointerlockchange', this.onPointerLockChange);
+            }
+
+            disconnect() {
+                document.removeEventListener('keydown', this.onKeyDown);
+                document.removeEventListener('keyup', this.onKeyUp);
+                document.removeEventListener('mousemove', this.onMouseMove);
+                renderer.domElement.removeEventListener('click', this.onClick);
+                document.removeEventListener('pointerlockchange', this.onPointerLockChange);
+                if (document.pointerLockElement === renderer.domElement) {
+                    document.exitPointerLock();
+                }
+            }
+
+            onClick() { renderer.domElement.requestPointerLock(); }
+
+            onPointerLockChange() { this.isLocked = (document.pointerLockElement === renderer.domElement); }
+
+            onKeyDown(event) {
+                switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': this.movement.forward = true; break;
+                    case 'ArrowLeft': case 'KeyA': this.movement.left = true; break;
+                    case 'ArrowDown': case 'KeyS': this.movement.backward = true; break;
+                    case 'ArrowRight': case 'KeyD': this.movement.right = true; break;
+                }
+            }
+
+            onKeyUp(event) {
+                 switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': this.movement.forward = false; break;
+                    case 'ArrowLeft': case 'KeyA': this.movement.left = false; break;
+                    case 'ArrowDown': case 'KeyS': this.movement.backward = false; break;
+                    case 'ArrowRight': case 'KeyD': this.movement.right = false; break;
+                }
+            }
+
+            onMouseMove(event) {
+                if (!this.isLocked) return;
+                const movementX = event.movementX || 0;
+                const movementY = event.movementY || 0;
+                const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+                euler.setFromQuaternion(this.camera.quaternion);
+                euler.y -= movementX * this.lookSpeed;
+                euler.x -= movementY * this.lookSpeed;
+                euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x));
+                this.camera.quaternion.setFromEuler(euler);
+            }
+
+            update() {
+                const direction = new THREE.Vector3();
+                direction.z = Number(this.movement.forward) - Number(this.movement.backward);
+                direction.x = Number(this.movement.left) - Number(this.movement.right);
+                direction.normalize();
+                if (this.movement.forward || this.movement.backward) this.camera.translateZ(-direction.z * this.moveSpeed);
+                if (this.movement.left || this.movement.right) this.camera.translateX(-direction.x * this.moveSpeed);
+            }
+
+            updateVR() {
+                const controller = this.controller1; // Assuming left controller for movement
+                if (controller && controller.gamepad && controller.gamepad.axes.length >= 4) {
+                    const moveVector = new THREE.Vector3(controller.gamepad.axes[2], 0, controller.gamepad.axes[3]);
+                    if (moveVector.length() > 0.1) { // Deadzone
+                        const headQuaternion = renderer.xr.getCamera().quaternion;
+                        moveVector.applyQuaternion(headQuaternion);
+                        // Project onto XZ plane and re-normalize for consistent speed
+                        moveVector.y = 0;
+                        moveVector.normalize();
+                        this.camera.position.addScaledVector(moveVector, -this.moveSpeed);
+                    }
+                }
+            }
+        }
         
         const views = {
             'zeta_function': {
@@ -639,12 +813,52 @@
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
             document.body.insertBefore(renderer.domElement, document.body.firstChild);
-            controls = new OrbitControls(camera, renderer.domElement);
+            document.getElementById('vr-button-container').appendChild(VRButton.createButton(renderer));
+
+            controller1 = renderer.xr.getController(0);
+            scene.add(controller1);
+            controller2 = renderer.xr.getController(1);
+            scene.add(controller2);
+            
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            flyControls = new FlyControls(camera, controller1, controller2);
+            
+            const onSelectStart = () => {
+                const transformBtn = document.getElementById('transformBtn');
+                const continueBtn = document.getElementById('continueBtn');
+                if (transformBtn && !transformBtn.classList.contains('hidden')) {
+                    transformBtn.click();
+                } else if (continueBtn && !continueBtn.classList.contains('hidden')) {
+                    continueBtn.click();
+                }
+            };
+
+            controller1.addEventListener('selectstart', onSelectStart);
+            controller2.addEventListener('selectstart', onSelectStart);
+            
             camera.position.set(0, 25, 35);
             createZeroMarkers(parseInt(document.getElementById('gridSize').value));
-            animate3D();
+            renderer.setAnimationLoop(animationLoop);
         }
+        
+        function animationLoop() {
+            if (currentView === 'zeta_function') {
+                if (renderer.xr.isPresenting) {
+                    flyControls.updateVR();
+                } else {
+                    const flyToggle = document.getElementById('controlModeToggle');
+                    if (flyToggle && flyToggle.checked) {
+                        flyControls.update();
+                    } else {
+                        orbitControls.update();
+                    }
+                }
+                renderer.render(scene, camera);
+            }
+        }
+
 
         function setupUI() {
             createMenu();
@@ -679,10 +893,13 @@
             infoTitle.textContent = view.title;
             infoDescription.innerHTML = view.description;
             infoFormula.innerHTML = view.formula;
-            if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
-                MathJax.typesetPromise();
-            } else if (window.MathJax) {
-                MathJax.startup.promise.then(() => MathJax.typeset());
+            // Safer MathJax typesetting
+            if (window.MathJax) {
+                if (typeof MathJax.typesetPromise === 'function') {
+                    MathJax.typesetPromise();
+                } else if (MathJax.startup && MathJax.startup.promise) {
+                    MathJax.startup.promise.then(() => MathJax.typeset());
+                }
             }
             
             document.querySelectorAll('.menu-button, .mobile-menu-item').forEach(btn => {
@@ -835,15 +1052,48 @@
             window.addEventListener('click', () => { if (!dropdown.classList.contains('hidden')) dropdown.classList.add('hidden'); });
         }
         
+        function handleEscapeKey(event) {
+            if (event.key === 'Escape') {
+                const toggle = document.getElementById('controlModeToggle');
+                if (toggle && toggle.checked) {
+                    toggle.click(); 
+                }
+            }
+        }
+        
         function setup3DControls() {
             controlsPanel.innerHTML = `
                 <button id="transformBtn" class="toggle-button">Transform</button>
                 <button id="continueBtn" class="toggle-button hidden">Analytically Continue</button>
                 <button id="resetBtn" class="toggle-button hidden">Reset</button>
+                <div class="flex items-center gap-2 border-l-2 border-gray-600 pl-4">
+                  <span class="text-sm text-gray-400">Orbit</span>
+                  <label class="switch"><input type="checkbox" id="controlModeToggle"><span class="slider"></span></label>
+                  <span class="text-sm text-gray-400">Fly</span>
+                </div>
             `;
             const transformBtn = document.getElementById('transformBtn');
             const continueBtn = document.getElementById('continueBtn');
             const resetBtn = document.getElementById('resetBtn');
+
+            document.getElementById('controlModeToggle').addEventListener('change', (e) => {
+                const flyInfo = document.getElementById('fly-controls-info');
+                if (e.target.checked) { // Switch to Fly
+                    orbitControls.enabled = false;
+                    flyControls.connect();
+                    flyInfo.classList.remove('hidden');
+                    setTimeout(() => flyInfo.classList.remove('opacity-0'), 100);
+                    setTimeout(() => {
+                        flyInfo.classList.add('opacity-0');
+                        setTimeout(() => flyInfo.classList.add('hidden'), 500);
+                    }, 4000);
+                    document.addEventListener('keydown', handleEscapeKey);
+                } else { // Switch to Orbit
+                    orbitControls.enabled = true;
+                    flyControls.disconnect();
+                    document.removeEventListener('keydown', handleEscapeKey);
+                }
+            });
 
             transformBtn.addEventListener('click', () => {
                 const speed = parseInt(document.getElementById('animationSpeed').value);
@@ -1037,20 +1287,21 @@
             document.getElementById('animationSpeed').addEventListener('input', (e) => { document.getElementById('animationSpeedValue').textContent = e.target.value; });
             document.getElementById('stripWidth').addEventListener('input', (e) => { document.getElementById('stripWidthValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
             document.getElementById('stripStartSlider').addEventListener('input', (e) => { document.getElementById('stripStartValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
+
             document.getElementById('zDisplacementToggle').addEventListener('input', () => {
                  const useZ = document.getElementById('zDisplacementToggle').checked;
                  const speed = parseInt(document.getElementById('animationSpeed').value);
                  
                  let targetPlanePos = isContinued ? calculateTransformedPositions(plane.userData.originalPositions, true, useZ) :
-                                   isTransformed ? calculateTransformedPositions(plane.userData.originalPositions, false, useZ) :
-                                   plane.userData.originalPositions;
+                                     isTransformed ? calculateTransformedPositions(plane.userData.originalPositions, false, useZ) :
+                                     plane.userData.originalPositions;
                  
                  let targetRiemannPos = isTransformed ? calculateZeroTransformedPositions(riemannZeros, useZ) : getOriginalPositionsArray(riemannZeros);
                  let targetTrivialPos = isTransformed ? calculateZeroTransformedPositions(trivialZeros, useZ) : getOriginalPositionsArray(trivialZeros);
                  
                  if (userPoint.mesh) {
-                    const targetPointPos = getTransformedPointPosition(isContinued);
-                    animateSingleObject(userPoint.mesh, targetPointPos, speed);
+                     const targetPointPos = getTransformedPointPosition(isContinued);
+                     animateSingleObject(userPoint.mesh, targetPointPos, speed);
                  }
 
                  animateObject(plane, targetPlanePos, speed);
@@ -1112,14 +1363,6 @@
             if(realAxis) realAxis.material.color.set(document.getElementById('realAxisColor').value);
             if(imagAxis) imagAxis.material.color.set(document.getElementById('imagAxisColor').value);
         }
-
-        function animate3D() {
-            requestAnimationFrame(animate3D);
-            if (currentView === 'zeta_function') {
-                controls.update();
-                renderer.render(scene, camera);
-            }
-        }
         
         // --- 2D Plot specific ---
         let current2DParams = {xMin: -10, xMax: 10, yMin: -25, yMax: 25, resolution: 1.0};
@@ -1177,10 +1420,10 @@
                     data[index] = r; data[index+1] = g; data[index+2] = b; data[index+3] = 255;
                 }
                  if (i % 10 === 0) { // Update canvas periodically to feel responsive
-                    ctx.putImageData(imageData, 0, 0);
-                    updateProgress((i / height) * 100);
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                }
+                     ctx.putImageData(imageData, 0, 0);
+                     updateProgress((i / height) * 100);
+                     await new Promise(resolve => setTimeout(resolve, 0));
+                 }
             }
             ctx.putImageData(imageData, 0, 0);
             isDrawing2D = false;
