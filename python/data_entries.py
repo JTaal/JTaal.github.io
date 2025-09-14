@@ -35,10 +35,17 @@ for md_file in posts_dir.glob("*.md"):
             y, m, d = date.split("-")[:3]
             post_url = f"/{y}/{m}/{d}/{slug}.html"
 
+        # Thumbnail from visualization filename if available
+        if visualization_url:
+            vis_name = Path(visualization_url).stem
+            thumbnail = f"/assets/images/{vis_name}.png"
+        else:
+            thumbnail = f"/assets/images/{slug}.png"
+
         post_entry = {
             "title": title,
             "author": "Jasper Taal",  # default
-            "thumbnail": f"/assets/images/{slug}.png",
+            "thumbnail": thumbnail,
             "post_url": post_url,
             "visualization_url": visualization_url,
             "description": description
