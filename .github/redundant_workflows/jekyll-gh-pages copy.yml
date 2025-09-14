@@ -1,0 +1,89 @@
+name: Deploy Jekyll with auto front matter dates
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # allow committing back
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so git log works
+
+      - name: Filter changed Markdown files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          list-files: shell
+          filters: |
+            markdown:
+              - added|modified: '*.md'
+
+      - name: Update front matter dates
+        if: ${{ steps.filter.outputs.markdown == 'true' }}
+        run: |
+          for file in ${{ steps.filter.outputs.markdown_files }}; do
+            echo "Updating $file"
+
+            # Get original creation date from first commit
+            created=$(git log --diff-filter=A --follow --format=%aI -- "$file" | tail -1)
+            # Get current timestamp for last_modified_at
+            modified=$(date +'%Y-%m-%dT%H:%M:%S%:z')
+
+            # Update or insert 'date:'
+            if grep -q '^date:' "$file"; then
+              sed -i "0,/^date:.*/s//date: $created/" "$file"
+            else
+              sed -i "1idate: $created" "$file"
+            fi
+
+            # Update or insert 'last_modified_at:'
+            if grep -q '^last_modified_at:' "$file"; then
+              sed -i "0,/^last_modified_at:.*/s//last_modified_at: $modified/" "$file"
+            else
+              sed -i "1ilast_modified_at: $modified" "$file"
+            fi
+          done
+
+      - name: Commit changes
+        if: ${{ steps.filter.outputs.markdown == 'true' }}
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update front matter dates for modified markdown files"
+          branch: ${{ github.ref_name }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
