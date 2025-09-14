@@ -152,9 +152,27 @@ layout: default
   }
 </style>
 
-<button class="theme-toggle" onclick="toggleTheme()">
-  <span id="theme-icon">🌙</span> Theme
-</button>
+<!-- Theme Selector Dropdown -->
+<div style="position:fixed; top:1rem; right:1rem; z-index:1000;">
+  <select id="theme-selector" onchange="setTheme(this.value)">
+    <option value="dark">🌙 Dark</option>
+    <option value="light">☀️ Light</option>
+    <option value="solarized">🌅 Solarized</option>
+    <option value="dracula">🧛 Dracula</option>
+    <option value="highcontrast">⚡ High Contrast</option>
+    <option value="monokai">💻 Monokai</option>
+    <option value="nord">❄️ Nord</option>
+    <option value="gruvbox">📦 Gruvbox</option>
+    <option value="pastel">🎨 Pastel</option>
+    <option value="forest">🌲 Forest</option>
+    <option value="ocean">🌊 Ocean</option>
+    <option value="sunset">🌇 Sunset</option>
+    <option value="cyberpunk">💾 Cyberpunk</option>
+    <option value="paper">📄 Paper</option>
+    <option value="midnight">🌌 Midnight</option>
+    <option value="lavender">💜 Lavender</option>
+  </select>
+</div>
 
 <div class="post-hero fade-in fade-delay-1">
   <h1>{{ page.title }}</h1>
@@ -220,34 +238,179 @@ function copyToClipboard(elementId, button) {
 }
 </script>
 
-<script>
-  // Theme toggle with icon and persistence
-  function toggleTheme() {
-    const body = document.body;
-    const icon = document.getElementById('theme-icon');
 
-    body.classList.toggle('light-mode');
 
-    if (body.classList.contains('light-mode')) {
-      icon.textContent = '☀️';
-      localStorage.setItem('theme', 'light');
-    } else {
-      icon.textContent = '🌙';
-      localStorage.setItem('theme', 'dark');
-    }
+
+
+
+<!-- Theme styles -->
+
+
+
+
+<style>
+  /* Base variables */
+  :root {
+    --bg-color: #0f172a;
+    --text-color: #f8fafc;
+    --muted-color: #94a3b8;
+    --link-color: #60a5fa;
+    --link-hover: #93c5fd;
   }
 
-  // Apply saved theme on load
-  (function() {
-    const savedTheme = localStorage.getItem('theme');
-    const icon = document.getElementById('theme-icon');
+  body {
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Inter', system-ui, sans-serif;
+    line-height: 1.7;
+    margin: 0;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
 
-    if (savedTheme === 'light') {
-      document.body.classList.add('light-mode');
-      if (icon) icon.textContent = '☀️';
-    } else {
-      document.body.classList.remove('light-mode');
-      if (icon) icon.textContent = '🌙';
-    }
+  a {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  a:hover { color: var(--link-hover); }
+
+  /* Theme definitions */
+  body.theme-dark {
+    --bg-color: #0f172a;
+    --text-color: #f8fafc;
+    --muted-color: #94a3b8;
+    --link-color: #60a5fa;
+    --link-hover: #93c5fd;
+  }
+  body.theme-light {
+    --bg-color: #f8fafc;
+    --text-color: #0f172a;
+    --muted-color: #475569;
+    --link-color: #2563eb;
+    --link-hover: #1d4ed8;
+  }
+  body.theme-solarized {
+    --bg-color: #fdf6e3;
+    --text-color: #657b83;
+    --muted-color: #93a1a1;
+    --link-color: #b58900;
+    --link-hover: #cb4b16;
+  }
+  body.theme-dracula {
+    --bg-color: #282a36;
+    --text-color: #f8f8f2;
+    --muted-color: #6272a4;
+    --link-color: #bd93f9;
+    --link-hover: #ff79c6;
+  }
+  body.theme-highcontrast {
+    --bg-color: #000000;
+    --text-color: #ffffff;
+    --muted-color: #cccccc;
+    --link-color: #ffff00;
+    --link-hover: #ff00ff;
+  }
+  body.theme-monokai {
+    --bg-color: #272822;
+    --text-color: #f8f8f2;
+    --muted-color: #75715e;
+    --link-color: #f92672;
+    --link-hover: #fd971f;
+  }
+  body.theme-nord {
+    --bg-color: #2e3440;
+    --text-color: #eceff4;
+    --muted-color: #81a1c1;
+    --link-color: #88c0d0;
+    --link-hover: #5e81ac;
+  }
+  body.theme-gruvbox {
+    --bg-color: #282828;
+    --text-color: #ebdbb2;
+    --muted-color: #a89984;
+    --link-color: #fabd2f;
+    --link-hover: #fe8019;
+  }
+  body.theme-pastel {
+    --bg-color: #fdf1f1;
+    --text-color: #5d576b;
+    --muted-color: #9a8c98;
+    --link-color: #f28482;
+    --link-hover: #84a59d;
+  }
+  body.theme-forest {
+    --bg-color: #1b4332;
+    --text-color: #d8f3dc;
+    --muted-color: #95d5b2;
+    --link-color: #52b788;
+    --link-hover: #40916c;
+  }
+  body.theme-ocean {
+    --bg-color: #001f3f;
+    --text-color: #7fdbff;
+    --muted-color: #39cccc;
+    --link-color: #3d9970;
+    --link-hover: #2ecc40;
+  }
+  body.theme-sunset {
+    --bg-color: #ff5e57;
+    --text-color: #fff5e1;
+    --muted-color: #ffd3b6;
+    --link-color: #ffb347;
+    --link-hover: #ffcc33;
+  }
+  body.theme-cyberpunk {
+    --bg-color: #0d0221;
+    --text-color: #fffcf2;
+    --muted-color: #ff00ff;
+    --link-color: #00fff7;
+    --link-hover: #ff2079;
+  }
+  body.theme-paper {
+    --bg-color: #faf3e0;
+    --text-color: #403d39;
+    --muted-color: #ccc5b9;
+    --link-color: #eb5e28;
+    --link-hover: #d62828;
+  }
+  body.theme-midnight {
+    --bg-color: #191970;
+    --text-color: #f0f8ff;
+    --muted-color: #778899;
+    --link-color: #00bfff;
+    --link-hover: #1e90ff;
+  }
+  body.theme-lavender {
+    --bg-color: #e6e6fa;
+    --text-color: #4b0082;
+    --muted-color: #9370db;
+    --link-color: #8a2be2;
+    --link-hover: #6a5acd;
+  }
+
+  /* Dropdown styling */
+  #theme-selector {
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.9rem;
+    background: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--muted-color);
+  }
+</style>
+
+<script>
+  function setTheme(theme) {
+    document.body.className = 'theme-' + theme;
+    localStorage.setItem('theme', theme);
+  }
+
+  // Load saved theme on page load
+  (function() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.body.className = 'theme-' + savedTheme;
+    const selector = document.getElementById('theme-selector');
+    if (selector) selector.value = savedTheme;
   })();
 </script>
