@@ -737,7 +737,32 @@
         const composer = scene.children.find(c => c.isEffectComposer);
         if (composer) composer.setSize(w, h);
     }
-    
+    // --- Info panel collapse/expand behavior ---
+
+const infoPanel = document.getElementById('info-panel');
+const infoHeader = document.getElementById('info-header');
+const toggleIcon = document.getElementById('toggle-icon');
+
+// Make header clickable and toggle expanded class
+if (infoHeader && infoPanel) {
+  infoHeader.style.cursor = 'pointer';
+  infoHeader.addEventListener('click', (e) => {
+    // Only toggle when clicking the header (not inner interactive area)
+    infoPanel.classList.toggle('expanded');
+    const isExpanded = infoPanel.classList.contains('expanded');
+    // accessibility
+    infoPanel.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+  });
+}
+
+// Ensure panel collapses when switching scenes (you already set title/description in switchScene)
+const originalSwitchScene = switchScene;
+switchScene = function(key) {
+  // collapse info panel whenever we switch scenes
+  const panel = document.getElementById('info-panel');
+  if (panel) panel.classList.remove('expanded');
+  originalSwitchScene(key);
+};
     init();
 </script>
 </body>
