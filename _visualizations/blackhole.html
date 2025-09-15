@@ -442,6 +442,135 @@
             </div>
             <div class="control-group text-left w-full">
                 <label for="particle-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Particle Size           #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #fullscreen-button { bottom: 100px; right: 10px; }
+            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
+            #controls-panel { padding: 0.75rem; gap: 0.75rem; justify-content: space-around; }
+            .control-group { gap: 0.25rem; }
+            #controls-panel .text-3xl { font-size: 1.5rem; }
+            #controls-panel label, #controls-panel .text-sm, #controls-panel .text-xs { font-size: 0.75rem; }
+            input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Black Hole Simulator</h1>
+    </header>
+
+    <div id="fly-mode-warning" class="hidden">Press [ESC] or Right-Click to release controls</div>
+    <div id="speed-indicator">Speed: 1.0x</div>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">Black Hole Simulator</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300">This simulation visualizes how mass-energy ($T_{\mu\nu}$) curves spacetime according to Einstein's Field Equations. You can control the mass of the central object and observe its effects on the surrounding fabric of spacetime, particles, and light rays.</p>
+             <div id="info-formula" class="formula">G<sub>&mu;&nu;</sub> = R<sub>&mu;&nu;</sub> - &frac12;R g<sub>&mu;&nu;</sub> = (8&pi;G/c<sup>4</sup>)T<sub>&mu;&nu;</sub></div>
+             <div id="blackhole-explanation-content">
+                 <h3 class="font-bold text-lg text-purple-400 mt-4">Visualizing Spacetime</h3>
+                 <p class="text-sm text-gray-300">The grid represents the fabric of spacetime, which is distorted by the mass of the central object. The flowing particles represent matter following "geodesics"—the straightest possible paths through this curved space.</p>
+             </div>
+             <div id="entropy-explanation-content">
+                <h3 class="font-bold text-lg text-amber-400 mt-4">The Holographic Principle</h3>
+                <p class="text-sm text-gray-300">The "Entropy View" visualizes the idea that a black hole's entropy—a measure of its internal information or "states"—is proportional to its surface area. The shimmering particles on the event horizon represent this encoded information. These states interact with each other, creating a dynamic "boiling" surface bound by the black hole's gravity.</p>
+            </div>
+             <div id="metrics-grid">
+                <div> <div class="text-xs text-purple-400">Entropy (S/k<sub>B</sub>)</div> <div id="bh-entropy-value" class="text-lg font-bold">...</div> </div>
+                <div> <div class="text-xs text-purple-400">Object Radius</div> <div id="rs-value" class="text-lg font-bold">...</div> </div>
+                <div> <div class="text-xs text-purple-400">Surface Gravity (κ)</div> <div id="kappa-value" class="text-lg font-bold">...</div> </div>
+                <div> <div class="text-xs text-purple-400">κ / c Ratio</div> <div id="ratio-value" class="text-lg font-bold">...</div> </div>
+                <div class="col-span-1 md:col-span-2"> <div class="text-xs text-purple-400">Lorentz Factor (γ) at R<sub>S</sub></div> <div id="lorentz-value" class="text-lg font-bold">...</div> </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel"></div>
+
+    <button id="fullscreen-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+        </svg>
+    </button>
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+    </button>
+    
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-inherit z-10 py-2">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div class="space-y-6">
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">VR Mode</label>
+                <button id="vr-button" title="Enter VR Mode" class="toggle-button w-full flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12.3C2 7.8 5.8 4 10.3 4s8.3 3.8 8.3 8.3-3.5 8.3-8.3 8.3S2 16.8 2 12.3z"/>
+                        <path d="M12.3 4a8.3 8.3 0 0 1 8.3 8.3 8.3 8.3 0 0 1-8.3 8.3"/>
+                    </svg>
+                    <span>Enter VR</span>
+                </button>
+            </div>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">Follow Object</label>
+                <button id="follow-toggle" class="toggle-button">Off</button>
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="light-speed-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Light Speed / Time Flow:</span>
+                    <span id="light-speed-value">999x</span>
+                </label>
+                <input id="light-speed-slider" type="range" min="0.1" max="1000" step="1" value="999" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="trace-length-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Light Ray Trace Length:</span>
+                    <span id="trace-length-value">40</span>
+                </label>
+                <input id="trace-length-slider" type="range" min="5" max="100" step="1" value="40" class="w-full">
+            </div>
+            <div id="blackhole-spin-control" class="control-group text-left w-full">
+                <label for="spin-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Black Hole Spin:</span>
+                    <span id="spin-value">0.00</span>
+                </label>
+                <input id="spin-slider" type="range" min="0" max="0.99" step="0.01" value="0.0" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="particle-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Particle Count:</span>
+                    <span id="particle-count-value">5000</span>
+                </label>
+                <input id="particle-slider" type="range" min="100" max="20000" step="100" value="5000" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="entropy-particle-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Entropy Particle Count:</span>
+                    <span id="entropy-particle-count-value">10000</span>
+                </label>
+                <input id="entropy-particle-slider" type="range" min="100" max="30000" step="100" value="10000" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="energy-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>System Energy (Temp):</span>
+                    <span id="energy-value">1.0x</span>
+                </label>
+                <input id="energy-slider" type="range" min="0.1" max="5" step="0.1" value="1.0" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="particle-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
                     <span>Particle Size:</span>
                     <span id="particle-size-value">0.10</span>
                 </label>
