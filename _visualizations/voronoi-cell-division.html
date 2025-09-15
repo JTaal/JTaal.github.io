@@ -57,11 +57,11 @@
             border-radius: 12px 12px 0 0;
             padding: 1rem 1.5rem;
             display: flex;
-            flex-direction: column; /* Changed to column */
+            flex-direction: column;
             flex-wrap: wrap;
             justify-content: center;
             align-items: center;
-            gap: 1rem; /* Spacing between rows */
+            gap: 1rem;
         }
         .controls-row {
             display: flex;
@@ -70,19 +70,23 @@
             align-items: center;
             gap: 1.5rem;
         }
-        #bifurcation-panel {
+        #bifurcation-panel, #settings-panel {
             top: 80px;
             right: 20px;
             width: 350px;
-            height: 250px;
             border-radius: 12px;
-            padding: 1rem;
+            padding: 1.25rem;
             display: flex;
             flex-direction: column;
+            gap: 1.25rem;
+        }
+         #settings-panel {
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
         }
         #bifurcation-canvas {
             width: 100%;
-            height: 100%;
+            height: 180px;
             background-color: rgba(3, 7, 18, 0.5);
             border-radius: 6px;
         }
@@ -110,8 +114,10 @@
             transition: background-color 0.3s, transform 0.2s;
             font-weight: 500;
         }
+         #settings-btn { padding: 8px; }
         .action-button:disabled {
             background-color: #374151;
+            color: #9ca3af;
             cursor: not-allowed;
             transform: none;
         }
@@ -136,28 +142,58 @@
         .control-group {
             display: flex; flex-direction: column;
             align-items: center; gap: 0.5rem; text-align: center;
-            min-width: 200px;
+            width: 100%;
         }
+        .color-picker-group {
+            display: flex; justify-content: space-between; align-items: center; width: 100%;
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            width: 40px; height: 24px; border: none; padding: 0;
+            background: none; cursor: pointer; border-radius: 4px;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 1px solid #4b5563; border-radius: 4px; }
+
         .hidden { display: none !important; }
         canvas { display: block; }
+        .divider {
+            width: 100%;
+            height: 1px;
+            background-color: rgba(55, 65, 81, 0.7);
+            margin: 0.25rem 0;
+        }
     </style>
 </head>
 <body>
     <header>
         <h1 class="text-xl font-bold">3D Cell Division</h1>
-        <div id="menu"></div>
+         <button id="settings-btn" class="menu-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+         </button>
     </header>
     <div id="info-panel" class="ui-panel">
         <div id="info-header">
             <h2 id="info-title" class="text-xl font-bold text-indigo-400"></h2>
             <div id="toggle-icon" class="text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
         </div>
-        <div id="info-content" class="pt-4"><p id="info-description"></p></div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description"></p>
+             <div id="stats-panel" class="p-3 bg-gray-900/50 rounded-lg hidden">
+                 <h3 class="font-semibold text-indigo-300 mb-2">Live Stats</h3>
+                 <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                     <span>Generation:</span><span id="gen-stat" class="font-mono text-right">0</span>
+                     <span>Population (x):</span><span id="x-stat" class="font-mono text-right">0.5000</span>
+                     <span>Cell Count:</span><span id="cell-count-stat" class="font-mono text-right">0</span>
+                 </div>
+            </div>
+        </div>
     </div>
     <div id="bifurcation-panel" class="ui-panel">
         <h3 class="text-lg font-bold text-indigo-400 mb-2">Bifurcation Diagram</h3>
         <canvas id="bifurcation-canvas"></canvas>
     </div>
+    <div id="settings-panel" class="ui-panel hidden"></div>
     <div id="controls-panel" class="ui-panel"></div>
 
 <script type="module">
@@ -179,26 +215,21 @@
     function initCellDivisionSim() {
         const MAX_CELLS = 750;
         const PLATE_SIZE = 25;
-        const BLOOM_LAYER = 1;
-        const bloomLayer = new THREE.Layers();
-        bloomLayer.set(BLOOM_LAYER);
-
-        let simState = { r: 2.8, x: 0.5, autoPlay: false, timeSinceLastStep: 0 };
+        let simState = { r: 2.8, x: 0.5, autoPlay: false, timeSinceLastStep: 0, generation: 0, gridType: 'circle' };
         let resources = { disposables: [] };
         let cellInstances = []; 
 
-        let composer, cytoplasmMesh, nucleusMesh, voronoiMesh;
+        let composer, bloomPass, cytoplasmMesh, nucleusMesh, voronoiMesh;
+        let squarePlate, squareGrid, circlePlate, circleGrid;
         const dummy = new THREE.Object3D();
-
         let bifurcationCanvas, bifurcationCtx, bifurcationImageData;
 
         function init() {
-            camera.position.set(0, 10, 15); 
+            camera.position.set(0, 15, 20); 
             controls.target.set(0, 0, 0);
             controls.autoRotate = true;
             controls.autoRotateSpeed = 0.2;
             controls.maxPolarAngle = Math.PI / 2.1;
-
             setupPostProcessing();
             setupUI();
             createEnvironment();
@@ -208,7 +239,7 @@
 
         function setupPostProcessing() {
             const renderPass = new RenderPass(scene, camera);
-            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.0, 0.4, 0.5);
+            bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.0, 0.4, 0.5);
             composer = new EffectComposer(renderer);
             composer.addPass(renderPass);
             composer.addPass(bloomPass);
@@ -217,8 +248,10 @@
 
         function setupUI() {
             const controlsPanel = document.getElementById('controls-panel');
+            const settingsPanel = document.getElementById('settings-panel');
+
             controlsPanel.innerHTML = `
-                <div class="controls-row">
+                 <div class="controls-row">
                     <div class="control-group">
                         <label class="text-sm font-medium">Growth Rate (r): <span id="r-value">${simState.r.toFixed(3)}</span></label>
                         <input id="r-slider" type="range" min="0" max="4" step="0.001" value="${simState.r}" class="w-full">
@@ -227,113 +260,221 @@
                     <button id="next-gen-btn" class="action-button">Next Gen</button>
                     <button id="autoplay-btn" class="toggle-button">Auto-Play</button>
                     <button id="reset-btn" class="action-button">Reset</button>
-                </div>
-                <div class="controls-row" id="presets-container">
+                </div>`;
+
+            settingsPanel.innerHTML = `
+                <h3 class="text-lg font-bold text-indigo-400 -mb-2">Presets</h3>
+                <div class="controls-row flex-wrap justify-start">
                      <button class="preset-button" data-r="2.8">Stable</button>
                      <button class="preset-button" data-r="3.2">Bifurcation</button>
                      <button class="preset-button" data-r="3.5">Period-Doubling</button>
                      <button class="preset-button" data-r="3.8">Chaos</button>
                      <button class="preset-button" data-r="4.0">Collapse</button>
-                     <div class="h-8 border-l border-gray-600 mx-2"></div>
+                </div>
+                <div class="divider"></div>
+                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">View Controls</h3>
+                 <div class="controls-row">
                      <button id="toggle-graph-btn" class="toggle-button active">Hide Graph</button>
                      <button id="toggle-voronoi-btn" class="toggle-button active">Hide Voronoi</button>
+                     <button id="grid-shape-btn" class="toggle-button active">Square Grid</button>
+                     <button id="autorotate-btn" class="toggle-button active">Auto-Rotate</button>
                 </div>
-            `;
-            document.getElementById('r-slider').addEventListener('input', e => {
-                setGrowthRate(parseFloat(e.target.value));
-            });
+                <div class="divider"></div>
+                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">Color & Appearance</h3>
+                 <div class="space-y-3">
+                    <div class="color-picker-group">
+                        <label for="cyto-color">Cytoplasm Color</label>
+                        <input type="color" id="cyto-color" value="#ffb399">
+                    </div>
+                     <div class="control-group !items-start !text-left">
+                        <label class="text-sm font-medium w-full">Cell Transparency: <span id="cyto-opacity-value">0.40</span></label>
+                        <input id="cyto-opacity-slider" type="range" min="0" max="1" step="0.01" value="0.4" class="w-full">
+                    </div>
+                     <div class="color-picker-group">
+                        <label for="nucleus-color">Nucleus Color</label>
+                        <input type="color" id="nucleus-color" value="#4b0082">
+                    </div>
+                     <div class="color-picker-group">
+                        <label for="grid-color">Grid Color</label>
+                        <input type="color" id="grid-color" value="#4f46e5">
+                    </div>
+                    <button id="random-color-btn" class="action-button w-full">Randomize Colors</button>
+                 </div>
+                 <div class="divider"></div>
+                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">Graphics Settings</h3>
+                 <div class="control-group">
+                    <label class="text-sm font-medium">Bloom Strength: <span id="bloom-strength-value">1.0</span></label>
+                    <input id="bloom-strength-slider" type="range" min="0" max="3" step="0.05" value="1.0" class="w-full">
+                </div>
+                 <div class="control-group">
+                    <label class="text-sm font-medium">Bloom Threshold: <span id="bloom-threshold-value">0.4</span></label>
+                    <input id="bloom-threshold-slider" type="range" min="0" max="1" step="0.05" value="0.4" class="w-full">
+                </div>
+                <div class="divider"></div>
+                 <div class="control-group w-full">
+                    <label class="text-sm font-medium">Sim Speed: <span id="speed-value">1.0x</span></label>
+                    <input id="speed-slider" type="range" min="0.1" max="5" step="0.1" value="1.0" class="w-full">
+                </div>`;
+            
+            // --- Event Listeners ---
+            document.getElementById('settings-btn').addEventListener('click', () => settingsPanel.classList.toggle('hidden'));
+            document.getElementById('r-slider').addEventListener('input', e => setGrowthRate(parseFloat(e.target.value)));
             document.getElementById('next-gen-btn').onclick = calculateNextGeneration;
             document.getElementById('reset-btn').onclick = resetSimulation;
             document.getElementById('autoplay-btn').addEventListener('click', e => {
                 simState.autoPlay = !simState.autoPlay;
                 e.target.textContent = simState.autoPlay ? 'Pause' : 'Auto-Play';
                 e.target.classList.toggle('active', simState.autoPlay);
+                document.getElementById('next-gen-btn').disabled = simState.autoPlay;
                 simState.timeSinceLastStep = 0;
             });
-            
-            document.querySelectorAll('.preset-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    const rValue = parseFloat(button.dataset.r);
-                    setGrowthRate(rValue);
-                });
+            document.querySelectorAll('.preset-button').forEach(button => button.addEventListener('click', () => setGrowthRate(parseFloat(button.dataset.r))));
+            document.getElementById('cyto-color').addEventListener('input', e => cytoplasmMesh.material.color.set(e.target.value));
+            document.getElementById('cyto-opacity-slider').addEventListener('input', e => {
+                const opacity = parseFloat(e.target.value);
+                cytoplasmMesh.material.opacity = opacity;
+                document.getElementById('cyto-opacity-value').textContent = opacity.toFixed(2);
             });
-            
-            document.getElementById('toggle-graph-btn').addEventListener('click', (e) => {
-                const panel = document.getElementById('bifurcation-panel');
-                const isHidden = panel.style.display === 'none';
-                panel.style.display = isHidden ? 'flex' : 'none';
-                e.target.textContent = isHidden ? 'Hide Graph' : 'Show Graph';
-                e.target.classList.toggle('active', isHidden);
+            document.getElementById('nucleus-color').addEventListener('input', e => nucleusMesh.material.color.set(e.target.value));
+            document.getElementById('grid-color').addEventListener('input', e => {
+                const color = new THREE.Color(e.target.value);
+                [squareGrid.material, circleGrid.material, squarePlate.material, circlePlate.material].forEach(mat => mat.color.set(color));
             });
-            
-            document.getElementById('toggle-voronoi-btn').addEventListener('click', (e) => {
+            document.getElementById('random-color-btn').addEventListener('click', () => {
+                const randomColor = () => '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                document.getElementById('cyto-color').value = randomColor();
+                document.getElementById('nucleus-color').value = randomColor();
+                document.getElementById('grid-color').value = randomColor();
+                document.getElementById('cyto-color').dispatchEvent(new Event('input'));
+                document.getElementById('nucleus-color').dispatchEvent(new Event('input'));
+                document.getElementById('grid-color').dispatchEvent(new Event('input'));
+            });
+            document.getElementById('bloom-strength-slider').addEventListener('input', e => {
+                bloomPass.strength = parseFloat(e.target.value);
+                document.getElementById('bloom-strength-value').textContent = parseFloat(e.target.value).toFixed(2);
+            });
+            document.getElementById('bloom-threshold-slider').addEventListener('input', e => {
+                bloomPass.threshold = parseFloat(e.target.value);
+                document.getElementById('bloom-threshold-value').textContent = parseFloat(e.target.value).toFixed(2);
+            });
+            document.getElementById('toggle-graph-btn').addEventListener('click', e => togglePanelVisibility(e.target, 'bifurcation-panel', 'Graph'));
+            document.getElementById('toggle-voronoi-btn').addEventListener('click', e => {
                 if (voronoiMesh) {
                     voronoiMesh.visible = !voronoiMesh.visible;
                     e.target.textContent = voronoiMesh.visible ? 'Hide Voronoi' : 'Show Voronoi';
                     e.target.classList.toggle('active', voronoiMesh.visible);
                 }
             });
+            document.getElementById('speed-slider').addEventListener('input', e => {
+                animationSpeed = parseFloat(e.target.value);
+                document.getElementById('speed-value').textContent = `${animationSpeed.toFixed(1)}x`;
+            });
+            document.getElementById('autorotate-btn').addEventListener('click', e => {
+                controls.autoRotate = !controls.autoRotate;
+                e.target.classList.toggle('active', controls.autoRotate);
+            });
+            document.getElementById('grid-shape-btn').addEventListener('click', e => toggleGridShape(e.target));
         }
         
+        function togglePanelVisibility(button, panelId, name) {
+            const panel = document.getElementById(panelId);
+            const isHidden = panel.style.display === 'none';
+            panel.style.display = isHidden ? 'flex' : 'none';
+            button.textContent = isHidden ? `Hide ${name}` : `Show ${name}`;
+            button.classList.toggle('active', isHidden);
+        }
+        
+        function toggleGridShape(button) {
+            simState.gridType = (simState.gridType === 'square') ? 'circle' : 'square';
+            const isSquare = simState.gridType === 'square';
+            squarePlate.visible = isSquare;
+            squareGrid.visible = isSquare;
+            circlePlate.visible = !isSquare;
+            circleGrid.visible = !isSquare;
+            button.textContent = isSquare ? 'Circle Grid' : 'Square Grid';
+            button.classList.toggle('active', !isSquare);
+        }
+
         function setGrowthRate(r) {
             simState.r = r;
             document.getElementById('r-slider').value = r;
             document.getElementById('r-value').textContent = r.toFixed(3);
+            simState.generation = 0;
             calculateNextGeneration();
         }
 
-        function createEnvironment() {
-            const plateGeometry = new THREE.PlaneGeometry(PLATE_SIZE, PLATE_SIZE, 10, 10);
-            const plateMaterial = new THREE.MeshStandardMaterial({
-                color: 0x4f46e5, transparent: true, opacity: 0.1,
-                side: THREE.DoubleSide, metalness: 0.2, roughness: 0.8
-            });
-            const plate = new THREE.Mesh(plateGeometry, plateMaterial);
-            plate.rotation.x = -Math.PI / 2;
-            activeSceneObjects.add(plate);
+        function createCircleGridLines(radius, radialDivisions, circleDivisions) {
+            const vertices = [];
+            for (let i = 0; i < radialDivisions; i++) {
+                const angle = (i / radialDivisions) * Math.PI * 2;
+                vertices.push(0, 0, 0, radius * Math.cos(angle), 0, radius * Math.sin(angle));
+            }
+            for (let i = 1; i <= circleDivisions; i++) {
+                const circleRadius = (i / circleDivisions) * radius;
+                for (let j = 0; j < 128; j++) {
+                    const angle1 = (j / 128) * Math.PI * 2;
+                    const angle2 = ((j + 1) / 128) * Math.PI * 2;
+                    vertices.push(circleRadius * Math.cos(angle1), 0, circleRadius * Math.sin(angle1), circleRadius * Math.cos(angle2), 0, circleRadius * Math.sin(angle2));
+                }
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            const material = new THREE.LineBasicMaterial({ color: 0x4f46e5, transparent: true, opacity: 0.7 });
+            const lineSegments = new THREE.LineSegments(geometry, material);
+            lineSegments.position.y = 0.01;
+            resources.disposables.push(geometry, material);
+            return lineSegments;
+        }
 
-            const grid = new THREE.GridHelper(PLATE_SIZE, 20, 0x4f46e5, 0x374151);
-            grid.position.y = 0.01;
-            activeSceneObjects.add(grid);
+        function createEnvironment() {
+            const plateMaterial = new THREE.MeshStandardMaterial({
+                color: 0x4f46e5, transparent: true, opacity: 0.1, side: THREE.DoubleSide, metalness: 0.2, roughness: 0.8
+            });
+            const squareGeom = new THREE.PlaneGeometry(PLATE_SIZE, PLATE_SIZE);
+            squarePlate = new THREE.Mesh(squareGeom, plateMaterial.clone());
+            squarePlate.rotation.x = -Math.PI / 2;
+            squarePlate.visible = false;
+            activeSceneObjects.add(squarePlate);
+
+            squareGrid = new THREE.GridHelper(PLATE_SIZE, 20, 0x4f46e5, 0x374151);
+            squareGrid.material.color = new THREE.Color(0x4f46e5);
+            squareGrid.position.y = 0.01;
+            squareGrid.visible = false;
+            activeSceneObjects.add(squareGrid);
+            
+            const circleGeom = new THREE.CircleGeometry(PLATE_SIZE / 2, 64);
+            circlePlate = new THREE.Mesh(circleGeom, plateMaterial.clone());
+            circlePlate.rotation.x = -Math.PI / 2;
+            circlePlate.visible = true;
+            activeSceneObjects.add(circlePlate);
+
+            circleGrid = createCircleGridLines(PLATE_SIZE / 2, 16, 5);
+            circleGrid.visible = true;
+            activeSceneObjects.add(circleGrid);
             
             const voronoiGeometry = new THREE.BufferGeometry();
-            const voronoiMaterial = new THREE.LineBasicMaterial({
-                color: 0x67e8f9, // Cyan-300
-                transparent: true,
-                opacity: 0.75,
-                depthTest: false
-            });
+            const voronoiMaterial = new THREE.LineBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.75, depthTest: false });
             voronoiMesh = new THREE.LineSegments(voronoiGeometry, voronoiMaterial);
-            voronoiMesh.position.y = 0.02; // Slightly above grid
-            voronoiMesh.renderOrder = 1; // Render on top
+            voronoiMesh.position.y = 0.02; 
+            voronoiMesh.renderOrder = 1;
             activeSceneObjects.add(voronoiMesh);
-
-            resources.disposables.push(plateGeometry, plateMaterial, voronoiGeometry, voronoiMaterial);
+            resources.disposables.push(plateMaterial, squareGeom, circleGeom, voronoiGeometry, voronoiMaterial);
         }
 
         function createCellMeshes() {
-            const cellGroup = new THREE.Group();
-            activeSceneObjects.add(cellGroup);
-
             const cytoplasmGeom = new THREE.SphereGeometry(0.5, 20, 16);
             const cytoplasmMat = new THREE.MeshStandardMaterial({
-                color: 0xffa07a, // Light Salmon
-                transparent: true, opacity: 0.4, premultipliedAlpha: true,
-                metalness: 0.1, roughness: 0.4
+                color: 0xffb399, transparent: true, opacity: 0.4, premultipliedAlpha: true, metalness: 0.1, roughness: 0.4
             });
             cytoplasmMesh = new THREE.InstancedMesh(cytoplasmGeom, cytoplasmMat, MAX_CELLS);
-            cytoplasmMesh.layers.enable(BLOOM_LAYER);
-            cellGroup.add(cytoplasmMesh);
+            activeSceneObjects.add(cytoplasmMesh);
 
             const nucleusGeom = new THREE.SphereGeometry(0.2, 16, 12);
             const nucleusMat = new THREE.MeshStandardMaterial({
-                color: 0x4b0082, // Indigo
-                emissive: 0x312e81, emissiveIntensity: 0.5,
-                metalness: 0.2, roughness: 0.5
+                color: 0x4b0082, emissive: 0x312e81, emissiveIntensity: 0.5, metalness: 0.2, roughness: 0.5
             });
             nucleusMesh = new THREE.InstancedMesh(nucleusGeom, nucleusMat, MAX_CELLS);
-            nucleusMesh.layers.enable(BLOOM_LAYER);
-            cellGroup.add(nucleusMesh);
+            activeSceneObjects.add(nucleusMesh);
             resources.disposables.push(cytoplasmGeom, cytoplasmMat, nucleusGeom, nucleusMat);
 
             for (let i = 0; i < MAX_CELLS; i++) {
@@ -347,41 +488,25 @@
         
         function setupBifurcationDiagram() {
             bifurcationCanvas = document.getElementById('bifurcation-canvas');
-            
             requestAnimationFrame(() => {
                 const dpr = window.devicePixelRatio || 1;
-                
-                if (!bifurcationCanvas || !bifurcationCanvas.clientWidth) {
-                    console.error("Bifurcation canvas not ready.");
-                    return;
-                }
-
+                if (!bifurcationCanvas || !bifurcationCanvas.clientWidth) return;
                 bifurcationCanvas.width = bifurcationCanvas.clientWidth * dpr;
                 bifurcationCanvas.height = bifurcationCanvas.clientHeight * dpr;
-
                 bifurcationCtx = bifurcationCanvas.getContext('2d');
                 bifurcationCtx.fillStyle = 'rgba(129, 140, 248, 0.1)'; 
-
-                const width = bifurcationCanvas.width;
-                const height = bifurcationCanvas.height;
-                
+                const { width, height } = bifurcationCanvas;
                 if (width === 0 || height === 0) return;
-
                 for (let i = 0; i < width; i++) {
                     const r = (i / width) * 4.0;
                     let x = Math.random();
-                    for (let j = 0; j < 500; j++) {
-                        x = r * x * (1 - x);
-                    }
+                    for (let j = 0; j < 500; j++) x = r * x * (1 - x);
                     for (let j = 0; j < 200; j++) {
                         x = r * x * (1 - x);
                         const y = height - (x * height);
-                        if (y >= 0 && y < height) {
-                            bifurcationCtx.fillRect(i, y, 1, 1);
-                        }
+                        if (y >= 0 && y < height) bifurcationCtx.fillRect(i, y, 1, 1);
                     }
                 }
-                
                 bifurcationImageData = bifurcationCtx.getImageData(0, 0, width, height);
                 calculateNextGeneration();
             });
@@ -389,23 +514,16 @@
         
         function updateBifurcationMarker() {
             if (!bifurcationCtx || !bifurcationImageData) return;
-
-            const width = bifurcationCanvas.width;
-            const height = bifurcationCanvas.height;
-            
+            const { width, height } = bifurcationCanvas;
             bifurcationCtx.putImageData(bifurcationImageData, 0, 0);
-            
             const r_pos = (simState.r / 4.0) * width;
             const x_pos = height - (simState.x * height);
-            
             bifurcationCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
             bifurcationCtx.lineWidth = 1 * (window.devicePixelRatio || 1);
-            
             bifurcationCtx.beginPath();
             bifurcationCtx.moveTo(r_pos, 0);
             bifurcationCtx.lineTo(r_pos, height);
             bifurcationCtx.stroke();
-            
             bifurcationCtx.beginPath();
             bifurcationCtx.moveTo(0, x_pos);
             bifurcationCtx.lineTo(width, x_pos);
@@ -414,72 +532,106 @@
 
         function resetSimulation() {
             simState.x = 0.5;
+            simState.generation = 0;
             setGrowthRate(2.8);
         }
 
         function calculateNextGeneration() {
+            document.getElementById('stats-panel').classList.remove('hidden');
+            simState.generation++;
             simState.x = simState.r * simState.x * (1 - simState.x);
+            if (simState.x < 0) simState.x = 0;
             const newCellCount = Math.floor(simState.x * MAX_CELLS);
-
             for (let i = 0; i < MAX_CELLS; i++) {
                 cellInstances[i].targetScale = i < newCellCount ? 1 : 0;
             }
             updateBifurcationMarker();
+            document.getElementById('gen-stat').textContent = simState.generation;
+            document.getElementById('x-stat').textContent = simState.x.toFixed(4);
+            document.getElementById('cell-count-stat').textContent = newCellCount;
+        }
+        
+        function clipSegmentWithCircle(p1, p2, radius) {
+            const radiusSq = radius * radius;
+            const p1Inside = p1.lengthSq() < radiusSq;
+            const p2Inside = p2.lengthSq() < radiusSq;
+            if (p1Inside && p2Inside) return [p1, p2];
+            const d = p2.clone().sub(p1);
+            const a = d.lengthSq();
+            const b = 2 * p1.dot(d);
+            const c = p1.lengthSq() - radiusSq;
+            const discriminant = b * b - 4 * a * c;
+            if (discriminant < 0) return null;
+            const sqrtD = Math.sqrt(discriminant);
+            const t1 = (-b - sqrtD) / (2 * a), t2 = (-b + sqrtD) / (2 * a);
+            const intersections = [];
+            if (t1 >= 0 && t1 <= 1) intersections.push(p1.clone().add(d.clone().multiplyScalar(t1)));
+            if (t2 >= 0 && t2 <= 1) intersections.push(p1.clone().add(d.clone().multiplyScalar(t2)));
+            if (p1Inside) return [p1, intersections[0]];
+            if (p2Inside) return [p2, intersections[0]];
+            if (intersections.length === 2) return intersections;
+            return null;
         }
 
         function update(delta) {
             if (simState.autoPlay) {
                 simState.timeSinceLastStep += delta;
-                if (simState.timeSinceLastStep > (0.5 / animationSpeed)) {
+                const stepTime = 0.5 / Math.max(0.1, animationSpeed);
+                if (simState.timeSinceLastStep > stepTime) {
                     calculateNextGeneration();
                     simState.timeSinceLastStep = 0;
                 }
             }
 
+            nucleusMesh.material.emissiveIntensity = 0.5 + (Math.sin(clock.getElapsedTime() * 4) * 0.25);
             const halfPlate = PLATE_SIZE / 2;
-            const activeCellIndices = [];
-            for(let i = 0; i < MAX_CELLS; i++) {
-                if (cellInstances[i].targetScale > 0) {
-                    activeCellIndices.push(i);
-                }
-            }
-
-            // --- Cell Repulsion to prevent overlap ---
-            const repulsionStrength = 0.02;
-            const effectiveRadius = 0.5; // Cytoplasm radius
+            const activeCellIndices = cellInstances.map((inst, i) => inst.targetScale > 0 && inst.currentScale > 0.1 ? i : -1).filter(i => i !== -1);
+            
+            const effectiveRadius = 0.5, restitution = 0.8;
             for (let i = 0; i < activeCellIndices.length; i++) {
                 for (let j = i + 1; j < activeCellIndices.length; j++) {
-                    const instanceA = cellInstances[activeCellIndices[i]];
-                    const instanceB = cellInstances[activeCellIndices[j]];
-
+                    const instanceA = cellInstances[activeCellIndices[i]], instanceB = cellInstances[activeCellIndices[j]];
                     const diff = new THREE.Vector3().subVectors(instanceA.position, instanceB.position);
-                    diff.y = 0; // Only consider 2D distance for repulsion
+                    diff.y = 0; 
                     const dist = diff.length();
                     const overlap = (effectiveRadius * 2) - dist;
-
                     if (overlap > 0) {
-                        const repulsion = diff.normalize().multiplyScalar(overlap * repulsionStrength);
-                        instanceA.velocity.add(repulsion);
-                        instanceB.velocity.sub(repulsion);
+                        const normal = diff.normalize(), correction = normal.clone().multiplyScalar(overlap / 2);
+                        instanceA.position.add(correction);
+                        instanceB.position.sub(correction);
+                        const vRel = new THREE.Vector3().subVectors(instanceA.velocity, instanceB.velocity);
+                        const speedAlongNormal = vRel.dot(normal);
+                        if (speedAlongNormal > 0) continue; 
+                        const impulse = -(1 + restitution) * speedAlongNormal / 2;
+                        const impulseVec = normal.clone().multiplyScalar(impulse);
+                        instanceA.velocity.add(impulseVec);
+                        instanceB.velocity.sub(impulseVec);
                     }
                 }
             }
             
-            // --- Update All Cell Positions and Matrices ---
             for (let i = 0; i < MAX_CELLS; i++) {
                 const instance = cellInstances[i];
                 instance.currentScale += (instance.targetScale - instance.currentScale) * 0.1;
                 instance.position.add(instance.velocity.clone().multiplyScalar(delta * animationSpeed));
 
-                if (Math.abs(instance.position.x) > halfPlate) {
-                    instance.velocity.x *= -1;
-                    instance.position.x = Math.sign(instance.position.x) * halfPlate;
+                if (simState.gridType === 'square') {
+                    if (Math.abs(instance.position.x) > halfPlate) {
+                        instance.velocity.x *= -restitution;
+                        instance.position.x = Math.sign(instance.position.x) * halfPlate;
+                    }
+                    if (Math.abs(instance.position.z) > halfPlate) {
+                        instance.velocity.z *= -restitution;
+                        instance.position.z = Math.sign(instance.z) * halfPlate;
+                    }
+                } else { 
+                    const distFromCenter = Math.sqrt(instance.position.x ** 2 + instance.position.z ** 2);
+                    if (distFromCenter > halfPlate) {
+                        const normal = new THREE.Vector3(instance.position.x, 0, instance.position.z).normalize();
+                        instance.velocity.reflect(normal).multiplyScalar(restitution);
+                        instance.position.set(normal.x * halfPlate, instance.position.y, normal.z * halfPlate);
+                    }
                 }
-                if (Math.abs(instance.position.z) > halfPlate) {
-                    instance.velocity.z *= -1;
-                    instance.position.z = Math.sign(instance.position.z) * halfPlate;
-                }
-                
                 dummy.position.copy(instance.position);
                 dummy.scale.setScalar(Math.max(0, instance.currentScale));
                 dummy.updateMatrix();
@@ -489,37 +641,31 @@
             cytoplasmMesh.instanceMatrix.needsUpdate = true;
             nucleusMesh.instanceMatrix.needsUpdate = true;
             
-            // --- Update Voronoi Diagram ---
             if (voronoiMesh && voronoiMesh.visible && activeCellIndices.length > 2) {
-                const activeCells = activeCellIndices.map(i => cellInstances[i]);
-                const points = activeCells.map(c => [c.position.x, c.position.z]);
+                const points = activeCellIndices.map(i => [cellInstances[i].position.x, cellInstances[i].position.z]);
                 const delaunay = Delaunay.from(points);
                 const voronoi = delaunay.voronoi([-halfPlate, -halfPlate, halfPlate, halfPlate]);
-
                 const vertices = [];
                 for (const polygon of voronoi.cellPolygons()) {
                     if (polygon) {
                         for (let i = 0; i < polygon.length; i++) {
-                            const p1 = polygon[i];
-                            const p2 = polygon[(i + 1) % polygon.length];
-                            vertices.push(p1[0], 0, p1[1]);
-                            vertices.push(p2[0], 0, p2[1]);
+                            const p1Arr = polygon[i], p2Arr = polygon[(i + 1) % polygon.length];
+                            if (simState.gridType === 'square') {
+                                vertices.push(p1Arr[0], 0, p1Arr[1], p2Arr[0], 0, p2Arr[1]);
+                            } else {
+                                const clippedSegment = clipSegmentWithCircle(new THREE.Vector2(p1Arr[0], p1Arr[1]), new THREE.Vector2(p2Arr[0], p2Arr[1]), halfPlate);
+                                if (clippedSegment) vertices.push(clippedSegment[0].x, 0, clippedSegment[0].y, clippedSegment[1].x, 0, clippedSegment[1].y);
+                            }
                         }
                     }
                 }
-                
-                if (vertices.length > 0) {
-                    voronoiMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-                }
+                voronoiMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             } else if (voronoiMesh) {
                  voronoiMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
             }
         }
 
-        function render() {
-            composer.render();
-        }
-
+        function render() { composer.render(); }
         function cleanup() {
             controls.autoRotate = false;
             resources.disposables.forEach(d => d.dispose && d.dispose());
@@ -531,12 +677,8 @@
         return { update, cleanup, render };
     }
 
-    // Template Engine
-    let scene, camera, renderer, controls, clock;
+    let scene, camera, renderer, controls, clock, currentUpdate = () => {}, currentCleanup = () => {}, currentRender = null, animationSpeed = 1.0;
     let activeSceneObjects = new THREE.Group();
-    let currentUpdate = () => {}, currentCleanup = () => {}, currentRender = null;
-    let currentSceneKey = null;
-    let animationSpeed = 1.0;
     
     function init() {
         clock = new THREE.Clock();
@@ -557,7 +699,6 @@
         bottomLight.position.set(0, -10, 0);
         scene.add(bottomLight);
         scene.add(activeSceneObjects);
-        setupUI();
         const firstSceneKey = Object.keys(scenes)[0];
         if (firstSceneKey) switchScene(firstSceneKey);
         window.addEventListener('resize', onWindowResize);
@@ -565,11 +706,8 @@
     }
 
     function switchScene(key) {
-        if (key === currentSceneKey) return;
         if (currentCleanup) currentCleanup();
-        while(activeSceneObjects.children.length > 0){ 
-            activeSceneObjects.remove(activeSceneObjects.children[0]); 
-        }
+        while(activeSceneObjects.children.length > 0) activeSceneObjects.remove(activeSceneObjects.children[0]); 
         document.getElementById('controls-panel').innerHTML = '';
         currentRender = null;
         controls.reset();
@@ -578,10 +716,6 @@
         const sceneData = scenes[key];
         document.getElementById('info-title').textContent = sceneData.title;
         document.getElementById('info-description').textContent = sceneData.description;
-        document.querySelectorAll('.menu-button').forEach(b => b.classList.remove('active'));
-        const btn = document.getElementById(`btn-${key}`);
-        if(btn) btn.classList.add('active');
-        currentSceneKey = key;
         const result = sceneData.init();
         currentUpdate = result.update || (() => {});
         currentCleanup = result.cleanup || (() => {});
@@ -592,40 +726,20 @@
         const delta = clock.getDelta();
         controls.update();
         currentUpdate(delta);
-        if (currentRender) {
-            currentRender();
-        } else {
-            renderer.render(scene, camera);
-        }
+        if (currentRender) currentRender(); else renderer.render(scene, camera);
     }
     
-    function setupUI() {
-        const menuDiv = document.getElementById('menu');
-        Object.keys(scenes).forEach(key => {
-            const button = document.createElement('button');
-            button.id = `btn-${key}`;
-            button.className = 'menu-button';
-            button.textContent = scenes[key].title.split(':')[0];
-            button.onclick = () => switchScene(key);
-            menuDiv.appendChild(button);
-        });
-        document.getElementById('info-panel').addEventListener('click', (e) => {
-            if (!e.target.closest('button, a, input')) {
-                e.currentTarget.classList.toggle('expanded');
-            }
-        });
-    }
-
     function onWindowResize() { 
-        const w = window.innerWidth;
-        const h = window.innerHeight;
+        const w = window.innerWidth, h = window.innerHeight;
         camera.aspect = w / h; 
         camera.updateProjectionMatrix(); 
         renderer.setSize(w, h);
+        const composer = scene.children.find(c => c.isEffectComposer);
+        if (composer) composer.setSize(w, h);
     }
     
     init();
-
 </script>
 </body>
 </html>
+
