@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Logistic Map Cell Simulation</title>
+    <title>Cellular Dynamics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="importmap">
@@ -144,7 +144,7 @@
             align-items: center; gap: 0.5rem; text-align: center;
             width: 100%;
         }
-        .color-picker-group {
+        .color-picker-group, .switch-group {
             display: flex; justify-content: space-between; align-items: center; width: 100%;
         }
         input[type="color"] {
@@ -167,7 +167,7 @@
 </head>
 <body>
     <header>
-        <h1 class="text-xl font-bold">3D Cell Division</h1>
+        <h1 class="text-xl font-bold">Cellular Dynamics</h1>
          <button id="settings-btn" class="menu-button">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
          </button>
@@ -273,11 +273,23 @@
                 </div>
                 <div class="divider"></div>
                  <h3 class="text-lg font-bold text-indigo-400 -mb-2">View Controls</h3>
-                 <div class="controls-row">
-                     <button id="toggle-graph-btn" class="toggle-button active">Hide Graph</button>
-                     <button id="toggle-voronoi-btn" class="toggle-button active">Hide Voronoi</button>
-                     <button id="grid-shape-btn" class="toggle-button active">Square Grid</button>
-                     <button id="autorotate-btn" class="toggle-button active">Auto-Rotate</button>
+                 <div class="space-y-3">
+                    <div class="controls-row !justify-around">
+                         <button id="toggle-graph-btn" class="toggle-button active">Hide Graph</button>
+                         <button id="toggle-voronoi-btn" class="toggle-button active">Hide Voronoi</button>
+                         <button id="autorotate-btn" class="toggle-button active">Auto-Rotate</button>
+                    </div>
+                    <div class="switch-group">
+                         <label for="grid-shape-switch" class="text-sm font-medium">Grid Shape</label>
+                         <div class="flex items-center gap-2">
+                            <span class="text-sm">Circle</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="grid-shape-switch" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                            <span class="text-sm">Square</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="divider"></div>
                  <h3 class="text-lg font-bold text-indigo-400 -mb-2">Color & Appearance</h3>
@@ -328,6 +340,9 @@
                 simState.timeSinceLastStep = 0;
             });
             document.querySelectorAll('.preset-button').forEach(button => button.addEventListener('click', () => setGrowthRate(parseFloat(button.dataset.r))));
+            document.getElementById('grid-shape-switch').addEventListener('change', e => {
+                toggleGridShape(e.target.checked ? 'square' : 'circle');
+            });
             document.getElementById('cyto-color').addEventListener('input', e => cytoplasmMesh.material.color.set(e.target.value));
             document.getElementById('cyto-opacity-slider').addEventListener('input', e => {
                 const opacity = parseFloat(e.target.value);
@@ -372,7 +387,6 @@
                 controls.autoRotate = !controls.autoRotate;
                 e.target.classList.toggle('active', controls.autoRotate);
             });
-            document.getElementById('grid-shape-btn').addEventListener('click', e => toggleGridShape(e.target));
         }
         
         function togglePanelVisibility(button, panelId, name) {
@@ -383,15 +397,14 @@
             button.classList.toggle('active', isHidden);
         }
         
-        function toggleGridShape(button) {
-            simState.gridType = (simState.gridType === 'square') ? 'circle' : 'square';
-            const isSquare = simState.gridType === 'square';
+        function toggleGridShape(newShape) {
+            if (simState.gridType === newShape) return;
+            simState.gridType = newShape;
+            const isSquare = newShape === 'square';
             squarePlate.visible = isSquare;
             squareGrid.visible = isSquare;
             circlePlate.visible = !isSquare;
             circleGrid.visible = !isSquare;
-            button.textContent = isSquare ? 'Circle Grid' : 'Square Grid';
-            button.classList.toggle('active', !isSquare);
         }
 
         function setGrowthRate(r) {
