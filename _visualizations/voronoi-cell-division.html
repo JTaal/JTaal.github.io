@@ -317,7 +317,6 @@
                 </div>`;
             
             // --- Event Listeners ---
-            document.getElementById('settings-btn').addEventListener('click', () => settingsPanel.classList.toggle('hidden'));
             document.getElementById('r-slider').addEventListener('input', e => setGrowthRate(parseFloat(e.target.value)));
             document.getElementById('next-gen-btn').onclick = calculateNextGeneration;
             document.getElementById('reset-btn').onclick = resetSimulation;
@@ -677,6 +676,7 @@
         return { update, cleanup, render };
     }
 
+    // --- Core Application Logic ---
     let scene, camera, renderer, controls, clock, currentUpdate = () => {}, currentCleanup = () => {}, currentRender = null, animationSpeed = 1.0;
     let activeSceneObjects = new THREE.Group();
     
@@ -699,16 +699,32 @@
         bottomLight.position.set(0, -10, 0);
         scene.add(bottomLight);
         scene.add(activeSceneObjects);
+
+        setupGlobalUI();
+
         const firstSceneKey = Object.keys(scenes)[0];
         if (firstSceneKey) switchScene(firstSceneKey);
+        
         window.addEventListener('resize', onWindowResize);
         renderer.setAnimationLoop(animate);
+    }
+
+    function setupGlobalUI() {
+        document.getElementById('settings-btn').addEventListener('click', () => {
+             document.getElementById('settings-panel').classList.toggle('hidden');
+        });
+        document.getElementById('info-panel').addEventListener('click', (e) => {
+            if (!e.target.closest('button, a, input, label')) {
+                e.currentTarget.classList.toggle('expanded');
+            }
+        });
     }
 
     function switchScene(key) {
         if (currentCleanup) currentCleanup();
         while(activeSceneObjects.children.length > 0) activeSceneObjects.remove(activeSceneObjects.children[0]); 
         document.getElementById('controls-panel').innerHTML = '';
+        document.getElementById('settings-panel').innerHTML = '';
         currentRender = null;
         controls.reset();
         camera.position.set(0, 2, 8);
@@ -737,32 +753,7 @@
         const composer = scene.children.find(c => c.isEffectComposer);
         if (composer) composer.setSize(w, h);
     }
-    // --- Info panel collapse/expand behavior ---
-
-const infoPanel = document.getElementById('info-panel');
-const infoHeader = document.getElementById('info-header');
-const toggleIcon = document.getElementById('toggle-icon');
-
-// Make header clickable and toggle expanded class
-if (infoHeader && infoPanel) {
-  infoHeader.style.cursor = 'pointer';
-  infoHeader.addEventListener('click', (e) => {
-    // Only toggle when clicking the header (not inner interactive area)
-    infoPanel.classList.toggle('expanded');
-    const isExpanded = infoPanel.classList.contains('expanded');
-    // accessibility
-    infoPanel.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
-  });
-}
-
-// Ensure panel collapses when switching scenes (you already set title/description in switchScene)
-const originalSwitchScene = switchScene;
-switchScene = function(key) {
-  // collapse info panel whenever we switch scenes
-  const panel = document.getElementById('info-panel');
-  if (panel) panel.classList.remove('expanded');
-  originalSwitchScene(key);
-};
+    
     init();
 </script>
 </body>
