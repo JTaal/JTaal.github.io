@@ -1,213 +1,3 @@
-          const gravitationalForce = -G * mass / (r * r);
-                    const acceleration = ray.position.clone().normalize().multiplyScalar(gravitationalForce);
-                    const frameDragTerm = (2 * G * mass * a) / (r * r * r * c);
-                    const tangentDir = spinAxis.clone().cross(ray.position).normalize();
-                    const frameDragVel = tangentDir.multiplyScalar(frameDragTerm * 100);
-                    acceleration.add(frameDragVel);
-                    ray.velocity.add(acceleration.multiplyScalar(dt * 20));
-                    ray.position.add(ray.velocity.clone().multiplyScalar(dt * 20));
-
-                    const positions = ray.line.geometry.attributes.position;
-                    const direction = ray.velocity.clone().normalize();
-                    let side = direction.clone().cross(new THREE.Vector3(0, 1, 0));
-                    if (side.lengthSq() < 0.001) side.cross(new THREE.Vector3(1, 0, 0));
-                    side.normalize();
-
-                    const amplitude = 0.2 / (timeMultiplier + 0.5);
-                    const wavePhase = time * 20;
-
-                    for (let i = 0; i < NUM_WAVE_POINTS; i++) {
-                        const pointOnLine = ray.position.clone().add(direction.clone().multiplyScalar(-i * 0.2));
-                        const offset = side.clone().multiplyScalar(amplitude * Math.sin(i * 2 + wavePhase));
-                        pointOnLine.add(offset);
-                        positions.setXYZ(i, pointOnLine.x, pointOnLine.y, pointOnLine.z);
-                    }
-
-                    const newDist = ray.position.length();
-                    let hue = newDist < ray.prevDist ? 0.66 : (0.16 * Math.max(0, 1 - (rs*1.5 / r)));
-                    ray.prevDist = newDist;
-                    
-                    const color = new THREE.Color();
-                    const colors = ray.line.geometry.attributes.color || new THREE.BufferAttribute(new Float32Array(NUM_WAVE_POINTS * 3), 3);
-                    for(let i = 0; i < NUM_WAVE_POINTS; i++){
-                        const fade = 1.0 - (i / NUM_WAVE_POINTS);
-                        color.setHSL(hue, 0.9, 0.6);
-                        colors.setXYZ(i, color.r, color.g, color.b);
-                    }
-                    ray.line.geometry.setAttribute('color', colors);
-                    positions.needsUpdate = true;
-                    if(colors) colors.needsUpdate = true;
-                });
-            }
-            if (entropyViewVisible) {
-                entropyParticles.scale.setScalar(rs > 0 ? rs : 0.1);
-                const positions = entropyParticles.geometry.attributes.position;
-                const colors = entropyParticles.geometry.attributes.color;
-                const particleCountToDraw = Math.min(MAX_ENTROPY_PARTICLES, entropyParticleCount);
-                entropyParticles.geometry.setDrawRange(0, particleCountToDraw);
-                
-                const tempColor = new THREE.Color();
-                const repulsionForce = new THREE.Vector3();
-                
-                for(let i = 0; i < particleCountToDraw; i++) {
-                    const p = entropyParticleData[i];
-
-                    // Gravity
-                    const gravity = p.position.clone().normalize().multiplyScalar(-0.01 * systemEnergy);
-                    p.velocity.add(gravity);
-                    
-                    // Simple repulsion from a few neighbors to avoid O(n^2)
-                    for(let j=0; j<3; j++) {
-                        const other_idx = (i + Math.floor(1 + Math.random() * (particleCountToDraw-1))) % particleCountToDraw;
-                        const p2 = entropyParticleData[other_idx];
-                        const distSq = p.position.distanceToSquared(p2.position);
-                        if (distSq < 0.1 && distSq > 0.0001) {
-                            repulsionForce.subVectors(p.position, p2.position).normalize().multiplyScalar(0.001 / distSq);
-                            p.velocity.add(repulsionForce);
-                        }
-                    }
-
-                    p.velocity.multiplyScalar(0.95); // Damping
-                    p.position.add(p.velocity.clone().multiplyScalar(delta * 10));
-                    p.position.normalize(); // Keep on sphere surface
-                    
-                    positions.setXYZ(i, p.position.x, p.position.y, p.position.z);
-                    
-                    const hue = (time * 0.05 + p.position.x + p.position.y) % 1;
-                    tempColor.setHSL(hue, 0.9, 0.6);
-                    colors.setXYZ(i, tempColor.r, tempColor.g, tempColor.b);
-                }
-                positions.needsUpdate = true;
-                colors.needsUpdate = true;
-            }
-        }
-
-        createControls();
-        return { update, cleanup: () => {}, followTarget: centralObject };
-    }
-    
-    function onWindowResize() { 
-        camera.aspect = window.innerWidth / window.innerHeight; 
-        camera.updateProjectionMatrix(); 
-        renderer.setSize(window.innerWidth, window.innerHeight); 
-    }
-
-    function updateCameraFollow() {
-        if(followMode && followObject && !entropyViewVisible) {
-            const distance = followObject.scale.x * 10 + 25;
-            const offset = controls.target.clone().sub(camera.position).normalize().multiplyScalar(distance);
-            const targetPosition = followObject.position.clone().sub(offset);
-            const targetContainer = renderer.xr.isPresenting ? playerDolly : camera;
-            targetContainer.position.lerp(targetPosition, 0.1);
-            if (!renderer.xr.isPresenting) controls.target.lerp(followObject.position, 0.1);
-        }
-    }
-
-    function updateVRInputs() {
-        if (!renderer.xr.isPresenting) return;
-        const deadzone = 0.15;
-        const updateControllerState = (controller, state) => {
-            if (controller && controller.gamepad) {
-                const gp = controller.gamepad;
-                state.trigger.pressed = gp.buttons[0]?.pressed;
-                state.grip.pressed = gp.buttons[1]?.pressed;
-                state.thumbstick.x = Math.abs(gp.axes[2]) > deadzone ? gp.axes[2] : 0;
-                state.thumbstick.y = Math.abs(gp.axes[3]) > deadzone ? gp.axes[3] : 0;
-            }
-        };
-        updateControllerState(controller1, vrInputs.left);
-        updateControllerState(controller2, vrInputs.right);
-    }
-
-    function handleDesktopFlyControls(delta) {
-        if (!flyModeEnabled || renderer.xr.isPresenting) return;
-        
-        const speed = flySpeed * delta;
-        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-        const moveDirection = new THREE.Vector3(0, 0, 0);
-
-        if (keyState['KeyW'] || keyState['ArrowUp']) moveDirection.add(forward);
-        if (keyState['KeyS'] || keyState['ArrowDown']) moveDirection.sub(forward);
-        if (keyState['KeyA'] || keyState['ArrowLeft']) moveDirection.sub(right);
-        if (keyState['KeyD'] || keyState['ArrowRight']) moveDirection.add(right);
-        if (keyState['Space']) moveDirection.y += 1;
-        if (keyState['ShiftLeft']) moveDirection.y -= 1;
-
-        if (moveDirection.lengthSq() > 0) {
-            const moveVector = moveDirection.normalize().multiplyScalar(speed);
-            camera.position.add(moveVector);
-        }
-    }
-
-    function handleVRControllers(delta) {
-        if (!renderer.xr.isPresenting) return;
-        
-        const speed = 3.0;
-        const turnSpeed = 1.5;
-        const cameraDirection = new THREE.Quaternion();
-        camera.getWorldQuaternion(cameraDirection);
-
-        const moveDirection = new THREE.Vector3(vrInputs.left.thumbstick.x, 0, vrInputs.left.thumbstick.y);
-        if (moveDirection.length() > 0.1) {
-            moveDirection.normalize().multiplyScalar(speed * delta);
-            const flatCameraQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), new THREE.Euler().setFromQuaternion(cameraDirection).y);
-            moveDirection.applyQuaternion(flatCameraQuaternion);
-            playerDolly.position.add(moveDirection);
-        }
-
-        if (Math.abs(vrInputs.right.thumbstick.x) > 0.1) {
-            playerDolly.rotation.y -= vrInputs.right.thumbstick.x * turnSpeed * delta;
-        }
-        if (Math.abs(vrInputs.right.thumbstick.y) > 0.1) {
-            playerDolly.position.y -= vrInputs.right.thumbstick.y * speed * delta;
-        }
-
-        const bothGripsPressed = vrInputs.left.grip.pressed && vrInputs.right.grip.pressed;
-        if (bothGripsPressed && !vrInputs.isZooming) {
-            vrInputs.isZooming = true;
-            vrInputs.initialZoomDistance = controllerGrip1.position.distanceTo(controllerGrip2.position);
-            vrInputs.initialDollyScale.copy(playerDolly.scale);
-        } else if (bothGripsPressed && vrInputs.isZooming) {
-            const currentDistance = controllerGrip1.position.distanceTo(controllerGrip2.position);
-            if (vrInputs.initialZoomDistance > 0.01) {
-                const scaleFactor = currentDistance / vrInputs.initialZoomDistance;
-                const newScale = vrInputs.initialDollyScale.clone().multiplyScalar(scaleFactor);
-                newScale.clampScalar(0.1, 10.0);
-                playerDolly.scale.copy(newScale);
-            }
-        } else if (!bothGripsPressed && vrInputs.isZooming) {
-            vrInputs.isZooming = false;
-        }
-    }
-
-    function animate() { 
-        const delta = clock.getDelta();
-        
-        updateVRInputs();
-        handleDesktopFlyControls(delta);
-
-        if (controls.enabled) {
-            controls.update(); 
-        }
-        
-        if(!isPaused && currentUpdate) {
-            currentUpdate(delta); 
-        } else {
-            // Even if paused, we might need to update visuals if a toggle was changed
-            renderer.render(scene, camera);
-        }
-        
-        handleVRControllers(delta);
-        updateCameraFollow();
-        renderer.render(scene, camera); 
-    }
-    
-    init();
-</script>
-</body>
-</html>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -652,4 +442,1311 @@
             </div>
             <div class="control-group text-left w-full">
                 <label for="particle-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
-                    <span>Particle Size
+                    <span>Particle Size:</span>
+                    <span id="particle-size-value">0.10</span>
+                </label>
+                <input id="particle-size-slider" type="range" min="0.02" max="0.5" step="0.01" value="0.1" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">Geodesic Lines</label>
+                <button id="geodesic-toggle" class="toggle-button w-full">Off</button>
+            </div>
+              <hr class="border-gray-600">
+              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Grid Settings</h4>
+              <div class="control-group text-left w-full">
+                <label for="grid-color-input" class="text-sm font-medium self-start w-full">Grid Color</label>
+                <input id="grid-color-input" type="color" value="#CCCCCC">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="grid-slice-button" class="text-sm font-medium self-start w-full">Grid View</label>
+                <button id="grid-slice-button" class="toggle-button w-full">3D Full</button>
+            </div>
+            <div id="grid-thickness-control" class="control-group text-left w-full hidden">
+                <label for="grid-thickness-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Slice Thickness:</span>
+                    <span id="grid-thickness-value">0 layers</span>
+                </label>
+                <input id="grid-thickness-slider" type="range" min="0" max="5" step="1" value="0" class="w-full">
+            </div>
+             <div id="entropy-thickness-control" class="control-group text-left w-full hidden">
+                <label for="entropy-thickness-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Sphere Slice Thickness:</span>
+                    <span id="entropy-thickness-value">0.1</span>
+                </label>
+                <input id="entropy-thickness-slider" type="range" min="0.01" max="2.0" step="0.01" value="0.1" class="w-full">
+            </div>
+              <div class="control-group text-left w-full">
+                <label for="grid-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Grid Scale:</span>
+                    <span id="grid-scale-value">1.0x</span>
+                </label>
+                <input id="grid-scale-slider" type="range" min="0.1" max="1000" step="0.1" value="1.0" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="grid-lines-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Grid Line Count:</span>
+                    <span id="grid-lines-value">15</span>
+                </label>
+                <input id="grid-lines-slider" type="range" min="5" max="50" step="1" value="15" class="w-full">
+            </div>
+            <hr class="border-gray-600">
+            <div class="control-group text-left w-full">
+                <label for="graphics-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Graphics Quality:</span>
+                    <span id="graphics-quality-value">High</span>
+                </label>
+                <input id="graphics-slider" type="range" min="0.5" max="2" step="0.1" value="1.5" class="w-full">
+                   <div class="text-xs text-gray-500 w-full flex justify-between mt-1">
+                      <span>Low</span>
+                      <span>Native</span>
+                      <span>High</span>
+                   </div>
+            </div>
+        </div>
+    </div>
+
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+    import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
+    import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
+
+    let scene, camera, renderer, controls, clock;
+    let playerDolly; // For VR movement
+    let controller1, controller2, controllerGrip1, controllerGrip2;
+    let hand1, hand2;
+    let activeSceneObjects = new THREE.Group();
+    let currentParticleSystem = null;
+    let particles = [];
+    let clippingPlanes = [];
+
+    // --- Camera Control State ---
+    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+    const PI_2 = Math.PI / 2;
+
+    // --- VR Input State Manager ---
+    const vrInputs = {
+        left: { grip: { pressed: false }, trigger: { pressed: false }, thumbstick: { x: 0, y: 0 } },
+        right: { grip: { pressed: false }, trigger: { pressed: false }, thumbstick: { x: 0, y: 0 } },
+        isZooming: false,
+        initialZoomDistance: 0,
+        initialDollyScale: new THREE.Vector3()
+    };
+
+    // --- Desktop Input State Manager ---
+    const keyState = {};
+    let flyModeEnabled = false;
+    let flySpeed = 15.0;
+    let speedIndicatorTimeout;
+
+    // --- Global Settings ---
+    let particleCount = 5000;
+    let entropyParticleCount = 10000;
+    let particleSize = 0.1;
+    let systemEnergy = 1.0;
+    let timeMultiplier = 999;
+    let lightRayRange = 40;
+    let followMode = false;
+    let isPaused = false;
+    let gridColor = '#CCCCCC';
+    let gridScale = 1.0;
+    let gridLineCount = 15;
+    let gridSliceMode = '3d'; // '3d', 'x', 'y', 'z', 'none'
+    let gridSliceThickness = 0; // In layers
+    let blackHoleSpin = 0.0;
+    let entropySliceMode = 'none';
+    let entropySliceThickness = 0.1;
+    let mass = 1.0;
+
+    // --- Visualization State ---
+    let vectorFieldVisible = false;
+    let lightRaysVisible = true;
+    let geodesicLinesVisible = false;
+    let particlesVisible = true;
+    let entropyViewVisible = false;
+
+    let followObject = null;
+    let vectorField, flowingParticles, geodesicGroup, gridGroup, lightRayGroup, entropyParticles;
+    let entropyParticleData = [];
+    const MAX_ENTROPY_PARTICLES = 30000;
+    
+    // --- Main simulation functions ---
+    let currentCleanup = () => {};
+    let currentUpdate = () => {};
+
+    function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 4, 15);
+        
+        playerDolly = new THREE.Group();
+        playerDolly.add(camera);
+        scene.add(playerDolly);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.localClippingEnabled = true; // For slicing
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        renderer.xr.enabled = true;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+        const pointLight = new THREE.PointLight(0xffffff, 0.8, 2000);
+        pointLight.position.set(0, 50, 50);
+        scene.add(pointLight);
+
+        scene.add(activeSceneObjects);
+
+        setupSettingsPanel();
+        setupFullscreen();
+        setupVR();
+        setupPointerLock();
+        
+        const simulation = initBlackHole();
+        currentUpdate = simulation.update;
+        currentCleanup = simulation.cleanup;
+        followObject = simulation.followTarget;
+
+        window.addEventListener('resize', onWindowResize, false);
+        document.getElementById('info-panel').addEventListener('click', (e) => {
+            if (e.target.closest('canvas') || e.target.closest('a') || e.target.closest('.control-group')) return;
+            e.currentTarget.classList.toggle('expanded');
+        });
+        
+        window.addEventListener('keydown', (e) => { 
+            keyState[e.code] = true; 
+            if (e.code === 'Escape' && flyModeEnabled) {
+                setFlyMode(false);
+            }
+        });
+        window.addEventListener('keyup', (e) => { keyState[e.code] = false; });
+        
+        window.addEventListener('wheel', handleMouseWheel, false);
+        renderer.domElement.addEventListener('contextmenu', (e) => {
+            if (flyModeEnabled) {
+                e.preventDefault();
+                setFlyMode(false);
+            }
+        });
+
+        renderer.setAnimationLoop(animate);
+    }
+
+    function resetSimulation() {
+        isPaused = false;
+        const pauseButton = document.getElementById('pause-toggle');
+        if (pauseButton) {
+            pauseButton.textContent = 'Pause';
+            pauseButton.classList.remove('active');
+        }
+
+        currentCleanup();
+        while(activeSceneObjects.children.length > 0) { 
+            const obj = activeSceneObjects.children[0];
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+                if (Array.isArray(obj.material)) {
+                    obj.material.forEach(m => m.dispose());
+                } else {
+                    obj.material.dispose();
+                }
+            }
+            activeSceneObjects.remove(obj); 
+        }
+        document.getElementById('controls-panel').innerHTML = '';
+        
+        const simulation = initBlackHole();
+        currentUpdate = simulation.update;
+        currentCleanup = simulation.cleanup;
+        followObject = simulation.followTarget;
+    }
+
+
+    function setupFullscreen() {
+        const fullscreenButton = document.getElementById('fullscreen-button');
+        const enterIcon = document.getElementById('fullscreen-enter-icon');
+        const exitIcon = document.getElementById('fullscreen-exit-icon');
+        const body = document.body;
+
+        if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) {
+            fullscreenButton.style.display = 'none';
+            return;
+        }
+
+        function openFullscreen() {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            }
+        }
+
+        function closeFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        }
+
+        fullscreenButton.addEventListener('click', () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                openFullscreen();
+            } else {
+                closeFullscreen();
+            }
+        });
+
+        const handleFullscreenChange = () => {
+            const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            enterIcon.classList.toggle('hidden', isFullscreen);
+            exitIcon.classList.toggle('hidden', !isFullscreen);
+            body.classList.toggle('fullscreen-active', isFullscreen);
+            if (!isFullscreen) {
+                document.querySelectorAll('.show-on-hover').forEach(el => el.classList.remove('show-on-hover'));
+            }
+            setTimeout(onWindowResize, 100);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+        let hideTimer = null;
+        window.addEventListener('mousemove', (e) => {
+            if (!body.classList.contains('fullscreen-active')) return;
+            const hotzoneHeight = 120;
+            const isNearTop = e.clientY < hotzoneHeight;
+            const isNearBottom = window.innerHeight - e.clientY < hotzoneHeight;
+            const controlsPanel = document.getElementById('controls-panel');
+            const settingsButton = document.getElementById('settings-button');
+            const fsButton = document.getElementById('fullscreen-button');
+
+            clearTimeout(hideTimer);
+
+            const showElements = (elements) => elements.forEach(el => el.classList.add('show-on-hover'));
+            const hideElements = (elements) => elements.forEach(el => el.classList.remove('show-on-hover'));
+            
+            if (isNearTop) {
+                showElements([settingsButton]);
+                hideElements([controlsPanel, fsButton]);
+            } else if (isNearBottom) {
+                showElements([controlsPanel, fsButton]);
+                hideElements([settingsButton]);
+            } else {
+                hideTimer = setTimeout(() => {
+                    hideElements([settingsButton, controlsPanel, fsButton]);
+                }, 500);
+            }
+        });
+    }
+
+    function setupVR() {
+        const vrButton = document.getElementById('vr-button');
+
+        if ('xr' in navigator) {
+            navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                if (supported) {
+                    vrButton.addEventListener('click', () => {
+                        if (renderer.xr.isPresenting) {
+                            renderer.xr.getSession()?.end();
+                        } else {
+                            const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking' ] };
+                            navigator.xr.requestSession('immersive-vr', sessionInit).then((session) => {
+                                renderer.xr.setSession(session);
+                            });
+                        }
+                    });
+
+                    renderer.xr.addEventListener('sessionstart', () => {
+                        playerDolly.position.copy(camera.position);
+                        playerDolly.quaternion.copy(camera.quaternion);
+                        camera.position.set(0, 0, 0);
+                        camera.quaternion.identity();
+                        controls.enabled = false;
+                        vrButton.innerHTML = `... Exit VR`;
+                        vrButton.classList.add('active');
+                    });
+                    renderer.xr.addEventListener('sessionend', () => {
+                        camera.position.copy(playerDolly.position);
+                        camera.scale.copy(playerDolly.scale);
+                        playerDolly.position.set(0, 0, 0);
+                        playerDolly.quaternion.identity();
+                        playerDolly.scale.set(1, 1, 1);
+                        controls.enabled = true;
+                        vrButton.innerHTML = `... Enter VR`;
+                        vrButton.classList.remove('active');
+                    });
+                } else {
+                    vrButton.disabled = true;
+                    vrButton.textContent = 'VR Not Supported';
+                }
+            });
+        } else {
+             vrButton.disabled = true;
+             vrButton.textContent = 'VR Not Supported';
+        }
+
+        controller1 = renderer.xr.getController(0);
+        playerDolly.add(controller1);
+        controller2 = renderer.xr.getController(1);
+        playerDolly.add(controller2);
+        const controllerModelFactory = new XRControllerModelFactory();
+        const handModelFactory = new XRHandModelFactory();
+        controllerGrip1 = renderer.xr.getControllerGrip(0);
+        controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
+        playerDolly.add(controllerGrip1);
+        controllerGrip2 = renderer.xr.getControllerGrip(1);
+        controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
+        playerDolly.add(controllerGrip2);
+        hand1 = renderer.xr.getHand(0);
+        hand1.add(handModelFactory.createHandModel(hand1));
+        playerDolly.add(hand1);
+        hand2 = renderer.xr.getHand(1);
+        hand2.add(handModelFactory.createHandModel(hand2));
+        playerDolly.add(hand2);
+    }
+    
+    function setFlyMode(enabled) {
+        if (flyModeEnabled === enabled) return;
+        flyModeEnabled = enabled;
+
+        const checkbox = document.getElementById('controlModeToggle');
+        if (checkbox) checkbox.checked = enabled;
+
+        const warningLabel = document.getElementById('fly-mode-warning');
+        if (warningLabel) warningLabel.classList.toggle('hidden', !enabled);
+
+        controls.enabled = !enabled;
+        document.body.classList.toggle('fly-mode-active', enabled);
+
+        if (enabled) {
+            renderer.domElement.requestPointerLock();
+        } else {
+            document.exitPointerLock();
+        }
+    }
+
+
+    function setupPointerLock() {
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === renderer.domElement) {
+                document.addEventListener('mousemove', handleMouseLook, false);
+            } else {
+                document.removeEventListener('mousemove', handleMouseLook, false);
+                setFlyMode(false);
+            }
+        }, false);
+    }
+    
+    function handleMouseLook(event) {
+        if (!flyModeEnabled) return;
+
+        const movementX = event.movementX || 0;
+        const movementY = event.movementY || 0;
+
+        euler.setFromQuaternion(camera.quaternion);
+        euler.y -= movementX * 0.002;
+        euler.x -= movementY * 0.002;
+        euler.x = Math.max(-PI_2, Math.min(PI_2, euler.x));
+        camera.quaternion.setFromEuler(euler);
+    }
+
+    function handleMouseWheel(event) {
+        if (!flyModeEnabled) return;
+
+        const speedIndicator = document.getElementById('speed-indicator');
+        
+        // Adjust speed based on scroll direction (inverted for natural feel)
+        flySpeed -= event.deltaY * 0.01;
+        
+        // Clamp the speed to a reasonable range
+        flySpeed = Math.max(1, Math.min(flySpeed, 200));
+
+        // Show speed indicator
+        if (speedIndicator) {
+            speedIndicator.textContent = `Speed: ${(flySpeed / 15.0).toFixed(1)}x`;
+            speedIndicator.classList.add('visible');
+
+            // Hide after a delay
+            clearTimeout(speedIndicatorTimeout);
+            speedIndicatorTimeout = setTimeout(() => {
+                speedIndicator.classList.remove('visible');
+            }, 1500);
+        }
+    }
+
+    function setupSettingsPanel() {
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsButton = document.getElementById('settings-button');
+        const closeSettingsButton = document.getElementById('close-settings');
+
+        const particleSlider = document.getElementById('particle-slider');
+        const particleCountValue = document.getElementById('particle-count-value');
+        const entropyParticleSlider = document.getElementById('entropy-particle-slider');
+        const entropyParticleCountValue = document.getElementById('entropy-particle-count-value');
+        const graphicsSlider = document.getElementById('graphics-slider');
+        const graphicsQualityValue = document.getElementById('graphics-quality-value');
+        const energySlider = document.getElementById('energy-slider');
+        const energyValue = document.getElementById('energy-value');
+        const particleSizeSlider = document.getElementById('particle-size-slider');
+        const particleSizeValue = document.getElementById('particle-size-value');
+        const lightSpeedSlider = document.getElementById('light-speed-slider');
+        const lightSpeedValue = document.getElementById('light-speed-value');
+        const traceLengthSlider = document.getElementById('trace-length-slider');
+        const traceLengthValue = document.getElementById('trace-length-value');
+        const spinSlider = document.getElementById('spin-slider');
+        const spinValue = document.getElementById('spin-value');
+        const followToggle = document.getElementById('follow-toggle');
+        const gridColorInput = document.getElementById('grid-color-input');
+        const gridScaleSlider = document.getElementById('grid-scale-slider');
+        const gridScaleValue = document.getElementById('grid-scale-value');
+        const gridLinesSlider = document.getElementById('grid-lines-slider');
+        const gridLinesValue = document.getElementById('grid-lines-value');
+        const gridSliceButton = document.getElementById('grid-slice-button');
+        const gridThicknessControl = document.getElementById('grid-thickness-control');
+        const gridThicknessSlider = document.getElementById('grid-thickness-slider');
+        const gridThicknessValue = document.getElementById('grid-thickness-value');
+        const geodesicToggle = document.getElementById('geodesic-toggle');
+        const entropyThicknessControl = document.getElementById('entropy-thickness-control');
+        const entropyThicknessSlider = document.getElementById('entropy-thickness-slider');
+        const entropyThicknessValue = document.getElementById('entropy-thickness-value');
+        
+        const sliceModes = ['3d', 'x', 'y', 'z'];
+        let currentSliceIndex = 0;
+        gridSliceButton.addEventListener('click', () => {
+            currentSliceIndex = (currentSliceIndex + 1) % sliceModes.length;
+            gridSliceMode = sliceModes[currentSliceIndex];
+            const modeText = { '3d': '3D Full', 'x': 'Slice: YZ Plane', 'y': 'Slice: XZ Plane', 'z': 'Slice: XY Plane' };
+            gridSliceButton.textContent = modeText[gridSliceMode];
+            gridThicknessControl.classList.toggle('hidden', gridSliceMode === '3d');
+        });
+
+        gridThicknessSlider.addEventListener('input', e => {
+            gridSliceThickness = parseInt(e.target.value, 10);
+            gridThicknessValue.textContent = `${gridSliceThickness} layer${gridSliceThickness === 1 ? '' : 's'}`;
+        });
+
+        entropyThicknessSlider.addEventListener('input', e => {
+            entropySliceThickness = parseFloat(e.target.value);
+            entropyThicknessValue.textContent = entropySliceThickness.toFixed(2);
+            updateClippingPlanes();
+            renderer.render(scene, camera);
+        });
+
+        geodesicToggle.addEventListener('click', (e) => {
+            geodesicLinesVisible = !geodesicLinesVisible;
+            e.target.textContent = geodesicLinesVisible ? 'On' : 'Off';
+            e.target.classList.toggle('active', geodesicLinesVisible);
+            updateVisuals();
+            renderer.render(scene, camera);
+        });
+
+        function toggleSettingsPanel() {
+            const isOpen = settingsPanel.classList.contains('open');
+            if (isOpen) {
+                settingsPanel.classList.remove('open');
+            } else {
+                settingsPanel.classList.remove('hidden');
+                requestAnimationFrame(() => settingsPanel.classList.add('open'));
+            }
+        }
+
+        settingsButton.addEventListener('click', toggleSettingsPanel);
+        closeSettingsButton.addEventListener('click', () => settingsPanel.classList.remove('open'));
+
+        settingsPanel.addEventListener('transitionend', (event) => {
+            if (event.propertyName === 'transform' && !settingsPanel.classList.contains('open')) {
+                settingsPanel.classList.add('hidden');
+            }
+        });
+
+        const initialPixelRatio = 1.0;
+        graphicsSlider.value = initialPixelRatio;
+        renderer.setPixelRatio(initialPixelRatio);
+        updateGraphicsLabel(initialPixelRatio);
+
+        followToggle.addEventListener('click', (e) => {
+            followMode = !followMode;
+            e.target.textContent = followMode ? 'On' : 'Off';
+            e.target.classList.toggle('active', followMode);
+        });
+        lightSpeedSlider.addEventListener('input', (e) => {
+            timeMultiplier = parseFloat(e.target.value);
+            lightSpeedValue.textContent = `${timeMultiplier.toFixed(0)}x`;
+        });
+        traceLengthSlider.addEventListener('input', (e) => {
+            lightRayRange = parseFloat(e.target.value);
+            traceLengthValue.textContent = lightRayRange;
+        });
+        spinSlider.addEventListener('input', (e) => {
+            blackHoleSpin = parseFloat(e.target.value);
+            spinValue.textContent = blackHoleSpin.toFixed(2);
+        });
+        particleSlider.addEventListener('input', (e) => particleCountValue.textContent = e.target.value);
+        particleSlider.addEventListener('change', (e) => {
+            particleCount = parseInt(e.target.value, 10);
+            resetSimulation(); 
+        });
+        entropyParticleSlider.addEventListener('input', (e) => {
+            entropyParticleCount = parseInt(e.target.value, 10);
+            entropyParticleCountValue.textContent = entropyParticleCount;
+        });
+        energySlider.addEventListener('input', (e) => {
+            systemEnergy = parseFloat(e.target.value);
+            energyValue.textContent = `${systemEnergy.toFixed(1)}x`;
+        });
+        particleSizeSlider.addEventListener('input', (e) => {
+            particleSize = parseFloat(e.target.value);
+            particleSizeValue.textContent = particleSize.toFixed(2);
+            if(currentParticleSystem) {
+                currentParticleSystem.material.size = particleSize;
+            }
+        });
+        gridColorInput.addEventListener('input', (e) => gridColor = e.target.value);
+        gridScaleSlider.addEventListener('input', (e) => {
+            gridScale = parseFloat(e.target.value);
+            gridScaleValue.textContent = `${gridScale.toFixed(1)}x`;
+        });
+        gridLinesSlider.addEventListener('input', (e) => gridLinesValue.textContent = e.target.value);
+        gridLinesSlider.addEventListener('change', (e) => {
+            gridLineCount = parseInt(e.target.value, 10);
+            resetSimulation();
+        });
+        graphicsSlider.addEventListener('input', (e) => {
+            const quality = parseFloat(e.target.value);
+            renderer.setPixelRatio(quality);
+            updateGraphicsLabel(quality);
+        });
+
+        function updateGraphicsLabel(quality) {
+            if (quality < 0.8) graphicsQualityValue.textContent = "Low";
+            else if (quality < 1.5) graphicsQualityValue.textContent = "Medium";
+            else if (quality < 1.9) graphicsQualityValue.textContent = "High";
+            else graphicsQualityValue.textContent = "Ultra";
+        }
+    }
+
+    function createParticles(count, color = 0x818cf8) {
+        particles = [];
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(count * 3);
+        const colors = new Float32Array(count * 3);
+        const material = new THREE.PointsMaterial({ size: particleSize, blending: THREE.AdditiveBlending, transparent: true, sizeAttenuation: true, vertexColors: true });
+        for (let i = 0; i < count; i++) {
+            const [x,y,z] = [(Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10];
+            positions.set([x,y,z], i*3);
+            const baseColor = new THREE.Color(color);
+            colors.set([baseColor.r, baseColor.g, baseColor.b], i * 3);
+            particles.push({ position: new THREE.Vector3(x, y, z), velocity: new THREE.Vector3(), lastY: y });
+        }
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        currentParticleSystem = new THREE.Points(geometry, material);
+        activeSceneObjects.add(currentParticleSystem);
+        return currentParticleSystem;
+    }
+
+    function updateVisuals() {
+        const standardView = !entropyViewVisible;
+        const STAR_THRESHOLD = 3.0;
+
+        if (vectorField) vectorField.visible = standardView && vectorFieldVisible;
+        if (flowingParticles) flowingParticles.visible = standardView && particlesVisible;
+        if (geodesicGroup) geodesicGroup.visible = standardView && geodesicLinesVisible;
+        if (gridGroup) gridGroup.visible = standardView && gridSliceMode !== 'none';
+        if (lightRayGroup) lightRayGroup.visible = standardView && lightRaysVisible;
+        
+        if (entropyParticles) entropyParticles.visible = entropyViewVisible;
+        const centralObject = scene.getObjectByName("centralObject");
+        if (centralObject) centralObject.visible = standardView;
+
+        const horizonOutline = scene.getObjectByName("horizonOutline");
+        if(horizonOutline) horizonOutline.visible = standardView && mass >= STAR_THRESHOLD;
+
+        document.getElementById('blackhole-explanation-content').style.display = standardView ? 'block' : 'none';
+        document.getElementById('entropy-explanation-content').style.display = entropyViewVisible ? 'block' : 'none';
+    }
+
+    function updateClippingPlanes() {
+        clippingPlanes = [];
+        switch(entropySliceMode) {
+            case 'x':
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(1, 0, 0), entropySliceThickness));
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0), entropySliceThickness));
+                break;
+            case 'y':
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), entropySliceThickness));
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), entropySliceThickness));
+                break;
+            case 'z':
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, 0, 1), entropySliceThickness));
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, 0, -1), entropySliceThickness));
+                break;
+        }
+        if (entropyParticles) entropyParticles.material.clippingPlanes = clippingPlanes;
+    }
+
+    function initBlackHole() {
+        const G = 1, c = 10, STAR_THRESHOLD = 3.0;
+        let time = 0;
+        let entropyText, radiusText, kappaText, ratioText, lorentzText;
+
+        const GRID_SIZE = 20;
+        const GRID_SPACING = 5;
+        const SIMULATION_RADIUS = GRID_SIZE * GRID_SPACING;
+
+        const starVertices = [];
+        for (let i = 0; i < 10000; i++) starVertices.push(THREE.MathUtils.randFloatSpread(2000), THREE.MathUtils.randFloatSpread(2000), THREE.MathUtils.randFloatSpread(2000));
+        const starGeometry = new THREE.BufferGeometry();
+        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+        const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0x888888, size: 0.7 }));
+        activeSceneObjects.add(stars);
+
+        const centralObject = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+        centralObject.name = "centralObject";
+        activeSceneObjects.add(centralObject);
+
+        const horizonOutline = new THREE.Mesh(new THREE.TorusGeometry(1, 0.1, 16, 100), new THREE.MeshBasicMaterial({ color: 0xffa500, side: THREE.DoubleSide }));
+        horizonOutline.name = "horizonOutline";
+        activeSceneObjects.add(horizonOutline);
+
+        vectorField = new THREE.Group();
+        const arrows = [];
+        for (let x = -GRID_SIZE; x <= GRID_SIZE; x++) {
+            for (let y = -GRID_SIZE; y <= GRID_SIZE; y++) {
+                for (let z = -GRID_SIZE; z <= GRID_SIZE; z++) {
+                    const origin = new THREE.Vector3(x * GRID_SPACING, y * GRID_SPACING, z * GRID_SPACING);
+                    if (origin.length() < GRID_SPACING * 1.5 || Math.random() > 0.3) continue; 
+                    const arrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), origin, 2, 0x4b5563, 1, 0.5);
+                    arrows.push(arrow);
+                    vectorField.add(arrow);
+                }
+            }
+        }
+        activeSceneObjects.add(vectorField);
+
+        flowingParticles = createParticles(particleCount, 0xffffff);
+        flowingParticles.material.size = 0.08;
+
+        geodesicGroup = new THREE.Group();
+        const geodesicLines = [];
+        const NUM_GEODESICS = 100;
+        const GEO_POINTS = 200;
+
+        for(let i=0; i < NUM_GEODESICS; i++) {
+            const material = new THREE.LineBasicMaterial({color: 0x60a5fa, transparent: true, opacity: 0.7, linewidth: 2});
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(GEO_POINTS * 3);
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const line = new THREE.Line(geometry, material);
+
+            const startPos = new THREE.Vector3();
+            const face = Math.floor(Math.random() * 6);
+            const coord = (val) => (Math.random() - 0.5) * 2 * val;
+            switch(face) {
+               case 0: startPos.set(SIMULATION_RADIUS, coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS)); break;
+               case 1: startPos.set(-SIMULATION_RADIUS, coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS)); break;
+               case 2: startPos.set(coord(SIMULATION_RADIUS), SIMULATION_RADIUS, coord(SIMULATION_RADIUS)); break;
+               case 3: startPos.set(coord(SIMULATION_RADIUS), -SIMULATION_RADIUS, coord(SIMULATION_RADIUS)); break;
+               case 4: startPos.set(coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS), SIMULATION_RADIUS); break;
+               case 5: startPos.set(coord(SIMULATION_RADIUS), coord(SIMULATION_RADIUS), -SIMULATION_RADIUS); break;
+            }
+
+            const vecToCenter = startPos.clone().normalize().multiplyScalar(-1);
+            const randomVec = new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize();
+            const tangentVec = vecToCenter.clone().cross(randomVec).normalize();
+            const initialVelocity = tangentVec.multiplyScalar(c * 0.05); 
+
+            geodesicLines.push({line, startPos, initialVelocity});
+            geodesicGroup.add(line);
+        }
+        activeSceneObjects.add(geodesicGroup);
+
+        gridGroup = new THREE.Group();
+        gridGroup.userData.lines = [];
+        const gridLineMaterial = new THREE.LineBasicMaterial({ color: new THREE.Color(gridColor), transparent: true, opacity: 0.5 });
+        const gridLineSegments = 50;
+        const gridStep = (SIMULATION_RADIUS * 2) / (gridLineCount - 1);
+
+        for (let i = 0; i < gridLineCount; i++) {
+            const current = -SIMULATION_RADIUS + i * gridStep;
+            for (let j = 0; j < gridLineCount; j++) {
+                const z = -SIMULATION_RADIUS + j * gridStep;
+                gridGroup.userData.lines.push({ start: new THREE.Vector3(-SIMULATION_RADIUS, current, z), end: new THREE.Vector3(SIMULATION_RADIUS, current, z) });
+                gridGroup.userData.lines.push({ start: new THREE.Vector3(current, -SIMULATION_RADIUS, z), end: new THREE.Vector3(current, SIMULATION_RADIUS, z) });
+            }
+            for (let j = 0; j < gridLineCount; j++) {
+                const y = -SIMULATION_RADIUS + j * gridStep;
+                gridGroup.userData.lines.push({ start: new THREE.Vector3(-SIMULATION_RADIUS, y, current), end: new THREE.Vector3(SIMULATION_RADIUS, y, current) });
+                gridGroup.userData.lines.push({ start: new THREE.Vector3(current, y, -SIMULATION_RADIUS), end: new THREE.Vector3(current, y, SIMULATION_RADIUS) });
+            }
+        }
+
+        gridGroup.userData.lines.forEach(data => {
+            const points = Array.from({length: gridLineSegments + 1}, (_, i) => data.start.clone().lerp(data.end, i/gridLineSegments));
+            let geom = new THREE.BufferGeometry().setFromPoints(points);
+            data.line = new THREE.Line(geom, gridLineMaterial.clone());
+            data.originalVertices = points;
+            gridGroup.add(data.line);
+        });
+        activeSceneObjects.add(gridGroup);
+
+
+        const resetParticle = (p) => {
+            const gridX = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
+            const gridY = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
+            const gridZ = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
+            const axis = Math.floor(Math.random() * 3);
+            const pos = new THREE.Vector3(gridX * GRID_SPACING, gridY * GRID_SPACING, gridZ * GRID_SPACING);
+            if(axis === 0) pos.x += (Math.random() - 0.5) * GRID_SPACING;
+            else if(axis === 1) pos.y += (Math.random() - 0.5) * GRID_SPACING;
+            else pos.z += (Math.random() - 0.5) * GRID_SPACING;
+            p.position.copy(pos);
+        };
+        particles.forEach(resetParticle);
+
+
+        lightRayGroup = new THREE.Group();
+        const MAX_RAYS = 200, NUM_WAVE_POINTS = 20;
+        const rays = [];
+        for (let i = 0; i < MAX_RAYS; i++) {
+            const material = new THREE.LineBasicMaterial({ vertexColors: true });
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(NUM_WAVE_POINTS * 3);
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const line = new THREE.Line(geometry, material);
+            lightRayGroup.add(line);
+            rays.push({ line, position: new THREE.Vector3(), velocity: new THREE.Vector3(), prevDist: 0 });
+        }
+        activeSceneObjects.add(lightRayGroup);
+
+        // --- Entropy Particles ---
+        const entropyGeometry = new THREE.BufferGeometry();
+        const entropyPositions = new Float32Array(MAX_ENTROPY_PARTICLES * 3);
+        const entropyColors = new Float32Array(MAX_ENTROPY_PARTICLES * 3);
+        entropyParticleData = [];
+        for(let i=0; i < MAX_ENTROPY_PARTICLES; i++) {
+            const position = new THREE.Vector3().setFromSphericalCoords(1, Math.acos(2 * Math.random() - 1), Math.random() * Math.PI * 2);
+            const tangent = new THREE.Vector3().crossVectors(position, new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize()).normalize();
+            entropyParticleData.push({
+                position: position,
+                velocity: tangent.multiplyScalar((Math.random() - 0.5) * 0.1),
+            });
+        }
+        entropyGeometry.setAttribute('position', new THREE.BufferAttribute(entropyPositions, 3));
+        entropyGeometry.setAttribute('color', new THREE.BufferAttribute(entropyColors, 3));
+        const entropyMaterial = new THREE.PointsMaterial({ size: 0.05, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, sizeAttenuation: true, clipping: true });
+        entropyParticles = new THREE.Points(entropyGeometry, entropyMaterial);
+        activeSceneObjects.add(entropyParticles);
+
+        function resetRay(ray) {
+            const rs = (2 * G * mass) / (c * c);
+            const startRadius = rs * 1.5 + Math.random() * 10;
+            ray.position.setFromSphericalCoords(startRadius, Math.acos(2 * Math.random() - 1), Math.random() * Math.PI * 2);
+            ray.velocity.copy(ray.position).clone().cross(new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5)).normalize().multiplyScalar(c * 0.1);
+            ray.prevDist = startRadius;
+            const positions = ray.line.geometry.attributes.position.array;
+            for(let i = 0; i < positions.length; i+=3) {
+                positions.set(ray.position.toArray(), i);
+            }
+            ray.line.geometry.attributes.position.needsUpdate = true;
+        }
+        rays.forEach(resetRay);
+
+        function createControls() {
+            const controlsDiv = document.getElementById('controls-panel');
+            controlsDiv.innerHTML = `
+                <div class="control-group">
+                    <label class="text-sm font-medium">Mass (10^x Solar): <span id="mass-value">1.00e+0</span></label>
+                    <div class="flex items-center gap-2 flex-wrap justify-center">
+                        <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
+                        <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
+                        <button id="grid-slice-toggle" class="toggle-button active text-xs p-2">Grid: 3D</button>
+                        <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
+                        <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
+                    </div>
+               </div>
+               <div class="flex items-center gap-4 flex-wrap justify-center">
+                    <button id="entropy-view-toggle" class="toggle-button text-sm p-2">Entropy View</button>
+                    <button id="entropy-slice-toggle" class="toggle-button text-sm p-2 hidden">Slice Sphere</button>
+                    <div class="flex items-center gap-2 border-l-2 border-r-2 border-gray-700 px-4">
+                        <span class="text-sm text-gray-400">Orbit</span>
+                        <label class="switch"><input type="checkbox" id="controlModeToggle"><span class="slider"></span></label>
+                        <span class="text-sm text-gray-400">Fly</span>
+                    </div>
+                   <button id="pause-toggle" class="toggle-button text-sm p-2">Pause</button>
+                   <button id="reset-button" class="toggle-button text-sm p-2">Reset</button>
+               </div>
+            `;
+            entropyText = document.getElementById('bh-entropy-value');
+            radiusText = document.getElementById('rs-value');
+            kappaText = document.getElementById('kappa-value');
+            ratioText = document.getElementById('ratio-value');
+            lorentzText = document.getElementById('lorentz-value');
+            const massValueSpan = document.getElementById('mass-value');
+            const massSlider = document.getElementById('mass-slider');
+            const vectorFieldToggle = document.getElementById('vector-field-toggle');
+            const lightRaysToggle = document.getElementById('light-rays-toggle');
+            const gridSliceToggle = document.getElementById('grid-slice-toggle');
+            const particleToggle = document.getElementById('particle-toggle');
+            const pauseButton = document.getElementById('pause-toggle');
+            const resetButton = document.getElementById('reset-button');
+            const controlModeToggle = document.getElementById('controlModeToggle');
+            const entropyViewToggle = document.getElementById('entropy-view-toggle');
+            const entropySliceToggle = document.getElementById('entropy-slice-toggle');
+
+            mass = Math.pow(10, parseFloat(massSlider.value));
+            massValueSpan.textContent = mass.toExponential(2);
+
+            massSlider.addEventListener('input', (e) => {
+                mass = Math.pow(10, parseFloat(e.target.value));
+                massValueSpan.textContent = mass.toExponential(2);
+            });
+            vectorFieldToggle.addEventListener('click', (e) => {
+                vectorFieldVisible = !vectorFieldVisible;
+                e.target.textContent = `Vectors: ${vectorFieldVisible ? 'On' : 'Off'}`;
+                e.target.classList.toggle('active', vectorFieldVisible);
+                updateVisuals();
+                renderer.render(scene, camera);
+            });
+            lightRaysToggle.addEventListener('click', (e) => {
+                lightRaysVisible = !lightRaysVisible;
+                e.target.textContent = `Light Rays: ${lightRaysVisible ? 'On' : 'Off'}`;
+                e.target.classList.toggle('active', lightRaysVisible);
+                updateVisuals();
+                renderer.render(scene, camera);
+            });
+
+            const gridSliceModes = ['3d', 'x', 'y', 'z', 'none'];
+            let currentGridSliceIndex = 0;
+            gridSliceToggle.addEventListener('click', (e) => {
+                currentGridSliceIndex = (currentGridSliceIndex + 1) % gridSliceModes.length;
+                gridSliceMode = gridSliceModes[currentGridSliceIndex];
+                const modeText = { 
+                    '3d': 'Grid: 3D', 
+                    'x': 'Slice: YZ', 
+                    'y': 'Slice: XZ', 
+                    'z': 'Slice: XY',
+                    'none': 'Grid: Off'
+                };
+                e.target.textContent = modeText[gridSliceMode];
+                e.target.classList.toggle('active', gridSliceMode !== 'none');
+                updateVisuals();
+                renderer.render(scene, camera);
+            });
+            
+            particleToggle.addEventListener('click', (e) => {
+                particlesVisible = !particlesVisible;
+                e.target.textContent = `Particles: ${particlesVisible ? 'On' : 'Off'}`;
+                e.target.classList.toggle('active', particlesVisible);
+                updateVisuals();
+                renderer.render(scene, camera);
+            });
+            entropyViewToggle.addEventListener('click', (e) => {
+                entropyViewVisible = !entropyViewVisible;
+                e.target.textContent = `Entropy View: ${entropyViewVisible ? 'On' : 'Off'}`;
+                e.target.classList.toggle('active', entropyViewVisible);
+                entropySliceToggle.classList.toggle('hidden', !entropyViewVisible);
+                updateVisuals();
+                renderer.render(scene, camera);
+            });
+
+            const entropySliceModes = ['none', 'x', 'y', 'z'];
+            let currentEntropySliceIndex = 0;
+            entropySliceToggle.addEventListener('click', (e) => {
+                const entropyThicknessControl = document.getElementById('entropy-thickness-control');
+                currentEntropySliceIndex = (currentEntropySliceIndex + 1) % entropySliceModes.length;
+                entropySliceMode = entropySliceModes[currentEntropySliceIndex];
+                 const modeText = { 
+                    'none': 'Slice Sphere: Off', 
+                    'x': 'Slice: YZ', 
+                    'y': 'Slice: XZ', 
+                    'z': 'Slice: XY'
+                };
+                e.target.textContent = modeText[entropySliceMode];
+                entropyThicknessControl.classList.toggle('hidden', entropySliceMode === 'none');
+                updateClippingPlanes();
+                renderer.render(scene, camera);
+            });
+
+            pauseButton.addEventListener('click', (e) => {
+                isPaused = !isPaused;
+                e.target.textContent = isPaused ? 'Resume' : 'Pause';
+                e.target.classList.toggle('active', isPaused);
+            });
+            controlModeToggle.addEventListener('change', (e) => {
+                setFlyMode(e.target.checked)
+                e.target.blur(); // Unfocus the switch immediately after interaction
+            });
+            resetButton.addEventListener('click', resetSimulation);
+        }
+
+        function update(delta) {
+            if (isPaused) return;
+
+            const dt = 0.016 * timeMultiplier;
+            time += dt;
+            const isBlackHole = mass >= STAR_THRESHOLD;
+            const M_geom = (G * mass) / (c * c);
+            const a = blackHoleSpin * M_geom;
+            let rs = (a > M_geom) ? 0 : M_geom + Math.sqrt(M_geom * M_geom - a * a);
+            let objectRadius = (a > M_geom) ? 0.1 : (isBlackHole ? rs : Math.pow(mass, 1/3) * 0.5);
+
+            centralObject.scale.setScalar(objectRadius);
+            
+            centralObject.material.color.set(isBlackHole ? 0x000000 : 0xffffdd);
+            
+            const A = 4 * Math.PI * (rs * rs + a * a);
+            const kappa_num = Math.sqrt(M_geom * M_geom - a * a);
+            const kappa_den = 2 * M_geom * (M_geom + Math.sqrt(M_geom * M_geom - a * a)) - 2*a*a;
+            const kappa = kappa_den > 1e-9 ? (c**4 / G) * (kappa_num / kappa_den) : 0;
+
+            entropyText.textContent = (A / 4).toExponential(2);
+            radiusText.textContent = objectRadius.toFixed(2);
+            kappaText.textContent = isFinite(kappa) ? kappa.toExponential(2) : 'N/A';
+            ratioText.textContent = isFinite(kappa) ? (kappa / c).toExponential(2) : 'N/A';
+            lorentzText.innerHTML = "&infin;";
+
+            const spinAxis = new THREE.Vector3(0, 1, 0);
+
+            updateVisuals();
+
+            if (vectorFieldVisible) {
+                arrows.forEach(arrow => {
+                    const r = arrow.position.length();
+                    if (r > 0.01) {
+                        const v_inflow_mag = Math.sqrt(rs / r) * c;
+                        const inflow_direction = arrow.position.clone().normalize().multiplyScalar(-1);
+                        arrow.setDirection(inflow_direction);
+                        arrow.setLength(Math.min(v_inflow_mag * 0.5, GRID_SPACING * 0.9), 0.5, 0.2);
+                    }
+                });
+            }
+
+            if (particlesVisible) {
+                const particlePositions = flowingParticles.geometry.attributes.position;
+                particles.forEach((p, i) => {
+                    const r = p.position.length();
+                    if (r > 0.01) {
+                        const v_inflow_mag = Math.sqrt(rs / r) * c;
+                        const inflow_velocity = p.position.clone().normalize().multiplyScalar(-v_inflow_mag);
+                        const frameDragTerm = (2 * G * mass * a) / (r * r * r * c);
+                        const tangentDir = spinAxis.clone().cross(p.position).normalize();
+                        const frameDragVel = tangentDir.multiplyScalar(frameDragTerm * systemEnergy * 10);
+                        inflow_velocity.add(frameDragVel);
+                        p.position.add(inflow_velocity.multiplyScalar(dt * 0.2 * systemEnergy));
+                    }
+                    if (p.position.length() < objectRadius * 1.1) {
+                        resetParticle(p);
+                    }
+                    particlePositions.setXYZ(i, p.position.x, p.position.y, p.position.z);
+                });
+                particlePositions.needsUpdate = true;
+            }
+
+            if (geodesicLinesVisible) {
+                geodesicLines.forEach(item => {
+                    const positions = item.line.geometry.attributes.position;
+                    let currentPos = item.startPos.clone();
+                    let currentVel = item.initialVelocity.clone();
+                    const sim_dt = 0.2; 
+                    for (let i = 0; i < GEO_POINTS; i++) {
+                        positions.setXYZ(i, currentPos.x, currentPos.y, currentPos.z);
+                        const r = currentPos.length();
+                        if (r < objectRadius * 1.05) {
+                            for (let j = i; j < GEO_POINTS; j++) positions.setXYZ(j, currentPos.x, currentPos.y, currentPos.z);
+                            break;
+                        }
+                        const gravitationalForce = -G * mass / (r * r);
+                        const acceleration = currentPos.clone().normalize().multiplyScalar(gravitationalForce);
+                        const v_inflow_mag = Math.sqrt(rs / r) * c;
+                        const inflow_velocity = currentPos.clone().normalize().multiplyScalar(-v_inflow_mag);
+                        const frameDragTerm = (2 * G * mass * a) / (r * r * r * c);
+                        const tangentDir = spinAxis.clone().cross(currentPos).normalize();
+                        const frameDragVel = tangentDir.multiplyScalar(frameDragTerm * 1000);
+                        currentVel.add(frameDragVel);
+                        currentVel.add(acceleration.multiplyScalar(sim_dt));
+                        const posChangeFromVel = currentVel.clone().multiplyScalar(sim_dt);
+                        const posChangeFromInflow = inflow_velocity.multiplyScalar(sim_dt * 0.5); 
+                        currentPos.add(posChangeFromVel).add(posChangeFromInflow);
+                    }
+                    positions.needsUpdate = true;
+                });
+            }
+            
+            if (gridSliceMode !== 'none') {
+                const step = (SIMULATION_RADIUS * 2) / (gridLineCount - 1);
+                const tolerance = gridSliceThickness * step;
+                gridGroup.userData.lines.forEach(item => {
+                    let isVisible = false;
+                    const s = item.start, e = item.end;
+                    switch (gridSliceMode) {
+                        case '3d': isVisible = true; break;
+                        case 'x': isVisible = (s.x === e.x && (s.z === e.z || s.y === e.y) && Math.abs(s.x) <= tolerance); break;
+                        case 'y': isVisible = (s.y === e.y && (s.z === e.z || s.x === e.x) && Math.abs(s.y) <= tolerance); break;
+                        case 'z': isVisible = (s.z === e.z && (s.y === e.y || s.x === e.x) && Math.abs(s.z) <= tolerance); break;
+                    }
+                    item.line.visible = isVisible;
+                });
+                gridGroup.scale.setScalar(gridScale);
+                gridGroup.userData.lines.forEach(item => {
+                    if (!item.line.visible) return;
+                    item.line.material.color.set(gridColor);
+                    const positions = item.line.geometry.attributes.position;
+                    for (let i = 0; i <= gridLineSegments; i++) {
+                        let currentPos = item.originalVertices[i].clone();
+                        let r = currentPos.length() * gridScale;
+                        if (r > 0.01) {
+                            const v_inflow_mag = Math.sqrt(rs / r) * c;
+                            const inflow_velocity = currentPos.clone().normalize().multiplyScalar(-v_inflow_mag);
+                            const frameDragTerm = (2 * G * mass * a) / (r * r * r * c);
+                            const tangentDir = spinAxis.clone().cross(currentPos).normalize();
+                            const frameDragVel = tangentDir.multiplyScalar(frameDragTerm * time * 50);
+                            inflow_velocity.add(frameDragVel);
+                            currentPos.add(inflow_velocity.multiplyScalar(time * 0.05));
+                        }
+                        if(currentPos.length() * gridScale < objectRadius * 1.1) currentPos.copy(item.originalVertices[i]);
+                        positions.setXYZ(i, currentPos.x, currentPos.y, currentPos.z);
+                    }
+                    positions.needsUpdate = true;
+                });
+            }
+
+            if(lightRaysVisible) {
+                rays.forEach((ray) => {
+                    const r = ray.position.length();
+                    if(r < objectRadius || r > lightRayRange) resetRay(ray);
+
+                    const gravitationalForce = -G * mass / (r * r);
+                    const acceleration = ray.position.clone().normalize().multiplyScalar(gravitationalForce);
+                    const frameDragTerm = (2 * G * mass * a) / (r * r * r * c);
+                    const tangentDir = spinAxis.clone().cross(ray.position).normalize();
+                    const frameDragVel = tangentDir.multiplyScalar(frameDragTerm * 100);
+                    acceleration.add(frameDragVel);
+                    ray.velocity.add(acceleration.multiplyScalar(dt * 20));
+                    ray.position.add(ray.velocity.clone().multiplyScalar(dt * 20));
+
+                    const positions = ray.line.geometry.attributes.position;
+                    const direction = ray.velocity.clone().normalize();
+                    let side = direction.clone().cross(new THREE.Vector3(0, 1, 0));
+                    if (side.lengthSq() < 0.001) side.cross(new THREE.Vector3(1, 0, 0));
+                    side.normalize();
+
+                    const amplitude = 0.2 / (timeMultiplier + 0.5);
+                    const wavePhase = time * 20;
+
+                    for (let i = 0; i < NUM_WAVE_POINTS; i++) {
+                        const pointOnLine = ray.position.clone().add(direction.clone().multiplyScalar(-i * 0.2));
+                        const offset = side.clone().multiplyScalar(amplitude * Math.sin(i * 2 + wavePhase));
+                        pointOnLine.add(offset);
+                        positions.setXYZ(i, pointOnLine.x, pointOnLine.y, pointOnLine.z);
+                    }
+
+                    const newDist = ray.position.length();
+                    let hue = newDist < ray.prevDist ? 0.66 : (0.16 * Math.max(0, 1 - (rs*1.5 / r)));
+                    ray.prevDist = newDist;
+                    
+                    const color = new THREE.Color();
+                    const colors = ray.line.geometry.attributes.color || new THREE.BufferAttribute(new Float32Array(NUM_WAVE_POINTS * 3), 3);
+                    for(let i = 0; i < NUM_WAVE_POINTS; i++){
+                        const fade = 1.0 - (i / NUM_WAVE_POINTS);
+                        color.setHSL(hue, 0.9, 0.6);
+                        colors.setXYZ(i, color.r, color.g, color.b);
+                    }
+                    ray.line.geometry.setAttribute('color', colors);
+                    positions.needsUpdate = true;
+                    if(colors) colors.needsUpdate = true;
+                });
+            }
+            if (entropyViewVisible) {
+                entropyParticles.scale.setScalar(rs > 0 ? rs : 0.1);
+                const positions = entropyParticles.geometry.attributes.position;
+                const colors = entropyParticles.geometry.attributes.color;
+                const particleCountToDraw = Math.min(MAX_ENTROPY_PARTICLES, entropyParticleCount);
+                entropyParticles.geometry.setDrawRange(0, particleCountToDraw);
+                
+                const tempColor = new THREE.Color();
+                const repulsionForce = new THREE.Vector3();
+                
+                for(let i = 0; i < particleCountToDraw; i++) {
+                    const p = entropyParticleData[i];
+
+                    // Gravity
+                    const gravity = p.position.clone().normalize().multiplyScalar(-0.01 * systemEnergy);
+                    p.velocity.add(gravity);
+                    
+                    // Simple repulsion from a few neighbors to avoid O(n^2)
+                    for(let j=0; j<3; j++) {
+                        const other_idx = (i + Math.floor(1 + Math.random() * (particleCountToDraw-1))) % particleCountToDraw;
+                        const p2 = entropyParticleData[other_idx];
+                        const distSq = p.position.distanceToSquared(p2.position);
+                        if (distSq < 0.1 && distSq > 0.0001) {
+                            repulsionForce.subVectors(p.position, p2.position).normalize().multiplyScalar(0.001 / distSq);
+                            p.velocity.add(repulsionForce);
+                        }
+                    }
+
+                    p.velocity.multiplyScalar(0.95); // Damping
+                    p.position.add(p.velocity.clone().multiplyScalar(delta * 10));
+                    p.position.normalize(); // Keep on sphere surface
+                    
+                    positions.setXYZ(i, p.position.x, p.position.y, p.position.z);
+                    
+                    const hue = (time * 0.05 + p.position.x + p.position.y) % 1;
+                    tempColor.setHSL(hue, 0.9, 0.6);
+                    colors.setXYZ(i, tempColor.r, tempColor.g, tempColor.b);
+                }
+                positions.needsUpdate = true;
+                colors.needsUpdate = true;
+            }
+        }
+
+        createControls();
+        return { update, cleanup: () => {}, followTarget: centralObject };
+    }
+    
+    function onWindowResize() { 
+        camera.aspect = window.innerWidth / window.innerHeight; 
+        camera.updateProjectionMatrix(); 
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+    }
+
+    function updateCameraFollow() {
+        if (!followMode) return;
+
+        let targetObject;
+        let baseDistanceScale;
+
+        if (entropyViewVisible && entropyParticles) {
+            targetObject = entropyParticles;
+            baseDistanceScale = targetObject.scale.x;
+        } else if (!entropyViewVisible && followObject) {
+            targetObject = followObject;
+            baseDistanceScale = targetObject.scale.x;
+        } else {
+            return; 
+        }
+        
+        const distance = baseDistanceScale * 10 + 25;
+        const offset = controls.target.clone().sub(camera.position).normalize().multiplyScalar(distance);
+        const targetPosition = targetObject.position.clone().sub(offset);
+        
+        const targetContainer = renderer.xr.isPresenting ? playerDolly : camera;
+        targetContainer.position.lerp(targetPosition, 0.1);
+        
+        if (!renderer.xr.isPresenting) {
+            controls.target.lerp(targetObject.position, 0.1);
+        }
+    }
+
+    function updateVRInputs() {
+        if (!renderer.xr.isPresenting) return;
+        const deadzone = 0.15;
+        const updateControllerState = (controller, state) => {
+            if (controller && controller.gamepad) {
+                const gp = controller.gamepad;
+                state.trigger.pressed = gp.buttons[0]?.pressed;
+                state.grip.pressed = gp.buttons[1]?.pressed;
+                state.thumbstick.x = Math.abs(gp.axes[2]) > deadzone ? gp.axes[2] : 0;
+                state.thumbstick.y = Math.abs(gp.axes[3]) > deadzone ? gp.axes[3] : 0;
+            }
+        };
+        updateControllerState(controller1, vrInputs.left);
+        updateControllerState(controller2, vrInputs.right);
+    }
+
+    function handleDesktopFlyControls(delta) {
+        if (!flyModeEnabled || renderer.xr.isPresenting) return;
+        
+        const speed = flySpeed * delta;
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        const moveDirection = new THREE.Vector3(0, 0, 0);
+
+        if (keyState['KeyW'] || keyState['ArrowUp']) moveDirection.add(forward);
+        if (keyState['KeyS'] || keyState['ArrowDown']) moveDirection.sub(forward);
+        if (keyState['KeyA'] || keyState['ArrowLeft']) moveDirection.sub(right);
+        if (keyState['KeyD'] || keyState['ArrowRight']) moveDirection.add(right);
+        if (keyState['Space']) moveDirection.y += 1;
+        if (keyState['ShiftLeft']) moveDirection.y -= 1;
+
+        if (moveDirection.lengthSq() > 0) {
+            const moveVector = moveDirection.normalize().multiplyScalar(speed);
+            camera.position.add(moveVector);
+        }
+    }
+
+    function handleVRControllers(delta) {
+        if (!renderer.xr.isPresenting) return;
+        
+        const speed = 3.0;
+        const turnSpeed = 1.5;
+        const cameraDirection = new THREE.Quaternion();
+        camera.getWorldQuaternion(cameraDirection);
+
+        const moveDirection = new THREE.Vector3(vrInputs.left.thumbstick.x, 0, vrInputs.left.thumbstick.y);
+        if (moveDirection.length() > 0.1) {
+            moveDirection.normalize().multiplyScalar(speed * delta);
+            const flatCameraQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), new THREE.Euler().setFromQuaternion(cameraDirection).y);
+            moveDirection.applyQuaternion(flatCameraQuaternion);
+            playerDolly.position.add(moveDirection);
+        }
+
+        if (Math.abs(vrInputs.right.thumbstick.x) > 0.1) {
+            playerDolly.rotation.y -= vrInputs.right.thumbstick.x * turnSpeed * delta;
+        }
+        if (Math.abs(vrInputs.right.thumbstick.y) > 0.1) {
+            playerDolly.position.y -= vrInputs.right.thumbstick.y * speed * delta;
+        }
+
+        const bothGripsPressed = vrInputs.left.grip.pressed && vrInputs.right.grip.pressed;
+        if (bothGripsPressed && !vrInputs.isZooming) {
+            vrInputs.isZooming = true;
+            vrInputs.initialZoomDistance = controllerGrip1.position.distanceTo(controllerGrip2.position);
+            vrInputs.initialDollyScale.copy(playerDolly.scale);
+        } else if (bothGripsPressed && vrInputs.isZooming) {
+            const currentDistance = controllerGrip1.position.distanceTo(controllerGrip2.position);
+            if (vrInputs.initialZoomDistance > 0.01) {
+                const scaleFactor = currentDistance / vrInputs.initialZoomDistance;
+                const newScale = vrInputs.initialDollyScale.clone().multiplyScalar(scaleFactor);
+                newScale.clampScalar(0.1, 10.0);
+                playerDolly.scale.copy(newScale);
+            }
+        } else if (!bothGripsPressed && vrInputs.isZooming) {
+            vrInputs.isZooming = false;
+        }
+    }
+
+    function animate() { 
+        const delta = clock.getDelta();
+        
+        updateVRInputs();
+        handleDesktopFlyControls(delta);
+
+        if (controls.enabled) {
+            controls.update(); 
+        }
+        
+        if(!isPaused && currentUpdate) {
+            currentUpdate(delta); 
+        } else {
+            // Even if paused, we might need to update visuals if a toggle was changed
+            renderer.render(scene, camera);
+        }
+        
+        handleVRControllers(delta);
+        updateCameraFollow();
+        renderer.render(scene, camera); 
+    }
+    
+    init();
+</script>
+</body>
+</html>
+
