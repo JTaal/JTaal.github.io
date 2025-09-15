@@ -622,7 +622,7 @@
                     }
                     if (Math.abs(instance.position.z) > halfPlate) {
                         instance.velocity.z *= -restitution;
-                        instance.position.z = Math.sign(instance.z) * halfPlate;
+                        instance.position.z = Math.sign(instance.position.z) * halfPlate;
                     }
                 } else { 
                     const distFromCenter = Math.sqrt(instance.position.x ** 2 + instance.position.z ** 2);
