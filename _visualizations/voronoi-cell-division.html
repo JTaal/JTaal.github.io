@@ -78,7 +78,7 @@
             padding: 1.25rem;
             display: flex;
             flex-direction: column;
-            gap: 1.25rem;
+            gap: 1rem;
         }
          #settings-panel {
             max-height: calc(100vh - 180px);
@@ -86,7 +86,7 @@
         }
         #bifurcation-canvas {
             width: 100%;
-            height: 180px;
+            height: 100%;
             background-color: rgba(3, 7, 18, 0.5);
             border-radius: 6px;
         }
@@ -104,7 +104,7 @@
             backdrop-filter: blur(5px);
             border-bottom: 1px solid rgba(55, 65, 81, 0.7);
         }
-        .menu-button, .toggle-button, .action-button, .preset-button {
+        .menu-button, .toggle-button, .action-button, .preset-button, .axis-button {
             background-color: rgba(55, 65, 81, 0.8);
             border: 1px solid rgba(75, 85, 99, 0.9);
             color: white;
@@ -115,17 +115,17 @@
             font-weight: 500;
         }
          #settings-btn { padding: 8px; }
-        .action-button:disabled {
+        .action-button:disabled, .toggle-button:disabled {
             background-color: #374151;
             color: #9ca3af;
             cursor: not-allowed;
             transform: none;
         }
-        .menu-button:hover, .toggle-button:hover, .action-button:not(:disabled):hover, .preset-button:hover {
+        .menu-button:hover, .toggle-button:not(:disabled):hover, .action-button:not(:disabled):hover, .preset-button:hover, .axis-button:hover {
             background-color: #4338ca;
             transform: translateY(-2px);
         }
-        .menu-button.active, .toggle-button.active {
+        .menu-button.active, .toggle-button.active, .axis-button.active {
             background-color: #4f46e5;
             box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
         }
@@ -163,11 +163,18 @@
             background-color: rgba(55, 65, 81, 0.7);
             margin: 0.25rem 0;
         }
+        .axis-button {
+            padding: 4px 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1 class="text-xl font-bold">Cellular Dynamics</h1>
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bold">Cellular Dynamics</h1>
+            <div id="scene-menu" class="flex gap-4"></div>
+        </div>
          <button id="settings-btn" class="menu-button">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
          </button>
@@ -179,20 +186,10 @@
         </div>
         <div id="info-content" class="pt-4 space-y-3">
              <p id="info-description"></p>
-             <div id="stats-panel" class="p-3 bg-gray-900/50 rounded-lg hidden">
-                 <h3 class="font-semibold text-indigo-300 mb-2">Live Stats</h3>
-                 <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                     <span>Generation:</span><span id="gen-stat" class="font-mono text-right">0</span>
-                     <span>Population (x):</span><span id="x-stat" class="font-mono text-right">0.5000</span>
-                     <span>Cell Count:</span><span id="cell-count-stat" class="font-mono text-right">0</span>
-                 </div>
-            </div>
+             <div id="stats-panel" class="p-3 bg-gray-900/50 rounded-lg hidden"></div>
         </div>
     </div>
-    <div id="bifurcation-panel" class="ui-panel">
-        <h3 class="text-lg font-bold text-indigo-400 mb-2">Bifurcation Diagram</h3>
-        <canvas id="bifurcation-canvas"></canvas>
-    </div>
+    <div id="bifurcation-panel" class="ui-panel hidden"></div>
     <div id="settings-panel" class="ui-panel hidden"></div>
     <div id="controls-panel" class="ui-panel"></div>
 
@@ -206,35 +203,42 @@
 
     const scenes = {
         cell_division: {
-            title: 'Logistic Growth & Cell Division',
-            description: 'A 3D simulation of population dynamics based on the logistic map: x_n+1 = r * x_n * (1 - x_n). The growth rate "r" determines the population\'s behavior, from stable equilibrium to chaotic fluctuation, visualized as dividing cells on a culture plate.',
+            name: 'Cell Division',
+            description: 'A simulation of population dynamics based on the logistic map. The growth rate "r" determines the population\'s behavior, from stable equilibrium to chaotic fluctuation, visualized as dividing cells in a 3D volume.',
             init: initCellDivisionSim,
         },
     };
 
     function initCellDivisionSim() {
         const MAX_CELLS = 750;
-        const PLATE_SIZE = 25;
-        let simState = { r: 2.8, x: 0.5, autoPlay: false, timeSinceLastStep: 0, generation: 0, gridType: 'circle' };
+        const SIM_SIZE = 25;
+        let simState = { 
+            r: 2.8, x: 0.5, autoPlay: false, timeSinceLastStep: 0, generation: 0, 
+            dimension: '2D',
+            collisionsEnabled: true,
+            gravityEnabled: false,
+            gridType: 'circle', // for 2D
+            volumeType: 'sphere', // for 3D
+        };
         let resources = { disposables: [] };
         let cellInstances = []; 
 
         let composer, bloomPass, cytoplasmMesh, nucleusMesh, voronoiMesh;
-        let squarePlate, squareGrid, circlePlate, circleGrid;
+        let cubeHelper, sphereHelper, squarePlate, squareGrid, circlePlate, circleGrid;
         const dummy = new THREE.Object3D();
         let bifurcationCanvas, bifurcationCtx, bifurcationImageData;
 
         function init() {
-            camera.position.set(0, 15, 20); 
+            camera.position.set(0, 25, 25);
             controls.target.set(0, 0, 0);
             controls.autoRotate = true;
             controls.autoRotateSpeed = 0.2;
-            controls.maxPolarAngle = Math.PI / 2.1;
             setupPostProcessing();
             setupUI();
             createEnvironment();
             createCellMeshes();
             setupBifurcationDiagram();
+            toggleDimension('2D'); // Start in 2D
         }
 
         function setupPostProcessing() {
@@ -247,11 +251,14 @@
         }
 
         function setupUI() {
-            const controlsPanel = document.getElementById('controls-panel');
-            const settingsPanel = document.getElementById('settings-panel');
+            document.getElementById('stats-panel').innerHTML = `<h3 class="font-semibold text-indigo-300 mb-2">Live Stats</h3>
+                 <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                     <span>Generation:</span><span id="gen-stat" class="font-mono text-right">0</span>
+                     <span>Population (x):</span><span id="x-stat" class="font-mono text-right">0.5000</span>
+                     <span>Cell Count:</span><span id="cell-count-stat" class="font-mono text-right">0</span>
+                 </div>`;
 
-            controlsPanel.innerHTML = `
-                 <div class="controls-row">
+            document.getElementById('controls-panel').innerHTML = `<div class="controls-row">
                     <div class="control-group">
                         <label class="text-sm font-medium">Growth Rate (r): <span id="r-value">${simState.r.toFixed(3)}</span></label>
                         <input id="r-slider" type="range" min="0" max="4" step="0.001" value="${simState.r}" class="w-full">
@@ -261,8 +268,18 @@
                     <button id="autoplay-btn" class="toggle-button">Auto-Play</button>
                     <button id="reset-btn" class="action-button">Reset</button>
                 </div>`;
+            
+            document.getElementById('bifurcation-panel').innerHTML = `
+                <button id="close-bifurcation-btn" class="absolute top-1 right-2 text-gray-400 hover:text-white text-2xl leading-none z-10">&times;</button>
+                <h3 class="text-lg font-bold text-indigo-400 text-center">Bifurcation Diagram</h3>
+                <div class="relative flex-grow w-full h-full mt-2" style="padding-left: 15px; padding-bottom: 15px;">
+                    <canvas id="bifurcation-canvas"></canvas>
+                    <span class="absolute -bottom-1 left-1/2 -translate-x-1/2 text-xs text-gray-400">r (Growth Rate)</span>
+                    <span class="absolute top-1/2 -left-2 -translate-y-1/2 text-xs text-gray-400" style="transform: rotate(-90deg);">x (Population)</span>
+                </div>
+            `;
 
-            settingsPanel.innerHTML = `
+            document.getElementById('settings-panel').innerHTML = `
                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">Presets</h3>
                 <div class="controls-row flex-wrap justify-start">
                      <button class="preset-button" data-r="2.8">Stable</button>
@@ -272,61 +289,82 @@
                      <button class="preset-button" data-r="4.0">Collapse</button>
                 </div>
                 <div class="divider"></div>
-                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">View Controls</h3>
-                 <div class="space-y-3">
-                    <div class="controls-row !justify-around">
-                         <button id="toggle-graph-btn" class="toggle-button active">Hide Graph</button>
-                         <button id="toggle-voronoi-btn" class="toggle-button active">Hide Voronoi</button>
-                         <button id="autorotate-btn" class="toggle-button active">Auto-Rotate</button>
-                    </div>
-                    <div class="switch-group">
-                         <label for="grid-shape-switch" class="text-sm font-medium">Grid Shape</label>
+                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">Physics & View</h3>
+                 <div class="space-y-4">
+                     <div class="switch-group">
+                         <label class="text-sm font-medium">Physics Mode</label>
                          <div class="flex items-center gap-2">
-                            <span class="text-sm">Circle</span>
+                            <span class="text-sm">2D</span>
                             <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="grid-shape-switch" class="sr-only peer">
+                                <input type="checkbox" id="dimension-switch" class="sr-only peer">
                                 <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                             </label>
-                            <span class="text-sm">Square</span>
+                            <span class="text-sm">3D</span>
                         </div>
                     </div>
-                </div>
-                <div class="divider"></div>
+                    <div class="switch-group">
+                         <label class="text-sm font-medium">Cell Collisions</label>
+                         <label class="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" id="collision-switch" class="sr-only peer" checked>
+                             <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                         </label>
+                    </div>
+                    <div class="switch-group">
+                         <label class="text-sm font-medium">Enable Gravity</label>
+                         <label class="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" id="gravity-switch" class="sr-only peer">
+                             <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                         </label>
+                    </div>
+                     <div id="2d-controls" class="space-y-4">
+                        <div class="switch-group">
+                             <label class="text-sm font-medium">Boundary Shape</label>
+                             <div class="flex items-center gap-2">
+                                <span class="text-sm">Circle</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="grid-shape-switch" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                                <span class="text-sm">Square</span>
+                            </div>
+                        </div>
+                         <button id="toggle-voronoi-2d-btn" class="toggle-button active w-full">Show Voronoi Lines</button>
+                    </div>
+                     <div id="3d-controls" class="hidden space-y-4">
+                         <div class="switch-group">
+                             <label class="text-sm font-medium">Boundary Shape</label>
+                             <div class="flex items-center gap-2">
+                                <span class="text-sm">Sphere</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="volume-shape-switch" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                                <span class="text-sm">Cube</span>
+                            </div>
+                        </div>
+                    </div>
+                     <button id="toggle-graph-btn" class="toggle-button">Show Graph</button>
+                 </div>
+                 <div class="divider"></div>
                  <h3 class="text-lg font-bold text-indigo-400 -mb-2">Color & Appearance</h3>
                  <div class="space-y-3">
-                    <div class="color-picker-group">
-                        <label for="cyto-color">Cytoplasm Color</label>
-                        <input type="color" id="cyto-color" value="#ffb399">
-                    </div>
-                     <div class="control-group !items-start !text-left">
-                        <label class="text-sm font-medium w-full">Cell Transparency: <span id="cyto-opacity-value">0.40</span></label>
+                    <div class="color-picker-group"><label>Cytoplasm</label><input type="color" id="cyto-color" value="#ffb399"></div>
+                    <div class="control-group !items-start !text-left">
+                        <label class="text-sm font-medium w-full">Cell Opacity: <span id="cyto-opacity-value">0.40</span></label>
                         <input id="cyto-opacity-slider" type="range" min="0" max="1" step="0.01" value="0.4" class="w-full">
                     </div>
-                     <div class="color-picker-group">
-                        <label for="nucleus-color">Nucleus Color</label>
-                        <input type="color" id="nucleus-color" value="#4b0082">
-                    </div>
-                     <div class="color-picker-group">
-                        <label for="grid-color">Grid Color</label>
-                        <input type="color" id="grid-color" value="#4f46e5">
-                    </div>
+                    <div class="color-picker-group"><label>Nucleus</label><input type="color" id="nucleus-color" value="#4b0082"></div>
+                    <div class="color-picker-group"><label>Grid</label><input type="color" id="grid-color" value="#4f46e5"></div>
                     <button id="random-color-btn" class="action-button w-full">Randomize Colors</button>
                  </div>
                  <div class="divider"></div>
-                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">Graphics Settings</h3>
-                 <div class="control-group">
-                    <label class="text-sm font-medium">Bloom Strength: <span id="bloom-strength-value">1.0</span></label>
-                    <input id="bloom-strength-slider" type="range" min="0" max="3" step="0.05" value="1.0" class="w-full">
-                </div>
-                 <div class="control-group">
-                    <label class="text-sm font-medium">Bloom Threshold: <span id="bloom-threshold-value">0.4</span></label>
-                    <input id="bloom-threshold-slider" type="range" min="0" max="1" step="0.05" value="0.4" class="w-full">
-                </div>
-                <div class="divider"></div>
-                 <div class="control-group w-full">
-                    <label class="text-sm font-medium">Sim Speed: <span id="speed-value">1.0x</span></label>
-                    <input id="speed-slider" type="range" min="0.1" max="5" step="0.1" value="1.0" class="w-full">
-                </div>`;
+                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">Graphics & Speed</h3>
+                 <div class="space-y-3">
+                    <div class="control-group"><label>Bloom Strength: <span id="bloom-strength-value">1.0</span></label><input id="bloom-strength-slider" type="range" min="0" max="3" step="0.05" value="1.0" class="w-full"></div>
+                    <div class="control-group"><label>Bloom Threshold: <span id="bloom-threshold-value">0.4</span></label><input id="bloom-threshold-slider" type="range" min="0" max="1" step="0.05" value="0.4" class="w-full"></div>
+                    <div class="control-group w-full"><label>Sim Speed: <span id="speed-value">1.0x</span></label><input id="speed-slider" type="range" min="0.1" max="5" step="0.1" value="1.0"></div>
+                     <button id="autorotate-btn" class="toggle-button active w-full">Auto-Rotate</button>
+                 </div>`;
             
             // --- Event Listeners ---
             document.getElementById('r-slider').addEventListener('input', e => setGrowthRate(parseFloat(e.target.value)));
@@ -337,74 +375,120 @@
                 e.target.textContent = simState.autoPlay ? 'Pause' : 'Auto-Play';
                 e.target.classList.toggle('active', simState.autoPlay);
                 document.getElementById('next-gen-btn').disabled = simState.autoPlay;
-                simState.timeSinceLastStep = 0;
             });
             document.querySelectorAll('.preset-button').forEach(button => button.addEventListener('click', () => setGrowthRate(parseFloat(button.dataset.r))));
+            
+            // View & Physics
+            document.getElementById('dimension-switch').addEventListener('change', e => toggleDimension(e.target.checked ? '3D' : '2D'));
+            document.getElementById('collision-switch').addEventListener('change', e => { simState.collisionsEnabled = e.target.checked; });
             document.getElementById('grid-shape-switch').addEventListener('change', e => {
-                toggleGridShape(e.target.checked ? 'square' : 'circle');
+                simState.gridType = e.target.checked ? 'square' : 'circle';
+                toggleGridShape();
             });
+            document.getElementById('volume-shape-switch').addEventListener('change', e => {
+                simState.volumeType = e.target.checked ? 'cube' : 'sphere';
+                toggleGridShape();
+            });
+            document.getElementById('gravity-switch').addEventListener('change', e => {
+                simState.gravityEnabled = e.target.checked;
+                 if (!simState.gravityEnabled) {
+                    cellInstances.forEach(inst => inst.velocity.y = 0);
+                }
+            });
+            
+            const graphToggleBtn = document.getElementById('toggle-graph-btn');
+            graphToggleBtn.addEventListener('click', () => togglePanelVisibility(graphToggleBtn, 'bifurcation-panel', 'Graph'));
+            document.getElementById('close-bifurcation-btn').addEventListener('click', () => togglePanelVisibility(graphToggleBtn, 'bifurcation-panel', 'Graph'));
+
+             document.getElementById('toggle-voronoi-2d-btn').addEventListener('click', (e) => {
+                voronoiMesh.visible = !voronoiMesh.visible;
+                e.target.classList.toggle('active', voronoiMesh.visible);
+            });
+            
+            // Colors & Appearance Listeners
             document.getElementById('cyto-color').addEventListener('input', e => cytoplasmMesh.material.color.set(e.target.value));
             document.getElementById('cyto-opacity-slider').addEventListener('input', e => {
-                const opacity = parseFloat(e.target.value);
-                cytoplasmMesh.material.opacity = opacity;
-                document.getElementById('cyto-opacity-value').textContent = opacity.toFixed(2);
+                cytoplasmMesh.material.opacity = parseFloat(e.target.value);
+                document.getElementById('cyto-opacity-value').textContent = parseFloat(e.target.value).toFixed(2);
             });
             document.getElementById('nucleus-color').addEventListener('input', e => nucleusMesh.material.color.set(e.target.value));
             document.getElementById('grid-color').addEventListener('input', e => {
                 const color = new THREE.Color(e.target.value);
-                [squareGrid.material, circleGrid.material, squarePlate.material, circlePlate.material].forEach(mat => mat.color.set(color));
+                [cubeHelper.material, sphereHelper.material, squareGrid.material, circleGrid.material, squarePlate.material, circlePlate.material].forEach(mat => mat.color.set(color));
             });
             document.getElementById('random-color-btn').addEventListener('click', () => {
                 const randomColor = () => '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-                document.getElementById('cyto-color').value = randomColor();
-                document.getElementById('nucleus-color').value = randomColor();
-                document.getElementById('grid-color').value = randomColor();
-                document.getElementById('cyto-color').dispatchEvent(new Event('input'));
-                document.getElementById('nucleus-color').dispatchEvent(new Event('input'));
-                document.getElementById('grid-color').dispatchEvent(new Event('input'));
+                 ['cyto-color', 'nucleus-color', 'grid-color'].forEach(id => {
+                    document.getElementById(id).value = randomColor();
+                    document.getElementById(id).dispatchEvent(new Event('input'));
+                });
             });
-            document.getElementById('bloom-strength-slider').addEventListener('input', e => {
-                bloomPass.strength = parseFloat(e.target.value);
-                document.getElementById('bloom-strength-value').textContent = parseFloat(e.target.value).toFixed(2);
-            });
-            document.getElementById('bloom-threshold-slider').addEventListener('input', e => {
-                bloomPass.threshold = parseFloat(e.target.value);
-                document.getElementById('bloom-threshold-value').textContent = parseFloat(e.target.value).toFixed(2);
-            });
-            document.getElementById('toggle-graph-btn').addEventListener('click', e => togglePanelVisibility(e.target, 'bifurcation-panel', 'Graph'));
-            document.getElementById('toggle-voronoi-btn').addEventListener('click', e => {
-                if (voronoiMesh) {
-                    voronoiMesh.visible = !voronoiMesh.visible;
-                    e.target.textContent = voronoiMesh.visible ? 'Hide Voronoi' : 'Show Voronoi';
-                    e.target.classList.toggle('active', voronoiMesh.visible);
-                }
-            });
-            document.getElementById('speed-slider').addEventListener('input', e => {
-                animationSpeed = parseFloat(e.target.value);
-                document.getElementById('speed-value').textContent = `${animationSpeed.toFixed(1)}x`;
-            });
-            document.getElementById('autorotate-btn').addEventListener('click', e => {
-                controls.autoRotate = !controls.autoRotate;
-                e.target.classList.toggle('active', controls.autoRotate);
-            });
+
+            // Graphics & Speed Listeners
+            document.getElementById('bloom-strength-slider').addEventListener('input', e => { bloomPass.strength = parseFloat(e.target.value); document.getElementById('bloom-strength-value').textContent = parseFloat(e.target.value).toFixed(2); });
+            document.getElementById('bloom-threshold-slider').addEventListener('input', e => { bloomPass.threshold = parseFloat(e.target.value); document.getElementById('bloom-threshold-value').textContent = parseFloat(e.target.value).toFixed(2); });
+            document.getElementById('speed-slider').addEventListener('input', e => { animationSpeed = parseFloat(e.target.value); document.getElementById('speed-value').textContent = `${animationSpeed.toFixed(1)}x`; });
+            document.getElementById('autorotate-btn').addEventListener('click', e => { controls.autoRotate = !controls.autoRotate; e.target.classList.toggle('active', controls.autoRotate); });
         }
         
         function togglePanelVisibility(button, panelId, name) {
             const panel = document.getElementById(panelId);
-            const isHidden = panel.style.display === 'none';
-            panel.style.display = isHidden ? 'flex' : 'none';
-            button.textContent = isHidden ? `Hide ${name}` : `Show ${name}`;
-            button.classList.toggle('active', isHidden);
+            const isHidden = panel.classList.toggle('hidden');
+            button.textContent = isHidden ? `Show ${name}` : `Hide ${name}`;
+            button.classList.toggle('active', !isHidden);
+        }
+
+        function toggleDimension(newDimension) {
+            simState.dimension = newDimension;
+            const is3D = newDimension === '3D';
+            
+            document.getElementById('2d-controls').classList.toggle('hidden', is3D);
+            document.getElementById('3d-controls').classList.toggle('hidden', !is3D);
+            
+            toggleGridShape();
+
+            if (is3D) {
+                camera.position.set(0, 15, 35);
+            } else {
+                camera.position.set(0, 25, 25);
+            }
+             controls.target.set(0,0,0);
         }
         
-        function toggleGridShape(newShape) {
-            if (simState.gridType === newShape) return;
-            simState.gridType = newShape;
-            const isSquare = newShape === 'square';
-            squarePlate.visible = isSquare;
-            squareGrid.visible = isSquare;
-            circlePlate.visible = !isSquare;
-            circleGrid.visible = !isSquare;
+        function toggleGridShape() {
+            const is3D = simState.dimension === '3D';
+            squarePlate.visible = !is3D && simState.gridType === 'square';
+            squareGrid.visible = !is3D && simState.gridType === 'square';
+            circlePlate.visible = !is3D && simState.gridType === 'circle';
+            circleGrid.visible = !is3D && simState.gridType === 'circle';
+            
+            cubeHelper.visible = is3D && simState.volumeType === 'cube';
+            sphereHelper.visible = is3D && simState.volumeType === 'sphere';
+            repositionCells();
+        }
+
+        function repositionCells() {
+            const halfSize = SIM_SIZE / 2;
+             for (let i = 0; i < MAX_CELLS; i++) {
+                const instance = cellInstances[i];
+                if(simState.dimension === '2D') {
+                    if (simState.gridType === 'square') {
+                        instance.position.set((Math.random() - 0.5) * SIM_SIZE, 0.5, (Math.random() - 0.5) * SIM_SIZE);
+                    } else { // circle
+                        const r = halfSize * Math.sqrt(Math.random());
+                        const theta = Math.random() * 2 * Math.PI;
+                        instance.position.set(r * Math.cos(theta), 0.5, r * Math.sin(theta));
+                    }
+                    instance.velocity.set((Math.random() - 0.5) * 0.2, 0, (Math.random() - 0.5) * 0.2);
+                } else { // 3D
+                     if (simState.volumeType === 'cube') {
+                        instance.position.set((Math.random() - 0.5) * SIM_SIZE, (Math.random() - 0.5) * SIM_SIZE, (Math.random() - 0.5) * SIM_SIZE);
+                    } else { // sphere
+                        instance.position.randomDirection().multiplyScalar(Math.random() * halfSize);
+                    }
+                    instance.velocity.randomDirection().multiplyScalar(0.2);
+                }
+            }
         }
 
         function setGrowthRate(r) {
@@ -415,68 +499,72 @@
             calculateNextGeneration();
         }
 
+        function createEnvironment() {
+            const size = SIM_SIZE;
+            // 3D Helpers
+            const cubeGeom = new THREE.BoxGeometry(size, size, size);
+            cubeHelper = new THREE.BoxHelper(new THREE.Mesh(cubeGeom), 0x4f46e5);
+            activeSceneObjects.add(cubeHelper);
+            
+            const sphereGeom = new THREE.SphereGeometry(size / 2, 32, 16);
+            const wireframe = new THREE.WireframeGeometry(sphereGeom);
+            sphereHelper = new THREE.LineSegments(wireframe, new THREE.LineBasicMaterial({ color: 0x4f46e5 }));
+            activeSceneObjects.add(sphereHelper);
+            
+            // 2D Helpers
+            const plateMaterial = new THREE.MeshStandardMaterial({ color: 0x4f46e5, transparent: true, opacity: 0.1, side: THREE.DoubleSide });
+            const squarePlateGeom = new THREE.PlaneGeometry(size, size);
+            squarePlate = new THREE.Mesh(squarePlateGeom, plateMaterial.clone());
+            squarePlate.rotation.x = -Math.PI / 2;
+            activeSceneObjects.add(squarePlate);
+
+            squareGrid = new THREE.GridHelper(size, 20, 0x4f46e5, 0x374151);
+            squareGrid.position.y = 0.01;
+            activeSceneObjects.add(squareGrid);
+            
+            const circlePlateGeom = new THREE.CircleGeometry(size / 2, 64);
+            circlePlate = new THREE.Mesh(circlePlateGeom, plateMaterial.clone());
+            circlePlate.rotation.x = -Math.PI / 2;
+            activeSceneObjects.add(circlePlate);
+
+            circleGrid = createCircleGridLines(size / 2, 16, 5);
+            activeSceneObjects.add(circleGrid);
+
+            // Voronoi
+            const voronoiMaterial = new THREE.LineBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.75, depthTest: false });
+            voronoiMesh = new THREE.LineSegments(new THREE.BufferGeometry(), voronoiMaterial);
+            voronoiMesh.renderOrder = 1;
+            activeSceneObjects.add(voronoiMesh);
+
+            resources.disposables.push(cubeGeom, sphereGeom, wireframe, squarePlateGeom, circlePlateGeom, plateMaterial, voronoiMaterial, voronoiMesh.geometry);
+        }
+
         function createCircleGridLines(radius, radialDivisions, circleDivisions) {
             const vertices = [];
             for (let i = 0; i < radialDivisions; i++) {
                 const angle = (i / radialDivisions) * Math.PI * 2;
-                vertices.push(0, 0, 0, radius * Math.cos(angle), 0, radius * Math.sin(angle));
+                vertices.push(0, 0.01, 0, radius * Math.cos(angle), 0.01, radius * Math.sin(angle));
             }
             for (let i = 1; i <= circleDivisions; i++) {
                 const circleRadius = (i / circleDivisions) * radius;
                 for (let j = 0; j < 128; j++) {
                     const angle1 = (j / 128) * Math.PI * 2;
                     const angle2 = ((j + 1) / 128) * Math.PI * 2;
-                    vertices.push(circleRadius * Math.cos(angle1), 0, circleRadius * Math.sin(angle1), circleRadius * Math.cos(angle2), 0, circleRadius * Math.sin(angle2));
+                    vertices.push(circleRadius * Math.cos(angle1), 0.01, circleRadius * Math.sin(angle1), circleRadius * Math.cos(angle2), 0.01, circleRadius * Math.sin(angle2));
                 }
             }
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             const material = new THREE.LineBasicMaterial({ color: 0x4f46e5, transparent: true, opacity: 0.7 });
             const lineSegments = new THREE.LineSegments(geometry, material);
-            lineSegments.position.y = 0.01;
             resources.disposables.push(geometry, material);
             return lineSegments;
         }
-
-        function createEnvironment() {
-            const plateMaterial = new THREE.MeshStandardMaterial({
-                color: 0x4f46e5, transparent: true, opacity: 0.1, side: THREE.DoubleSide, metalness: 0.2, roughness: 0.8
-            });
-            const squareGeom = new THREE.PlaneGeometry(PLATE_SIZE, PLATE_SIZE);
-            squarePlate = new THREE.Mesh(squareGeom, plateMaterial.clone());
-            squarePlate.rotation.x = -Math.PI / 2;
-            squarePlate.visible = false;
-            activeSceneObjects.add(squarePlate);
-
-            squareGrid = new THREE.GridHelper(PLATE_SIZE, 20, 0x4f46e5, 0x374151);
-            squareGrid.material.color = new THREE.Color(0x4f46e5);
-            squareGrid.position.y = 0.01;
-            squareGrid.visible = false;
-            activeSceneObjects.add(squareGrid);
-            
-            const circleGeom = new THREE.CircleGeometry(PLATE_SIZE / 2, 64);
-            circlePlate = new THREE.Mesh(circleGeom, plateMaterial.clone());
-            circlePlate.rotation.x = -Math.PI / 2;
-            circlePlate.visible = true;
-            activeSceneObjects.add(circlePlate);
-
-            circleGrid = createCircleGridLines(PLATE_SIZE / 2, 16, 5);
-            circleGrid.visible = true;
-            activeSceneObjects.add(circleGrid);
-            
-            const voronoiGeometry = new THREE.BufferGeometry();
-            const voronoiMaterial = new THREE.LineBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.75, depthTest: false });
-            voronoiMesh = new THREE.LineSegments(voronoiGeometry, voronoiMaterial);
-            voronoiMesh.position.y = 0.02; 
-            voronoiMesh.renderOrder = 1;
-            activeSceneObjects.add(voronoiMesh);
-            resources.disposables.push(plateMaterial, squareGeom, circleGeom, voronoiGeometry, voronoiMaterial);
-        }
-
+        
         function createCellMeshes() {
             const cytoplasmGeom = new THREE.SphereGeometry(0.5, 20, 16);
             const cytoplasmMat = new THREE.MeshStandardMaterial({
-                color: 0xffb399, transparent: true, opacity: 0.4, premultipliedAlpha: true, metalness: 0.1, roughness: 0.4
+                color: 0xffb399, transparent: true, opacity: 0.4, metalness: 0.1, roughness: 0.4
             });
             cytoplasmMesh = new THREE.InstancedMesh(cytoplasmGeom, cytoplasmMat, MAX_CELLS);
             activeSceneObjects.add(cytoplasmMesh);
@@ -487,12 +575,13 @@
             });
             nucleusMesh = new THREE.InstancedMesh(nucleusGeom, nucleusMat, MAX_CELLS);
             activeSceneObjects.add(nucleusMesh);
+
             resources.disposables.push(cytoplasmGeom, cytoplasmMat, nucleusGeom, nucleusMat);
 
             for (let i = 0; i < MAX_CELLS; i++) {
                 cellInstances.push({
-                    position: new THREE.Vector3((Math.random() - 0.5) * PLATE_SIZE, 0.5, (Math.random() - 0.5) * PLATE_SIZE),
-                    velocity: new THREE.Vector3((Math.random() - 0.5) * 0.2, 0, (Math.random() - 0.5) * 0.2),
+                    position: new THREE.Vector3(),
+                    velocity: new THREE.Vector3(),
                     targetScale: 0, currentScale: 0
                 });
             }
@@ -502,9 +591,10 @@
             bifurcationCanvas = document.getElementById('bifurcation-canvas');
             requestAnimationFrame(() => {
                 const dpr = window.devicePixelRatio || 1;
-                if (!bifurcationCanvas || !bifurcationCanvas.clientWidth) return;
-                bifurcationCanvas.width = bifurcationCanvas.clientWidth * dpr;
-                bifurcationCanvas.height = bifurcationCanvas.clientHeight * dpr;
+                if (!bifurcationCanvas || !bifurcationCanvas.parentElement) return;
+                const rect = bifurcationCanvas.parentElement.getBoundingClientRect();
+                bifurcationCanvas.width = rect.width * dpr;
+                bifurcationCanvas.height = rect.height * dpr;
                 bifurcationCtx = bifurcationCanvas.getContext('2d');
                 bifurcationCtx.fillStyle = 'rgba(129, 140, 248, 0.1)'; 
                 const { width, height } = bifurcationCanvas;
@@ -545,6 +635,7 @@
         function resetSimulation() {
             simState.x = 0.5;
             simState.generation = 0;
+            repositionCells();
             setGrowthRate(2.8);
         }
 
@@ -562,7 +653,7 @@
             document.getElementById('x-stat').textContent = simState.x.toFixed(4);
             document.getElementById('cell-count-stat').textContent = newCellCount;
         }
-        
+
         function clipSegmentWithCircle(p1, p2, radius) {
             const radiusSq = radius * radius;
             const p1Inside = p1.lengthSq() < radiusSq;
@@ -596,54 +687,80 @@
             }
 
             nucleusMesh.material.emissiveIntensity = 0.5 + (Math.sin(clock.getElapsedTime() * 4) * 0.25);
-            const halfPlate = PLATE_SIZE / 2;
+            const halfSize = SIM_SIZE / 2;
             const activeCellIndices = cellInstances.map((inst, i) => inst.targetScale > 0 && inst.currentScale > 0.1 ? i : -1).filter(i => i !== -1);
             
-            const effectiveRadius = 0.5, restitution = 0.8;
-            for (let i = 0; i < activeCellIndices.length; i++) {
-                for (let j = i + 1; j < activeCellIndices.length; j++) {
-                    const instanceA = cellInstances[activeCellIndices[i]], instanceB = cellInstances[activeCellIndices[j]];
-                    const diff = new THREE.Vector3().subVectors(instanceA.position, instanceB.position);
-                    diff.y = 0; 
-                    const dist = diff.length();
-                    const overlap = (effectiveRadius * 2) - dist;
-                    if (overlap > 0) {
-                        const normal = diff.normalize(), correction = normal.clone().multiplyScalar(overlap / 2);
-                        instanceA.position.add(correction);
-                        instanceB.position.sub(correction);
-                        const vRel = new THREE.Vector3().subVectors(instanceA.velocity, instanceB.velocity);
-                        const speedAlongNormal = vRel.dot(normal);
-                        if (speedAlongNormal > 0) continue; 
-                        const impulse = -(1 + restitution) * speedAlongNormal / 2;
-                        const impulseVec = normal.clone().multiplyScalar(impulse);
-                        instanceA.velocity.add(impulseVec);
-                        instanceB.velocity.sub(impulseVec);
+            if (simState.collisionsEnabled) {
+                const effectiveRadius = 0.5, restitution = 0.8;
+                for (let i = 0; i < activeCellIndices.length; i++) {
+                    for (let j = i + 1; j < activeCellIndices.length; j++) {
+                        const instanceA = cellInstances[activeCellIndices[i]], instanceB = cellInstances[activeCellIndices[j]];
+                        const diff = new THREE.Vector3().subVectors(instanceA.position, instanceB.position);
+                        if (simState.dimension === '2D') diff.y = 0;
+                        const dist = diff.length();
+                        const overlap = (effectiveRadius * 2) - dist;
+                        if (overlap > 0) {
+                            const normal = diff.normalize();
+                            const correction = normal.clone().multiplyScalar(overlap / 2);
+                            instanceA.position.add(correction);
+                            instanceB.position.sub(correction);
+                            const vRel = new THREE.Vector3().subVectors(instanceA.velocity, instanceB.velocity);
+                            const speedAlongNormal = vRel.dot(normal);
+                            if (speedAlongNormal > 0) continue; 
+                            const impulse = -(1 + restitution) * speedAlongNormal / 2;
+                            const impulseVec = normal.clone().multiplyScalar(impulse);
+                            instanceA.velocity.add(impulseVec);
+                            instanceB.velocity.sub(impulseVec);
+                        }
                     }
                 }
             }
             
             for (let i = 0; i < MAX_CELLS; i++) {
                 const instance = cellInstances[i];
+                 if (simState.gravityEnabled) {
+                    instance.velocity.y += -9.8 * delta;
+                }
                 instance.currentScale += (instance.targetScale - instance.currentScale) * 0.1;
                 instance.position.add(instance.velocity.clone().multiplyScalar(delta * animationSpeed));
 
-                if (simState.gridType === 'square') {
-                    if (Math.abs(instance.position.x) > halfPlate) {
-                        instance.velocity.x *= -restitution;
-                        instance.position.x = Math.sign(instance.position.x) * halfPlate;
+                if(simState.dimension === '2D') {
+                    if(instance.position.y < 0.5) {
+                        instance.position.y = 0.5;
+                        instance.velocity.y *= -0.5; // Dampen bounce
                     }
-                    if (Math.abs(instance.position.z) > halfPlate) {
-                        instance.velocity.z *= -restitution;
-                        instance.position.z = Math.sign(instance.position.z) * halfPlate;
+                    if (simState.gridType === 'square') {
+                        if (Math.abs(instance.position.x) > halfSize) { instance.velocity.x *= -0.8; instance.position.x = Math.sign(instance.position.x) * halfSize; }
+                        if (Math.abs(instance.position.z) > halfSize) { instance.velocity.z *= -0.8; instance.position.z = Math.sign(instance.position.z) * halfSize; }
+                    } else { 
+                        const pos2D = new THREE.Vector2(instance.position.x, instance.position.z);
+                        if (pos2D.length() > halfSize) {
+                            const normal2D = pos2D.clone().normalize();
+                            const vel2D = new THREE.Vector2(instance.velocity.x, instance.velocity.z);
+                            
+                            const dot = vel2D.dot(normal2D);
+                            vel2D.sub(normal2D.multiplyScalar(2 * dot)).multiplyScalar(0.8);
+
+                            instance.velocity.x = vel2D.x;
+                            instance.velocity.z = vel2D.y;
+                            pos2D.setLength(halfSize);
+                            instance.position.x = pos2D.x;
+                            instance.position.z = pos2D.y;
+                        }
                     }
-                } else { 
-                    const distFromCenter = Math.sqrt(instance.position.x ** 2 + instance.position.z ** 2);
-                    if (distFromCenter > halfPlate) {
-                        const normal = new THREE.Vector3(instance.position.x, 0, instance.position.z).normalize();
-                        instance.velocity.reflect(normal).multiplyScalar(restitution);
-                        instance.position.set(normal.x * halfPlate, instance.position.y, normal.z * halfPlate);
+                } else { // 3D
+                    if (simState.volumeType === 'cube') {
+                        ['x', 'y', 'z'].forEach(axis => {
+                            if (Math.abs(instance.position[axis]) > halfSize) { instance.velocity[axis] *= -0.8; instance.position[axis] = Math.sign(instance.position[axis]) * halfSize; }
+                        });
+                    } else { 
+                        if (instance.position.length() > halfSize) {
+                            instance.velocity.reflect(instance.position.clone().normalize()).multiplyScalar(0.8);
+                            instance.position.setLength(halfSize);
+                        }
                     }
                 }
+
                 dummy.position.copy(instance.position);
                 dummy.scale.setScalar(Math.max(0, instance.currentScale));
                 dummy.updateMatrix();
@@ -653,44 +770,47 @@
             cytoplasmMesh.instanceMatrix.needsUpdate = true;
             nucleusMesh.instanceMatrix.needsUpdate = true;
             
-            if (voronoiMesh && voronoiMesh.visible && activeCellIndices.length > 2) {
+            if (voronoiMesh.visible && simState.dimension === '2D' && activeCellIndices.length > 2) {
                 const points = activeCellIndices.map(i => [cellInstances[i].position.x, cellInstances[i].position.z]);
                 const delaunay = Delaunay.from(points);
-                const voronoi = delaunay.voronoi([-halfPlate, -halfPlate, halfPlate, halfPlate]);
+                const voronoi = delaunay.voronoi([-halfSize, -halfSize, halfSize, halfSize]);
                 const vertices = [];
                 for (const polygon of voronoi.cellPolygons()) {
-                    if (polygon) {
+                     if (polygon) {
                         for (let i = 0; i < polygon.length; i++) {
                             const p1Arr = polygon[i], p2Arr = polygon[(i + 1) % polygon.length];
                             if (simState.gridType === 'square') {
-                                vertices.push(p1Arr[0], 0, p1Arr[1], p2Arr[0], 0, p2Arr[1]);
+                                vertices.push(p1Arr[0], 0.02, p1Arr[1], p2Arr[0], 0.02, p2Arr[1]);
                             } else {
-                                const clippedSegment = clipSegmentWithCircle(new THREE.Vector2(p1Arr[0], p1Arr[1]), new THREE.Vector2(p2Arr[0], p2Arr[1]), halfPlate);
-                                if (clippedSegment) vertices.push(clippedSegment[0].x, 0, clippedSegment[0].y, clippedSegment[1].x, 0, clippedSegment[1].y);
+                                const clippedSegment = clipSegmentWithCircle(new THREE.Vector2(p1Arr[0], p1Arr[1]), new THREE.Vector2(p2Arr[0], p2Arr[1]), halfSize);
+                                if (clippedSegment) vertices.push(clippedSegment[0].x, 0.02, clippedSegment[0].y, clippedSegment[1].x, 0.02, clippedSegment[1].y);
                             }
                         }
                     }
                 }
-                voronoiMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            } else if (voronoiMesh) {
+                 voronoiMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            } else {
                  voronoiMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
             }
         }
 
         function render() { composer.render(); }
+        
         function cleanup() {
             controls.autoRotate = false;
-            resources.disposables.forEach(d => d.dispose && d.dispose());
-            document.getElementById('bifurcation-panel').style.display = 'none';
+            resources.disposables.forEach(d => {
+                if (d.dispose) d.dispose();
+            });
+            document.getElementById('bifurcation-panel').classList.add('hidden');
         }
 
-        document.getElementById('bifurcation-panel').style.display = 'flex';
         init();
-        return { update, cleanup, render };
+        return { update, cleanup, render, composer };
     }
 
     // --- Core Application Logic ---
-    let scene, camera, renderer, controls, clock, currentUpdate = () => {}, currentCleanup = () => {}, currentRender = null, animationSpeed = 1.0;
+    let scene, camera, renderer, controls, clock, currentSceneKey = null;
+    let currentUpdate = () => {}, currentCleanup = () => {}, currentRender = null, currentComposer = null, animationSpeed = 1.0;
     let activeSceneObjects = new THREE.Group();
     
     function init() {
@@ -704,13 +824,10 @@
         document.body.appendChild(renderer.domElement);
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.2));
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
         dirLight.position.set(10, 20, 15);
         scene.add(dirLight);
-        const bottomLight = new THREE.PointLight(0x4f46e5, 5, 50);
-        bottomLight.position.set(0, -10, 0);
-        scene.add(bottomLight);
         scene.add(activeSceneObjects);
 
         setupGlobalUI();
@@ -721,41 +838,76 @@
         window.addEventListener('resize', onWindowResize);
         renderer.setAnimationLoop(animate);
     }
-
+    
     function setupGlobalUI() {
-        document.getElementById('settings-btn').addEventListener('click', () => {
-             document.getElementById('settings-panel').classList.toggle('hidden');
+        const menuDiv = document.getElementById('scene-menu');
+        Object.keys(scenes).forEach(key => {
+            const button = document.createElement('button');
+            button.id = `btn-${key}`;
+            button.className = 'menu-button';
+            button.textContent = scenes[key].name;
+            button.onclick = () => switchScene(key);
+            menuDiv.appendChild(button);
         });
-        document.getElementById('info-panel').addEventListener('click', (e) => {
+
+         document.getElementById('info-panel').addEventListener('click', (e) => {
             if (!e.target.closest('button, a, input, label')) {
                 e.currentTarget.classList.toggle('expanded');
             }
         });
+        document.getElementById('settings-btn').addEventListener('click', () => {
+             document.getElementById('settings-panel').classList.toggle('hidden');
+        });
     }
 
     function switchScene(key) {
+        if (key === currentSceneKey) return;
+
         if (currentCleanup) currentCleanup();
-        while(activeSceneObjects.children.length > 0) activeSceneObjects.remove(activeSceneObjects.children[0]); 
+        while(activeSceneObjects.children.length > 0) {
+            const obj = activeSceneObjects.children[0];
+            activeSceneObjects.remove(obj);
+            if(obj.geometry) obj.geometry.dispose();
+            if(obj.material) {
+                if(Array.isArray(obj.material)) {
+                    obj.material.forEach(m => m.dispose());
+                } else {
+                    obj.material.dispose();
+                }
+            }
+        }
+        
         document.getElementById('controls-panel').innerHTML = '';
         document.getElementById('settings-panel').innerHTML = '';
+        document.getElementById('bifurcation-panel').classList.add('hidden');
+        document.getElementById('stats-panel').classList.add('hidden');
+
         currentRender = null;
+        currentComposer = null;
         controls.reset();
         camera.position.set(0, 2, 8);
         controls.target.set(0, 0, 0);
+
         const sceneData = scenes[key];
-        document.getElementById('info-title').textContent = sceneData.title;
+        document.getElementById('info-title').textContent = sceneData.name;
         document.getElementById('info-description').textContent = sceneData.description;
+        document.querySelectorAll('#scene-menu .menu-button').forEach(b => b.classList.remove('active'));
+        const btn = document.getElementById(`btn-${key}`);
+        if(btn) btn.classList.add('active');
+        currentSceneKey = key;
+
         const result = sceneData.init();
         currentUpdate = result.update || (() => {});
         currentCleanup = result.cleanup || (() => {});
         currentRender = result.render;
+        currentComposer = result.composer;
     }
 
     function animate() { 
         const delta = clock.getDelta();
         controls.update();
         currentUpdate(delta);
-        if (currentRender) currentRender(); else renderer.render(scene, camera);
+        if (currentComposer) currentComposer.render(); else renderer.render(scene, camera);
     }
     
     function onWindowResize() { 
@@ -763,8 +915,9 @@
         camera.aspect = w / h; 
         camera.updateProjectionMatrix(); 
         renderer.setSize(w, h);
-        const composer = scene.children.find(c => c.isEffectComposer);
-        if (composer) composer.setSize(w, h);
+        if (currentComposer) {
+            currentComposer.setSize(w, h);
+        }
     }
     
     init();
