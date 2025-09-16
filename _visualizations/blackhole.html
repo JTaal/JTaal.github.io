@@ -514,6 +514,8 @@
 
     let scene, camera, renderer, controls, clock;
     let playerDolly; // For VR movement
+    let controller1, controller2, controllerGrip1, controllerGrip2;
+    let hand1, hand2;
     let activeSceneObjects = new THREE.Group();
     let currentParticleSystem = null;
     let particles = [];
@@ -522,9 +524,11 @@
     // --- Camera Control State ---
     const euler = new THREE.Euler(0, 0, 0, 'YXZ');
     const PI_2 = Math.PI / 2;
-    
+
     // --- VR Input State Manager ---
-    const vrZoomState = {
+    const vrInputs = {
+        left: { grip: { pressed: false }, trigger: { pressed: false }, thumbstick: { x: 0, y: 0 } },
+        right: { grip: { pressed: false }, trigger: { pressed: false }, thumbstick: { x: 0, y: 0 } },
         isZooming: false,
         initialZoomDistance: 0,
         initialDollyScale: new THREE.Vector3()
@@ -570,37 +574,6 @@
     // --- Main simulation functions ---
     let currentCleanup = () => {};
     let currentUpdate = () => {};
-
-    // --- VR Controller Logic (based on three-vrcontroller-module) ---
-    const VRController = {
-        controllers: [],
-        update: function() {
-            const gamepads = navigator.getGamepads && navigator.getGamepads();
-            if (!gamepads) return;
-
-            for (let i = 0; i < gamepads.length; i++) {
-                const gamepad = gamepads[i];
-                if (gamepad && gamepad.pose) {
-                    let controller = this.controllers[gamepad.index];
-                    if (!controller) {
-                        controller = new THREE.Object3D();
-                        controller.gamepad = gamepad;
-                        this.controllers[gamepad.index] = controller;
-                        window.dispatchEvent(new CustomEvent('vr controller connected', { detail: controller }));
-                    }
-                    // Update pose
-                    const pose = gamepad.pose;
-                    if (pose.position) controller.position.fromArray(pose.position);
-                    if (pose.orientation) controller.quaternion.fromArray(pose.orientation);
-                    controller.updateMatrixWorld();
-
-                    // Update axes and buttons
-                    controller.axes = gamepad.axes.slice(0);
-                    controller.buttons = gamepad.buttons.map(b => ({...b}));
-                }
-            }
-        }
-    };
 
     function init() {
         clock = new THREE.Clock();
@@ -776,18 +749,6 @@
     function setupVR() {
         const vrButton = document.getElementById('vr-button');
 
-        window.addEventListener('vr controller connected', (event) => {
-            const controller = event.detail;
-            playerDolly.add(controller);
-            controller.standingMatrix = renderer.xr.getStandingMatrix();
-            controller.head = camera;
-
-            const controllerModelFactory = new XRControllerModelFactory();
-            const grip = renderer.xr.getControllerGrip(controller.gamepad.index);
-            grip.add(controllerModelFactory.createControllerModel(grip));
-            playerDolly.add(grip);
-        });
-
         if ('xr' in navigator) {
             navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
                 if (supported) {
@@ -795,7 +756,7 @@
                         if (renderer.xr.isPresenting) {
                             renderer.xr.getSession()?.end();
                         } else {
-                            const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor' ] };
+                            const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking' ] };
                             navigator.xr.requestSession('immersive-vr', sessionInit).then((session) => {
                                 renderer.xr.setSession(session);
                             });
@@ -830,6 +791,25 @@
              vrButton.disabled = true;
              vrButton.textContent = 'VR Not Supported';
         }
+
+        controller1 = renderer.xr.getController(0);
+        playerDolly.add(controller1);
+        controller2 = renderer.xr.getController(1);
+        playerDolly.add(controller2);
+        const controllerModelFactory = new XRControllerModelFactory();
+        const handModelFactory = new XRHandModelFactory();
+        controllerGrip1 = renderer.xr.getControllerGrip(0);
+        controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
+        playerDolly.add(controllerGrip1);
+        controllerGrip2 = renderer.xr.getControllerGrip(1);
+        controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
+        playerDolly.add(controllerGrip2);
+        hand1 = renderer.xr.getHand(0);
+        hand1.add(handModelFactory.createHandModel(hand1));
+        playerDolly.add(hand1);
+        hand2 = renderer.xr.getHand(1);
+        hand2.add(handModelFactory.createHandModel(hand2));
+        playerDolly.add(hand2);
     }
     
     function setFlyMode(enabled) {
@@ -1085,6 +1065,9 @@
         if (entropyParticles) entropyParticles.visible = entropyViewVisible;
         const centralObject = scene.getObjectByName("centralObject");
         if (centralObject) centralObject.visible = standardView;
+
+        const horizonOutline = scene.getObjectByName("horizonOutline");
+        if(horizonOutline) horizonOutline.visible = false; // Always hide the ring now
 
         document.getElementById('blackhole-explanation-content').style.display = standardView ? 'block' : 'none';
         document.getElementById('entropy-explanation-content').style.display = entropyViewVisible ? 'block' : 'none';
@@ -1658,6 +1641,22 @@
         }
     }
 
+    function updateVRInputs() {
+        if (!renderer.xr.isPresenting) return;
+        const deadzone = 0.15;
+        const updateControllerState = (controller, state) => {
+            if (controller && controller.gamepad) {
+                const gp = controller.gamepad;
+                state.trigger.pressed = gp.buttons[0]?.pressed;
+                state.grip.pressed = gp.buttons[1]?.pressed;
+                state.thumbstick.x = Math.abs(gp.axes[2]) > deadzone ? gp.axes[2] : 0;
+                state.thumbstick.y = Math.abs(gp.axes[3]) > deadzone ? gp.axes[3] : 0;
+            }
+        };
+        updateControllerState(controller1, vrInputs.left);
+        updateControllerState(controller2, vrInputs.right);
+    }
+
     function handleDesktopFlyControls(delta) {
         if (!flyModeEnabled || renderer.xr.isPresenting) return;
         
@@ -1682,48 +1681,48 @@
     function handleVRControllers(delta) {
         if (!renderer.xr.isPresenting) return;
         
-        const controllers = VRController.controllers;
-        const speed = 5.0; 
+        const speed = 3.0;
         const turnSpeed = 1.5;
-        const deadzone = 0.1;
+        const cameraDirection = new THREE.Quaternion();
+        camera.getWorldQuaternion(cameraDirection);
 
-        // Left Controller (index 0) for movement
-        if (controllers[0] && controllers[0].axes.length >= 4) {
-            const leftX = Math.abs(controllers[0].axes[2]) > deadzone ? controllers[0].axes[2] : 0;
-            const leftY = Math.abs(controllers[0].axes[3]) > deadzone ? controllers[0].axes[3] : 0;
-            
-            if (leftX !== 0 || leftY !== 0) {
-                const moveDirection = new THREE.Vector3(leftX, 0, leftY);
-                const headQuaternion = new THREE.Quaternion();
-                camera.getWorldQuaternion(headQuaternion);
-                const yaw = new THREE.Euler().setFromQuaternion(headQuaternion, 'YXZ').y;
-                const bodyQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-                
-                moveDirection.applyQuaternion(bodyQuaternion);
-                moveDirection.normalize().multiplyScalar(speed * delta);
-                playerDolly.position.add(moveDirection);
-            }
+        const moveDirection = new THREE.Vector3(vrInputs.left.thumbstick.x, 0, vrInputs.left.thumbstick.y);
+        if (moveDirection.length() > 0.1) {
+            moveDirection.normalize().multiplyScalar(speed * delta);
+            const flatCameraQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), new THREE.Euler().setFromQuaternion(cameraDirection).y);
+            moveDirection.applyQuaternion(flatCameraQuaternion);
+            playerDolly.position.add(moveDirection);
         }
 
-        // Right Controller (index 1) for rotation and altitude
-        if (controllers[1] && controllers[1].axes.length >= 4) {
-            const rightX = Math.abs(controllers[1].axes[2]) > deadzone ? controllers[1].axes[2] : 0;
-            const rightY = Math.abs(controllers[1].axes[3]) > deadzone ? controllers[1].axes[3] : 0;
-
-            if (Math.abs(rightX) > 0) {
-                playerDolly.rotation.y -= rightX * turnSpeed * delta;
-            }
-            if (Math.abs(rightY) > 0) {
-                playerDolly.position.y -= rightY * speed * delta;
-            }
+        if (Math.abs(vrInputs.right.thumbstick.x) > 0.1) {
+            playerDolly.rotation.y -= vrInputs.right.thumbstick.x * turnSpeed * delta;
+        }
+        if (Math.abs(vrInputs.right.thumbstick.y) > 0.1) {
+            playerDolly.position.y -= vrInputs.right.thumbstick.y * speed * delta;
         }
 
+        const bothGripsPressed = vrInputs.left.grip.pressed && vrInputs.right.grip.pressed;
+        if (bothGripsPressed && !vrInputs.isZooming) {
+            vrInputs.isZooming = true;
+            vrInputs.initialZoomDistance = controllerGrip1.position.distanceTo(controllerGrip2.position);
+            vrInputs.initialDollyScale.copy(playerDolly.scale);
+        } else if (bothGripsPressed && vrInputs.isZooming) {
+            const currentDistance = controllerGrip1.position.distanceTo(controllerGrip2.position);
+            if (vrInputs.initialZoomDistance > 0.01) {
+                const scaleFactor = currentDistance / vrInputs.initialZoomDistance;
+                const newScale = vrInputs.initialDollyScale.clone().multiplyScalar(scaleFactor);
+                newScale.clampScalar(0.1, 10.0);
+                playerDolly.scale.copy(newScale);
+            }
+        } else if (!bothGripsPressed && vrInputs.isZooming) {
+            vrInputs.isZooming = false;
+        }
     }
 
     function animate() { 
         const delta = clock.getDelta();
         
-        VRController.update();
+        updateVRInputs();
         handleDesktopFlyControls(delta);
 
         if (controls.enabled) {
@@ -1746,4 +1745,3 @@
 </script>
 </body>
 </html>
-
