@@ -523,6 +523,13 @@
     const euler = new THREE.Euler(0, 0, 0, 'YXZ');
     const PI_2 = Math.PI / 2;
     
+    // --- VR Input State Manager ---
+    const vrZoomState = {
+        isZooming: false,
+        initialZoomDistance: 0,
+        initialDollyScale: new THREE.Vector3()
+    };
+
     // --- Desktop Input State Manager ---
     const keyState = {};
     let flyModeEnabled = false;
@@ -567,7 +574,6 @@
     // --- VR Controller Logic (based on three-vrcontroller-module) ---
     const VRController = {
         controllers: [],
-        verbosity: 0,
         update: function() {
             const gamepads = navigator.getGamepads && navigator.getGamepads();
             if (!gamepads) return;
@@ -769,20 +775,18 @@
 
     function setupVR() {
         const vrButton = document.getElementById('vr-button');
-        
+
         window.addEventListener('vr controller connected', (event) => {
             const controller = event.detail;
             playerDolly.add(controller);
             controller.standingMatrix = renderer.xr.getStandingMatrix();
             controller.head = camera;
 
-            // Optional: Add a model to the controller
             const controllerModelFactory = new XRControllerModelFactory();
-            const controllerGrip = renderer.xr.getControllerGrip(controller.gamepad.index);
-            controllerGrip.add(controllerModelFactory.createControllerModel(controllerGrip));
-            playerDolly.add(controllerGrip);
+            const grip = renderer.xr.getControllerGrip(controller.gamepad.index);
+            grip.add(controllerModelFactory.createControllerModel(grip));
+            playerDolly.add(grip);
         });
-
 
         if ('xr' in navigator) {
             navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
@@ -1654,46 +1658,6 @@
         }
     }
 
-    function handleVRControllers(delta) {
-        if (!renderer.xr.isPresenting) return;
-        
-        const controllers = VRController.controllers;
-        const speed = 5.0; 
-        const turnSpeed = 1.5;
-        const deadzone = 0.1;
-
-        // Left Thumbstick: Movement (Strafe/Forward)
-        if (controllers[0] && controllers[0].axes.length >= 2) {
-            const leftX = Math.abs(controllers[0].axes[0]) > deadzone ? controllers[0].axes[0] : 0;
-            const leftY = Math.abs(controllers[0].axes[1]) > deadzone ? controllers[0].axes[1] : 0;
-            const moveDirection = new THREE.Vector3(leftX, 0, leftY);
-            
-            if (moveDirection.lengthSq() > 0.01) { 
-                const headQuaternion = new THREE.Quaternion();
-                camera.getWorldQuaternion(headQuaternion);
-                const yaw = new THREE.Euler().setFromQuaternion(headQuaternion, 'YXZ').y;
-                const bodyQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-                
-                moveDirection.applyQuaternion(bodyQuaternion);
-                moveDirection.normalize().multiplyScalar(speed * delta);
-                playerDolly.position.add(moveDirection);
-            }
-        }
-
-        // Right Thumbstick: Rotation (Yaw) and Altitude
-        if (controllers[1] && controllers[1].axes.length >= 2) {
-             const rightX = Math.abs(controllers[1].axes[0]) > deadzone ? controllers[1].axes[0] : 0;
-            const rightY = Math.abs(controllers[1].axes[1]) > deadzone ? controllers[1].axes[1] : 0;
-
-            if (Math.abs(rightX) > 0.1) {
-                playerDolly.rotation.y -= rightX * turnSpeed * delta;
-            }
-            if (Math.abs(rightY) > 0.1) {
-                playerDolly.position.y -= rightY * speed * delta;
-            }
-        }
-    }
-
     function handleDesktopFlyControls(delta) {
         if (!flyModeEnabled || renderer.xr.isPresenting) return;
         
@@ -1715,6 +1679,47 @@
         }
     }
 
+    function handleVRControllers(delta) {
+        if (!renderer.xr.isPresenting) return;
+        
+        const controllers = VRController.controllers;
+        const speed = 5.0; 
+        const turnSpeed = 1.5;
+        const deadzone = 0.1;
+
+        // Left Controller (index 0) for movement
+        if (controllers[0] && controllers[0].axes.length >= 4) {
+            const leftX = Math.abs(controllers[0].axes[2]) > deadzone ? controllers[0].axes[2] : 0;
+            const leftY = Math.abs(controllers[0].axes[3]) > deadzone ? controllers[0].axes[3] : 0;
+            
+            if (leftX !== 0 || leftY !== 0) {
+                const moveDirection = new THREE.Vector3(leftX, 0, leftY);
+                const headQuaternion = new THREE.Quaternion();
+                camera.getWorldQuaternion(headQuaternion);
+                const yaw = new THREE.Euler().setFromQuaternion(headQuaternion, 'YXZ').y;
+                const bodyQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+                
+                moveDirection.applyQuaternion(bodyQuaternion);
+                moveDirection.normalize().multiplyScalar(speed * delta);
+                playerDolly.position.add(moveDirection);
+            }
+        }
+
+        // Right Controller (index 1) for rotation and altitude
+        if (controllers[1] && controllers[1].axes.length >= 4) {
+            const rightX = Math.abs(controllers[1].axes[2]) > deadzone ? controllers[1].axes[2] : 0;
+            const rightY = Math.abs(controllers[1].axes[3]) > deadzone ? controllers[1].axes[3] : 0;
+
+            if (Math.abs(rightX) > 0) {
+                playerDolly.rotation.y -= rightX * turnSpeed * delta;
+            }
+            if (Math.abs(rightY) > 0) {
+                playerDolly.position.y -= rightY * speed * delta;
+            }
+        }
+
+    }
+
     function animate() { 
         const delta = clock.getDelta();
         
@@ -1728,6 +1733,7 @@
         if(!isPaused && currentUpdate) {
             currentUpdate(delta); 
         } else {
+            // Even if paused, we might need to update visuals if a toggle was changed
             renderer.render(scene, camera);
         }
         
