@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cellular Dynamics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712;
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px;
+        }
+        #info-panel.expanded {
+            max-height: 90vh; 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+        }
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        #bifurcation-panel, #settings-panel {
+            top: 80px;
+            right: 20px;
+            width: 350px;
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+         #settings-panel {
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+        }
+        #bifurcation-canvas {
+            width: 100%;
+            height: 100%;
+            background-color: rgba(3, 7, 18, 0.5);
+            border-radius: 6px;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        .menu-button, .toggle-button, .action-button, .preset-button, .axis-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+        }
+         #settings-btn { padding: 8px; }
+        .action-button:disabled, .toggle-button:disabled {
+            background-color: #374151;
+            color: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .menu-button:hover, .toggle-button:not(:disabled):hover, .action-button:not(:disabled):hover, .preset-button:hover, .axis-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .toggle-button.active, .axis-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 4px;
+            background: #4b5563; border-radius: 2px; outline: none;
+            opacity: 0.7; transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 18px; height: 18px; background: #818cf8;
+            cursor: pointer; border-radius: 50%;
+        }
+        .control-group {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 0.5rem; text-align: center;
+            width: 100%;
+        }
+        .color-picker-group, .switch-group {
+            display: flex; justify-content: space-between; align-items: center; width: 100%;
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            width: 40px; height: 24px; border: none; padding: 0;
+            background: none; cursor: pointer; border-radius: 4px;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 1px solid #4b5563; border-radius: 4px; }
+
+        .hidden { display: none !important; }
+        canvas { display: block; }
+        .divider {
+            width: 100%;
+            height: 1px;
+            background-color: rgba(55, 65, 81, 0.7);
+            margin: 0.25rem 0;
+        }
+        .axis-button {
+            padding: 4px 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bold">Cellular Dynamics</h1>
+            <div id="scene-menu" class="flex gap-4"></div>
+        </div>
+         <button id="settings-btn" class="menu-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+         </button>
+    </header>
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400"></h2>
+            <div id="toggle-icon" class="text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description"></p>
+             <div id="stats-panel" class="p-3 bg-gray-900/50 rounded-lg hidden"></div>
+        </div>
+    </div>
+    <div id="bifurcation-panel" class="ui-panel hidden"></div>
+    <div id="settings-panel" class="ui-panel hidden"></div>
+    <div id="controls-panel" class="ui-panel"></div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { Delaunay } from 'https://cdn.jsdelivr.net/npm/d3-delaunay@6/+esm';
+
+    const scenes = {
+        cell_division: {
+            name: 'Cell Division',
+            description: 'A simulation of population dynamics based on the logistic map. The growth rate "r" determines the population\'s behavior, from stable equilibrium to chaotic fluctuation, visualized as dividing cells in a 3D volume.',
+            init: initCellDivisionSim,
+        },
+    };
+
+    function initCellDivisionSim() {
+        const MAX_CELLS = 750;
+        const SIM_SIZE = 25;
+        let simState = { 
+            r: 2.8, x: 0.5, autoPlay: false, timeSinceLastStep: 0, generation: 0, 
+            dimension: '2D',
+            collisionsEnabled: true,
+            gravityEnabled: false,
+            gridType: 'circle', // for 2D
+            volumeType: 'sphere', // for 3D
+        };
+        let resources = { disposables: [] };
+        let cellInstances = []; 
+
+        let composer, bloomPass, cytoplasmMesh, nucleusMesh, voronoiMesh;
+        let cubeHelper, sphereHelper, squarePlate, squareGrid, circlePlate, circleGrid;
+        const dummy = new THREE.Object3D();
+        let bifurcationCanvas, bifurcationCtx, bifurcationImageData;
+
+        function init() {
+            camera.position.set(0, 25, 25);
+            controls.target.set(0, 0, 0);
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.2;
+            setupPostProcessing();
+            setupUI();
+            createEnvironment();
+            createCellMeshes();
+            setupBifurcationDiagram();
+            toggleDimension('2D'); // Start in 2D
+        }
+
+        function setupPostProcessing() {
+            const renderPass = new RenderPass(scene, camera);
+            bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.0, 0.4, 0.5);
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderPass);
+            composer.addPass(bloomPass);
+            resources.disposables.push(composer);
+        }
+
+        function setupUI() {
+            document.getElementById('stats-panel').innerHTML = `<h3 class="font-semibold text-indigo-300 mb-2">Live Stats</h3>
+                 <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                     <span>Generation:</span><span id="gen-stat" class="font-mono text-right">0</span>
+                     <span>Population (x):</span><span id="x-stat" class="font-mono text-right">0.5000</span>
+                     <span>Cell Count:</span><span id="cell-count-stat" class="font-mono text-right">0</span>
+                 </div>`;
+
+            document.getElementById('controls-panel').innerHTML = `<div class="controls-row">
+                    <div class="control-group">
+                        <label class="text-sm font-medium">Growth Rate (r): <span id="r-value">${simState.r.toFixed(3)}</span></label>
+                        <input id="r-slider" type="range" min="0" max="4" step="0.001" value="${simState.r}" class="w-full">
+                    </div>
+                     <div class="h-8 border-l border-gray-600 mx-2"></div>
+                    <button id="next-gen-btn" class="action-button">Next Gen</button>
+                    <button id="autoplay-btn" class="toggle-button">Auto-Play</button>
+                    <button id="reset-btn" class="action-button">Reset</button>
+                </div>`;
+            
+            document.getElementById('bifurcation-panel').innerHTML = `
+                <button id="close-bifurcation-btn" class="absolute top-1 right-2 text-gray-400 hover:text-white text-2xl leading-none z-10">&times;</button>
+                <h3 class="text-lg font-bold text-indigo-400 text-center">Bifurcation Diagram</h3>
+                <div class="relative flex-grow w-full h-full mt-2" style="padding-left: 15px; padding-bottom: 15px;">
+                    <canvas id="bifurcation-canvas"></canvas>
+                    <span class="absolute -bottom-1 left-1/2 -translate-x-1/2 text-xs text-gray-400">r (Growth Rate)</span>
+                    <span class="absolute top-1/2 -left-2 -translate-y-1/2 text-xs text-gray-400" style="transform: rotate(-90deg);">x (Population)</span>
+                </div>
+            `;
+
+            document.getElementById('settings-panel').innerHTML = `
+                <h3 class="text-lg font-bold text-indigo-400 -mb-2">Presets</h3>
+                <div class="controls-row flex-wrap justify-start">
+                     <button class="preset-button" data-r="2.8">Stable</button>
+                     <button class="preset-button" data-r="3.2">Bifurcation</button>
+                     <button class="preset-button" data-r="3.5">Period-Doubling</button>
+                     <button class="preset-button" data-r="3.8">Chaos</button>
+                     <button class="preset-button" data-r="4.0">Collapse</button>
+                </div>
+                <div class="divider"></div>
+                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">Physics & View</h3>
+                 <div class="space-y-4">
+                     <div class="switch-group">
+                         <label class="text-sm font-medium">Physics Mode</label>
+                         <div class="flex items-center gap-2">
+                            <span class="text-sm">2D</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="dimension-switch" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                            <span class="text-sm">3D</span>
+                        </div>
+                    </div>
+                    <div class="switch-group">
+                         <label class="text-sm font-medium">Cell Collisions</label>
+                         <label class="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" id="collision-switch" class="sr-only peer" checked>
+                             <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                         </label>
+                    </div>
+                    <div class="switch-group">
+                         <label class="text-sm font-medium">Enable Gravity</label>
+                         <label class="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" id="gravity-switch" class="sr-only peer">
+                             <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                         </label>
+                    </div>
+                     <div id="2d-controls" class="space-y-4">
+                        <div class="switch-group">
+                             <label class="text-sm font-medium">Boundary Shape</label>
+                             <div class="flex items-center gap-2">
+                                <span class="text-sm">Circle</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="grid-shape-switch" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                                <span class="text-sm">Square</span>
+                            </div>
+                        </div>
+                         <button id="toggle-voronoi-2d-btn" class="toggle-button active w-full">Show Voronoi Lines</button>
+                    </div>
+                     <div id="3d-controls" class="hidden space-y-4">
+                         <div class="switch-group">
+                             <label class="text-sm font-medium">Boundary Shape</label>
+                             <div class="flex items-center gap-2">
+                                <span class="text-sm">Sphere</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="volume-shape-switch" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                                <span class="text-sm">Cube</span>
+                            </div>
+                        </div>
+                    </div>
+                     <button id="toggle-graph-btn" class="toggle-button">Show Graph</button>
+                 </div>
+                 <div class="divider"></div>
+                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">Color & Appearance</h3>
+                 <div class="space-y-3">
+                    <div class="color-picker-group"><label>Cytoplasm</label><input type="color" id="cyto-color" value="#ffb399"></div>
+                    <div class="control-group !items-start !text-left">
+                        <label class="text-sm font-medium w-full">Cell Opacity: <span id="cyto-opacity-value">0.40</span></label>
+                        <input id="cyto-opacity-slider" type="range" min="0" max="1" step="0.01" value="0.4" class="w-full">
+                    </div>
+                    <div class="color-picker-group"><label>Nucleus</label><input type="color" id="nucleus-color" value="#4b0082"></div>
+                    <div class="color-picker-group"><label>Grid</label><input type="color" id="grid-color" value="#4f46e5"></div>
+                    <button id="random-color-btn" class="action-button w-full">Randomize Colors</button>
+                 </div>
+                 <div class="divider"></div>
+                 <h3 class="text-lg font-bold text-indigo-400 -mb-2">Graphics & Speed</h3>
+                 <div class="space-y-3">
+                    <div class="control-group"><label>Bloom Strength: <span id="bloom-strength-value">1.0</span></label><input id="bloom-strength-slider" type="range" min="0" max="3" step="0.05" value="1.0" class="w-full"></div>
+                    <div class="control-group"><label>Bloom Threshold: <span id="bloom-threshold-value">0.4</span></label><input id="bloom-threshold-slider" type="range" min="0" max="1" step="0.05" value="0.4" class="w-full"></div>
+                    <div class="control-group w-full"><label>Sim Speed: <span id="speed-value">1.0x</span></label><input id="speed-slider" type="range" min="0.1" max="5" step="0.1" value="1.0"></div>
+                     <button id="autorotate-btn" class="toggle-button active w-full">Auto-Rotate</button>
+                 </div>`;
+            
+            // --- Event Listeners ---
+            document.getElementById('r-slider').addEventListener('input', e => setGrowthRate(parseFloat(e.target.value)));
+            document.getElementById('next-gen-btn').onclick = calculateNextGeneration;
+            document.getElementById('reset-btn').onclick = resetSimulation;
+            document.getElementById('autoplay-btn').addEventListener('click', e => {
+                simState.autoPlay = !simState.autoPlay;
+                e.target.textContent = simState.autoPlay ? 'Pause' : 'Auto-Play';
+                e.target.classList.toggle('active', simState.autoPlay);
+                document.getElementById('next-gen-btn').disabled = simState.autoPlay;
+            });
+            document.querySelectorAll('.preset-button').forEach(button => button.addEventListener('click', () => setGrowthRate(parseFloat(button.dataset.r))));
+            
+            // View & Physics
+            document.getElementById('dimension-switch').addEventListener('change', e => toggleDimension(e.target.checked ? '3D' : '2D'));
+            document.getElementById('collision-switch').addEventListener('change', e => { simState.collisionsEnabled = e.target.checked; });
+            document.getElementById('grid-shape-switch').addEventListener('change', e => {
+                simState.gridType = e.target.checked ? 'square' : 'circle';
+                toggleGridShape();
+            });
+            document.getElementById('volume-shape-switch').addEventListener('change', e => {
+                simState.volumeType = e.target.checked ? 'cube' : 'sphere';
+                toggleGridShape();
+            });
+            document.getElementById('gravity-switch').addEventListener('change', e => {
+                simState.gravityEnabled = e.target.checked;
+                 if (!simState.gravityEnabled) {
+                    cellInstances.forEach(inst => inst.velocity.y = 0);
+                }
+            });
+            
+            const graphToggleBtn = document.getElementById('toggle-graph-btn');
+            graphToggleBtn.addEventListener('click', () => togglePanelVisibility(graphToggleBtn, 'bifurcation-panel', 'Graph'));
+            document.getElementById('close-bifurcation-btn').addEventListener('click', () => togglePanelVisibility(graphToggleBtn, 'bifurcation-panel', 'Graph'));
+
+             document.getElementById('toggle-voronoi-2d-btn').addEventListener('click', (e) => {
+                voronoiMesh.visible = !voronoiMesh.visible;
+                e.target.classList.toggle('active', voronoiMesh.visible);
+            });
+            
+            // Colors & Appearance Listeners
+            document.getElementById('cyto-color').addEventListener('input', e => cytoplasmMesh.material.color.set(e.target.value));
+            document.getElementById('cyto-opacity-slider').addEventListener('input', e => {
+                cytoplasmMesh.material.opacity = parseFloat(e.target.value);
+                document.getElementById('cyto-opacity-value').textContent = parseFloat(e.target.value).toFixed(2);
+            });
+            document.getElementById('nucleus-color').addEventListener('input', e => nucleusMesh.material.color.set(e.target.value));
+            document.getElementById('grid-color').addEventListener('input', e => {
+                const color = new THREE.Color(e.target.value);
+                [cubeHelper.material, sphereHelper.material, squareGrid.material, circleGrid.material, squarePlate.material, circlePlate.material].forEach(mat => mat.color.set(color));
+            });
+            document.getElementById('random-color-btn').addEventListener('click', () => {
+                const randomColor = () => '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                 ['cyto-color', 'nucleus-color', 'grid-color'].forEach(id => {
+                    document.getElementById(id).value = randomColor();
+                    document.getElementById(id).dispatchEvent(new Event('input'));
+                });
+            });
+
+            // Graphics & Speed Listeners
+            document.getElementById('bloom-strength-slider').addEventListener('input', e => { bloomPass.strength = parseFloat(e.target.value); document.getElementById('bloom-strength-value').textContent = parseFloat(e.target.value).toFixed(2); });
+            document.getElementById('bloom-threshold-slider').addEventListener('input', e => { bloomPass.threshold = parseFloat(e.target.value); document.getElementById('bloom-threshold-value').textContent = parseFloat(e.target.value).toFixed(2); });
+            document.getElementById('speed-slider').addEventListener('input', e => { animationSpeed = parseFloat(e.target.value); document.getElementById('speed-value').textContent = `${animationSpeed.toFixed(1)}x`; });
+            document.getElementById('autorotate-btn').addEventListener('click', e => { controls.autoRotate = !controls.autoRotate; e.target.classList.toggle('active', controls.autoRotate); });
+        }
+        
+        function togglePanelVisibility(button, panelId, name) {
+            const panel = document.getElementById(panelId);
+            const isHidden = panel.classList.toggle('hidden');
+            button.textContent = isHidden ? `Show ${name}` : `Hide ${name}`;
+            button.classList.toggle('active', !isHidden);
+        }
+
+        function toggleDimension(newDimension) {
+            simState.dimension = newDimension;
+            const is3D = newDimension === '3D';
+            
+            document.getElementById('2d-controls').classList.toggle('hidden', is3D);
+            document.getElementById('3d-controls').classList.toggle('hidden', !is3D);
+            
+            toggleGridShape();
+
+            if (is3D) {
+                camera.position.set(0, 15, 35);
+            } else {
+                camera.position.set(0, 25, 25);
+            }
+             controls.target.set(0,0,0);
+        }
+        
+        function toggleGridShape() {
+            const is3D = simState.dimension === '3D';
+            squarePlate.visible = !is3D && simState.gridType === 'square';
+            squareGrid.visible = !is3D && simState.gridType === 'square';
+            circlePlate.visible = !is3D && simState.gridType === 'circle';
+            circleGrid.visible = !is3D && simState.gridType === 'circle';
+            
+            cubeHelper.visible = is3D && simState.volumeType === 'cube';
+            sphereHelper.visible = is3D && simState.volumeType === 'sphere';
+            repositionCells();
+        }
+
+        function repositionCells() {
+            const halfSize = SIM_SIZE / 2;
+             for (let i = 0; i < MAX_CELLS; i++) {
+                const instance = cellInstances[i];
+                if(simState.dimension === '2D') {
+                    if (simState.gridType === 'square') {
+                        instance.position.set((Math.random() - 0.5) * SIM_SIZE, 0.5, (Math.random() - 0.5) * SIM_SIZE);
+                    } else { // circle
+                        const r = halfSize * Math.sqrt(Math.random());
+                        const theta = Math.random() * 2 * Math.PI;
+                        instance.position.set(r * Math.cos(theta), 0.5, r * Math.sin(theta));
+                    }
+                    instance.velocity.set((Math.random() - 0.5) * 0.2, 0, (Math.random() - 0.5) * 0.2);
+                } else { // 3D
+                     if (simState.volumeType === 'cube') {
+                        instance.position.set((Math.random() - 0.5) * SIM_SIZE, (Math.random() - 0.5) * SIM_SIZE, (Math.random() - 0.5) * SIM_SIZE);
+                    } else { // sphere
+                        instance.position.randomDirection().multiplyScalar(Math.random() * halfSize);
+                    }
+                    instance.velocity.randomDirection().multiplyScalar(0.2);
+                }
+            }
+        }
+
+        function setGrowthRate(r) {
+            simState.r = r;
+            document.getElementById('r-slider').value = r;
+            document.getElementById('r-value').textContent = r.toFixed(3);
+            simState.generation = 0;
+            calculateNextGeneration();
+        }
+
+        function createEnvironment() {
+            const size = SIM_SIZE;
+            // 3D Helpers
+            const cubeGeom = new THREE.BoxGeometry(size, size, size);
+            cubeHelper = new THREE.BoxHelper(new THREE.Mesh(cubeGeom), 0x4f46e5);
+            activeSceneObjects.add(cubeHelper);
+            
+            const sphereGeom = new THREE.SphereGeometry(size / 2, 32, 16);
+            const wireframe = new THREE.WireframeGeometry(sphereGeom);
+            sphereHelper = new THREE.LineSegments(wireframe, new THREE.LineBasicMaterial({ color: 0x4f46e5 }));
+            activeSceneObjects.add(sphereHelper);
+            
+            // 2D Helpers
+            const plateMaterial = new THREE.MeshStandardMaterial({ color: 0x4f46e5, transparent: true, opacity: 0.1, side: THREE.DoubleSide });
+            const squarePlateGeom = new THREE.PlaneGeometry(size, size);
+            squarePlate = new THREE.Mesh(squarePlateGeom, plateMaterial.clone());
+            squarePlate.rotation.x = -Math.PI / 2;
+            activeSceneObjects.add(squarePlate);
+
+            squareGrid = new THREE.GridHelper(size, 20, 0x4f46e5, 0x374151);
+            squareGrid.position.y = 0.01;
+            activeSceneObjects.add(squareGrid);
+            
+            const circlePlateGeom = new THREE.CircleGeometry(size / 2, 64);
+            circlePlate = new THREE.Mesh(circlePlateGeom, plateMaterial.clone());
+            circlePlate.rotation.x = -Math.PI / 2;
+            activeSceneObjects.add(circlePlate);
+
+            circleGrid = createCircleGridLines(size / 2, 16, 5);
+            activeSceneObjects.add(circleGrid);
+
+            // Voronoi
+            const voronoiMaterial = new THREE.LineBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.75, depthTest: false });
+            voronoiMesh = new THREE.LineSegments(new THREE.BufferGeometry(), voronoiMaterial);
+            voronoiMesh.renderOrder = 1;
+            activeSceneObjects.add(voronoiMesh);
+
+            resources.disposables.push(cubeGeom, sphereGeom, wireframe, squarePlateGeom, circlePlateGeom, plateMaterial, voronoiMaterial, voronoiMesh.geometry);
+        }
+
+        function createCircleGridLines(radius, radialDivisions, circleDivisions) {
+            const vertices = [];
+            for (let i = 0; i < radialDivisions; i++) {
+                const angle = (i / radialDivisions) * Math.PI * 2;
+                vertices.push(0, 0.01, 0, radius * Math.cos(angle), 0.01, radius * Math.sin(angle));
+            }
+            for (let i = 1; i <= circleDivisions; i++) {
+                const circleRadius = (i / circleDivisions) * radius;
+                for (let j = 0; j < 128; j++) {
+                    const angle1 = (j / 128) * Math.PI * 2;
+                    const angle2 = ((j + 1) / 128) * Math.PI * 2;
+                    vertices.push(circleRadius * Math.cos(angle1), 0.01, circleRadius * Math.sin(angle1), circleRadius * Math.cos(angle2), 0.01, circleRadius * Math.sin(angle2));
+                }
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            const material = new THREE.LineBasicMaterial({ color: 0x4f46e5, transparent: true, opacity: 0.7 });
+            const lineSegments = new THREE.LineSegments(geometry, material);
+            resources.disposables.push(geometry, material);
+            return lineSegments;
+        }
+        
+        function createCellMeshes() {
+            const cytoplasmGeom = new THREE.SphereGeometry(0.5, 20, 16);
+            const cytoplasmMat = new THREE.MeshStandardMaterial({
+                color: 0xffb399, transparent: true, opacity: 0.4, metalness: 0.1, roughness: 0.4
+            });
+            cytoplasmMesh = new THREE.InstancedMesh(cytoplasmGeom, cytoplasmMat, MAX_CELLS);
+            activeSceneObjects.add(cytoplasmMesh);
+
+            const nucleusGeom = new THREE.SphereGeometry(0.2, 16, 12);
+            const nucleusMat = new THREE.MeshStandardMaterial({
+                color: 0x4b0082, emissive: 0x312e81, emissiveIntensity: 0.5, metalness: 0.2, roughness: 0.5
+            });
+            nucleusMesh = new THREE.InstancedMesh(nucleusGeom, nucleusMat, MAX_CELLS);
+            activeSceneObjects.add(nucleusMesh);
+
+            resources.disposables.push(cytoplasmGeom, cytoplasmMat, nucleusGeom, nucleusMat);
+
+            for (let i = 0; i < MAX_CELLS; i++) {
+                cellInstances.push({
+                    position: new THREE.Vector3(),
+                    velocity: new THREE.Vector3(),
+                    targetScale: 0, currentScale: 0
+                });
+            }
+        }
+        
+        function setupBifurcationDiagram() {
+            bifurcationCanvas = document.getElementById('bifurcation-canvas');
+            requestAnimationFrame(() => {
+                const dpr = window.devicePixelRatio || 1;
+                if (!bifurcationCanvas || !bifurcationCanvas.parentElement) return;
+                const rect = bifurcationCanvas.parentElement.getBoundingClientRect();
+                bifurcationCanvas.width = rect.width * dpr;
+                bifurcationCanvas.height = rect.height * dpr;
+                bifurcationCtx = bifurcationCanvas.getContext('2d');
+                bifurcationCtx.fillStyle = 'rgba(129, 140, 248, 0.1)'; 
+                const { width, height } = bifurcationCanvas;
+                if (width === 0 || height === 0) return;
+                for (let i = 0; i < width; i++) {
+                    const r = (i / width) * 4.0;
+                    let x = Math.random();
+                    for (let j = 0; j < 500; j++) x = r * x * (1 - x);
+                    for (let j = 0; j < 200; j++) {
+                        x = r * x * (1 - x);
+                        const y = height - (x * height);
+                        if (y >= 0 && y < height) bifurcationCtx.fillRect(i, y, 1, 1);
+                    }
+                }
+                bifurcationImageData = bifurcationCtx.getImageData(0, 0, width, height);
+                calculateNextGeneration();
+            });
+        }
+        
+        function updateBifurcationMarker() {
+            if (!bifurcationCtx || !bifurcationImageData) return;
+            const { width, height } = bifurcationCanvas;
+            bifurcationCtx.putImageData(bifurcationImageData, 0, 0);
+            const r_pos = (simState.r / 4.0) * width;
+            const x_pos = height - (simState.x * height);
+            bifurcationCtx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+            bifurcationCtx.lineWidth = 1 * (window.devicePixelRatio || 1);
+            bifurcationCtx.beginPath();
+            bifurcationCtx.moveTo(r_pos, 0);
+            bifurcationCtx.lineTo(r_pos, height);
+            bifurcationCtx.stroke();
+            bifurcationCtx.beginPath();
+            bifurcationCtx.moveTo(0, x_pos);
+            bifurcationCtx.lineTo(width, x_pos);
+            bifurcationCtx.stroke();
+        }
+
+        function resetSimulation() {
+            simState.x = 0.5;
+            simState.generation = 0;
+            repositionCells();
+            setGrowthRate(2.8);
+        }
+
+        function calculateNextGeneration() {
+            document.getElementById('stats-panel').classList.remove('hidden');
+            simState.generation++;
+            simState.x = simState.r * simState.x * (1 - simState.x);
+            if (simState.x < 0) simState.x = 0;
+            const newCellCount = Math.floor(simState.x * MAX_CELLS);
+            for (let i = 0; i < MAX_CELLS; i++) {
+                cellInstances[i].targetScale = i < newCellCount ? 1 : 0;
+            }
+            updateBifurcationMarker();
+            document.getElementById('gen-stat').textContent = simState.generation;
+            document.getElementById('x-stat').textContent = simState.x.toFixed(4);
+            document.getElementById('cell-count-stat').textContent = newCellCount;
+        }
+
+        function clipSegmentWithCircle(p1, p2, radius) {
+            const radiusSq = radius * radius;
+            const p1Inside = p1.lengthSq() < radiusSq;
+            const p2Inside = p2.lengthSq() < radiusSq;
+            if (p1Inside && p2Inside) return [p1, p2];
+            const d = p2.clone().sub(p1);
+            const a = d.lengthSq();
+            const b = 2 * p1.dot(d);
+            const c = p1.lengthSq() - radiusSq;
+            const discriminant = b * b - 4 * a * c;
+            if (discriminant < 0) return null;
+            const sqrtD = Math.sqrt(discriminant);
+            const t1 = (-b - sqrtD) / (2 * a), t2 = (-b + sqrtD) / (2 * a);
+            const intersections = [];
+            if (t1 >= 0 && t1 <= 1) intersections.push(p1.clone().add(d.clone().multiplyScalar(t1)));
+            if (t2 >= 0 && t2 <= 1) intersections.push(p1.clone().add(d.clone().multiplyScalar(t2)));
+            if (p1Inside) return [p1, intersections[0]];
+            if (p2Inside) return [p2, intersections[0]];
+            if (intersections.length === 2) return intersections;
+            return null;
+        }
+
+        function update(delta) {
+            if (simState.autoPlay) {
+                simState.timeSinceLastStep += delta;
+                const stepTime = 0.5 / Math.max(0.1, animationSpeed);
+                if (simState.timeSinceLastStep > stepTime) {
+                    calculateNextGeneration();
+                    simState.timeSinceLastStep = 0;
+                }
+            }
+
+            nucleusMesh.material.emissiveIntensity = 0.5 + (Math.sin(clock.getElapsedTime() * 4) * 0.25);
+            const halfSize = SIM_SIZE / 2;
+            const activeCellIndices = cellInstances.map((inst, i) => inst.targetScale > 0 && inst.currentScale > 0.1 ? i : -1).filter(i => i !== -1);
+            
+            if (simState.collisionsEnabled) {
+                const effectiveRadius = 0.5, restitution = 0.8;
+                for (let i = 0; i < activeCellIndices.length; i++) {
+                    for (let j = i + 1; j < activeCellIndices.length; j++) {
+                        const instanceA = cellInstances[activeCellIndices[i]], instanceB = cellInstances[activeCellIndices[j]];
+                        const diff = new THREE.Vector3().subVectors(instanceA.position, instanceB.position);
+                        if (simState.dimension === '2D') diff.y = 0;
+                        const dist = diff.length();
+                        const overlap = (effectiveRadius * 2) - dist;
+                        if (overlap > 0) {
+                            const normal = diff.normalize();
+                            const correction = normal.clone().multiplyScalar(overlap / 2);
+                            instanceA.position.add(correction);
+                            instanceB.position.sub(correction);
+                            const vRel = new THREE.Vector3().subVectors(instanceA.velocity, instanceB.velocity);
+                            const speedAlongNormal = vRel.dot(normal);
+                            if (speedAlongNormal > 0) continue; 
+                            const impulse = -(1 + restitution) * speedAlongNormal / 2;
+                            const impulseVec = normal.clone().multiplyScalar(impulse);
+                            instanceA.velocity.add(impulseVec);
+                            instanceB.velocity.sub(impulseVec);
+                        }
+                    }
+                }
+            }
+            
+            for (let i = 0; i < MAX_CELLS; i++) {
+                const instance = cellInstances[i];
+                 if (simState.gravityEnabled) {
+                    instance.velocity.y += -9.8 * delta;
+                }
+                instance.currentScale += (instance.targetScale - instance.currentScale) * 0.1;
+                instance.position.add(instance.velocity.clone().multiplyScalar(delta * animationSpeed));
+
+                if(simState.dimension === '2D') {
+                    if(instance.position.y < 0.5) {
+                        instance.position.y = 0.5;
+                        instance.velocity.y *= -0.5; // Dampen bounce
+                    }
+                    if (simState.gridType === 'square') {
+                        if (Math.abs(instance.position.x) > halfSize) { instance.velocity.x *= -0.8; instance.position.x = Math.sign(instance.position.x) * halfSize; }
+                        if (Math.abs(instance.position.z) > halfSize) { instance.velocity.z *= -0.8; instance.position.z = Math.sign(instance.position.z) * halfSize; }
+                    } else { 
+                        const pos2D = new THREE.Vector2(instance.position.x, instance.position.z);
+                        if (pos2D.length() > halfSize) {
+                            const normal2D = pos2D.clone().normalize();
+                            const vel2D = new THREE.Vector2(instance.velocity.x, instance.velocity.z);
+                            
+                            const dot = vel2D.dot(normal2D);
+                            vel2D.sub(normal2D.multiplyScalar(2 * dot)).multiplyScalar(0.8);
+
+                            instance.velocity.x = vel2D.x;
+                            instance.velocity.z = vel2D.y;
+                            pos2D.setLength(halfSize);
+                            instance.position.x = pos2D.x;
+                            instance.position.z = pos2D.y;
+                        }
+                    }
+                } else { // 3D
+                    if (simState.volumeType === 'cube') {
+                        ['x', 'y', 'z'].forEach(axis => {
+                            if (Math.abs(instance.position[axis]) > halfSize) { instance.velocity[axis] *= -0.8; instance.position[axis] = Math.sign(instance.position[axis]) * halfSize; }
+                        });
+                    } else { 
+                        if (instance.position.length() > halfSize) {
+                            instance.velocity.reflect(instance.position.clone().normalize()).multiplyScalar(0.8);
+                            instance.position.setLength(halfSize);
+                        }
+                    }
+                }
+
+                dummy.position.copy(instance.position);
+                dummy.scale.setScalar(Math.max(0, instance.currentScale));
+                dummy.updateMatrix();
+                cytoplasmMesh.setMatrixAt(i, dummy.matrix);
+                nucleusMesh.setMatrixAt(i, dummy.matrix);
+            }
+            cytoplasmMesh.instanceMatrix.needsUpdate = true;
+            nucleusMesh.instanceMatrix.needsUpdate = true;
+            
+            if (voronoiMesh.visible && simState.dimension === '2D' && activeCellIndices.length > 2) {
+                const points = activeCellIndices.map(i => [cellInstances[i].position.x, cellInstances[i].position.z]);
+                const delaunay = Delaunay.from(points);
+                const voronoi = delaunay.voronoi([-halfSize, -halfSize, halfSize, halfSize]);
+                const vertices = [];
+                for (const polygon of voronoi.cellPolygons()) {
+                     if (polygon) {
+                        for (let i = 0; i < polygon.length; i++) {
+                            const p1Arr = polygon[i], p2Arr = polygon[(i + 1) % polygon.length];
+                            if (simState.gridType === 'square') {
+                                vertices.push(p1Arr[0], 0.02, p1Arr[1], p2Arr[0], 0.02, p2Arr[1]);
+                            } else {
+                                const clippedSegment = clipSegmentWithCircle(new THREE.Vector2(p1Arr[0], p1Arr[1]), new THREE.Vector2(p2Arr[0], p2Arr[1]), halfSize);
+                                if (clippedSegment) vertices.push(clippedSegment[0].x, 0.02, clippedSegment[0].y, clippedSegment[1].x, 0.02, clippedSegment[1].y);
+                            }
+                        }
+                    }
+                }
+                 voronoiMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            } else {
+                 voronoiMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
+            }
+        }
+
+        function render() { composer.render(); }
+        
+        function cleanup() {
+            controls.autoRotate = false;
+            resources.disposables.forEach(d => {
+                if (d.dispose) d.dispose();
+            });
+            document.getElementById('bifurcation-panel').classList.add('hidden');
+        }
+
+        init();
+        return { update, cleanup, render, composer };
+    }
+
+    // --- Core Application Logic ---
+    let scene, camera, renderer, controls, clock, currentSceneKey = null;
+    let currentUpdate = () => {}, currentCleanup = () => {}, currentRender = null, currentComposer = null, animationSpeed = 1.0;
+    let activeSceneObjects = new THREE.Group();
+    
+    function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x030712);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 20, 15);
+        scene.add(dirLight);
+        scene.add(activeSceneObjects);
+
+        setupGlobalUI();
+
+        const firstSceneKey = Object.keys(scenes)[0];
+        if (firstSceneKey) switchScene(firstSceneKey);
+        
+        window.addEventListener('resize', onWindowResize);
+        renderer.setAnimationLoop(animate);
+    }
+    
+    function setupGlobalUI() {
+        const menuDiv = document.getElementById('scene-menu');
+        Object.keys(scenes).forEach(key => {
+            const button = document.createElement('button');
+            button.id = `btn-${key}`;
+            button.className = 'menu-button';
+            button.textContent = scenes[key].name;
+            button.onclick = () => switchScene(key);
+            menuDiv.appendChild(button);
+        });
+
+         document.getElementById('info-panel').addEventListener('click', (e) => {
+            if (!e.target.closest('button, a, input, label')) {
+                e.currentTarget.classList.toggle('expanded');
+            }
+        });
+        document.getElementById('settings-btn').addEventListener('click', () => {
+             document.getElementById('settings-panel').classList.toggle('hidden');
+        });
+    }
+
+    function switchScene(key) {
+        if (key === currentSceneKey) return;
+
+        if (currentCleanup) currentCleanup();
+        while(activeSceneObjects.children.length > 0) {
+            const obj = activeSceneObjects.children[0];
+            activeSceneObjects.remove(obj);
+            if(obj.geometry) obj.geometry.dispose();
+            if(obj.material) {
+                if(Array.isArray(obj.material)) {
+                    obj.material.forEach(m => m.dispose());
+                } else {
+                    obj.material.dispose();
+                }
+            }
+        }
+        
+        document.getElementById('controls-panel').innerHTML = '';
+        document.getElementById('settings-panel').innerHTML = '';
+        document.getElementById('bifurcation-panel').classList.add('hidden');
+        document.getElementById('stats-panel').classList.add('hidden');
+
+        currentRender = null;
+        currentComposer = null;
+        controls.reset();
+        camera.position.set(0, 2, 8);
+        controls.target.set(0, 0, 0);
+
+        const sceneData = scenes[key];
+        document.getElementById('info-title').textContent = sceneData.name;
+        document.getElementById('info-description').textContent = sceneData.description;
+        document.querySelectorAll('#scene-menu .menu-button').forEach(b => b.classList.remove('active'));
+        const btn = document.getElementById(`btn-${key}`);
+        if(btn) btn.classList.add('active');
+        currentSceneKey = key;
+
+        const result = sceneData.init();
+        currentUpdate = result.update || (() => {});
+        currentCleanup = result.cleanup || (() => {});
+        currentRender = result.render;
+        currentComposer = result.composer;
+    }
+
+    function animate() { 
+        const delta = clock.getDelta();
+        controls.update();
+        currentUpdate(delta);
+        if (currentComposer) currentComposer.render(); else renderer.render(scene, camera);
+    }
+    
+    function onWindowResize() { 
+        const w = window.innerWidth, h = window.innerHeight;
+        camera.aspect = w / h; 
+        camera.updateProjectionMatrix(); 
+        renderer.setSize(w, h);
+        if (currentComposer) {
+            currentComposer.setSize(w, h);
+        }
+    }
+    
+    init();
+</script>
+</body>
+</html>
+

@@ -276,14 +276,7 @@
     
     <div id="plotContainer">
         <canvas id="plotCanvas"></canvas>
-        <div id="plotControls">
-            <button id="prevBtn" class="toggle-button">&lt;&lt; Prev</button>
-            <span id="plot-var-label">x = </span>
-            <input type="number" id="plotVarInput" value="0">
-            <button id="goBtn" class="toggle-button">Go</button>
-            <button id="combineWaveformBtn" class="toggle-button hidden">Combine</button>
-            <button id="nextBtn" class="toggle-button">Next &gt;&gt;</button>
-        </div>
+        <div id="plotControls"></div>
     </div>
     
     <div id="plot2DContainer">
@@ -308,13 +301,22 @@
              <hr class="border-gray-600">
              <h4 class="text-lg font-bold text-gray-300 text-left w-full">Grid Settings</h4>
              <div class="control-group text-left w-full">
+                <label for="gridScale" class="text-sm font-medium self-start w-full flex justify-between">Grid Scale: <span id="gridScaleValue">10</span></label>
+                <input type="range" id="gridScale" min="1" max="100" value="10">
+             </div>
+              <div class="control-group text-left w-full">
                  <label for="gridSize" class="text-sm font-medium self-start w-full flex justify-between">Size: <span id="gridSizeValue">30</span></label>
-                 <input type="range" id="gridSize" min="10" max="10000" value="30">
+                 <input type="range" id="gridSize" min="10" max="500" value="30">
              </div>
              <div class="control-group text-left w-full">
                  <label for="gridDensity" class="text-sm font-medium self-start w-full flex justify-between">Density: <span id="gridDensityValue">80</span></label>
-                 <input type="range" id="gridDensity" min="20" max="2000" value="80">
+                 <input type="range" id="gridDensity" min="20" max="400" value="80">
              </div>
+             <div class="control-group text-left w-full">
+                <label for="gridLinesToggle" class="text-sm font-medium self-start w-full flex justify-between">Show Grid Lines:
+                    <label class="switch"><input type="checkbox" id="gridLinesToggle" checked><span class="slider"></span></label>
+                </label>
+            </div>
               <div class="control-group text-left w-full">
                  <label for="animationSpeed" class="text-sm font-medium self-start w-full flex justify-between">Speed (ms): <span id="animationSpeedValue">2000</span></label>
                  <input type="range" id="animationSpeed" min="200" max="60000" value="2000">
@@ -442,7 +444,10 @@
         let currentAnimation = new Map();
         let isTransformed = false;
         let isContinued = false;
-        
+        let bifurcationAnimId = null;
+        let bifurcationState = { r: 3.5, x: 0.5 };
+        let bifurcationBgCanvas = null;
+
         // === FLY-THROUGH CAMERA CONTROLS CLASS ===
         class FlyControls {
             constructor(camera, controller1, controller2) {
@@ -602,7 +607,7 @@
             },
             'zeros': {
                 title: 'Zeros on Critical Line',
-                description: 'This graph plots the real (blue) and imaginary (orange) parts of ζ(s) along the **Critical Line**, where the real part of s is fixed at 0.5. A "non-trivial zero" occurs where both lines cross the horizontal axis at the same time (marked with red dots). The Riemann Hypothesis conjectures that all non-trivial zeros lie on this line.',
+                description: 'This graph plots the real (blue) and imaginary (orange) parts of ζ(s) along the **Critical Line**, where the real part of s is fixed at 0.5. A "non-trivial zero" occurs where both lines cross the horizontal axis at the same time (marked with red dots). The Riemann Hypothesis conjectures that all non-trivial zeros lie on this line. Notice how the frequency of the waveform increases as *t* gets larger, corresponding to the zeros getting closer together.',
                 formula: '$$s = 0.5 + it$$',
                 setup: setupZerosView
             },
@@ -611,6 +616,12 @@
                 description: 'This plot shows the prime-counting function $\\pi(x)$ (blue steps), which counts the number of primes less than or equal to $x$. It is famously approximated by the logarithmic integral Li(x) (orange curve).',
                 formula: '$$\\pi(x) \\approx \\text{Li}(x) = \\int_2^x \\frac{dt}{\\ln t}$$',
                 setup: setupPrimesView
+            },
+            'bifurcation_diagram': {
+                title: 'Bifurcation Diagram',
+                description: 'This is a visualization of the logistic map, a simple equation that can exhibit chaotic behavior. The horizontal axis shows the growth rate `r`, and the vertical axis shows the long-term population values `x`. Watch how the stable population splits (bifurcates) into 2, then 4, and eventually becomes chaotic.',
+                formula: '$$x_{n+1} = r \\cdot x_n (1 - x_n)$$',
+                setup: setupBifurcationView,
             }
         };
         let currentView = 'zeta_function';
@@ -658,7 +669,7 @@
             sprite.position.copy(options.position || new THREE.Vector3()); return sprite;
         }
 
-        function createPlane(width, height, segmentsW, segmentsH, stripWidth, stripStart) {
+        function createPlane(width, height, segmentsW, segmentsH, stripWidth, stripStart, showWireframe) {
             const geometry = new THREE.PlaneGeometry(width, height, segmentsW, segmentsH);
             const boundaries = new Float32Array(geometry.attributes.position.count);
             const positions = geometry.attributes.position.array;
@@ -675,28 +686,67 @@
                     stripOnly: { value: 0.0 }, baseColor: { value: new THREE.Color(0xffffff) },
                     stripColor: { value: new THREE.Color(0xffd700) }, boundaryColor: { value: new THREE.Color(0xff00ff) },
                     stripWidth: { value: stripWidth },
-                    stripStart: { value: stripStart }
+                    stripStart: { value: stripStart },
+                    u_sliceMode: { value: 0.0 },
+                    u_sliceAxis: { value: 0.0 }, // 0 for X, 1 for Z
+                    u_slicePosition: { value: 0.0 },
+                    u_sliceWidth: { value: 0.5 }
                 },
                 vertexShader: `
-                    attribute float isBoundary; varying vec3 vColor; varying float vIsBoundary;
-                    uniform float stripOnly; uniform vec3 baseColor; uniform vec3 stripColor;
+                    attribute float isBoundary; 
+                    varying vec3 vColor; 
+                    varying float vIsBoundary;
+                    varying float v_isVisible;
+
+                    uniform float stripOnly; 
+                    uniform vec3 baseColor; 
+                    uniform vec3 stripColor;
                     uniform float stripWidth;
                     uniform float stripStart;
+
+                    uniform float u_sliceMode;
+                    uniform float u_sliceAxis;
+                    uniform float u_slicePosition;
+                    uniform float u_sliceWidth;
+
                     vec3 hsv2rgb(vec3 c) { vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0); vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www); return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y); }
+                    
                     void main() {
                         vIsBoundary = isBoundary;
+                        v_isVisible = 1.0;
+
+                        if (u_sliceMode > 0.5) {
+                            float dist;
+                            if (u_sliceAxis < 0.5) { // Slice along X (Real)
+                                dist = abs(position.x - u_slicePosition);
+                            } else { // Slice along Y (Imaginary)
+                                dist = abs(position.y - u_slicePosition);
+                            }
+                            if (dist > u_sliceWidth) {
+                                v_isVisible = 0.0;
+                            }
+                        }
+
                         float isStrip = step(stripStart, position.x) * (1.0 - step(stripStart + stripWidth, position.x));
                         if (stripOnly > 0.5) { vColor = mix(baseColor, stripColor, isStrip); } 
                         else { float angle = atan(position.y, position.x); float hue = (angle + 3.14159) / (2.0 * 3.14159); float saturation = 0.7 + 0.3 * isStrip; float value = 0.9 + 0.1 * isStrip; vColor = hsv2rgb(vec3(hue, saturation, value)); }
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                     }`,
                 fragmentShader: `
-                    varying vec3 vColor; varying float vIsBoundary; uniform vec3 boundaryColor;
+                    varying vec3 vColor; 
+                    varying float vIsBoundary; 
+                    varying float v_isVisible;
+                    uniform vec3 boundaryColor;
+
                     void main() { 
+                        if (v_isVisible < 0.5) {
+                            discard;
+                        }
                         if (vIsBoundary > 0.5) { gl_FragColor = vec4(boundaryColor, 1.0); } 
                         else { gl_FragColor = vec4(vColor, 1.0); }
                     }`,
-                side: THREE.DoubleSide, wireframe: true
+                side: THREE.DoubleSide, 
+                wireframe: showWireframe
             });
             const newPlane = new THREE.Mesh(geometry, material); newPlane.rotation.x = -Math.PI / 2; return newPlane;
         }
@@ -832,7 +882,10 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.xr.enabled = true;
             document.body.insertBefore(renderer.domElement, document.body.firstChild);
-            document.getElementById('vr-button-container').appendChild(VRButton.createButton(renderer));
+            
+            const vrButton = VRButton.createButton(renderer);
+            vrButton.style.position = 'relative';
+            document.getElementById('vr-button-container').appendChild(vrButton);
 
             controller1 = renderer.xr.getController(0);
             scene.add(controller1);
@@ -856,7 +909,6 @@
             controller2.addEventListener('selectstart', onSelectStart);
             
             camera.position.set(0, 25, 35);
-            createZeroMarkers(parseInt(document.getElementById('gridSize').value));
             renderer.setAnimationLoop(animationLoop);
         }
         
@@ -898,11 +950,14 @@
             });
             setupZetaCalculatorListeners();
             setupSettingsPanelListeners();
-            setupPlotControlsListeners();
             window.addEventListener('resize', onWindowResize);
         }
         
         function switchView(viewKey) {
+            if (bifurcationAnimId) {
+                cancelAnimationFrame(bifurcationAnimId);
+                bifurcationAnimId = null;
+            }
             if (!views[viewKey]) return;
             currentView = viewKey;
             
@@ -924,12 +979,11 @@
             });
             document.getElementById('mobile-menu-label').textContent = view.title;
             
-            const isZerosView = viewKey === 'zeros';
-            document.getElementById('combineWaveformBtn').classList.toggle('hidden', !isZerosView);
-
             const is3DView = viewKey === 'zeta_function';
+            const isPlotView = ['zeros', 'prime_counting'].includes(viewKey);
+            
             document.getElementById('zeta-settings').classList.toggle('hidden', !is3DView);
-            document.getElementById('plot-settings').classList.toggle('hidden', is3DView);
+            document.getElementById('plot-settings').classList.toggle('hidden', is3DView || !isPlotView);
 
             view.setup();
         }
@@ -957,29 +1011,27 @@
             if (trivialZeros) trivialZeros.visible = false;
         }
 
-        function setupPlotView(varName, range, drawFn) {
+        function setupPlotView(setupControlsFn, drawFn) {
             hideAll3DObjects();
             plotContainer.style.display = 'flex';
-            
-            plotVarRange = range;
-            document.getElementById('plotRangeSlider').value = range;
-            document.getElementById('plotRangeValue').textContent = range;
-            document.getElementById('plot-var-label').textContent = `${varName} = `;
-            document.getElementById('plotVarInput').value = plotVarOffset.toFixed(0);
+            setupControlsFn();
             drawFn();
         }
         
         function setupZerosView() {
-            plotVarOffset = 0;
-            const currentRange = parseInt(document.getElementById('plotRangeSlider').value);
-            setupPlotView('t', currentRange, drawZerosPlot);
+             setupPlotView(setupZerosControls, drawZerosPlot);
         }
 
         function setupPrimesView() {
-            plotVarOffset = 0;
-            const currentRange = parseInt(document.getElementById('plotRangeSlider').value);
-            sieve(currentRange + 200); 
-            setupPlotView('x', currentRange, drawPrimesPlot);
+            sieve(plotVarOffset + plotVarRange + 200); 
+            setupPlotView(setupZerosControls, drawPrimesPlot);
+        }
+
+        function setupBifurcationView() {
+            hideAll3DObjects();
+            plotContainer.style.display = 'flex';
+            setupBifurcationControls();
+            startBifurcationAnimation();
         }
         
         function setup2DView() {
@@ -995,19 +1047,30 @@
             
             const size = parseInt(document.getElementById('gridSize').value);
             const density = parseInt(document.getElementById('gridDensity').value);
+
             const stripWidth = parseFloat(document.getElementById('stripWidth').value);
             const stripStart = parseFloat(document.getElementById('stripStartSlider').value);
             const useZDisplacement = document.getElementById('zDisplacementToggle').checked;
+            const showGridLines = document.getElementById('gridLinesToggle').checked;
             
             if (plane) { scene.remove(plane); plane.geometry.dispose(); plane.material.dispose(); }
-            plane = createPlane(size, size, density, density, stripWidth, stripStart);
+            plane = createPlane(size, size, density, density, stripWidth, stripStart, showGridLines);
             updateColors();
+            
+            // Update slice mode slider range and uniform
+            const sliceSlider = document.getElementById('sliceSlider');
+            if(sliceSlider){
+                sliceSlider.min = -size/2;
+                sliceSlider.max = size/2;
+                plane.material.uniforms.u_slicePosition.value = parseFloat(sliceSlider.value);
+            }
+
             scene.add(plane);
             plane.userData.originalPositions = new Float32Array(plane.geometry.attributes.position.array);
             
             createZeroMarkers(size);
 
-            regenerateAxesAndLabels();
+            regenerateAxesAndLabels(size);
 
             if (isTransformed || isContinued) {
                 const targetPlanePos = calculateTransformedPositions(plane.userData.originalPositions, isContinued, useZDisplacement);
@@ -1024,12 +1087,10 @@
                 axesLabelGroup.children.forEach((child, i) => child.position.fromArray(targetLabelPos, i * 3));
             }
 
-
             hideLoading();
         }
         
-        function regenerateAxesAndLabels() {
-            const size = parseInt(document.getElementById('gridSize').value);
+        function regenerateAxesAndLabels(size) {
             if (customAxes) scene.remove(customAxes);
             if (axesLabelGroup) scene.remove(axesLabelGroup);
 
@@ -1110,18 +1171,36 @@
         function setup3DControls() {
             controlsPanel.innerHTML = `
                 <button id="transformBtn" class="toggle-button">Transform</button>
-                <button id="continueBtn" class="toggle-button hidden">Analytically Continue</button>
+                <button id="continueBtn" class="toggle-button hidden">Continue</button>
                 <button id="resetBtn" class="toggle-button hidden">Reset</button>
-                <div class="flex items-center gap-2 border-l-2 border-gray-600 pl-4">
+                 <div class="flex items-center gap-2 border-l-2 border-gray-600 pl-4">
                   <span class="text-sm text-gray-400">Orbit</span>
                   <label class="switch"><input type="checkbox" id="controlModeToggle"><span class="slider"></span></label>
                   <span class="text-sm text-gray-400">Fly</span>
+                </div>
+                <div class="flex items-center gap-2 border-l-2 border-gray-600 pl-4">
+                  <span class="text-sm text-gray-400">Full</span>
+                  <label class="switch"><input type="checkbox" id="sliceModeToggle"><span class="slider"></span></label>
+                  <span class="text-sm text-gray-400">Slice</span>
+                </div>
+                <div id="slice-controls-container" class="hidden items-center gap-2 text-white text-sm">
+                    <input type="range" id="sliceSlider" min="-15" max="15" step="0.1" value="0" class="w-24 md:w-32">
+                    <span id="sliceValueLabel">0.0</span>
+                     <input type="range" id="sliceWidthSlider" min="0.1" max="5" step="0.1" value="0.5" class="w-16 md:w-24">
+                     <span id="sliceWidthLabel">0.5</span>
+                    <div class="flex gap-1">
+                        <input type="radio" id="sliceAxisReal" name="sliceAxis" value="0" checked>
+                        <label for="sliceAxisReal">Re</label>
+                        <input type="radio" id="sliceAxisImag" name="sliceAxis" value="1">
+                        <label for="sliceAxisImag">Im</label>
+                    </div>
                 </div>
             `;
             const transformBtn = document.getElementById('transformBtn');
             const continueBtn = document.getElementById('continueBtn');
             const resetBtn = document.getElementById('resetBtn');
 
+            // --- Control Mode ---
             document.getElementById('controlModeToggle').addEventListener('change', (e) => {
                 const flyInfo = document.getElementById('fly-controls-info');
                 if (e.target.checked) { // Switch to Fly
@@ -1141,6 +1220,35 @@
                 }
             });
 
+            // --- Slice Mode ---
+            const sliceContainer = document.getElementById('slice-controls-container');
+            const sliceSlider = document.getElementById('sliceSlider');
+            const sliceValueLabel = document.getElementById('sliceValueLabel');
+            const sliceWidthSlider = document.getElementById('sliceWidthSlider');
+            const sliceWidthLabel = document.getElementById('sliceWidthLabel');
+
+
+            document.getElementById('sliceModeToggle').addEventListener('change', (e) => {
+                sliceContainer.classList.toggle('hidden');
+                sliceContainer.classList.toggle('flex');
+                plane.material.uniforms.u_sliceMode.value = e.target.checked ? 1.0 : 0.0;
+            });
+            sliceSlider.addEventListener('input', e => {
+                plane.material.uniforms.u_slicePosition.value = parseFloat(e.target.value);
+                sliceValueLabel.textContent = parseFloat(e.target.value).toFixed(1);
+            });
+            sliceWidthSlider.addEventListener('input', e => {
+                plane.material.uniforms.u_sliceWidth.value = parseFloat(e.target.value);
+                sliceWidthLabel.textContent = parseFloat(e.target.value).toFixed(1);
+            });
+            document.querySelectorAll('input[name="sliceAxis"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    plane.material.uniforms.u_sliceAxis.value = parseFloat(e.target.value);
+                });
+            });
+
+
+            // --- Transform Buttons ---
             transformBtn.addEventListener('click', () => {
                 const speed = parseInt(document.getElementById('animationSpeed').value);
                 const useZ = document.getElementById('zDisplacementToggle').checked;
@@ -1280,16 +1388,38 @@
                 plotCtx.fillText('Im(ζ(0.5 + it))', width - padding - 85, padding + 25);
             }
 
-            // Draw zeros on top
+            // Draw zeros and calculate frequency
             plotCtx.fillStyle = 'red';
             plotCtx.font = 'bold 12px Arial';
-            knownZeros.filter(t => t >= tMin && t <= tMax).forEach(t => {
+            const visibleZeros = knownZeros.filter(t => t >= tMin && t <= tMax);
+            visibleZeros.forEach(t => {
                 const x = toScreenX(t);
                 plotCtx.beginPath();
                 plotCtx.arc(x, toScreenY(0), 5, 0, 2 * Math.PI);
                 plotCtx.fill();
-                plotCtx.fillText(t.toFixed(2), x, toScreenY(0) - 15);
             });
+
+            // Calculate and display frequency between zeros
+            if (visibleZeros.length >= 2) {
+                for(let i = 0; i < visibleZeros.length -1; i++){
+                    const t_start = visibleZeros[i];
+                    const t_end = visibleZeros[i+1];
+                    let crossings = 0;
+                    let last_val_re = zeta(new Complex(0.5, t_start)).re;
+
+                    for(let t = t_start; t < t_end; t+= 0.1){
+                        const val_re = zeta(new Complex(0.5, t)).re;
+                        if(Math.sign(val_re) !== Math.sign(last_val_re)){
+                            crossings++;
+                        }
+                        last_val_re = val_re;
+                    }
+                    const freq = crossings / (t_end - t_start);
+                    plotCtx.fillStyle = '#a0a0a0';
+                    plotCtx.textAlign = 'center';
+                    plotCtx.fillText(freq.toFixed(2) + " Hz", toScreenX((t_start+t_end)/2) , toScreenY(0) - 15);
+                }
+            }
         }
 
 
@@ -1377,6 +1507,7 @@
                 camera.updateProjectionMatrix();
             }
             if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
+            bifurcationBgCanvas = null; // Invalidate background canvas
             updateCurrentPlot();
         }
         
@@ -1406,15 +1537,47 @@
         }
         
         function setupSettingsPanelListeners() {
-            document.getElementById('gridSize').addEventListener('input', (e) => { document.getElementById('gridSizeValue').textContent = e.target.value; regenerateGrid(); });
-            document.getElementById('gridDensity').addEventListener('input', (e) => { document.getElementById('gridDensityValue').textContent = e.target.value; regenerateGrid(); });
+            const gridSizeSlider = document.getElementById('gridSize');
+            const gridDensitySlider = document.getElementById('gridDensity');
+            const gridScaleSlider = document.getElementById('gridScale');
+            const gridSizeValue = document.getElementById('gridSizeValue');
+            const gridDensityValue = document.getElementById('gridDensityValue');
+            
+            gridScaleSlider.addEventListener('input', (e) => { 
+                document.getElementById('gridScaleValue').textContent = e.target.value; 
+                const scale = parseInt(e.target.value);
+                const size = Math.round(10 + (scale - 1) * ( (500 - 10) / 99 ));
+                const density = Math.round(20 + (scale - 1) * ( (400 - 20) / 99 ));
+                
+                gridSizeSlider.value = size;
+                gridDensitySlider.value = density;
+                gridSizeValue.textContent = size;
+                gridDensityValue.textContent = density;
+
+                regenerateGrid(); 
+            });
+
+            gridSizeSlider.addEventListener('input', (e) => { 
+                gridSizeValue.textContent = e.target.value; 
+                regenerateGrid(); 
+            });
+            gridDensitySlider.addEventListener('input', (e) => { 
+                gridDensityValue.textContent = e.target.value; 
+                regenerateGrid(); 
+            });
+
+            document.getElementById('gridLinesToggle').addEventListener('change', (e) => {
+                if (plane) {
+                    plane.material.wireframe = e.target.checked;
+                }
+            });
             document.getElementById('animationSpeed').addEventListener('input', (e) => { document.getElementById('animationSpeedValue').textContent = e.target.value; });
             document.getElementById('stripWidth').addEventListener('input', (e) => { document.getElementById('stripWidthValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
             document.getElementById('stripStartSlider').addEventListener('input', (e) => { document.getElementById('stripStartValue').textContent = parseFloat(e.target.value).toFixed(1); regenerateGrid(); });
             
             document.getElementById('labelSizeSlider').addEventListener('input', (e) => {
                 document.getElementById('labelSizeValue').textContent = `${parseFloat(e.target.value).toFixed(2)}x`;
-                regenerateAxesAndLabels();
+                regenerateAxesAndLabels(parseInt(document.getElementById('gridSize').value));
                 if (isTransformed || isContinued) {
                     const useZ = document.getElementById('zDisplacementToggle').checked;
                     const targetLabelPos = calculateGroupTransformedPositions(axesLabelGroup, isContinued, useZ);
@@ -1473,9 +1636,22 @@
             if (currentView === 'zeros') drawZerosPlot();
             else if (currentView === 'prime_counting') drawPrimesPlot();
             else if (currentView === 'zeta_2d') draw2DPlot();
+            else if (currentView === 'bifurcation_diagram') {
+                bifurcationBgCanvas = null; // Invalidate background
+                startBifurcationAnimation();
+            }
         }
 
-        function setupPlotControlsListeners() {
+        function setupZerosControls() {
+            const plotControls = document.getElementById('plotControls');
+            plotControls.innerHTML = `
+                <button id="prevBtn" class="toggle-button">&lt;&lt; Prev</button>
+                <span id="plot-var-label">t = </span>
+                <input type="number" id="plotVarInput" value="0">
+                <button id="goBtn" class="toggle-button">Go</button>
+                <button id="combineWaveformBtn" class="toggle-button">Combine</button>
+                <button id="nextBtn" class="toggle-button">Next &gt;&gt;</button>
+            `;
             const input = document.getElementById('plotVarInput');
             const goBtn = document.getElementById('goBtn');
             const nextBtn = document.getElementById('nextBtn');
@@ -1589,6 +1765,124 @@
             `;
             document.getElementById('redraw2DBtn').addEventListener('click', draw2DPlot);
         }
+
+        // --- Bifurcation Diagram Specific ---
+        function setupBifurcationControls() {
+            const plotControls = document.getElementById('plotControls');
+            plotControls.innerHTML = `
+                <div class="flex flex-col items-center text-white">
+                     <label for="rSlider" class="text-sm">Growth Rate (r): <span id="rValueLabel">3.500</span></label>
+                     <input type="range" id="rSlider" min="2.5" max="4.0" step="0.001" value="3.5" class="w-48">
+                </div>
+                <div class="text-white text-sm">Population (x): <span id="xValueLabel">0.50000</span></div>
+                <button id="restartBifurcationBtn" class="toggle-button">Restart</button>
+            `;
+
+            const rSlider = document.getElementById('rSlider');
+            const rValueLabel = document.getElementById('rValueLabel');
+            
+            rSlider.addEventListener('input', (e) => {
+                bifurcationState.r = parseFloat(e.target.value);
+                rValueLabel.textContent = bifurcationState.r.toFixed(3);
+                bifurcationState.x = 0.5; // Reset population on r change
+            });
+
+            document.getElementById('restartBifurcationBtn').addEventListener('click', () => {
+                 bifurcationState.x = 0.5; // Reset population
+            });
+        }
+        
+        async function drawBifurcationBackground() {
+            showLoading("Generating Bifurcation Diagram...");
+            await new Promise(resolve => setTimeout(resolve, 0));
+            
+            const width = Math.min(window.innerWidth * 0.95, 1000);
+            const height = Math.min(window.innerHeight * 0.8, 600);
+            
+            if (!bifurcationBgCanvas || bifurcationBgCanvas.width !== width || bifurcationBgCanvas.height !== height) {
+                bifurcationBgCanvas = document.createElement('canvas');
+                bifurcationBgCanvas.width = width;
+                bifurcationBgCanvas.height = height;
+            }
+            
+            const ctx = bifurcationBgCanvas.getContext('2d');
+            
+            const rMin = 2.5, rMax = 4.0;
+            const xMin = 0.0, xMax = 1.0;
+
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = 'rgba(200, 220, 255, 0.3)';
+
+            const r_steps = width;
+            for (let i = 0; i < r_steps; i++) {
+                const r = rMin + (rMax - rMin) * (i / r_steps);
+                let x = 0.5;
+
+                // Settle
+                for (let j = 0; j < 1000; j++) {
+                    x = r * x * (1 - x);
+                }
+
+                // Plot
+                for (let j = 0; j < 500; j++) {
+                    x = r * x * (1 - x);
+                    const px = (r - rMin) / (rMax - rMin) * width;
+                    const py = (1 - (x - xMin) / (xMax - xMin)) * height;
+                    if(px >= 0 && px < width && py >=0 && py < height) {
+                        ctx.fillRect(px, py, 1, 1);
+                    }
+                }
+                 if (i % 20 === 0) {
+                     updateProgress((i / r_steps) * 100);
+                     await new Promise(resolve => setTimeout(resolve, 0));
+                 }
+            }
+             hideLoading();
+        }
+
+        async function startBifurcationAnimation() {
+            if (!bifurcationBgCanvas || bifurcationBgCanvas.width !== plotCanvas.width) {
+                 await drawBifurcationBackground();
+            }
+            animateBifurcation();
+        }
+
+        function animateBifurcation() {
+            bifurcationAnimId = requestAnimationFrame(animateBifurcation);
+
+            const width = Math.min(window.innerWidth * 0.95, 1000);
+            const height = Math.min(window.innerHeight * 0.8, 600);
+            plotCanvas.width = width;
+            plotCanvas.height = height;
+
+            // Draw pre-rendered background
+            if (bifurcationBgCanvas) {
+                plotCtx.drawImage(bifurcationBgCanvas, 0, 0);
+            }
+            
+            // Update state
+            bifurcationState.x = bifurcationState.r * bifurcationState.x * (1 - bifurcationState.x);
+            document.getElementById('xValueLabel').textContent = bifurcationState.x.toFixed(5);
+            
+            // Draw live point
+            const rMin = 2.5, rMax = 4.0;
+            const px = (bifurcationState.r - rMin) / (rMax - rMin) * width;
+            const py = (1 - bifurcationState.x) * height;
+
+            plotCtx.fillStyle = '#00ffff';
+            plotCtx.beginPath();
+            plotCtx.arc(px, py, 4, 0, 2 * Math.PI);
+            plotCtx.fill();
+
+            // Draw vertical line
+            plotCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            plotCtx.lineWidth = 1;
+            plotCtx.beginPath();
+            plotCtx.moveTo(px, 0);
+            plotCtx.lineTo(px, height);
+            plotCtx.stroke();
+        }
         
         function createZeroMarkers(size) {
             if (riemannZeros) scene.remove(riemannZeros);
@@ -1635,7 +1929,7 @@
             if (userPoint.mesh) {
                 scene.remove(userPoint.mesh);
             }
-            const sphereSize = 0.2; // Fixed size
+            const sphereSize = 0.2;
             const geometry = new THREE.SphereGeometry(sphereSize, 16, 8);
             const material = new THREE.MeshBasicMaterial({ color: 0x00ffff, toneMapped: false });
             userPoint.mesh = new THREE.Mesh(geometry, material);
@@ -1713,3 +2007,4 @@
     </script>
 </body>
 </html>
+

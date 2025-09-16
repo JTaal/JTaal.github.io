@@ -143,3 +143,13 @@
   thumbnail: /assets/images/tomography.png
   visualization_url: /visualizations/tomography.html
 
+- title: Voronoi Cell Division
+  author: Jasper Taal
+  thumbnail: /assets/images/voronoi-cell-division.png
+  visualization_url: /visualizations/voronoi-cell-division.html
+
+- title: Voronoi Cell Division Simpel
+  author: Jasper Taal
+  thumbnail: /assets/images/voronoi-cell-division-simpel.png
+  visualization_url: /visualizations/voronoi-cell-division-simpel.html
+
