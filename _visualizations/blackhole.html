@@ -1681,19 +1681,20 @@
     function handleVRControllers(delta) {
         if (!renderer.xr.isPresenting) return;
         
-        const speed = 3.0;
+        const speed = 5.0; 
         const turnSpeed = 1.5;
-        const cameraDirection = new THREE.Quaternion();
-        camera.getWorldQuaternion(cameraDirection);
-
+        
+        // --- Left Thumbstick: Movement (Strafe/Forward) ---
         const moveDirection = new THREE.Vector3(vrInputs.left.thumbstick.x, 0, vrInputs.left.thumbstick.y);
-        if (moveDirection.length() > 0.1) {
+        if (moveDirection.lengthSq() > 0.01) { 
+            const dollyDirection = new THREE.Quaternion();
+            playerDolly.getWorldQuaternion(dollyDirection);
+            moveDirection.applyQuaternion(dollyDirection);
             moveDirection.normalize().multiplyScalar(speed * delta);
-            const flatCameraQuaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), new THREE.Euler().setFromQuaternion(cameraDirection).y);
-            moveDirection.applyQuaternion(flatCameraQuaternion);
             playerDolly.position.add(moveDirection);
         }
 
+        // --- Right Thumbstick: Rotation (Yaw) and Altitude ---
         if (Math.abs(vrInputs.right.thumbstick.x) > 0.1) {
             playerDolly.rotation.y -= vrInputs.right.thumbstick.x * turnSpeed * delta;
         }
@@ -1701,6 +1702,7 @@
             playerDolly.position.y -= vrInputs.right.thumbstick.y * speed * delta;
         }
 
+        // --- Grip Buttons: Zooming ---
         const bothGripsPressed = vrInputs.left.grip.pressed && vrInputs.right.grip.pressed;
         if (bothGripsPressed && !vrInputs.isZooming) {
             vrInputs.isZooming = true;
@@ -1714,7 +1716,7 @@
                 newScale.clampScalar(0.1, 10.0);
                 playerDolly.scale.copy(newScale);
             }
-        } else if (!bothGripsPressed && vrInputs.isZooming) {
+        } else if (!vrInputs.isZooming) {
             vrInputs.isZooming = false;
         }
     }
