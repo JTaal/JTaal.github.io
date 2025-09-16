@@ -144,7 +144,7 @@
             align-items: center;
             gap: 0.5rem;
         }
-        .hidden { opacity: 0; pointer-events: none; }
+        .hidden { display: none !important; }
         canvas { display: block; cursor: grab; }
         canvas:active { cursor: grabbing; }
         body.fly-mode-active canvas { cursor: crosshair; }
@@ -347,6 +347,10 @@
                  <h3 class="font-bold text-lg text-purple-400 mt-4">Visualizing Spacetime</h3>
                  <p class="text-sm text-gray-300">The grid represents the fabric of spacetime, which is distorted by the mass of the central object. The flowing particles represent matter following "geodesics"—the straightest possible paths through this curved space.</p>
              </div>
+             <div id="entropy-explanation-content">
+                <h3 class="font-bold text-lg text-amber-400 mt-4">The Holographic Principle</h3>
+                <p class="text-sm text-gray-300">The "Entropy View" visualizes the idea that a black hole's entropy—a measure of its internal information or "states"—is proportional to its surface area. The shimmering particles on the event horizon represent this encoded information. These states interact with each other, creating a dynamic "boiling" surface bound by the black hole's gravity.</p>
+            </div>
              <div id="metrics-grid">
                 <div> <div class="text-xs text-purple-400">Entropy (S/k<sub>B</sub>)</div> <div id="bh-entropy-value" class="text-lg font-bold">...</div> </div>
                 <div> <div class="text-xs text-purple-400">Object Radius</div> <div id="rs-value" class="text-lg font-bold">...</div> </div>
@@ -383,7 +387,7 @@
             <div class="control-group text-left w-full">
                 <label class="text-sm font-medium self-start w-full">VR Mode</label>
                 <button id="vr-button" title="Enter VR Mode" class="toggle-button w-full flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M2 12.3C2 7.8 5.8 4 10.3 4s8.3 3.8 8.3 8.3-3.5 8.3-8.3 8.3S2 16.8 2 12.3z"/>
                         <path d="M12.3 4a8.3 8.3 0 0 1 8.3 8.3 8.3 8.3 0 0 1-8.3 8.3"/>
                     </svg>
@@ -422,6 +426,13 @@
                 </label>
                 <input id="particle-slider" type="range" min="100" max="20000" step="100" value="5000" class="w-full">
             </div>
+             <div class="control-group text-left w-full">
+                <label for="entropy-particle-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Entropy Particle Count:</span>
+                    <span id="entropy-particle-count-value">10000</span>
+                </label>
+                <input id="entropy-particle-slider" type="range" min="100" max="30000" step="100" value="10000" class="w-full">
+            </div>
             <div class="control-group text-left w-full">
                 <label for="energy-slider" class="text-sm font-medium self-start w-full flex justify-between">
                     <span>System Energy (Temp):</span>
@@ -456,6 +467,13 @@
                     <span id="grid-thickness-value">0 layers</span>
                 </label>
                 <input id="grid-thickness-slider" type="range" min="0" max="5" step="1" value="0" class="w-full">
+            </div>
+             <div id="entropy-thickness-control" class="control-group text-left w-full hidden">
+                <label for="entropy-thickness-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Sphere Slice Thickness:</span>
+                    <span id="entropy-thickness-value">0.1</span>
+                </label>
+                <input id="entropy-thickness-slider" type="range" min="0.01" max="2.0" step="0.01" value="0.1" class="w-full">
             </div>
               <div class="control-group text-left w-full">
                 <label for="grid-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
@@ -501,6 +519,7 @@
     let activeSceneObjects = new THREE.Group();
     let currentParticleSystem = null;
     let particles = [];
+    let clippingPlanes = [];
 
     // --- Camera Control State ---
     const euler = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -523,6 +542,7 @@
 
     // --- Global Settings ---
     let particleCount = 5000;
+    let entropyParticleCount = 10000;
     let particleSize = 0.1;
     let systemEnergy = 1.0;
     let timeMultiplier = 999;
@@ -535,15 +555,21 @@
     let gridSliceMode = '3d'; // '3d', 'x', 'y', 'z', 'none'
     let gridSliceThickness = 0; // In layers
     let blackHoleSpin = 0.0;
+    let entropySliceMode = 'none';
+    let entropySliceThickness = 0.1;
+    let mass = 1.0;
 
     // --- Visualization State ---
     let vectorFieldVisible = false;
     let lightRaysVisible = true;
     let geodesicLinesVisible = false;
     let particlesVisible = true;
+    let entropyViewVisible = false;
 
     let followObject = null;
-    let vectorField, flowingParticles, geodesicGroup, gridGroup, lightRayGroup;
+    let vectorField, flowingParticles, geodesicGroup, gridGroup, lightRayGroup, entropyParticles;
+    let entropyParticleData = [];
+    const MAX_ENTROPY_PARTICLES = 30000;
     
     // --- Main simulation functions ---
     let currentCleanup = () => {};
@@ -560,6 +586,7 @@
         scene.add(playerDolly);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.localClippingEnabled = true; // For slicing
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
@@ -861,6 +888,8 @@
 
         const particleSlider = document.getElementById('particle-slider');
         const particleCountValue = document.getElementById('particle-count-value');
+        const entropyParticleSlider = document.getElementById('entropy-particle-slider');
+        const entropyParticleCountValue = document.getElementById('entropy-particle-count-value');
         const graphicsSlider = document.getElementById('graphics-slider');
         const graphicsQualityValue = document.getElementById('graphics-quality-value');
         const energySlider = document.getElementById('energy-slider');
@@ -884,6 +913,9 @@
         const gridThicknessSlider = document.getElementById('grid-thickness-slider');
         const gridThicknessValue = document.getElementById('grid-thickness-value');
         const geodesicToggle = document.getElementById('geodesic-toggle');
+        const entropyThicknessControl = document.getElementById('entropy-thickness-control');
+        const entropyThicknessSlider = document.getElementById('entropy-thickness-slider');
+        const entropyThicknessValue = document.getElementById('entropy-thickness-value');
         
         const sliceModes = ['3d', 'x', 'y', 'z'];
         let currentSliceIndex = 0;
@@ -898,6 +930,13 @@
         gridThicknessSlider.addEventListener('input', e => {
             gridSliceThickness = parseInt(e.target.value, 10);
             gridThicknessValue.textContent = `${gridSliceThickness} layer${gridSliceThickness === 1 ? '' : 's'}`;
+        });
+
+        entropyThicknessSlider.addEventListener('input', e => {
+            entropySliceThickness = parseFloat(e.target.value);
+            entropyThicknessValue.textContent = entropySliceThickness.toFixed(2);
+            updateClippingPlanes();
+            renderer.render(scene, camera);
         });
 
         geodesicToggle.addEventListener('click', (e) => {
@@ -953,6 +992,10 @@
         particleSlider.addEventListener('change', (e) => {
             particleCount = parseInt(e.target.value, 10);
             resetSimulation(); 
+        });
+        entropyParticleSlider.addEventListener('input', (e) => {
+            entropyParticleCount = parseInt(e.target.value, 10);
+            entropyParticleCountValue.textContent = entropyParticleCount;
         });
         energySlider.addEventListener('input', (e) => {
             systemEnergy = parseFloat(e.target.value);
@@ -1010,16 +1053,47 @@
     }
 
     function updateVisuals() {
-        if (vectorField) vectorField.visible = vectorFieldVisible;
-        if (flowingParticles) flowingParticles.visible = particlesVisible;
-        if (geodesicGroup) geodesicGroup.visible = geodesicLinesVisible;
-        if (gridGroup) gridGroup.visible = gridSliceMode !== 'none';
-        if (lightRayGroup) lightRayGroup.visible = lightRaysVisible;
+        const standardView = !entropyViewVisible;
+        const STAR_THRESHOLD = 3.0;
+
+        if (vectorField) vectorField.visible = standardView && vectorFieldVisible;
+        if (flowingParticles) flowingParticles.visible = standardView && particlesVisible;
+        if (geodesicGroup) geodesicGroup.visible = standardView && geodesicLinesVisible;
+        if (gridGroup) gridGroup.visible = standardView && gridSliceMode !== 'none';
+        if (lightRayGroup) lightRayGroup.visible = standardView && lightRaysVisible;
+        
+        if (entropyParticles) entropyParticles.visible = entropyViewVisible;
+        const centralObject = scene.getObjectByName("centralObject");
+        if (centralObject) centralObject.visible = standardView;
+
+        const horizonOutline = scene.getObjectByName("horizonOutline");
+        if(horizonOutline) horizonOutline.visible = false; // Always hide the ring now
+
+        document.getElementById('blackhole-explanation-content').style.display = standardView ? 'block' : 'none';
+        document.getElementById('entropy-explanation-content').style.display = entropyViewVisible ? 'block' : 'none';
+    }
+
+    function updateClippingPlanes() {
+        clippingPlanes = [];
+        switch(entropySliceMode) {
+            case 'x':
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(1, 0, 0), entropySliceThickness));
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0), entropySliceThickness));
+                break;
+            case 'y':
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), entropySliceThickness));
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), entropySliceThickness));
+                break;
+            case 'z':
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, 0, 1), entropySliceThickness));
+                clippingPlanes.push(new THREE.Plane(new THREE.Vector3(0, 0, -1), entropySliceThickness));
+                break;
+        }
+        if (entropyParticles) entropyParticles.material.clippingPlanes = clippingPlanes;
     }
 
     function initBlackHole() {
         const G = 1, c = 10, STAR_THRESHOLD = 3.0;
-        let mass = 1.0;
         let time = 0;
         let entropyText, radiusText, kappaText, ratioText, lorentzText;
 
@@ -1035,11 +1109,9 @@
         activeSceneObjects.add(stars);
 
         const centralObject = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+        centralObject.name = "centralObject";
         activeSceneObjects.add(centralObject);
-
-        const horizonOutline = new THREE.Mesh(new THREE.TorusGeometry(1, 0.1, 16, 100), new THREE.MeshBasicMaterial({ color: 0xffa500, side: THREE.DoubleSide }));
-        activeSceneObjects.add(horizonOutline);
-
+        
         vectorField = new THREE.Group();
         const arrows = [];
         for (let x = -GRID_SIZE; x <= GRID_SIZE; x++) {
@@ -1150,6 +1222,25 @@
         }
         activeSceneObjects.add(lightRayGroup);
 
+        // --- Entropy Particles ---
+        const entropyGeometry = new THREE.BufferGeometry();
+        const entropyPositions = new Float32Array(MAX_ENTROPY_PARTICLES * 3);
+        const entropyColors = new Float32Array(MAX_ENTROPY_PARTICLES * 3);
+        entropyParticleData = [];
+        for(let i=0; i < MAX_ENTROPY_PARTICLES; i++) {
+            const position = new THREE.Vector3().setFromSphericalCoords(1, Math.acos(2 * Math.random() - 1), Math.random() * Math.PI * 2);
+            const tangent = new THREE.Vector3().crossVectors(position, new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize()).normalize();
+            entropyParticleData.push({
+                position: position,
+                velocity: tangent.multiplyScalar((Math.random() - 0.5) * 0.1),
+            });
+        }
+        entropyGeometry.setAttribute('position', new THREE.BufferAttribute(entropyPositions, 3));
+        entropyGeometry.setAttribute('color', new THREE.BufferAttribute(entropyColors, 3));
+        const entropyMaterial = new THREE.PointsMaterial({ size: 0.05, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, sizeAttenuation: true, clipping: true });
+        entropyParticles = new THREE.Points(entropyGeometry, entropyMaterial);
+        activeSceneObjects.add(entropyParticles);
+
         function resetRay(ray) {
             const rs = (2 * G * mass) / (c * c);
             const startRadius = rs * 1.5 + Math.random() * 10;
@@ -1171,15 +1262,15 @@
                     <label class="text-sm font-medium">Mass (10^x Solar): <span id="mass-value">1.00e+0</span></label>
                     <div class="flex items-center gap-2 flex-wrap justify-center">
                         <input id="mass-slider" type="range" min="-2" max="10.6" step="0.05" value="0" class="w-full max-w-[180px]">
-                        <div>
-                            <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
-                            <button id="grid-slice-toggle" class="toggle-button active text-xs p-2">Grid: 3D</button>
-                            <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
-                            <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
-                        </div>
+                        <button id="particle-toggle" class="toggle-button active text-xs p-2">Particles: On</button>
+                        <button id="grid-slice-toggle" class="toggle-button active text-xs p-2">Grid: 3D</button>
+                        <button id="vector-field-toggle" class="toggle-button text-xs p-2">Vectors: Off</button>
+                        <button id="light-rays-toggle" class="toggle-button active text-xs p-2">Light Rays: On</button>
                     </div>
                </div>
                <div class="flex items-center gap-4 flex-wrap justify-center">
+                    <button id="entropy-view-toggle" class="toggle-button text-sm p-2">Entropy View</button>
+                    <button id="entropy-slice-toggle" class="toggle-button text-sm p-2 hidden">Slice Sphere</button>
                     <div class="flex items-center gap-2 border-l-2 border-r-2 border-gray-700 px-4">
                         <span class="text-sm text-gray-400">Orbit</span>
                         <label class="switch"><input type="checkbox" id="controlModeToggle"><span class="slider"></span></label>
@@ -1203,6 +1294,8 @@
             const pauseButton = document.getElementById('pause-toggle');
             const resetButton = document.getElementById('reset-button');
             const controlModeToggle = document.getElementById('controlModeToggle');
+            const entropyViewToggle = document.getElementById('entropy-view-toggle');
+            const entropySliceToggle = document.getElementById('entropy-slice-toggle');
 
             mass = Math.pow(10, parseFloat(massSlider.value));
             massValueSpan.textContent = mass.toExponential(2);
@@ -1226,11 +1319,11 @@
                 renderer.render(scene, camera);
             });
 
-            const sliceModes = ['3d', 'x', 'y', 'z', 'none'];
-            let currentSliceIndex = 0;
+            const gridSliceModes = ['3d', 'x', 'y', 'z', 'none'];
+            let currentGridSliceIndex = 0;
             gridSliceToggle.addEventListener('click', (e) => {
-                currentSliceIndex = (currentSliceIndex + 1) % sliceModes.length;
-                gridSliceMode = sliceModes[currentSliceIndex];
+                currentGridSliceIndex = (currentGridSliceIndex + 1) % gridSliceModes.length;
+                gridSliceMode = gridSliceModes[currentGridSliceIndex];
                 const modeText = { 
                     '3d': 'Grid: 3D', 
                     'x': 'Slice: YZ', 
@@ -1251,6 +1344,33 @@
                 updateVisuals();
                 renderer.render(scene, camera);
             });
+            entropyViewToggle.addEventListener('click', (e) => {
+                entropyViewVisible = !entropyViewVisible;
+                e.target.textContent = `Entropy View: ${entropyViewVisible ? 'On' : 'Off'}`;
+                e.target.classList.toggle('active', entropyViewVisible);
+                entropySliceToggle.classList.toggle('hidden', !entropyViewVisible);
+                updateVisuals();
+                renderer.render(scene, camera);
+            });
+
+            const entropySliceModes = ['none', 'x', 'y', 'z'];
+            let currentEntropySliceIndex = 0;
+            entropySliceToggle.addEventListener('click', (e) => {
+                const entropyThicknessControl = document.getElementById('entropy-thickness-control');
+                currentEntropySliceIndex = (currentEntropySliceIndex + 1) % entropySliceModes.length;
+                entropySliceMode = entropySliceModes[currentEntropySliceIndex];
+                 const modeText = { 
+                    'none': 'Slice Sphere: Off', 
+                    'x': 'Slice: YZ', 
+                    'y': 'Slice: XZ', 
+                    'z': 'Slice: XY'
+                };
+                e.target.textContent = modeText[entropySliceMode];
+                entropyThicknessControl.classList.toggle('hidden', entropySliceMode === 'none');
+                updateClippingPlanes();
+                renderer.render(scene, camera);
+            });
+
             pauseButton.addEventListener('click', (e) => {
                 isPaused = !isPaused;
                 e.target.textContent = isPaused ? 'Resume' : 'Pause';
@@ -1275,8 +1395,7 @@
             let objectRadius = (a > M_geom) ? 0.1 : (isBlackHole ? rs : Math.pow(mass, 1/3) * 0.5);
 
             centralObject.scale.setScalar(objectRadius);
-            horizonOutline.scale.setScalar(rs);
-            horizonOutline.visible = isBlackHole;
+            
             centralObject.material.color.set(isBlackHole ? 0x000000 : 0xffffdd);
             
             const A = 4 * Math.PI * (rs * rs + a * a);
@@ -1320,11 +1439,7 @@
                         p.position.add(inflow_velocity.multiplyScalar(dt * 0.2 * systemEnergy));
                     }
                     if (p.position.length() < objectRadius * 1.1) {
-                        const gridX = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
-                        const gridY = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
-                        const gridZ = Math.floor(Math.random() * (2 * GRID_SIZE + 1)) - GRID_SIZE;
-                        const pos = new THREE.Vector3(gridX * GRID_SPACING, gridY * GRID_SPACING, gridZ * GRID_SPACING);
-                        p.position.copy(pos);
+                        resetParticle(p);
                     }
                     particlePositions.setXYZ(i, p.position.x, p.position.y, p.position.z);
                 });
@@ -1437,13 +1552,54 @@
                     const colors = ray.line.geometry.attributes.color || new THREE.BufferAttribute(new Float32Array(NUM_WAVE_POINTS * 3), 3);
                     for(let i = 0; i < NUM_WAVE_POINTS; i++){
                         const fade = 1.0 - (i / NUM_WAVE_POINTS);
-                        color.setHSL(hue, 1.0, 0.5 * fade);
+                        color.setHSL(hue, 0.9, 0.6);
                         colors.setXYZ(i, color.r, color.g, color.b);
                     }
                     ray.line.geometry.setAttribute('color', colors);
                     positions.needsUpdate = true;
                     if(colors) colors.needsUpdate = true;
                 });
+            }
+            if (entropyViewVisible) {
+                entropyParticles.scale.setScalar(rs > 0 ? rs : 0.1);
+                const positions = entropyParticles.geometry.attributes.position;
+                const colors = entropyParticles.geometry.attributes.color;
+                const particleCountToDraw = Math.min(MAX_ENTROPY_PARTICLES, entropyParticleCount);
+                entropyParticles.geometry.setDrawRange(0, particleCountToDraw);
+                
+                const tempColor = new THREE.Color();
+                const repulsionForce = new THREE.Vector3();
+                
+                for(let i = 0; i < particleCountToDraw; i++) {
+                    const p = entropyParticleData[i];
+
+                    // Gravity
+                    const gravity = p.position.clone().normalize().multiplyScalar(-0.01 * systemEnergy);
+                    p.velocity.add(gravity);
+                    
+                    // Simple repulsion from a few neighbors to avoid O(n^2)
+                    for(let j=0; j<3; j++) {
+                        const other_idx = (i + Math.floor(1 + Math.random() * (particleCountToDraw-1))) % particleCountToDraw;
+                        const p2 = entropyParticleData[other_idx];
+                        const distSq = p.position.distanceToSquared(p2.position);
+                        if (distSq < 0.1 && distSq > 0.0001) {
+                            repulsionForce.subVectors(p.position, p2.position).normalize().multiplyScalar(0.001 / distSq);
+                            p.velocity.add(repulsionForce);
+                        }
+                    }
+
+                    p.velocity.multiplyScalar(0.95); // Damping
+                    p.position.add(p.velocity.clone().multiplyScalar(delta * 10));
+                    p.position.normalize(); // Keep on sphere surface
+                    
+                    positions.setXYZ(i, p.position.x, p.position.y, p.position.z);
+                    
+                    const hue = (time * 0.05 + p.position.x + p.position.y) % 1;
+                    tempColor.setHSL(hue, 0.9, 0.6);
+                    colors.setXYZ(i, tempColor.r, tempColor.g, tempColor.b);
+                }
+                positions.needsUpdate = true;
+                colors.needsUpdate = true;
             }
         }
 
@@ -1458,13 +1614,30 @@
     }
 
     function updateCameraFollow() {
-        if(followMode && followObject) {
-            const distance = followObject.scale.x * 10 + 25;
-            const offset = controls.target.clone().sub(camera.position).normalize().multiplyScalar(distance);
-            const targetPosition = followObject.position.clone().sub(offset);
-            const targetContainer = renderer.xr.isPresenting ? playerDolly : camera;
-            targetContainer.position.lerp(targetPosition, 0.1);
-            if (!renderer.xr.isPresenting) controls.target.lerp(followObject.position, 0.1);
+        if (!followMode) return;
+
+        let targetObject;
+        let baseDistanceScale;
+
+        if (entropyViewVisible && entropyParticles) {
+            targetObject = entropyParticles;
+            baseDistanceScale = targetObject.scale.x;
+        } else if (!entropyViewVisible && followObject) {
+            targetObject = followObject;
+            baseDistanceScale = targetObject.scale.x;
+        } else {
+            return; 
+        }
+        
+        const distance = baseDistanceScale * 10 + 25;
+        const offset = controls.target.clone().sub(camera.position).normalize().multiplyScalar(distance);
+        const targetPosition = targetObject.position.clone().sub(offset);
+        
+        const targetContainer = renderer.xr.isPresenting ? playerDolly : camera;
+        targetContainer.position.lerp(targetPosition, 0.1);
+        
+        if (!renderer.xr.isPresenting) {
+            controls.target.lerp(targetObject.position, 0.1);
         }
     }
 
@@ -1559,24 +1732,8 @@
         if(!isPaused && currentUpdate) {
             currentUpdate(delta); 
         } else {
-            // Even if paused, we need to update the grid if the slice mode changed
-            if(gridGroup) {
-                 if (gridSliceMode !== 'none') {
-                    const step = (SIMULATION_RADIUS * 2) / (gridLineCount - 1);
-                    const tolerance = gridSliceThickness * step;
-                    gridGroup.userData.lines.forEach(item => {
-                        let isVisible = false;
-                        const s = item.start, e = item.end;
-                        switch (gridSliceMode) {
-                            case '3d': isVisible = true; break;
-                            case 'x': isVisible = (s.x === e.x && (s.z === e.z || s.y === e.y) && Math.abs(s.x) <= tolerance); break;
-                            case 'y': isVisible = (s.y === e.y && (s.z === e.z || s.x === e.x) && Math.abs(s.y) <= tolerance); break;
-                            case 'z': isVisible = (s.z === e.z && (s.y === e.y || s.x === e.x) && Math.abs(s.z) <= tolerance); break;
-                        }
-                        item.line.visible = isVisible;
-                    });
-                }
-            }
+            // Even if paused, we might need to update visuals if a toggle was changed
+            renderer.render(scene, camera);
         }
         
         handleVRControllers(delta);
