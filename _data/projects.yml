@@ -78,6 +78,11 @@
   thumbnail: /assets/images/minkowski-spacetime.png
   visualization_url: /visualizations/minkowski-spacetime.html
 
+- title: Molecular Biology
+  author: Jasper Taal
+  thumbnail: /assets/images/molecular-biology.png
+  visualization_url: /visualizations/molecular-biology.html
+
 - title: Multivariate Gaussian
   author: Jasper Taal
   thumbnail: /assets/images/multivariate-gaussian.png
