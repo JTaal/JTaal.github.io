@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DNA Double Helix Simulation</title>
+    <title>Comprehensive DNA Simulation Suite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="importmap">
@@ -15,133 +15,37 @@
         }
     </script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            overflow: hidden;
-            background-color: #030712;
-            color: #e5e7eb;
-        }
-        .ui-panel {
-            position: absolute;
-            background-color: rgba(17, 24, 39, 0.85);
-            backdrop-filter: blur(8px);
-            padding: 1.25rem;
-            border: 1px solid rgba(55, 65, 81, 0.7);
-            transition: all 0.5s ease-in-out;
-            z-index: 10;
-        }
-        #info-panel {
-            top: 80px;
-            left: 20px;
-            max-width: 420px;
-            cursor: pointer;
-            overflow: hidden;
-            border-radius: 12px;
-            max-height: 58px;
-        }
-        #info-panel.expanded {
-            max-height: 90vh; 
-            cursor: default;
-            overflow-y: auto;
-            z-index: 11;
-        }
+        body { font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; background-color: #030712; color: #e5e7eb; }
+        .ui-panel { position: absolute; background-color: rgba(17, 24, 39, 0.85); backdrop-filter: blur(8px); padding: 1.25rem; border: 1px solid rgba(55, 65, 81, 0.7); transition: all 0.5s ease-in-out; z-index: 10; }
+        #info-panel { top: 80px; left: 20px; max-width: 420px; cursor: pointer; overflow: hidden; border-radius: 12px; max-height: 58px; }
+        #info-panel.expanded { max-height: 90vh; cursor: default; overflow-y: auto; z-index: 11; }
         #info-header { display: flex; justify-content: space-between; align-items: center; }
         #toggle-icon { transition: transform 0.3s ease-in-out; }
         #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
-        #controls-panel {
-            bottom: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
-            border-radius: 12px 12px 0 0;
-            padding: 1rem 2rem;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 1.5rem;
-        }
-        header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 20;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            background-color: rgba(3, 7, 18, 0.5);
-            backdrop-filter: blur(5px);
-            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
-        }
-        .toggle-button {
-            background-color: rgba(55, 65, 81, 0.8);
-            border: 1px solid rgba(75, 85, 99, 0.9);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            font-weight: 500;
-        }
-        .toggle-button:hover {
-            background-color: #4338ca;
-            transform: translateY(-2px);
-        }
-        .toggle-button.active {
-            background-color: #4f46e5;
-            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
-        }
-        input[type="range"] {
-            -webkit-appearance: none; width: 100%; height: 4px;
-            background: #4b5563; border-radius: 2px; outline: none;
-            opacity: 0.7; transition: opacity .2s;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none;
-            width: 18px; height: 18px; background: #818cf8;
-            cursor: pointer; border-radius: 50%;
-        }
-        .control-group {
-            display: flex; flex-direction: column;
-            align-items: center; gap: 0.5rem;
-        }
+        #controls-panel { bottom: 0; left: 0; right: 0; width: 100%; border-radius: 12px 12px 0 0; padding: 1rem 2rem; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1.5rem; }
+        header { position: absolute; top: 0; left: 0; right: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background-color: rgba(3, 7, 18, 0.5); backdrop-filter: blur(5px); border-bottom: 1px solid rgba(55, 65, 81, 0.7); }
+        .scene-toggle-button { background-color: rgba(55, 65, 81, 0.8); border: 1px solid rgba(75, 85, 99, 0.9); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s, transform 0.2s; font-weight: 500; }
+        .scene-toggle-button:hover { background-color: #4338ca; transform: translateY(-2px); }
+        .scene-toggle-button.active { background-color: #4f46e5; box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; background: #4b5563; border-radius: 2px; outline: none; opacity: 0.7; transition: opacity .2s; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: #818cf8; cursor: pointer; border-radius: 50%; }
+        .control-group { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
         .hidden { display: none !important; }
         canvas { display: block; }
-        #settings-button, #fullscreen-button {
-            position: absolute; background-color: rgba(55, 65, 81, 0.8);
-            backdrop-filter: blur(5px); border: 1px solid rgba(75, 85, 99, 0.9);
-            color: white; padding: 10px; border-radius: 50%;
-            cursor: pointer; transition: all 0.3s;
-        }
+        #settings-button, #fullscreen-button { position: absolute; background-color: rgba(55, 65, 81, 0.8); backdrop-filter: blur(5px); border: 1px solid rgba(75, 85, 99, 0.9); color: white; padding: 10px; border-radius: 50%; cursor: pointer; transition: all 0.3s; }
         #settings-button { top: 80px; right: 20px; z-index: 11; }
-        #fullscreen-button { bottom: 120px; right: 20px; z-index: 11; }
+        #fullscreen-button { bottom: 20px; right: 20px; z-index: 11; }
         #settings-button:hover { background-color: #4338ca; transform: translateY(-2px) rotate(45deg); }
         #fullscreen-button:hover { background-color: #4338ca; transform: translateY(-2px) scale(1.1); }
-        #settings-panel {
-            top: 80px; right: 0; width: 300px;
-            max-width: 90vw; border-radius: 12px 0 0 12px;
-            transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-            max-height: calc(100vh - 100px); overflow-y: auto; z-index: 12;
-        }
+        #settings-panel { top: 80px; right: 0; width: 300px; max-width: 90vw; border-radius: 12px 0 0 12px; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); max-height: calc(100vh - 100px); overflow-y: auto; z-index: 12; }
         #settings-panel.open { transform: translateX(0); }
         #close-settings { font-size: 2.5rem; line-height: 1; background: none; border: none; cursor: pointer; }
-        
-        #menu, #mobile-menu-container { display: none !important; }
-        @media (max-width: 768px) {
-            header { padding: 0.75rem 1rem; }
-            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; }
-            #settings-button { top: 70px; right: 10px; }
-            #fullscreen-button { bottom: 100px; right: 10px; }
-            #controls-panel { padding: 1rem; gap: 1rem; flex-direction: column; }
-        }
     </style>
 </head>
 <body>
     <header>
-        <h1 class="text-xl font-bold">DNA Double Helix Simulation</h1>
+        <h1 class="text-xl font-bold">DNA Simulation Suite</h1>
+        <div id="scene-selector" class="flex items-center gap-4"></div>
     </header>
     <div id="info-panel" class="ui-panel">
         <div id="info-header">
@@ -165,11 +69,6 @@
         </div>
         <div class="space-y-6">
             <div class="control-group text-left w-full">
-                <label class="text-sm font-medium">VR Mode</label>
-                <button id="vr-button" class="toggle-button w-full" disabled>Checking for VR...</button>
-            </div>
-             <hr class="border-gray-600">
-            <div class="control-group text-left w-full">
                 <label class="text-sm font-medium flex justify-between">Animation Speed: <span id="speed-value">1.0x</span></label>
                 <input id="speed-slider" type="range" min="0" max="5" step="0.1" value="1" class="w-full">
             </div>
@@ -183,23 +82,170 @@
 <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
     import { FontLoader } from 'three/addons/loaders/FontLoader.js';
     import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
-
+    
+    // --- SCENE REGISTRY ---
     const scenes = {
         dna_replication: {
             title: 'DNA Processes',
-            description: 'A 3D simulation of DNA replication and repair. The Polymerase unzips the helix and synthesizes new DNA, creating Okazaki fragments on the lagging strand. Activate the Nuclease and use the slider to target and cut a specific backbone site.',
-            init: initDnaScene,
+            description: 'A simulation of DNA replication. The Polymerase unzips the helix and synthesizes new DNA, creating Okazaki fragments on the lagging strand. Activate the Nuclease to target and cut the backbone.',
+            init: initDnaReplicationScene,
         },
+        dna_explorer: {
+            title: 'Helix Explorer',
+            description: 'An interactive "ball-and-stick" model of a DNA double helix. Use the sliders to manipulate the helical parameters in real-time and explore the fundamental geometry of DNA.',
+            init: initDnaExplorerScene,
+        }
     };
 
-    const baseColors = { 'A': 0x3b82f6, 'T': 0x22c55e, 'C': 0xfab005, 'G': 0xef4444 };
-    const complementMap = { 'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C' };
+    // --- SHARED THREE.JS & APP STATE ---
+    let scene, camera, renderer, controls, clock, font;
+    let activeSceneObjects = new THREE.Group();
+    let currentUpdate = () => {};
+    let currentCleanup = () => {};
+    let animationSpeed = 1.0;
 
-    function generateComplement(sequence) {
-        return sequence.split('').map(base => complementMap[base]).join('');
+    // --- DNA EXPLORER SCENE (APP 2) ---
+    function initDnaExplorerScene() {
+        let dnaGroup;
+        const resources = { geometries: [], materials: [] };
+        
+        const atomRadius = 0.25;
+        const bondRadius = 0.08;
+        const atomGeos = { C: new THREE.SphereGeometry(atomRadius, 8, 8), N: new THREE.SphereGeometry(atomRadius, 8, 8), O: new THREE.SphereGeometry(atomRadius, 8, 8), P: new THREE.SphereGeometry(0.35, 8, 8) };
+        const atomMaterials = { C: new THREE.MeshStandardMaterial({ color: 0x808080 }), N: new THREE.MeshStandardMaterial({ color: 0x0000ff }), O: new THREE.MeshStandardMaterial({ color: 0xff0000 }), P: new THREE.MeshStandardMaterial({color: 0xffa500}) };
+        const bondGeo = new THREE.CylinderGeometry(bondRadius, bondRadius, 1, 6);
+        const hBondGeo = new THREE.CylinderGeometry(bondRadius * 0.7, bondRadius * 0.7, 1, 6);
+        const bondMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+        const hBondMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+        
+        // Collect resources for cleanup
+        Object.values(atomGeos).forEach(g => resources.geometries.push(g));
+        Object.values(atomMaterials).forEach(m => resources.materials.push(m));
+        resources.geometries.push(bondGeo, hBondGeo);
+        resources.materials.push(bondMaterial, hBondMaterial);
+
+        function setupExplorerControls() {
+            document.getElementById('controls-panel').innerHTML = `
+                <div class="control-group text-left w-full md:w-auto">
+                    <label class="text-sm font-medium w-full flex justify-between">Helix Radius: <span id="radius-value">7.1</span></label>
+                    <input type="range" id="radius" min="5" max="15" value="7.1" step="0.1">
+                </div>
+                <div class="control-group text-left w-full md:w-auto">
+                    <label class="text-sm font-medium w-full flex justify-between">Rise per Base: <span id="rise-value">1.0</span></label>
+                    <input type="range" id="rise" min="1" max="6" value="1.0" step="0.1">
+                </div>
+                <div class="control-group text-left w-full md:w-auto">
+                    <label class="text-sm font-medium w-full flex justify-between">Angle per Base: <span id="angle-value">32.8</span></label>
+                    <input type="range" id="angle" min="15" max="50" value="32.8" step="0.1">
+                </div>
+                 <div class="control-group text-left w-full md:w-auto">
+                    <label class="text-sm font-medium w-full flex justify-between">Base Inset: <span id="inset-value">2.1</span></label>
+                    <input type="range" id="inset" min="-3" max="5" value="2.1" step="0.1">
+                </div>
+                <div class="control-group text-left w-full md:w-auto">
+                    <label class="text-sm font-medium w-full flex justify-between">Helix Turns: <span id="turns-value">8.0</span></label>
+                    <input type="range" id="turns" min="1" max="10" value="8.0" step="0.1">
+                </div>
+            `;
+            const sliders = ['radius', 'rise', 'angle', 'turns', 'inset'];
+            sliders.forEach(id => {
+                const slider = document.getElementById(id);
+                const valueSpan = document.getElementById(`${id}-value`);
+                slider.addEventListener('input', () => {
+                    valueSpan.textContent = parseFloat(slider.value).toFixed(1);
+                    regenerateDna();
+                });
+            });
+        }
+
+        function regenerateDna() {
+            if (dnaGroup) activeSceneObjects.remove(dnaGroup);
+            const params = {
+                radius: parseFloat(document.getElementById('radius').value),
+                risePerBase: parseFloat(document.getElementById('rise').value),
+                anglePerBase: parseFloat(document.getElementById('angle').value),
+                turns: parseFloat(document.getElementById('turns').value),
+                baseInset: parseFloat(document.getElementById('inset').value),
+            };
+            dnaGroup = explorerBuildDnaMolecule(params);
+            activeSceneObjects.add(dnaGroup);
+        }
+
+        function explorerBuildDnaMolecule(params) {
+            const { radius, risePerBase, anglePerBase, turns, baseInset } = params;
+            const group = new THREE.Group();
+            const totalBasePairs = Math.floor(turns * (360 / anglePerBase));
+            const totalHeight = totalBasePairs * risePerBase;
+            let prevStrandAtoms = [null, null];
+            for (let i = 0; i < totalBasePairs; i++) {
+                const angle = THREE.MathUtils.degToRad(i * anglePerBase);
+                const y = i * risePerBase - totalHeight / 2;
+                const sugar1 = explorerBuildSugar(), sugar2 = explorerBuildSugar();
+                const phosphate1 = explorerBuildPhosphate(), phosphate2 = explorerBuildPhosphate();
+                const pos1 = new THREE.Vector3(radius * Math.cos(angle), y, radius * Math.sin(angle));
+                const pos2 = new THREE.Vector3(-radius * Math.cos(angle), y, -radius * Math.sin(angle));
+                sugar1.position.copy(pos1); sugar2.position.copy(pos2);
+                const pAngle1 = angle + Math.PI / 4, pAngle2 = angle - Math.PI / 4;
+                phosphate1.position.copy(pos1).add(new THREE.Vector3(2 * Math.cos(pAngle1), 1.2, 2 * Math.sin(pAngle1)));
+                phosphate2.position.copy(pos2).add(new THREE.Vector3(-2 * Math.cos(pAngle2), 1.2, -2 * Math.sin(pAngle2)));
+                group.add(sugar1, sugar2, phosphate1, phosphate2);
+                group.updateWorldMatrix(true, true);
+                group.add(createBond(sugar1.userData.c5_linker.getWorldPosition(new THREE.Vector3()), phosphate1.userData.c5_linker.getWorldPosition(new THREE.Vector3()), bondMaterial, bondGeo));
+                if (prevStrandAtoms[0]) group.add(createBond(prevStrandAtoms[0].sugar.userData.c3_linker.getWorldPosition(new THREE.Vector3()), phosphate1.userData.c3_linker.getWorldPosition(new THREE.Vector3()), bondMaterial, bondGeo));
+                group.add(createBond(sugar2.userData.c5_linker.getWorldPosition(new THREE.Vector3()), phosphate2.userData.c5_linker.getWorldPosition(new THREE.Vector3()), bondMaterial, bondGeo));
+                if (prevStrandAtoms[1]) group.add(createBond(prevStrandAtoms[1].sugar.userData.c3_linker.getWorldPosition(new THREE.Vector3()), phosphate2.userData.c3_linker.getWorldPosition(new THREE.Vector3()), bondMaterial, bondGeo));
+                prevStrandAtoms = [{sugar: sugar1, phosphate: phosphate1}, {sugar: sugar2, phosphate: phosphate2}];
+                const pairType = Math.random() > 0.5 ? ['A', 'T'] : ['G', 'C'];
+                if (Math.random() > 0.5) pairType.reverse();
+                const base1 = explorerBuildBase(pairType[0]), base2 = explorerBuildBase(pairType[1]);
+                const base1Pos = pos1.clone().add(pos2.clone().sub(pos1).normalize().multiplyScalar(baseInset));
+                const base2Pos = pos2.clone().add(pos1.clone().sub(pos2).normalize().multiplyScalar(baseInset));
+                base1.position.copy(base1Pos); base2.position.copy(base2Pos);
+                base1.lookAt(pos2); base1.rotateOnAxis(pos2.clone().sub(pos1).normalize(), Math.PI / 2);
+                base2.lookAt(pos1); base2.rotateOnAxis(pos1.clone().sub(pos2).normalize(), Math.PI / 2);
+                group.add(base1, base2);
+                group.updateWorldMatrix(true, true);
+                group.add(createBond(sugar1.userData.c1_linker.getWorldPosition(new THREE.Vector3()), base1.userData.linker.getWorldPosition(new THREE.Vector3()), bondMaterial, bondGeo));
+                group.add(createBond(sugar2.userData.c1_linker.getWorldPosition(new THREE.Vector3()), base2.userData.linker.getWorldPosition(new THREE.Vector3()), bondMaterial, bondGeo));
+                const bonders1 = base1.userData.h_bonders.map(b => b.getWorldPosition(new THREE.Vector3()));
+                const bonders2 = base2.userData.h_bonders.map(b => b.getWorldPosition(new THREE.Vector3()));
+                const numBonders = Math.min(bonders1.length, bonders2.length);
+                for (let j = 0; j < numBonders; j++) {
+                     if (bonders1[j] && bonders2[j]) group.add(createBond(bonders1[j], bonders2[j], hBondMaterial, hBondGeo));
+                }
+            }
+            return group;
+        }
+        function explorerBuildPhosphate() {
+            const group = new THREE.Group();
+            const atoms = [{t:'P',p:[0,0,0]}, {t:'O',p:[0,0.8,0.8]}, {t:'O',p:[0,0.8,-0.8]}, {t:'O',p:[1, -0.6, 0]}, {t:'O',p:[-1, -0.6, 0]}];
+            const atomMeshes = atoms.map(a => new THREE.Mesh(atomGeos[a.t], atomMaterials[a.t]));
+            atomMeshes.forEach((m, i) => m.position.set(atoms[i].p[0], atoms[i].p[1], atoms[i].p[2]));
+            group.add(...atomMeshes);
+            atoms.slice(1).forEach(a => group.add(createBond(atomMeshes[0].position, new THREE.Vector3(...a.p), bondMaterial, bondGeo)));
+            group.userData.c3_linker = atomMeshes[3]; group.userData.c5_linker = atomMeshes[4];
+            return group;
+        }
+        function explorerBuildSugar() {
+            const group = new THREE.Group();
+            const r = 1.0;
+            const atoms = [ {t:'C',p:[r*Math.cos(0), r*Math.sin(0), 0]}, {t:'C',p:[r*Math.cos(Math.PI*2/5), r*Math.sin(Math.PI*2/5), 0]}, {t:'C',p:[r*Math.cos(Math.PI*4/5), r*Math.sin(Math.PI*4/5), 0]}, {t:'O',p:[0,0,-0.5]}, {t:'C',p:[r*Math.cos(Math.PI*6/5), r*Math.sin(Math.PI*6/5), 0]} ];
+            const atomMeshes = atoms.map(a => new THREE.Mesh(atomGeos[a.t], atomMaterials[a.t]));
+            atomMeshes.forEach((m, i) => m.position.set(atoms[i].p[0], atoms[i].p[1], atoms[i].p[2]));
+            group.add(...atomMeshes);
+            for(let i=0; i<5; i++) group.add(createBond(atomMeshes[i].position, atomMeshes[(i+1)%5].position, bondMaterial, bondGeo));
+            group.userData.c1_linker = atomMeshes[0]; group.userData.c3_linker = atomMeshes[1]; group.userData.c5_linker = atomMeshes[4];
+            return group;
+        }
+        function explorerBuildBase(type) {
+            const group = new THREE.Group();
+            let atoms = [], bonds = [], h_bonders_indices = [], linker_index;
+            switch (type) {
+                 case 'A': atoms = [ {t:'N',p:[-1.3,2.3,0]}, {t:'C',p:[-2.3,1.5,0]}, {t:'N',p:[-1.8,-0.2,0]}, {t:'C',p:[-0.4,-0.5,0]}, {t:'C',p:[0,1,0]}, {t:'C',p:[-0.8,2,0]}, {t:'N',p:[1.2,1.2,0]}, {t:'C',p:[1.6,-0.1,0]}, {t:'N',p:[0.7,-1.2,0]}]; bonds = [ [0,5],[5,1],[1,2],[2,3],[3,4],[4,5],[4,6],[6,7],[7,8],[8,3] ]; h_bonders_indices = [2, 0]; linker_index = 8; break;
+                 case 'G': atoms = [ {t:'N',p:[-1.3,2.3,0]}, {t:'C',p:[-2.3,1.5,0]}, {t:'N',p:[-1.8,-0.2,0]}, {t:'C',p:[-0.4,-0.5,0]}, {t:'C',p:[0,1,0]}, {t:'C',p:[-0.8,2,0]}, {t:'N',p:[1.2,1.2,0]}, {t:'C',p:[1.6,-0.1,0]}, {t:'N',p:[0.7,-1.2,0]}, {t:'O',p:[-3.3,1.8,0]} ]; bonds = [ [0,5],[5,1],[1,2],[2,3],[3,4],[4,5],[4,6],[6,7],[7,8],[8,3],[1,9] ]; h_bonders_indices = [0, 2, 9]; linker_index = 8; break;
+                 case 'C': atoms = [ {t:'N',p:[0,1.5,0]}, {t:'C',p:[-1.2,1.5,0]}, {t:'C',p:[-1.5,0,0]}, {t:'N',p:[-0.3,-0.8,0]}, {t:'C',p:[1,-0.5,0]}, {t:'C',p:[1.2,1,0]}, {t:'O',p:[-2.2,2.3,0]} ]; bonds = [ [0,1],[1,2],[2      return sequence.split('').map(base => complementMap[base]).join('');
     }
 
     function initDnaScene() {
