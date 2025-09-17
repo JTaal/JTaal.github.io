@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molecular Biology Sandbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- 3Dmol.js library -->
+    <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+    <script src="https://3Dmol.org/build/3Dmol.ui-min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+        }
+        #viewer-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 80vh; 
+            cursor: default;
+            overflow-y: auto;
+        }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        select, input[type="text"] {
+             background-color: #374151; /* bg-gray-700 */
+             color: white;
+             border-radius: 6px;
+             padding: 0.25rem 0.5rem;
+             border: 1px solid #4b5563; /* border-gray-600 */
+        }
+        select:focus, input:focus {
+             outline: none;
+             box-shadow: 0 0 0 2px #6366f1; /* ring-2 ring-indigo-500 */
+        }
+        .control-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .control-button:hover, .toggle-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .control-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .button-group {
+             display: flex;
+             gap: 0.5rem;
+             flex-wrap: wrap;
+             justify-content: center;
+        }
+        #settings-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            border-radius: 50%;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #settings-button:hover {
+             background-color: #4338ca;
+             transform: rotate(45deg);
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+             header { flex-wrap: wrap; gap: 0.5rem; }
+             header h1 { font-size: 1.125rem; }
+             #info-panel { top: 120px; left: 10px; right: 10px; max-width: none; width: auto; }
+             #controls-panel { padding: 0.75rem; flex-direction: column; }
+             #settings-panel { top: 120px; width: 280px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="main-title" class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Molecular Biology Sandbox</h1>
+        <div class="flex items-center gap-2 flex-wrap">
+            <select id="pdb-select" title="Select a preset structure" class="py-1">
+                <option value="">Presets...</option>
+                <option value="1BNA">DNA (B-Form)</option>
+                <option value="1IGT">Antibody (Fab)</option>
+                <option value="2OSL">CD20-Rituximab Complex</option>
+                <option value="2HHB">Hemoglobin</option>
+                <option value="1EMA">GFP</option>
+                <option value="4OO8">CRISPR-Cas9</option>
+                <option value="1C17">ATP Synthase</option>
+            </select>
+            <input type="text" id="pdb-input" placeholder="Enter PDB ID" class="w-32 py-1" value="1BNA">
+            <button id="load-pdb-btn" class="control-button py-1 px-3">Load</button>
+        </div>
+        <button id="settings-button" title="Settings">
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div class="panel-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">PDB Entry</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300">
+                The native 3Dmol.js UI in the top-right corner includes a fullscreen and VR button.
+             </p>
+             <a href="https://www.rcsb.org/" id="rcsb-link" target="_blank" class="block w-full text-center p-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors">View on RCSB PDB</a>
+        </div>
+    </div>
+    
+    <div id="settings-panel" class="ui-panel">
+        <h3 class="text-lg font-bold text-gray-200 mb-4">Settings</h3>
+        <div class="space-y-4">
+            <div>
+                <label for="model-status" class="text-sm font-medium">Model Status</label>
+                <div id="model-status" class="mt-1 text-sm p-2 rounded-md bg-gray-700 text-center">Idle</div>
+            </div>
+            <div>
+                 <label for="spin-toggle" class="text-sm font-medium">Spin Animation</label>
+                 <button id="spin-toggle" class="toggle-button w-full mt-1">Off</button>
+            </div>
+            <div>
+                 <label for="bg-color-picker" class="text-sm font-medium">Background Color</label>
+                 <input type="color" id="bg-color-picker" value="#030712" class="w-full h-10 p-1 mt-1 bg-gray-700 rounded-md cursor-pointer">
+            </div>
+        </div>
+    </div>
+
+    <div id="viewer-container"></div>
+    
+    <div id="controls-panel" class="ui-panel">
+        <div class="control-group">
+            <label class="text-sm font-medium">Style</label>
+            <div id="style-controls" class="button-group">
+                <button class="control-button active" data-style="cartoon">Cartoon</button>
+                <button class="control-button" data-style="stick">Stick</button>
+                <button class="control-button" data-style="sphere">Sphere</button>
+            </div>
+        </div>
+        <div class="h-10 border-l border-gray-600 hidden md:block"></div>
+        <div class="control-group">
+            <label class="text-sm font-medium">Color</label>
+            <div id="color-controls" class="button-group">
+                <button class="control-button active" data-color="spectrum">Spectrum</button>
+                <button class="control-button" data-color="chain">Chain</button>
+                <button class="control-button" data-color="atom">Atom Type</button>
+            </div>
+        </div>
+        <div class="h-10 border-l border-gray-600 hidden md:block"></div>
+        <div class="control-group">
+            <label class="text-sm font-medium">Surface</label>
+            <div id="surface-controls" class="button-group">
+                <button class="control-button" data-surface="on">On</button>
+                <button class="control-button active" data-surface="off">Off</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    window.onload = function() {
+        try {
+            const viewerContainer = document.getElementById('viewer-container');
+            const modelStatus = document.getElementById('model-status');
+            const infoTitle = document.getElementById('info-title');
+            const rcsbLink = document.getElementById('rcsb-link');
+            const pdbInput = document.getElementById('pdb-input');
+            const pdbSelect = document.getElementById('pdb-select');
+            const loadPdbBtn = document.getElementById('load-pdb-btn');
+            
+            let viewer;
+            
+            function loadPDB(pdbId) {
+                if (!pdbId || pdbId.trim().length < 4) {
+                    alert("Please enter a valid 4-character PDB ID.");
+                    return;
+                }
+                
+                pdbId = pdbId.trim().toUpperCase();
+                
+                viewerContainer.innerHTML = '';
+                modelStatus.textContent = 'Loading...';
+                modelStatus.style.backgroundColor = '#4A5568';
+
+                $.get(`https://files.rcsb.org/view/${pdbId}.pdb`, function(data) {
+                    if (viewer) viewer.clear();
+                    
+                    viewer = $3Dmol.createViewer(viewerContainer, { 
+                        backgroundColor: document.getElementById('bg-color-picker').value || '#030712',
+                        ui: true // Enable the native 3Dmol.js UI which includes VR
+                    });
+
+                    viewer.addModel(data, 'pdb');
+                    viewer.setStyle({}, { cartoon: { colorscheme: 'spectrum' } });
+                    viewer.zoomTo();
+                    viewer.render();
+                    
+                    const isSpinning = document.getElementById('spin-toggle').classList.contains('active');
+                    viewer.spin(isSpinning);
+                    
+                    infoTitle.textContent = `PDB Entry: ${pdbId}`;
+                    rcsbLink.style.display = 'block';
+                    rcsbLink.href = `https://www.rcsb.org/structure/${pdbId}`;
+                    
+                    modelStatus.textContent = 'Success';
+                    modelStatus.style.backgroundColor = '#166534';
+                    
+                }).fail(function() {
+                    console.error(`Failed to retrieve PDB data for ${pdbId}.`);
+                    modelStatus.textContent = 'Failed';
+                    modelStatus.style.backgroundColor = '#991B1B';
+                    viewerContainer.innerHTML = `<div class="text-red-500 text-center p-8">Failed to load PDB model for ID: ${pdbId}.<br>Please check the ID and your network connection.</div>`;
+                });
+            }
+
+            const setupUI = () => {
+                document.getElementById('info-panel').addEventListener('click', (e) => {
+                    if (e.target.closest('a')) return;
+                    e.currentTarget.classList.toggle('expanded');
+                });
+                
+                const styleControls = document.getElementById('style-controls');
+                const colorControls = document.getElementById('color-controls');
+                const surfaceControls = document.getElementById('surface-controls');
+                
+                let currentStyle = 'cartoon';
+                let currentColor = 'spectrum';
+                let surfaceEnabled = false;
+
+                function applyStyles() {
+                    if (!viewer) return;
+                    viewer.removeAllSurfaces();
+                    const styleSpec = {};
+                    const colorScheme = { colorscheme: currentColor === 'atom' ? 'Jmol' : currentColor };
+                    styleSpec[currentStyle] = colorScheme;
+                    viewer.setStyle({}, styleSpec);
+                    if (surfaceEnabled) {
+                        viewer.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.7, color: 'white' });
+                    }
+                    viewer.render();
+                }
+
+                function handleButtonClick(event, controlType) {
+                    const button = event.target.closest('button');
+                    if (!button) return;
+                    
+                    const group = button.parentElement;
+                    group.querySelector('.active').classList.remove('active');
+                    button.classList.add('active');
+                    
+                    if (controlType === 'style') currentStyle = button.dataset.style;
+                    else if (controlType === 'color') currentColor = button.dataset.color;
+                    else if (controlType === 'surface') surfaceEnabled = button.dataset.surface === 'on';
+                    
+                    applyStyles();
+                }
+
+                styleControls.addEventListener('click', (e) => handleButtonClick(e, 'style'));
+                colorControls.addEventListener('click', (e) => handleButtonClick(e, 'color'));
+                surfaceControls.addEventListener('click', (e) => handleButtonClick(e, 'surface'));
+                
+                const settingsButton = document.getElementById('settings-button');
+                const settingsPanel = document.getElementById('settings-panel');
+                const spinToggle = document.getElementById('spin-toggle');
+                const bgColorPicker = document.getElementById('bg-color-picker');
+
+                settingsButton.addEventListener('click', () => settingsPanel.classList.toggle('open'));
+                
+                spinToggle.addEventListener('click', () => {
+                    if (!viewer) return;
+                    const isActive = spinToggle.classList.toggle('active');
+                    spinToggle.textContent = isActive ? 'On' : 'Off';
+                    viewer.spin(isActive);
+                });
+
+                bgColorPicker.addEventListener('input', (e) => {
+                    if (viewer) viewer.setBackgroundColor(e.target.value);
+                });
+
+                loadPdbBtn.addEventListener('click', () => loadPDB(pdbInput.value));
+                pdbInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') loadPDB(pdbInput.value);
+                });
+                
+                pdbSelect.addEventListener('change', () => {
+                    const selectedPdbId = pdbSelect.value;
+                    if (selectedPdbId) {
+                        pdbInput.value = selectedPdbId;
+                        loadPDB(selectedPdbId);
+                    }
+                });
+
+                pdbInput.addEventListener('input', () => {
+                    if(document.activeElement === pdbInput) pdbSelect.value = ""; 
+                });
+                
+                window.addEventListener('resize', () => {
+                    if (viewer) viewer.resize();
+                });
+            };
+
+            setupUI();
+            loadPDB('1BNA');
+
+        } catch (error) {
+            console.error("An error occurred during initialization:", error);
+            const viewerContainer = document.getElementById('viewer-container');
+            if(viewerContainer) {
+                viewerContainer.innerHTML = '<div class="text-red-500 text-center p-8">A critical error occurred. Please check the console for details.</div>';
+            }
+        }
+    };
+</script>
+</body>
+</html>
+
