@@ -86,6 +86,7 @@
             background-color: rgba(3, 7, 18, 0.5);
             backdrop-filter: blur(5px);
             border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
         }
         .preset-button, .action-button {
             background-color: rgba(55, 65, 81, 0.8);
@@ -177,7 +178,7 @@
             max-width: 90vw;
             border-radius: 12px 0 0 12px;
             transform: translateX(100%);
-            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-in-out;
             max-height: calc(100vh - 180px); /* Adjusted for controls panel */
             overflow-y: auto;
             z-index: 12;
@@ -283,6 +284,38 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        /* Fullscreen UI Auto-Hide Styles */
+        body.fullscreen-active header,
+        body.fullscreen-active .ui-panel {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+        }
+        body.fullscreen-active header {
+            transform: translateY(-100%);
+        }
+        body.fullscreen-active #info-panel {
+            transform: translateX(-100%);
+        }
+        body.fullscreen-active #settings-panel.open {
+            transform: translateX(100%); /* Keep it hidden off-screen */
+        }
+        body.fullscreen-active #controls-panel {
+            transform: translateY(100%);
+        }
+        /* Class to show the UI elements on hover */
+        body.fullscreen-active header.show,
+        body.fullscreen-active .ui-panel.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(0, 0);
+        }
+        /* When settings panel is open AND shown, it should translate to 0 */
+        body.fullscreen-active #settings-panel.open.show {
+             transform: translateX(0);
+        }
+
+
         @media (max-width: 768px) {
             header { padding: 0.75rem 1rem; justify-content: space-between; }
             header h1 { font-size: 1.25rem; }
@@ -356,7 +389,7 @@
         <button id="reset-button" class="action-button reset">Reset</button>
     </div>
 
-    <div id="settings-panel" class="ui-panel hidden">
+    <div id="settings-panel" class="ui-panel">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold text-gray-200">Settings</h3>
             <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
@@ -690,12 +723,10 @@
             }
         });
 
-        // The plane geometry is always 2x2 units, matching the simulation space.
         const planeGeom = new THREE.PlaneGeometry(2, 2, currentGridSize, currentGridSize);
         const simPlane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), simMaterial);
         simScene.add(simPlane);
 
-        // Base uniforms for display materials
         const displayUniforms = { 
             uTexture: { value: readTarget.texture },
             uColorA: { value: new THREE.Color('#0d0d1a') },
@@ -706,14 +737,12 @@
             uColorScheme: { value: 0 }
         };
 
-        // 2D Display material
         displayMaterial = new THREE.ShaderMaterial({
             vertexShader: baseVertexShader,
             fragmentShader: displayFragmentShader,
             uniforms: THREE.UniformsUtils.clone(displayUniforms)
         });
 
-        // 3D Display material
         displayMaterial3D = new THREE.ShaderMaterial({
             vertexShader: displayVertexShader3D,
             fragmentShader: displayFragmentShader,
@@ -732,6 +761,7 @@
         resetSimulation();
 
         window.addEventListener('resize', onWindowResize, false);
+        window.addEventListener('mousemove', handleFullscreenMouseMove);
         renderer.domElement.addEventListener('pointerdown', (e) => { 
             if (is3DMode) {
                 renderer.domElement.classList.add('grabbing-cursor');
@@ -750,7 +780,7 @@
         });
         renderer.domElement.addEventListener('pointermove', (e) => { if(!is3DMode && isPointerDown) updatePointer(e); });
         
-        onWindowResize(); // Call once to set initial camera properties
+        onWindowResize();
         renderer.setAnimationLoop(animate);
     }
 
@@ -792,16 +822,12 @@
 
     function updateGridSize(newResolution) {
         currentGridSize = newResolution;
-
         const size = new THREE.Vector2(newResolution, newResolution);
         readTarget.setSize(size.x, size.y);
         writeTarget.setSize(size.x, size.y);
-
         simMaterial.uniforms.uResolution.value.copy(size);
-
         planeMesh.geometry.dispose();
         planeMesh.geometry = new THREE.PlaneGeometry(2, 2, newResolution, newResolution);
-
         resetSimulation();
     }
 
@@ -812,10 +838,7 @@
             \\frac{\\partial b}{\\partial t} = D_b \\nabla^2 b + ab^2 - (k+f)b
         `;
         try {
-            katex.render(generalFormula, generalContainer, {
-                throwOnError: false,
-                displayMode: true
-            });
+            katex.render(generalFormula, generalContainer, { throwOnError: false, displayMode: true });
         } catch(e) {
             console.error("KaTeX rendering error:", e);
             generalContainer.textContent = "Error rendering formula.";
@@ -826,10 +849,7 @@
         const presetContainer = document.getElementById('preset-formula');
         const presetFormula = `f = ${f.toFixed(4)}, \\quad k = ${k.toFixed(4)}`;
          try {
-            katex.render(presetFormula, presetContainer, {
-                throwOnError: false,
-                displayMode: true
-            });
+            katex.render(presetFormula, presetContainer, { throwOnError: false, displayMode: true });
         } catch(e) {
             console.error("KaTeX rendering error:", e);
             presetContainer.textContent = "Error rendering formula.";
@@ -837,13 +857,10 @@
     }
 
     function toggleFullScreen() {
-        // Check if fullscreen is currently active
         if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
             const el = document.documentElement;
             const requestMethod = el.requestFullscreen || el.mozRequestFullScreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
             if (requestMethod) {
-                // requestFullscreen returns a promise that resolves when the mode is successfully entered.
-                // It rejects if there's an error (like permission denied).
                 requestMethod.call(el).catch(err => {
                     console.error(`Failed to enter fullscreen mode: ${err.message} (${err.name})`);
                 });
@@ -859,12 +876,51 @@
     function updateFullscreenIcon() {
         const fullscreenEnterIcon = document.getElementById('fullscreen-enter-icon');
         const fullscreenExitIcon = document.getElementById('fullscreen-exit-icon');
+        const allUIPanels = document.querySelectorAll('header, .ui-panel');
+
         if (document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
             fullscreenEnterIcon.classList.add('hidden');
             fullscreenExitIcon.classList.remove('hidden');
+            document.body.classList.add('fullscreen-active');
         } else {
             fullscreenEnterIcon.classList.remove('hidden');
             fullscreenExitIcon.classList.add('hidden');
+            document.body.classList.remove('fullscreen-active');
+            allUIPanels.forEach(el => el.classList.remove('show'));
+        }
+    }
+
+    function handleFullscreenMouseMove(e) {
+        if (!document.body.classList.contains('fullscreen-active')) return;
+
+        const header = document.querySelector('header');
+        const infoPanel = document.getElementById('info-panel');
+        const controlsPanel = document.getElementById('controls-panel');
+        const settingsPanel = document.getElementById('settings-panel');
+
+        const y = e.clientY;
+        const x = e.clientX;
+        const windowHeight = window.innerHeight;
+        const windowWidth = window.innerWidth;
+
+        if (y < 100) {
+            header.classList.add('show');
+            infoPanel.classList.add('show');
+        } else {
+            header.classList.remove('show');
+            infoPanel.classList.remove('show');
+        }
+        
+        if (settingsPanel.classList.contains('open') && windowWidth - x < 320) {
+            settingsPanel.classList.add('show');
+        } else if (settingsPanel.classList.contains('open')) {
+            settingsPanel.classList.remove('show');
+        }
+
+        if (windowHeight - y < 160) {
+            controlsPanel.classList.add('show');
+        } else {
+            controlsPanel.classList.remove('show');
         }
     }
     
@@ -879,8 +935,7 @@
             e.currentTarget.classList.toggle('expanded');
         });
 
-        const fullscreenButton = document.getElementById('fullscreen-button');
-        fullscreenButton.addEventListener('click', toggleFullScreen);
+        document.getElementById('fullscreen-button').addEventListener('click', toggleFullScreen);
         
         const feedSlider = document.getElementById('feed-slider');
         const killSlider = document.getElementById('kill-slider');
@@ -1149,11 +1204,9 @@
 
         renderer.setSize(width, height);
 
-        // --- 3D Camera Update (Perspective) ---
         mainCamera3D.aspect = aspect;
         mainCamera3D.updateProjectionMatrix();
 
-        // --- 2D Camera Update (Orthographic) ---
         mainCamera.left = -1;
         mainCamera.right = 1;
         mainCamera.top = 1 / aspect;
