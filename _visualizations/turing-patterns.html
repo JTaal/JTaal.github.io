@@ -174,8 +174,8 @@
         #settings-panel {
             top: 80px;
             right: 0;
-            width: 300px;
-            max-width: 90vw;
+            width: 90vw;
+            max-width: 300px;
             border-radius: 12px 0 0 12px;
             transform: translateX(100%);
             transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-in-out;
@@ -320,7 +320,7 @@
             header { padding: 0.75rem 1rem; justify-content: space-between; }
             header h1 { font-size: 1.25rem; }
             #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
-            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
+            #settings-panel { top: 70px; max-width: 280px; max-height: calc(100vh - 80px);}
             #controls-panel { padding: 0.75rem; gap: 1rem; flex-direction: column; }
             .control-group { min-width: 220px; }
             .preset-container { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;}
@@ -332,8 +332,8 @@
         <h1 class="text-2xl font-bold text-gray-200 tracking-wider opacity-90">Reaction-Diffusion 3D</h1>
         <div class="flex items-center gap-4">
              <button id="fullscreen-button" title="Toggle Fullscreen">
-                <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
             </button>
             <button id="settings-button" title="Settings">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -1038,6 +1038,9 @@
 
     function setupSettingsPanel() {
         const settingsPanel = document.getElementById('settings-panel');
+        // Explicitly hide the panel on initialization
+        settingsPanel.classList.add('hidden');
+
         const settingsButton = document.getElementById('settings-button');
         const closeSettingsButton = document.getElementById('close-settings');
         const bgColorInput = document.getElementById('bg-color-input');
