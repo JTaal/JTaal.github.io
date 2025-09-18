@@ -151,8 +151,8 @@
         canvas.crosshair-cursor { cursor: crosshair; }
         canvas.grab-cursor { cursor: grab; }
         canvas.grabbing-cursor { cursor: grabbing; }
-       
-        #settings-button {
+
+        #settings-button, #fullscreen-button {
             background-color: rgba(55, 65, 81, 0.8);
             backdrop-filter: blur(5px);
             border: 1px solid rgba(75, 85, 99, 0.9);
@@ -161,6 +161,10 @@
             border-radius: 50%;
             cursor: pointer;
             transition: all 0.3s;
+        }
+        #fullscreen-button:hover {
+             background-color: #4338ca;
+            transform: translateY(-2px);
         }
         #settings-button:hover {
             background-color: #4338ca;
@@ -247,7 +251,7 @@
         input:checked + .slider:before {
             transform: translateX(22px);
         }
-       
+
         /* Custom color scheme dropdown */
         #color-scheme-options {
             -ms-overflow-style: none;  /* IE and Edge */
@@ -293,9 +297,15 @@
 <body>
     <header>
         <h1 class="text-2xl font-bold text-gray-200 tracking-wider opacity-90">Reaction-Diffusion 3D</h1>
-        <button id="settings-button" title="Settings">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
+        <div class="flex items-center gap-4">
+             <button id="fullscreen-button" title="Toggle Fullscreen">
+                <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+            </button>
+            <button id="settings-button" title="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
     </header>
 
     <div id="info-panel" class="ui-panel">
@@ -317,7 +327,7 @@
              <div id="formula-container" class="mt-4 space-y-3">
                  <h3 class="text-lg font-bold text-indigo-400">Governing Equations (Gray-Scott Model)</h3>
                  <div id="general-formula" class="param-info text-center text-base p-2"></div>
- 
+
                  <h3 class="text-lg font-bold text-indigo-400">Current Preset Parameters</h3>
                  <div id="preset-formula" class="param-info text-center text-lg"></div>
              </div>
@@ -345,7 +355,7 @@
         <button id="mode-toggle-button" class="action-button">3D Mode</button>
         <button id="reset-button" class="action-button reset">Reset</button>
     </div>
-   
+
     <div id="settings-panel" class="ui-panel hidden">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold text-gray-200">Settings</h3>
@@ -433,7 +443,7 @@
     let isPaused = false;
     let is3DMode = false;
     let currentGridSize = 512;
-   
+
     // --- Simulation Parameters ---
     const presets = {
         'Custom': { f: 0.0, k: 0.0 }, // Placeholder for custom values
@@ -455,7 +465,7 @@
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `;
-    
+
     const displayVertexShader3D = `
         varying vec2 vUv;
         uniform sampler2D uTexture;
@@ -523,7 +533,7 @@
             gl_FragColor = vec4(clamp(newChemical, 0.0, 1.0), 0.0, 1.0);
         }
     `;
-   
+
     const displayFragmentShader = `
         varying vec2 vUv;
         uniform sampler2D uTexture;
@@ -631,7 +641,7 @@
     // --- Main Initialization ---
     function init() {
         clock = new THREE.Clock();
-       
+
         // Renderer setup
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -644,15 +654,15 @@
         mainCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
         mainCamera3D = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
         mainCamera3D.position.set(0, 0, 1.5);
-       
+
         // Orbit Controls
         controls = new OrbitControls(mainCamera3D, renderer.domElement);
         controls.enabled = false;
-        
+
         // Simulation scene
         simScene = new THREE.Scene();
         simCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-       
+
         // Render targets
         const rtOptions = {
             minFilter: THREE.LinearFilter,
@@ -680,10 +690,11 @@
             }
         });
 
+        // The plane geometry is always 2x2 units, matching the simulation space.
         const planeGeom = new THREE.PlaneGeometry(2, 2, currentGridSize, currentGridSize);
         const simPlane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), simMaterial);
         simScene.add(simPlane);
-       
+
         // Base uniforms for display materials
         const displayUniforms = { 
             uTexture: { value: readTarget.texture },
@@ -701,7 +712,7 @@
             fragmentShader: displayFragmentShader,
             uniforms: THREE.UniformsUtils.clone(displayUniforms)
         });
-        
+
         // 3D Display material
         displayMaterial3D = new THREE.ShaderMaterial({
             vertexShader: displayVertexShader3D,
@@ -711,7 +722,7 @@
                 uDisplacementScale: { value: 0.3 }
             }
         });
-        
+
         planeMesh = new THREE.Mesh(planeGeom, displayMaterial);
         mainScene.add(planeMesh);
 
@@ -719,7 +730,7 @@
         setupSettingsPanel();
         renderFormulas();
         resetSimulation();
-       
+
         window.addEventListener('resize', onWindowResize, false);
         renderer.domElement.addEventListener('pointerdown', (e) => { 
             if (is3DMode) {
@@ -738,10 +749,11 @@
             }
         });
         renderer.domElement.addEventListener('pointermove', (e) => { if(!is3DMode && isPointerDown) updatePointer(e); });
-
+        
+        onWindowResize(); // Call once to set initial camera properties
         renderer.setAnimationLoop(animate);
     }
-   
+
     function updatePointer(event) {
         pointer.x = (event.clientX / window.innerWidth);
         pointer.y = 1 - (event.clientY / window.innerHeight);
@@ -757,25 +769,21 @@
             pauseButton.classList.add('active');
         }
 
-        // We render a single frame to the write target to set the initial state
         renderer.setRenderTarget(writeTarget);
-        // Set the initial state: A=1, B=0 everywhere
         renderer.setClearColor(new THREE.Color(1, 0, 0), 1);
         renderer.clear();
-       
-        // Then, draw a small seed of B in the middle
-        const seedMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // B is green channel
+
+        const seedMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         const seedGeom = new THREE.PlaneGeometry(0.1, 0.1);
         const seedMesh = new THREE.Mesh(seedGeom, seedMaterial);
-        simScene.add(seedMesh); // Temporarily add to sim scene
+        simScene.add(seedMesh);
         renderer.render(simScene, simCamera);
-        simScene.remove(seedMesh); // Remove it
-       
-        // Swap targets so the new state is in the read buffer
+        simScene.remove(seedMesh);
+
         swapTargets();
-        renderer.setRenderTarget(null); // Back to screen
+        renderer.setRenderTarget(null);
     }
-   
+
     function swapTargets() {
         const temp = readTarget;
         readTarget = writeTarget;
@@ -784,20 +792,19 @@
 
     function updateGridSize(newResolution) {
         currentGridSize = newResolution;
-    
+
         const size = new THREE.Vector2(newResolution, newResolution);
         readTarget.setSize(size.x, size.y);
         writeTarget.setSize(size.x, size.y);
-    
+
         simMaterial.uniforms.uResolution.value.copy(size);
-    
+
         planeMesh.geometry.dispose();
         planeMesh.geometry = new THREE.PlaneGeometry(2, 2, newResolution, newResolution);
-    
+
         resetSimulation();
     }
 
-    // --- Formula Rendering ---
     function renderFormulas() {
         const generalContainer = document.getElementById('general-formula');
         const generalFormula = `
@@ -829,19 +836,57 @@
         }
     }
 
+    function toggleFullScreen() {
+        // Check if fullscreen is currently active
+        if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+            const el = document.documentElement;
+            const requestMethod = el.requestFullscreen || el.mozRequestFullScreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+            if (requestMethod) {
+                // requestFullscreen returns a promise that resolves when the mode is successfully entered.
+                // It rejects if there's an error (like permission denied).
+                requestMethod.call(el).catch(err => {
+                    console.error(`Failed to enter fullscreen mode: ${err.message} (${err.name})`);
+                });
+            }
+        } else {
+            const exitMethod = document.exitFullscreen || document.mozCancelFullScreen || document.webkitExitFullscreen || document.msExitFullscreen;
+            if (exitMethod) {
+                exitMethod.call(document);
+            }
+        }
+    }
 
-    // --- UI Setup ---
+    function updateFullscreenIcon() {
+        const fullscreenEnterIcon = document.getElementById('fullscreen-enter-icon');
+        const fullscreenExitIcon = document.getElementById('fullscreen-exit-icon');
+        if (document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+            fullscreenEnterIcon.classList.add('hidden');
+            fullscreenExitIcon.classList.remove('hidden');
+        } else {
+            fullscreenEnterIcon.classList.remove('hidden');
+            fullscreenExitIcon.classList.add('hidden');
+        }
+    }
+    
+    document.addEventListener('fullscreenchange', updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+    document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
+    document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
+
     function setupUI() {
         document.getElementById('info-panel').addEventListener('click', (e) => {
             if(e.target.closest('input, button, a, .param-info')) return;
             e.currentTarget.classList.toggle('expanded');
         });
-       
+
+        const fullscreenButton = document.getElementById('fullscreen-button');
+        fullscreenButton.addEventListener('click', toggleFullScreen);
+        
         const feedSlider = document.getElementById('feed-slider');
         const killSlider = document.getElementById('kill-slider');
         const feedValue = document.getElementById('feed-value');
         const killValue = document.getElementById('kill-value');
-       
+
         feedSlider.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
             simMaterial.uniforms.uFeed.value = val;
@@ -849,7 +894,7 @@
             currentParams.f = val;
             updateActivePreset();
         });
-       
+
         killSlider.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
             simMaterial.uniforms.uKill.value = val;
@@ -857,7 +902,7 @@
             currentParams.k = val;
             updateActivePreset();
         });
-       
+
         document.getElementById('reset-button').addEventListener('click', resetSimulation);
 
         const pauseButton = document.getElementById('pause-button');
@@ -880,7 +925,6 @@
             }
         });
 
-        // Mode Toggle Button
         const modeToggleButton = document.getElementById('mode-toggle-button');
         const displacementGroup = document.getElementById('displacement-group');
         modeToggleButton.addEventListener('click', () => {
@@ -902,10 +946,10 @@
                 displacementGroup.classList.add('hidden');
             }
         });
-       
+
         const presetSelect = document.getElementById('preset-select');
         Object.keys(presets).forEach(name => {
-            if (name === 'Custom') return; // Don't add custom to the list initially
+            if (name === 'Custom') return;
             const option = document.createElement('option');
             option.value = name;
             option.textContent = name;
@@ -915,10 +959,8 @@
         presetSelect.addEventListener('change', (e) => {
             const name = e.target.value;
             if (!presets[name]) return;
-
             const params = presets[name];
             currentParams = { ...params };
-           
             feedSlider.value = params.f;
             killSlider.value = params.k;
             feedValue.textContent = params.f.toFixed(4);
@@ -926,21 +968,17 @@
             simMaterial.uniforms.uFeed.value = params.f;
             simMaterial.uniforms.uKill.value = params.k;
             updatePresetFormulaDisplay(params.f, params.k);
-           
             resetSimulation();
         });
 
-        // Set initial UI state to 'Coral' to match the simulation's starting parameters
         const initialParams = presets['Coral'];
         feedSlider.value = initialParams.f;
         feedValue.textContent = initialParams.f.toFixed(4);
         killSlider.value = initialParams.k;
         killValue.textContent = initialParams.k.toFixed(4);
         presetSelect.value = 'Coral';
-       
-        // Update other UI elements accordingly
         updatePresetFormulaDisplay(initialParams.f, initialParams.k);
-        updateActivePreset(); // Ensures 'Custom' option is not shown initially
+        updateActivePreset();
     }
 
     function setupSettingsPanel() {
@@ -957,7 +995,6 @@
         const displacementValue = document.getElementById('displacement-value');
         const gridSizeSlider = document.getElementById('grid-size-slider');
         const gridSizeValue = document.getElementById('grid-size-value');
-       
         const colorSchemes = [
             { id: 0, name: 'Rainbow', gradient: 'linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff)' },
             { id: 1, name: 'Fire', gradient: 'linear-gradient(90deg, #220000, #ff8800, #ffff99)' },
@@ -991,23 +1028,18 @@
         const selectedSwatch = document.getElementById('selected-color-swatch');
         const selectedName = document.getElementById('selected-color-name');
 
-        // Populate options
         colorSchemes.forEach(scheme => {
             const option = document.createElement('div');
             option.className = 'option';
             option.dataset.value = scheme.id;
-           
             const swatch = document.createElement('span');
             swatch.className = 'color-swatch-preview';
             swatch.style.background = scheme.gradient;
-
             const name = document.createElement('span');
             name.textContent = scheme.name;
-
             option.appendChild(swatch);
             option.appendChild(name);
             colorSchemeOptions.appendChild(option);
-
             option.addEventListener('click', () => {
                 const schemeId = scheme.id;
                 displayMaterial.uniforms.uColorScheme.value = schemeId;
@@ -1017,15 +1049,11 @@
                 colorSchemeOptions.classList.add('hidden');
             });
         });
-       
-        // Set initial state
+
         selectedSwatch.style.background = colorSchemes[0].gradient;
         selectedName.textContent = colorSchemes[0].name;
 
-        colorSchemeButton.addEventListener('click', () => {
-            colorSchemeOptions.classList.toggle('hidden');
-        });
-       
+        colorSchemeButton.addEventListener('click', () => colorSchemeOptions.classList.toggle('hidden'));
         document.addEventListener('click', (e) => {
             if (!colorSchemeButton.contains(e.target) && !colorSchemeOptions.contains(e.target)) {
                  colorSchemeOptions.classList.add('hidden');
@@ -1077,11 +1105,9 @@
             displayMaterial3D.uniforms.uDisplacementScale.value = val;
             displacementValue.textContent = val.toFixed(2);
         });
-
         gridSizeSlider.addEventListener('input', (e) => {
             gridSizeValue.textContent = e.target.value;
         });
-
         gridSizeSlider.addEventListener('change', (e) => {
             const size = parseInt(e.target.value);
             updateGridSize(size);
@@ -1099,11 +1125,8 @@
                 break;
             }
         }
-       
         updatePresetFormulaDisplay(currentParams.f, currentParams.k);
-
         if (!matchFound) {
-            // If no preset matches, show "Custom"
             if (!presetSelect.querySelector('option[value="Custom"]')) {
                 const customOption = document.createElement('option');
                 customOption.value = 'Custom';
@@ -1112,7 +1135,6 @@
             }
             presetSelect.value = 'Custom';
         } else {
-            // If a preset matches, remove "Custom" if it exists
             const customOption = presetSelect.querySelector('option[value="Custom"]');
             if (customOption) {
                 customOption.remove();
@@ -1120,31 +1142,36 @@
         }
     }
 
-    function onWindowResize() { 
-        // The simulation grid size is now fixed and controlled by the user.
-        // We only need to update the renderer and camera.
-        renderer.setSize(window.innerWidth, window.innerHeight); 
-       
-        mainCamera3D.aspect = window.innerWidth / window.innerHeight;
+    function onWindowResize() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const aspect = width / height;
+
+        renderer.setSize(width, height);
+
+        // --- 3D Camera Update (Perspective) ---
+        mainCamera3D.aspect = aspect;
         mainCamera3D.updateProjectionMatrix();
+
+        // --- 2D Camera Update (Orthographic) ---
+        mainCamera.left = -1;
+        mainCamera.right = 1;
+        mainCamera.top = 1 / aspect;
+        mainCamera.bottom = -1 / aspect;
+        mainCamera.updateProjectionMatrix();
     }
+
 
     // --- Animation Loop ---
     function animate() { 
         const delta = clock.getDelta();
-       
+
         if (!isPaused) {
-            // --- Simulation Step ---
-            for (let i = 0; i < 16; i++) { // Run multiple steps per frame for speed
-                // Set input texture
+            for (let i = 0; i < 16; i++) {
                 simMaterial.uniforms.uTexture.value = readTarget.texture;
                 simMaterial.uniforms.uTime.value += delta;
-               
-                // Render simulation to the write buffer
                 renderer.setRenderTarget(writeTarget);
                 renderer.render(simScene, simCamera);
-               
-                // Ping-pong
                 swapTargets();
             }
         }
@@ -1155,15 +1182,12 @@
             simMaterial.uniforms.uPointer.value.copy(pointer);
         }
 
-
-        // --- Display Step ---
         const activeMaterial = is3DMode ? displayMaterial3D : displayMaterial;
         activeMaterial.uniforms.uTexture.value = readTarget.texture;
         activeMaterial.uniforms.uTime.value = clock.getElapsedTime();
-       
-        // Render the main scene to the screen
+
         renderer.setRenderTarget(null);
-        
+
         if (is3DMode) {
             controls.update();
             renderer.render(mainScene, mainCamera3D);
@@ -1171,8 +1195,7 @@
             renderer.render(mainScene, mainCamera);
         }
     }
-   
-    // Wait for all resources to load, then initialize and perform an initial reset.
+
     window.onload = () => {
         init();
         document.getElementById('reset-button').click();
