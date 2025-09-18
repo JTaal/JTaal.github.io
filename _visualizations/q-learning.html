@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Q-Learning Gridworld</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .ui-panel {
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        #info-panel {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            max-width: 380px;
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            overflow: hidden;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: calc(100vh - 180px); 
+            cursor: default;
+            overflow-y: auto;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        .formula-placeholder {
+            font-family: 'Georgia', serif;
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+            color: #d1d5db;
+            border: 1px solid #374151;
+            text-align: center;
+        }
+        #main-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        #gridworld-canvas {
+            background-color: #111827;
+            cursor: grab;
+            display: block;
+        }
+        #gridworld-canvas:active { cursor: grabbing; }
+
+        #controls-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .control-group, .button-group { display: flex; align-items: center; gap: 0.5rem; }
+        .control-group { flex-direction: column; min-width: 140px; }
+        
+        .control-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white; padding: 8px 16px; border-radius: 8px;
+            cursor: pointer; transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+        }
+        .control-button:hover, .toggle-button:hover { background-color: #4338ca; transform: translateY(-2px); }
+        .control-button.active, .toggle-button.active { background-color: #4f46e5; }
+        
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; background: #4b5563; border-radius: 2px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: #818cf8; cursor: pointer; border-radius: 50%; }
+
+        .brush-buttons { display: flex; gap: 0.5rem; background: #1f2937; padding: 0.5rem; border-radius: 8px; border: 1px solid #4b5563; }
+        .brush-button { width: 32px; height: 32px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+        .brush-button.active { border-color: #818cf8; transform: scale(1.1); box-shadow: 0 0 10px #818cf8; }
+        .brush-wall { background-color: #4b5563; } .brush-start { background-color: #3b82f6; } .brush-goal { background-color: #22c55e; } .brush-pit { background-color: #ef4444; } .brush-erase { background-color: #111827; border: 1px dashed #4b5563; }
+
+        #settings-button { position: absolute; top: 80px; right: 20px; z-index: 11; background-color: rgba(55, 65, 81, 0.8); border: 1px solid rgba(75, 85, 99, 0.9); color: white; padding: 10px; border-radius: 50%; cursor: pointer; transition: all 0.3s; }
+        #settings-button:hover { background-color: #4338ca; transform: translateY(-2px) rotate(45deg); }
+        
+        #settings-panel { top: 80px; right: 0; width: 340px; max-width: 90vw; border-radius: 12px 0 0 12px; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); padding: 1.25rem; max-height: calc(100vh - 100px); overflow-y: auto; z-index: 12; }
+        #settings-panel.open { transform: translateX(0); }
+        #close-settings { font-size: 2.5rem; line-height: 1; padding: 0; background: none; border: none; cursor: pointer; }
+        .hidden { display: none; }
+        
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #settings-panel { top: 70px; width: 300px; }
+            #controls-panel { flex-direction: column; gap: 0.75rem; padding-bottom: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Interactive Q-Learning Gridworld</h1>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 class="text-xl font-bold text-indigo-400">About Q-Learning</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div class="pt-4 space-y-3 text-gray-300">
+            <p>The agent's goal is to learn the best action for each state, maximizing its cumulative reward. It learns using the Bellman equation to update its Q-values:</p>
+            <div class="formula-placeholder">
+                Q(s,a) &larr; Q(s,a) + &alpha;[R + &gamma;max<sub>a'</sub>Q(s',a') - Q(s,a)]
+            </div>
+            <ul class="list-disc list-inside space-y-1 text-sm">
+                <li>The arrows show the agent's preference (Q-value) for each action.</li>
+                <li>Use the brushes and settings to create custom challenges!</li>
+                 <li>Use the mouse wheel to zoom and drag to pan the view.</li>
+            </ul>
+        </div>
+    </div>
+
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div class="space-y-6">
+            <div class="control-group text-left w-full gap-2">
+                <label class="text-sm font-medium self-start w-full">Show Q-Values</label>
+                <button id="q-values-toggle" class="toggle-button w-full">On</button>
+            </div>
+            <div class="control-group text-left w-full gap-2">
+                 <label for="grid-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Grid Size:</span> <span id="grid-size-value">15</span>
+                </label>
+                <input id="grid-size-slider" type="range" min="8" max="40" step="1" value="15" class="w-full">
+            </div>
+        </div>
+    </div>
+
+    <main id="main-content">
+        <canvas id="gridworld-canvas"></canvas>
+    </main>
+
+    <div id="controls-panel" class="ui-panel">
+        <div class="control-group"><label class="text-sm font-medium mb-1">Controls</label><div class="button-group"><button id="start-stop-btn" class="control-button">Start</button><button id="reset-btn" class="control-button">Reset</button></div></div>
+        <div class="control-group"><label class="text-sm font-medium">Editor Brush</label><div class="brush-buttons"><button class="brush-button brush-wall active" data-brush="wall" title="Wall"></button><button class="brush-button brush-start" data-brush="start" title="Start"></button><button class="brush-button brush-goal" data-brush="goal" title="Goal"></button><button class="brush-button brush-pit" data-brush="pit" title="Pit"></button><button class="brush-button brush-erase" data-brush="erase" title="Erase"></button></div></div>
+        <div class="control-group"><label for="speed-slider" class="text-sm font-medium w-full text-center">Speed: <span id="speed-value">10</span></label><input id="speed-slider" type="range" min="1" max="60" value="10" class="w-full"></div>
+        <div class="control-group"><label for="alpha-slider" class="text-sm font-medium w-full text-center">Learning Rate (α): <span id="alpha-value">0.1</span></label><input id="alpha-slider" type="range" min="0.01" max="1" step="0.01" value="0.1" class="w-full"></div>
+        <div class="control-group"><label for="gamma-slider" class="text-sm font-medium w-full text-center">Discount (γ): <span id="gamma-value">0.9</span></label><input id="gamma-slider" type="range" min="0.01" max="1" step="0.01" value="0.9" class="w-full"></div>
+        <div class="control-group"><label for="epsilon-slider" class="text-sm font-medium w-full text-center">Exploration (ε): <span id="epsilon-value">0.2</span></label><input id="epsilon-slider" type="range" min="0.01" max="1" step="0.01" value="0.2" class="w-full"></div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- DOM Elements ---
+        const canvas = document.getElementById('gridworld-canvas');
+        const ctx = canvas.getContext('2d');
+        const startStopBtn = document.getElementById('start-stop-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        // ... (slider elements remain the same)
+        const speedSlider = document.getElementById('speed-slider'), alphaSlider = document.getElementById('alpha-slider'), gammaSlider = document.getElementById('gamma-slider'), epsilonSlider = document.getElementById('epsilon-slider');
+        const speedValue = document.getElementById('speed-value'), alphaValue = document.getElementById('alpha-value'), gammaValue = document.getElementById('gamma-value'), epsilonValue = document.getElementById('epsilon-value');
+        // --- Settings Panel ---
+        const settingsPanel = document.getElementById('settings-panel'), settingsButton = document.getElementById('settings-button'), closeSettingsButton = document.getElementById('close-settings');
+        const qValuesToggle = document.getElementById('q-values-toggle');
+        const gridSizeSlider = document.getElementById('grid-size-slider'), gridSizeValue = document.getElementById('grid-size-value');
+        
+        // --- Grid & Simulation Configuration ---
+        let GRID_SIZE = 15;
+        let cellWidth = 40, cellHeight = 40;
+        const actions = ['up', 'down', 'left', 'right'];
+        const colors = { gridLine: '#374151', text: '#e5e7eb', agent: '#3b82f6', goal: '#22c55e', pit: '#ef4444', wall: '#4b5563', qArrow: '#fde047' };
+
+        // --- State Variables ---
+        let grid = [], qTable = {};
+        let agentPos = { x: 1, y: 1 }, startPos = { x: 1, y: 1 };
+        let isRunning = false, animationFrameId, stepsPerFrame = 10;
+        
+        // --- Q-Learning Parameters ---
+        let alpha = 0.1, gamma = 0.9, epsilon = 0.2;
+
+        // --- View & Editor State ---
+        let currentBrush = 'wall', isPainting = false, isPanning = false;
+        let lastPanPos = { x: 0, y: 0 };
+        let viewTransform = { x: 0, y: 0, scale: 1 };
+        let showQValues = true;
+
+        // --- Classes & Core Logic ---
+        class QLearningAgent {
+            reset() {
+                qTable = {};
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        qTable[`${x},${y}`] = { up: 0, down: 0, left: 0, right: 0 };
+                    }
+                }
+            }
+            chooseAction(state) {
+                if (Math.random() < epsilon) { return actions[Math.floor(Math.random() * actions.length)]; } 
+                else {
+                    const qValues = qTable[state];
+                    let bestAction = 'up', maxQ = -Infinity;
+                    for (const action in qValues) {
+                        if (qValues[action] > maxQ) { maxQ = qValues[action]; bestAction = action; }
+                    }
+                    return bestAction;
+                }
+            }
+            updateQValue(state, action, reward, nextState) {
+                const oldQ = qTable[state][action];
+                const maxNextQ = Math.max(...Object.values(qTable[nextState]));
+                qTable[state][action] = oldQ + alpha * (reward + gamma * maxNextQ - oldQ);
+            }
+        }
+        const agent = new QLearningAgent();
+
+        function getNextState(x, y, action) {
+            let nextX = x, nextY = y;
+            if (action === 'up') nextY--; else if (action === 'down') nextY++;
+            else if (action === 'left') nextX--; else if (action === 'right') nextX++;
+            if (nextX < 0 || nextX >= GRID_SIZE || nextY < 0 || nextY >= GRID_SIZE || grid[nextY][nextX] === 'wall') { return { x, y }; }
+            return { x: nextX, y: nextY };
+        }
+        function getReward(x, y) {
+            const cell = grid[y][x];
+            if (cell === 'goal') return 10;
+            if (cell === 'pit') return -10;
+            return -0.1;
+        }
+        
+        // --- Simulation Loop ---
+        function simulationStep() {
+            const state = `${agentPos.x},${agentPos.y}`, action = agent.chooseAction(state);
+            const { x: nextX, y: nextY } = getNextState(agentPos.x, agentPos.y, action);
+            const nextState = `${nextX},${nextY}`, reward = getReward(nextX, nextY);
+            agent.updateQValue(state, action, reward, nextState);
+            agentPos = { x: nextX, y: nextY };
+            if (grid[nextY][nextX] === 'goal' || grid[nextY][nextX] === 'pit') { agentPos = { ...startPos }; }
+        }
+        function gameLoop() {
+            if (!isRunning) return;
+            for (let i = 0; i < stepsPerFrame; i++) { simulationStep(); }
+            draw();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- Drawing & View Functions ---
+        function screenToWorld(x, y) {
+            return {
+                x: (x - viewTransform.x) / viewTransform.scale,
+                y: (y - viewTransform.y) / viewTransform.scale
+            };
+        }
+        function drawGrid() { /* ... same as before ... */ 
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cellType = grid[y][x];
+                    let color = 'transparent';
+                    if (cellType === 'wall') color = colors.wall;
+                    else if (cellType === 'goal') color = colors.goal;
+                    else if (cellType === 'pit') color = colors.pit;
+                    
+                    if (cellType === 'start') {
+                         ctx.fillStyle = colors.agent;
+                         ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                    } else if (color !== 'transparent') {
+                        ctx.fillStyle = color;
+                        ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                    }
+                    ctx.strokeStyle = colors.gridLine;
+                    ctx.strokeRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                }
+            }
+        }
+        function drawAgent() { /* ... same as before ... */ 
+            ctx.fillStyle = colors.agent;
+            ctx.beginPath();
+            ctx.arc(agentPos.x * cellWidth + cellWidth / 2, agentPos.y * cellHeight + cellHeight / 2, Math.min(cellWidth, cellHeight) * 0.35, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        function drawQValues() { /* ... same as before, no changes needed ... */ 
+            let maxQ = -Infinity, minQ = Infinity;
+            Object.values(qTable).forEach(actions => { Object.values(actions).forEach(q => { if(q > maxQ) maxQ = q; if(q < minQ) minQ = q; }); });
+            const range = maxQ - minQ;
+            if (range < 0.001) return;
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const qValues = qTable[`${x},${y}`];
+                    const centerX = x * cellWidth + cellWidth / 2, centerY = y * cellHeight + cellHeight / 2;
+                    Object.entries(qValues).forEach(([action, q]) => {
+                        const normalizedQ = (q - minQ) / range;
+                        if (normalizedQ > 0.1) {
+                            ctx.fillStyle = `rgba(253, 224, 71, ${normalizedQ})`;
+                            ctx.beginPath();
+                            switch(action) {
+                                case 'up': ctx.moveTo(centerX, centerY - cellHeight*0.4); ctx.lineTo(centerX - cellWidth*0.15, centerY); ctx.lineTo(centerX + cellWidth*0.15, centerY); break;
+                                case 'down': ctx.moveTo(centerX, centerY + cellHeight*0.4); ctx.lineTo(centerX - cellWidth*0.15, centerY); ctx.lineTo(centerX + cellWidth*0.15, centerY); break;
+                                case 'left': ctx.moveTo(centerX - cellWidth*0.4, centerY); ctx.lineTo(centerX, centerY - cellHeight*0.15); ctx.lineTo(centerX, centerY + cellHeight*0.15); break;
+                                case 'right': ctx.moveTo(centerX + cellWidth*0.4, centerY); ctx.lineTo(centerX, centerY - cellHeight*0.15); ctx.lineTo(centerX, centerY + cellHeight*0.15); break;
+                            }
+                            ctx.closePath(); ctx.fill();
+                        }
+                    });
+                }
+            }
+        }
+        function draw() {
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.translate(viewTransform.x, viewTransform.y);
+            ctx.scale(viewTransform.scale, viewTransform.scale);
+            drawGrid();
+            if (showQValues) drawQValues();
+            drawAgent();
+            ctx.restore();
+        }
+
+        // --- Initialization and UI ---
+        function reinitialize() {
+            initializeGrid();
+            resetSimulation();
+        }
+        function initializeGrid() {
+            grid = [];
+            for (let y = 0; y < GRID_SIZE; y++) {
+                const row = [];
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    row.push( (y === 0 || y === GRID_SIZE - 1 || x === 0 || x === GRID_SIZE - 1) ? 'wall' : null);
+                }
+                grid.push(row);
+            }
+            startPos = { x: 1, y: 1 };
+            grid[startPos.y][startPos.x] = 'start';
+            grid[GRID_SIZE - 2][GRID_SIZE - 2] = 'goal';
+            agentPos = { ...startPos };
+        }
+        function resetSimulation() {
+            isRunning = false;
+            startStopBtn.textContent = 'Start';
+            startStopBtn.classList.remove('active');
+            cancelAnimationFrame(animationFrameId);
+            agent.reset();
+            agentPos = { ...startPos };
+            draw();
+        }
+        function setupUI() {
+            startStopBtn.addEventListener('click', () => {
+                isRunning = !isRunning;
+                if (isRunning) { startStopBtn.textContent = 'Stop'; startStopBtn.classList.add('active'); gameLoop(); } 
+                else { startStopBtn.textContent = 'Start'; startStopBtn.classList.remove('active'); cancelAnimationFrame(animationFrameId); }
+            });
+            resetBtn.addEventListener('click', reinitialize);
+            speedSlider.addEventListener('input', e => { stepsPerFrame = parseInt(e.target.value); speedValue.textContent = stepsPerFrame; });
+            alphaSlider.addEventListener('input', e => { alpha = parseFloat(e.target.value); alphaValue.textContent = alpha.toFixed(2); });
+            gammaSlider.addEventListener('input', e => { gamma = parseFloat(e.target.value); gammaValue.textContent = gamma.toFixed(2); });
+            epsilonSlider.addEventListener('input', e => { epsilon = parseFloat(e.target.value); epsilonValue.textContent = epsilon.toFixed(2); });
+            document.querySelectorAll('.brush-button').forEach(button => {
+                button.addEventListener('click', () => { document.querySelectorAll('.brush-button').forEach(btn => btn.classList.remove('active')); button.classList.add('active'); currentBrush = button.dataset.brush; });
+            });
+            document.getElementById('info-panel').addEventListener('click', (e) => { if (!e.target.closest('a')) e.currentTarget.classList.toggle('expanded'); });
+            
+            // Settings Panel UI
+            settingsButton.addEventListener('click', () => settingsPanel.classList.remove('hidden', 'open') || requestAnimationFrame(() => settingsPanel.classList.add('open')));
+            closeSettingsButton.addEventListener('click', () => settingsPanel.classList.remove('open'));
+            qValuesToggle.addEventListener('click', (e) => {
+                showQValues = !showQValues; e.target.textContent = showQValues ? 'On' : 'Off'; e.target.classList.toggle('active', showQValues); if(!isRunning) draw();
+            });
+            qValuesToggle.classList.toggle('active', showQValues);
+            gridSizeSlider.addEventListener('input', e => gridSizeValue.textContent = e.target.value);
+            gridSizeSlider.addEventListener('change', e => { GRID_SIZE = parseInt(e.target.value, 10); reinitialize(); onResize(); });
+        }
+        
+        // --- Canvas Editor & View Control Logic ---
+        function handleCanvasPaint(event) {
+            const worldPos = screenToWorld(event.offsetX, event.offsetY);
+            const x = Math.floor(worldPos.x / cellWidth), y = Math.floor(worldPos.y / cellHeight);
+            if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE || grid[y][x] === 'start' || grid[y][x] === 'goal') return;
+            if (currentBrush === 'start') { grid[startPos.y][startPos.x] = null; startPos = {x, y}; agentPos = {x,y}; grid[y][x] = 'start'; }
+            else if (currentBrush === 'goal') { grid.forEach(r => r.forEach((c, i) => { if(c === 'goal') r[i] = null; })); grid[y][x] = 'goal'; }
+            else { grid[y][x] = currentBrush === 'erase' ? null : currentBrush; }
+            if (!isRunning) draw();
+        }
+        function setupCanvasControls() {
+            canvas.addEventListener('mousedown', e => {
+                if (e.button === 0) { isPainting = true; handleCanvasPaint(e); } 
+                else if (e.button === 1 || e.button === 2 || e.ctrlKey) { isPanning = true; lastPanPos = { x: e.offsetX, y: e.offsetY }; e.preventDefault(); }
+            });
+            canvas.addEventListener('mousemove', e => {
+                if(isPainting) handleCanvasPaint(e);
+                if(isPanning) {
+                    viewTransform.x += e.offsetX - lastPanPos.x; viewTransform.y += e.offsetY - lastPanPos.y;
+                    lastPanPos = { x: e.offsetX, y: e.offsetY };
+                    draw();
+                }
+            });
+            canvas.addEventListener('mouseup', (e) => { isPainting = false; isPanning = false; });
+            canvas.addEventListener('mouseleave', () => { isPainting = false; isPanning = false; });
+            canvas.addEventListener('wheel', e => {
+                e.preventDefault();
+                const zoomFactor = 1.1;
+                const worldPos = screenToWorld(e.offsetX, e.offsetY);
+                const newScale = e.deltaY < 0 ? viewTransform.scale * zoomFactor : viewTransform.scale / zoomFactor;
+                viewTransform.x = e.offsetX - worldPos.x * newScale;
+                viewTransform.y = e.offsetY - worldPos.y * newScale;
+                viewTransform.scale = newScale;
+                draw();
+            });
+             canvas.addEventListener('contextmenu', e => e.preventDefault());
+        }
+
+        // --- Main ---
+        function onResize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            cellWidth = canvas.width / GRID_SIZE;
+            cellHeight = canvas.height / GRID_SIZE;
+            draw();
+        }
+        function init() {
+            initializeGrid();
+            setupUI();
+            setupCanvasControls();
+            resetSimulation();
+            window.addEventListener('resize', onResize);
+            onResize();
+        }
+        init();
+    });
+</script>
+</body>
+</html>
+
+

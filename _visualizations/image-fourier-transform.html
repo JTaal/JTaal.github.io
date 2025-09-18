@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Fourier Transform Interactive Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712;
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh; 
+            cursor: default;
+            overflow-y: auto;
+        }
+        #frequency-panel {
+            top: 80px;
+            right: 20px;
+            max-width: 300px;
+            width: 100%;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #frequency-panel.expanded {
+            max-height: calc(100vh - 100px);
+            cursor: default;
+            overflow-y: auto;
+        }
+        #frequency-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        #frequency-panel::-webkit-scrollbar-track {
+            background: rgba(17, 24, 39, 0.1);
+        }
+        #frequency-panel::-webkit-scrollbar-thumb {
+            background-color: #4f46e5;
+            border-radius: 10px;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        .freq-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            padding: 0.5rem 0.25rem;
+            border-bottom: 1px solid #374151;
+            font-family: monospace;
+        }
+        .freq-item:last-child {
+            border-bottom: none;
+        }
+        #toggle-icon, #freq-toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon,
+        #frequency-panel.expanded #freq-toggle-icon { transform: rotate(180deg); }
+        
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        
+        .action-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .action-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .action-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        .canvas-container {
+            border: 2px solid #374151;
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #111827;
+        }
+        canvas {
+            display: block;
+            background-color: #000;
+            cursor: crosshair;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen">
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">2D Fourier Transform Interactive Demo</h1>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 class="text-xl font-bold text-indigo-400">What is a 2D Fourier Transform?</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3 hidden">
+            <p class="text-gray-300">
+                The Fourier Transform is a mathematical tool that breaks down a signal into its constituent sine and cosine waves of different frequencies. For a 2D signal like an image, it reveals the image's frequency components.
+            </p>
+            <ul class="list-disc list-inside text-gray-400 space-y-2">
+                <li><strong class="text-indigo-300">Input Canvas (Spatial Domain):</strong> This is the image itself. Draw any shape you like!</li>
+                <li><strong class="text-indigo-300">Output Canvas (Frequency Domain):</strong> This shows the result of the transform.
+                    <ul class="list-disc list-inside ml-4 mt-1 text-gray-500">
+                        <li>The center of the canvas represents the lowest frequencies (overall brightness).</li>
+                        <li>Points further from the center represent higher frequencies (fine details and sharp edges).</li>
+                        <li>Bright spots indicate dominant frequencies in the input image. A horizontal line in the input will create a vertical line of frequencies in the output, and vice versa.</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div id="frequency-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 class="text-xl font-bold text-indigo-400">Top Frequencies</h2>
+            <div id="freq-toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="frequency-list-container" class="pt-4 space-y-3 hidden">
+            <p class="text-xs text-gray-400">Showing the most dominant frequencies (u, v) and their magnitudes.</p>
+            <div id="frequency-list" class="mt-2"></div>
+        </div>
+    </div>
+
+    <main class="flex flex-col lg:flex-row items-center justify-center gap-8 p-4 mt-20">
+        <div class="flex flex-col items-center gap-4">
+            <h2 class="text-lg font-semibold text-gray-300">Input (Spatial Domain)</h2>
+            <div class="canvas-container shadow-2xl">
+                <canvas id="input-canvas" width="256" height="256"></canvas>
+            </div>
+        </div>
+        <div class="flex flex-col items-center gap-4">
+            <h2 class="text-lg font-semibold text-gray-300">Output (Frequency Domain)</h2>
+            <div id="output-container" class="canvas-container shadow-2xl flex items-center justify-center w-[256px] h-[256px]">
+                <canvas id="output-canvas" width="256" height="256"></canvas>
+                <div id="loader" class="loader hidden"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="controls-panel" class="fixed bottom-0 left-0 right-0 ui-panel rounded-t-lg flex flex-wrap justify-center items-center gap-4">
+        <div class="flex items-center gap-2">
+            <label for="brush-size" class="text-sm font-medium">Brush Size:</label>
+            <input type="range" id="brush-size" min="1" max="50" value="10" class="w-32">
+        </div>
+        <button id="btn-square" class="action-button">Draw Square</button>
+        <button id="btn-circle" class="action-button">Draw Circle</button>
+        <button id="btn-line" class="action-button">Draw Line</button>
+        <button id="btn-upload" class="action-button">Upload Image</button>
+        <input type="file" id="image-upload" class="hidden" accept="image/*">
+        <button id="btn-clear" class="action-button bg-red-800/80 hover:bg-red-700">Clear</button>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const inputCanvas = document.getElementById('input-canvas');
+    const outputCanvas = document.getElementById('output-canvas');
+    const inputCtx = inputCanvas.getContext('2d');
+    const outputCtx = outputCanvas.getContext('2d');
+    const loader = document.getElementById('loader');
+
+    const size = inputCanvas.width;
+    let isDrawing = false;
+    let brushSize = 10;
+    let dftWorker = null;
+
+    // --- Worker Setup ---
+    function setupWorker() {
+        const workerCode = `
+            self.onmessage = function(e) {
+                const { imageData, size } = e.data;
+                const grayscale = new Float32Array(size * size);
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    grayscale[i / 4] = imageData.data[i] / 255.0; // Use red channel for grayscale
+                }
+                
+                // 2D DFT calculation
+                const fourier = dft(grayscale, size);
+                self.postMessage(fourier);
+            };
+
+            function dft(data, width) {
+                const size = width * width;
+                const fourier = Array.from({ length: size }, () => ({ re: 0, im: 0 }));
+
+                for (let v = 0; v < width; v++) {
+                    for (let u = 0; u < width; u++) {
+                        let sum = { re: 0, im: 0 };
+                        for (let y = 0; y < width; y++) {
+                            for (let x = 0; x < width; x++) {
+                                const val = data[y * width + x];
+                                const angle = -2 * Math.PI * ((u * x) / width + (v * y) / width);
+                                sum.re += val * Math.cos(angle);
+                                sum.im += val * Math.sin(angle);
+                            }
+                        }
+                        fourier[v * width + u] = sum;
+                    }
+                }
+                return fourier;
+            }
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        return new Worker(URL.createObjectURL(blob));
+    }
+
+    // --- Core DFT & Rendering Logic ---
+    function processAndUpdate() {
+        if (!dftWorker) {
+            dftWorker = setupWorker();
+            dftWorker.onmessage = (e) => {
+                const fourier = e.data;
+                renderDFT(fourier);
+                updateFrequencyList(fourier); // New function call
+                loader.classList.add('hidden');
+                outputCanvas.classList.remove('hidden');
+            };
+        }
+
+        outputCanvas.classList.add('hidden');
+        loader.classList.remove('hidden');
+
+        const imageData = inputCtx.getImageData(0, 0, size, size);
+        dftWorker.postMessage({ imageData, size });
+    }
+
+    function renderDFT(fourier) {
+        const magnitudes = new Float32Array(size * size);
+        let maxMag = 0;
+
+        for (let i = 0; i < fourier.length; i++) {
+            const mag = Math.sqrt(fourier[i].re * fourier[i].re + fourier[i].im * fourier[i].im);
+            magnitudes[i] = Math.log(1 + mag); // Log scale for better visualization
+            if (magnitudes[i] > maxMag) {
+                maxMag = magnitudes[i];
+            }
+        }
+
+        const imageData = outputCtx.createImageData(size, size);
+        const halfSize = size / 2;
+
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                // Center the low frequencies (DC component)
+                const shiftedX = (x + halfSize) % size;
+                const shiftedY = (y + halfSize) % size;
+                const idx = shiftedY * size + shiftedX;
+                
+                const value = (magnitudes[idx] / maxMag) * 255;
+                const pixelIndex = (y * size + x) * 4;
+
+                imageData.data[pixelIndex] = value;     // R
+                imageData.data[pixelIndex + 1] = value; // G
+                imageData.data[pixelIndex + 2] = value; // B
+                imageData.data[pixelIndex + 3] = 255;   // A
+            }
+        }
+        outputCtx.putImageData(imageData, 0, 0);
+    }
+    
+    // --- New Function to Update Frequency List ---
+    function updateFrequencyList(fourier) {
+        const frequencyList = document.getElementById('frequency-list');
+        frequencyList.innerHTML = ''; // Clear previous list
+
+        const halfSize = size / 2;
+        const magnitudes = fourier.map((val, index) => {
+            let u = index % size;
+            let v = Math.floor(index / size);
+            
+            // Shift coordinates to be relative to center
+            let u_shifted = u >= halfSize ? u - size : u;
+            let v_shifted = v >= halfSize ? v - size : v;
+
+            return {
+                u: u_shifted,
+                v: v_shifted,
+                magnitude: Math.sqrt(val.re * val.re + val.im * val.im)
+            };
+        });
+
+        magnitudes.sort((a, b) => b.magnitude - a.magnitude);
+
+        const topN = 20;
+        for (let i = 0; i < topN && i < magnitudes.length; i++) {
+            const freq = magnitudes[i];
+            const item = document.createElement('div');
+            item.className = 'freq-item';
+            
+            const coords = `(${String(freq.u).padStart(4, ' ')}, ${String(freq.v).padStart(4, ' ')})`;
+            const mag = freq.magnitude.toFixed(2).padStart(8, ' ');
+
+            item.innerHTML = `<span class="text-gray-300">${coords}</span><span class="text-indigo-300">${mag}</span>`;
+            frequencyList.appendChild(item);
+        }
+    }
+
+
+    // --- Drawing Logic ---
+    function getMousePos(canvas, evt) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: evt.clientX - rect.left,
+            y: evt.clientY - rect.top
+        };
+    }
+
+    function startDrawing(e) {
+        isDrawing = true;
+        draw(e);
+    }
+
+    function stopDrawing() {
+        if (!isDrawing) return;
+        isDrawing = false;
+        processAndUpdate();
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        const pos = getMousePos(inputCanvas, e);
+        inputCtx.fillStyle = 'white';
+        inputCtx.beginPath();
+        inputCtx.arc(pos.x, pos.y, brushSize / 2, 0, Math.PI * 2);
+        inputCtx.fill();
+    }
+    
+    // --- UI & Event Listeners ---
+    function clearCanvas() {
+        inputCtx.fillStyle = 'black';
+        inputCtx.fillRect(0, 0, size, size);
+        outputCtx.fillStyle = 'black';
+        outputCtx.fillRect(0, 0, size, size);
+        processAndUpdate();
+    }
+
+    inputCanvas.addEventListener('mousedown', startDrawing);
+    inputCanvas.addEventListener('mouseup', stopDrawing);
+    inputCanvas.addEventListener('mouseout', stopDrawing);
+    inputCanvas.addEventListener('mousemove', draw);
+    
+    document.getElementById('brush-size').addEventListener('input', (e) => {
+        brushSize = e.target.value;
+    });
+    
+    document.getElementById('btn-clear').addEventListener('click', clearCanvas);
+
+    document.getElementById('btn-square').addEventListener('click', () => {
+        clearCanvas();
+        inputCtx.fillStyle = 'white';
+        const squareSize = size / 2;
+        inputCtx.fillRect((size - squareSize) / 2, (size - squareSize) / 2, squareSize, squareSize);
+        processAndUpdate();
+    });
+
+    document.getElementById('btn-circle').addEventListener('click', () => {
+        clearCanvas();
+        inputCtx.fillStyle = 'white';
+        inputCtx.beginPath();
+        inputCtx.arc(size / 2, size / 2, size / 4, 0, 2 * Math.PI);
+        inputCtx.fill();
+        processAndUpdate();
+    });
+
+    document.getElementById('btn-line').addEventListener('click', () => {
+        clearCanvas();
+        inputCtx.fillStyle = 'white';
+        inputCtx.fillRect(size/2 - 2, size/4, 4, size/2);
+        processAndUpdate();
+    });
+
+    // --- Image Upload Logic ---
+    const imageUploadInput = document.getElementById('image-upload');
+    const uploadButton = document.getElementById('btn-upload');
+
+    uploadButton.addEventListener('click', () => {
+        imageUploadInput.click();
+    });
+
+    imageUploadInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => {
+            inputCtx.fillStyle = 'black';
+            inputCtx.fillRect(0, 0, size, size);
+            inputCtx.drawImage(img, 0, 0, size, size);
+            URL.revokeObjectURL(url);
+            processAndUpdate();
+        };
+
+        img.src = url;
+        e.target.value = null; // Reset input to allow re-uploading the same file
+    });
+    
+    // Info panel toggle
+    const infoPanel = document.getElementById('info-panel');
+    const infoContent = document.getElementById('info-content');
+    infoPanel.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        const isExpanded = infoPanel.classList.toggle('expanded');
+        if (isExpanded) {
+            infoContent.classList.remove('hidden');
+        } else {
+             infoContent.classList.add('hidden');
+        }
+    });
+
+    // Frequency panel toggle
+    const freqPanel = document.getElementById('frequency-panel');
+    const freqContent = document.getElementById('frequency-list-container');
+    freqPanel.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        const isExpanded = freqPanel.classList.toggle('expanded');
+        if (isExpanded) {
+            freqContent.classList.remove('hidden');
+        } else {
+            freqContent.classList.add('hidden');
+        }
+    });
+
+    // Initial state
+    clearCanvas();
+});
+</script>
+</body>
+</html>
+
+
