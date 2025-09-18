@@ -8,6 +8,11 @@
   thumbnail: /assets/images/blackhole.png
   visualization_url: /visualizations/blackhole.html
 
+- title: Cellular Automata Tumor
+  author: Jasper Taal
+  thumbnail: /assets/images/cellular-automata-tumor.png
+  visualization_url: /visualizations/cellular-automata-tumor.html
+
 - title: Chaos Relativity
   author: Jasper Taal
   thumbnail: /assets/images/chaos-relativity.png
@@ -33,6 +38,11 @@
   thumbnail: /assets/images/deconvolution.png
   visualization_url: /visualizations/deconvolution.html
 
+- title: Deep Q Network_Breakout
+  author: Jasper Taal
+  thumbnail: /assets/images/deep-q-network_breakout.png
+  visualization_url: /visualizations/deep-q-network_breakout.html
+
 - title: Diffusion Modeling
   author: Jasper Taal
   thumbnail: /assets/images/diffusion-modeling.png
@@ -57,6 +67,16 @@
   author: Jasper Taal
   thumbnail: /assets/images/evolutionary-algorithms.png
   visualization_url: /visualizations/evolutionary-algorithms.html
+
+- title: Image Fourier Transform
+  author: Jasper Taal
+  thumbnail: /assets/images/image-fourier-transform.png
+  visualization_url: /visualizations/image-fourier-transform.html
+
+- title: Kernel_Convolution
+  author: Jasper Taal
+  thumbnail: /assets/images/kernel_convolution.png
+  visualization_url: /visualizations/kernel_convolution.html
 
 - title: Linear Regression
   author: Jasper Taal
@@ -98,6 +118,11 @@
   thumbnail: /assets/images/neural-networks.png
   visualization_url: /visualizations/neural-networks.html
 
+- title: Neuron Stimulation
+  author: Jasper Taal
+  thumbnail: /assets/images/neuron-stimulation.png
+  visualization_url: /visualizations/neuron-stimulation.html
+
 - title: Pareto Front
   author: Jasper Taal
   thumbnail: /assets/images/pareto-front.png
@@ -107,6 +132,11 @@
   author: Jasper Taal
   thumbnail: /assets/images/pipe-harmonics.png
   visualization_url: /visualizations/pipe-harmonics.html
+
+- title: Q Learning
+  author: Jasper Taal
+  thumbnail: /assets/images/q-learning.png
+  visualization_url: /visualizations/q-learning.html
 
 - title: Quantum
   author: Jasper Taal
