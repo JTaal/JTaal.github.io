@@ -38,10 +38,10 @@
   thumbnail: /assets/images/deconvolution.png
   visualization_url: /visualizations/deconvolution.html
 
-- title: Deep Q Network_Breakout
+- title: Deep Q Network Breakout
   author: Jasper Taal
-  thumbnail: /assets/images/deep-q-network_breakout.png
-  visualization_url: /visualizations/deep-q-network_breakout.html
+  thumbnail: /assets/images/deep-q-network-breakout.png
+  visualization_url: /visualizations/deep-q-network-breakout.html
 
 - title: Diffusion Modeling
   author: Jasper Taal
@@ -73,10 +73,10 @@
   thumbnail: /assets/images/image-fourier-transform.png
   visualization_url: /visualizations/image-fourier-transform.html
 
-- title: Kernel_Convolution
+- title: Kernel Convolution
   author: Jasper Taal
-  thumbnail: /assets/images/kernel_convolution.png
-  visualization_url: /visualizations/kernel_convolution.html
+  thumbnail: /assets/images/kernel-convolution.png
+  visualization_url: /visualizations/kernel-convolution.html
 
 - title: Linear Regression
   author: Jasper Taal
