@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Cellular Automata for Tumor Growth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh; 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        .menu-button, .preset-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .menu-button:hover, .preset-button:hover, .toggle-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .preset-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .chart-container {
+            background-color: #111827;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hidden { display: none !important; }
+        canvas { display: block; }
+
+        #settings-button {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #settings-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px) rotate(45deg);
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 320px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding-right: 2rem; 
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+         #close-settings {
+            font-size: 2.5rem;
+            line-height: 1;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+         @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            header h1 { font-size: 1.1rem; }
+            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
+            #controls-panel { padding: 0.75rem; gap: 0.75rem; justify-content: space-around; }
+            .control-group { gap: 0.25rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Complex Tumor Growth Simulation</h1>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">About the Simulation</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300">
+                This advanced simulation models tumor growth with added complexity. It includes multiple cell types (Healthy, Tumor, Stem, Resistant, Necrotic), a nutrient diffusion system, and the ability to apply chemotherapy. Observe how these factors interact to create complex growth patterns and treatment responses.
+             </p>
+             <div id="charts-placeholder" class="space-y-4">
+                  <h3 class="font-bold text-lg text-indigo-400 mt-4">Cell Population Over Time</h3>
+                  <div class="chart-container">
+                       <canvas id="population-chart"></canvas>
+                  </div>
+             </div>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel">
+        <button id="start-stop-btn" class="toggle-button active">Start</button>
+        <button id="reset-btn" class="toggle-button">Reset</button>
+        <button id="chemo-btn" class="toggle-button">Start Chemotherapy</button>
+    </div>
+    
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-inherit z-10 py-2">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div class="space-y-6">
+             <div class="control-group text-left w-full">
+                <label for="sim-speed-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Simulation Speed:</span>
+                    <span id="sim-speed-value">10 steps/sec</span>
+                </label>
+                <input id="sim-speed-slider" type="range" min="1" max="60" step="1" value="10" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="grid-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Grid Size:</span>
+                    <span id="grid-size-value">100x100</span>
+                </label>
+                <input id="grid-size-slider" type="range" min="32" max="256" step="16" value="100" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="initial-tumor-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Initial Tumor Radius:</span>
+                    <span id="initial-tumor-value">5</span>
+                </label>
+                <input id="initial-tumor-slider" type="range" min="1" max="50" step="1" value="5" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="stem-cell-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Stem Cell Ratio:</span>
+                    <span id="stem-cell-value">5%</span>
+                </label>
+                <input id="stem-cell-slider" type="range" min="0" max="25" step="1" value="5" class="w-full">
+            </div>
+            <hr class="border-gray-600">
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Chemotherapy</h4>
+            <div class="control-group text-left w-full">
+                <label for="chemo-effect-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Effectiveness:</span>
+                    <span id="chemo-effect-value">80%</span>
+                </label>
+                <input id="chemo-effect-slider" type="range" min="0" max="100" step="5" value="80" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="mutation-rate-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Mutation Rate:</span>
+                    <span id="mutation-rate-value">0.1%</span>
+                </label>
+                <input id="mutation-rate-slider" type="range" min="0" max="1" step="0.01" value="0.1" class="w-full">
+            </div>
+            <hr class="border-gray-600">
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Cell Colors</h4>
+            <div id="color-settings-container" class="space-y-4">
+                <!-- Color pickers will be dynamically added here -->
+            </div>
+            <hr class="border-gray-600">
+            <div class="control-group text-left w-full">
+                <label for="graphics-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Graphics Quality:</span>
+                    <span id="graphics-quality-value">High</span>
+                </label>
+                <input id="graphics-slider" type="range" min="0.5" max="2" step="0.1" value="1.5" class="w-full">
+                 <div class="text-xs text-gray-500 w-full flex justify-between mt-1">
+                     <span>Low</span>
+                     <span>Native</span>
+                     <span>High</span>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    // --- Core Three.js Components ---
+    let scene, camera, renderer, controls, clock;
+    
+    // --- Simulation State ---
+    const CELL_STATE = { EMPTY: 0, HEALTHY: 1, TUMOR: 2, STEM: 3, RESISTANT: 4, NECROTIC: 5 };
+    let stateColors = [
+        new THREE.Color(0x111827), // EMPTY
+        new THREE.Color(0x10B981), // HEALTHY (Emerald 500)
+        new THREE.Color(0xEF4444), // TUMOR (Red 500)
+        new THREE.Color(0xA855F7), // STEM (Purple 500)
+        new THREE.Color(0xFBBF24), // RESISTANT (Amber 400)
+        new THREE.Color(0x374151), // NECROTIC (Gray 700)
+    ];
+    let gridSize = 100;
+    let initialTumorRadius = 5;
+    let simSpeed = 10; // steps per second
+    let timeSinceLastStep = 0;
+    let isRunning = false;
+    let isChemoActive = false;
+
+    // --- Parameters ---
+    let stemCellRatio = 0.05;
+    let chemoEffectiveness = 0.8;
+    let mutationRate = 0.001;
+
+    let cellGrid, nutrientGrid;
+    let cellMesh;
+    let populationChart;
+    
+    // --- Main Initialization ---
+    function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableRotate = false;
+
+        scene.add(new THREE.Group()); // Placeholder for activeSceneObjects
+
+        setupUI();
+        setupInfoPanel();
+        
+        resetSimulation();
+
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.setAnimationLoop(animate);
+    }
+
+    function resetSimulation() {
+        if(cellMesh) {
+            scene.remove(cellMesh);
+            cellMesh.geometry.dispose();
+            cellMesh.material.dispose();
+            cellMesh = null;
+        }
+
+        cellGrid = Array(gridSize).fill(0).map(() => Array(gridSize).fill(CELL_STATE.HEALTHY));
+        nutrientGrid = Array(gridSize).fill(0).map(() => Array(gridSize).fill(1.0));
+
+        const center = Math.floor(gridSize / 2);
+        for (let r = 0; r < gridSize; r++) {
+            for (let c = 0; c < gridSize; c++) {
+                const dist = Math.sqrt((r - center) ** 2 + (c - center) ** 2);
+                if (dist < initialTumorRadius) {
+                    cellGrid[r][c] = (Math.random() < stemCellRatio) ? CELL_STATE.STEM : CELL_STATE.TUMOR;
+                }
+            }
+        }
+        
+        const geometry = new THREE.PlaneGeometry(1, 1);
+        const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        cellMesh = new THREE.InstancedMesh(geometry, material, gridSize * gridSize);
+        scene.add(cellMesh);
+        
+        camera.position.set(center, center, gridSize);
+        controls.target.set(center, center, 0);
+
+        updateVisualization();
+        resetChart();
+        updateChart();
+    }
+    
+    function diffuseNutrients() {
+        const newNutrientGrid = nutrientGrid.map(arr => [...arr]);
+        for (let r = 0; r < gridSize; r++) {
+            for (let c = 0; c < gridSize; c++) {
+                let sum = 0;
+                let count = 0;
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        const nr = r + dr;
+                        const nc = c + dc;
+                        if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize) {
+                            sum += nutrientGrid[nr][nc];
+                            count++;
+                        }
+                    }
+                }
+                newNutrientGrid[r][c] = sum / count;
+                // Nutrient consumption
+                if (cellGrid[r][c] >= CELL_STATE.TUMOR && cellGrid[r][c] <= CELL_STATE.RESISTANT) {
+                     newNutrientGrid[r][c] *= 0.95; 
+                }
+            }
+        }
+         // Source nutrients from edges
+        for(let i=0; i < gridSize; i++) {
+            newNutrientGrid[0][i] = 1.0;
+            newNutrientGrid[gridSize - 1][i] = 1.0;
+            newNutrientGrid[i][0] = 1.0;
+            newNutrientGrid[i][gridSize - 1] = 1.0;
+        }
+        nutrientGrid = newNutrientGrid;
+    }
+
+
+    function stepSimulation() {
+        const newGrid = cellGrid.map(arr => [...arr]);
+        let changed = false;
+
+        diffuseNutrients();
+
+        for (let r = 0; r < gridSize; r++) {
+            for (let c = 0; c < gridSize; c++) {
+                const currentState = cellGrid[r][c];
+                const nutrientLevel = nutrientGrid[r][c];
+
+                if (nutrientLevel < 0.1 && currentState !== CELL_STATE.HEALTHY && currentState !== CELL_STATE.EMPTY) {
+                     newGrid[r][c] = CELL_STATE.NECROTIC;
+                     changed = true;
+                     continue;
+                }
+                
+                // Chemotherapy effects
+                if (isChemoActive) {
+                    if (currentState === CELL_STATE.TUMOR && Math.random() < chemoEffectiveness) {
+                        newGrid[r][c] = CELL_STATE.EMPTY; changed = true; continue;
+                    }
+                    if (currentState === CELL_STATE.TUMOR && Math.random() < mutationRate) {
+                        newGrid[r][c] = CELL_STATE.RESISTANT; changed = true; continue;
+                    }
+                     if (currentState === CELL_STATE.STEM && Math.random() < chemoEffectiveness * 0.2) { // Stems are more resistant
+                        newGrid[r][c] = CELL_STATE.EMPTY; changed = true; continue;
+                    }
+                }
+
+                // Proliferation rules
+                let emptyNeighbors = [];
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                         if (dr === 0 && dc === 0) continue;
+                        const nr = r + dr;
+                        const nc = c + dc;
+                        if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize && cellGrid[nr][nc] === CELL_STATE.HEALTHY) {
+                            emptyNeighbors.push({r: nr, c: nc});
+                        }
+                    }
+                }
+
+                if (emptyNeighbors.length > 0 && nutrientLevel > 0.3) {
+                     if (currentState === CELL_STATE.TUMOR || currentState === CELL_STATE.RESISTANT) {
+                        if (Math.random() < 0.2) { // Proliferation chance
+                            const target = emptyNeighbors[Math.floor(Math.random() * emptyNeighbors.length)];
+                            newGrid[target.r][target.c] = currentState;
+                            changed = true;
+                        }
+                    } else if (currentState === CELL_STATE.STEM) {
+                         if (Math.random() < 0.3) { // Higher proliferation for stems
+                            const target = emptyNeighbors[Math.floor(Math.random() * emptyNeighbors.length)];
+                            newGrid[target.r][target.c] = Math.random() < 0.5 ? CELL_STATE.STEM : CELL_STATE.TUMOR; // Asymmetric division
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+        cellGrid = newGrid;
+        return changed;
+    }
+
+    function updateVisualization() {
+        const dummy = new THREE.Object3D();
+        let i = 0;
+        for (let r = 0; r < gridSize; r++) {
+            for (let c = 0; c < gridSize; c++) {
+                dummy.position.set(c, r, 0);
+                dummy.updateMatrix();
+                cellMesh.setMatrixAt(i, dummy.matrix);
+                cellMesh.setColorAt(i, stateColors[cellGrid[r][c]]);
+                i++;
+            }
+        }
+        cellMesh.instanceMatrix.needsUpdate = true;
+        if(cellMesh.instanceColor) cellMesh.instanceColor.needsUpdate = true;
+    }
+    
+     function resetChart() {
+        populationChart.data.labels = [];
+        populationChart.data.datasets.forEach(dataset => dataset.data = []);
+        populationChart.update('none');
+    }
+
+    function updateChart() {
+        const counts = { HEALTHY: 0, TUMOR: 0, STEM: 0, RESISTANT: 0, NECROTIC: 0 };
+        cellGrid.flat().forEach(cell => {
+            if (cell === CELL_STATE.HEALTHY) counts.HEALTHY++;
+            else if (cell === CELL_STATE.TUMOR) counts.TUMOR++;
+            else if (cell === CELL_STATE.STEM) counts.STEM++;
+            else if (cell === CELL_STATE.RESISTANT) counts.RESISTANT++;
+            else if (cell === CELL_STATE.NECROTIC) counts.NECROTIC++;
+        });
+        
+        if (populationChart.data.labels.length > 100) {
+            populationChart.data.labels.shift();
+            populationChart.data.datasets.forEach(dataset => dataset.data.shift());
+        }
+        
+        populationChart.data.labels.push('');
+        populationChart.data.datasets[0].data.push(counts.HEALTHY);
+        populationChart.data.datasets[1].data.push(counts.TUMOR);
+        populationChart.data.datasets[2].data.push(counts.STEM);
+        populationChart.data.datasets[3].data.push(counts.RESISTANT);
+        populationChart.data.datasets[4].data.push(counts.NECROTIC);
+        populationChart.update('none');
+    }
+
+    // --- UI & CORE SYSTEM SETUP ---
+
+    function setupUI() {
+        const startStopBtn = document.getElementById('start-stop-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const chemoBtn = document.getElementById('chemo-btn');
+        
+        startStopBtn.addEventListener('click', () => {
+            isRunning = !isRunning;
+            startStopBtn.textContent = isRunning ? 'Pause' : 'Start';
+            startStopBtn.classList.toggle('active', isRunning);
+        });
+
+        resetBtn.addEventListener('click', () => {
+            isRunning = false;
+            isChemoActive = false;
+            startStopBtn.textContent = 'Start';
+            chemoBtn.textContent = 'Start Chemotherapy';
+            startStopBtn.classList.remove('active');
+            chemoBtn.classList.remove('active');
+            resetSimulation();
+        });
+
+        chemoBtn.addEventListener('click', () => {
+            isChemoActive = !isChemoActive;
+            chemoBtn.textContent = isChemoActive ? 'Stop Chemotherapy' : 'Start Chemotherapy';
+            chemoBtn.classList.toggle('active', isChemoActive);
+        });
+
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsButton = document.getElementById('settings-button');
+        const closeSettingsButton = document.getElementById('close-settings');
+
+        settingsButton.addEventListener('click', () => {
+            if (settingsPanel.classList.contains('open')) settingsPanel.classList.remove('open');
+            else { settingsPanel.classList.remove('hidden'); requestAnimationFrame(() => settingsPanel.classList.add('open')); }
+        });
+        closeSettingsButton.addEventListener('click', () => settingsPanel.classList.remove('open'));
+        settingsPanel.addEventListener('transitionend', e => {
+            if (e.propertyName === 'transform' && !settingsPanel.classList.contains('open')) settingsPanel.classList.add('hidden');
+        });
+
+        // Sliders
+        document.getElementById('sim-speed-slider').addEventListener('input', e => {
+            simSpeed = parseInt(e.target.value);
+            document.getElementById('sim-speed-value').textContent = `${simSpeed} steps/sec`;
+        });
+        document.getElementById('grid-size-slider').addEventListener('input', e => {
+            document.getElementById('grid-size-value').textContent = `${e.target.value}x${e.target.value}`;
+        });
+        document.getElementById('grid-size-slider').addEventListener('change', e => {
+            gridSize = parseInt(e.target.value); resetBtn.click();
+        });
+        document.getElementById('initial-tumor-slider').addEventListener('input', e => {
+             document.getElementById('initial-tumor-value').textContent = e.target.value;
+        });
+        document.getElementById('initial-tumor-slider').addEventListener('change', e => {
+            initialTumorRadius = parseInt(e.target.value); resetBtn.click();
+        });
+        document.getElementById('stem-cell-slider').addEventListener('input', e => {
+             stemCellRatio = parseInt(e.target.value) / 100;
+             document.getElementById('stem-cell-value').textContent = `${e.target.value}%`;
+        });
+        document.getElementById('chemo-effect-slider').addEventListener('input', e => {
+             chemoEffectiveness = parseInt(e.target.value) / 100;
+             document.getElementById('chemo-effect-value').textContent = `${e.target.value}%`;
+        });
+         document.getElementById('mutation-rate-slider').addEventListener('input', e => {
+             mutationRate = parseFloat(e.target.value) / 100;
+             document.getElementById('mutation-rate-value').textContent = `${e.target.value}%`;
+        });
+        document.getElementById('graphics-slider').addEventListener('input', (e) => {
+            const quality = parseFloat(e.target.value);
+            renderer.setPixelRatio(quality);
+            const qualityValueEl = document.getElementById('graphics-quality-value');
+            if (quality < 0.8) qualityValueEl.textContent = "Low";
+            else if (quality < 1.5) qualityValueEl.textContent = "Medium";
+            else qualityValueEl.textContent = "High";
+        });
+
+        // Color Pickers
+        const colorSettingsContainer = document.getElementById('color-settings-container');
+        const cellTypeNames = ['Healthy', 'Tumor', 'Stem', 'Resistant', 'Necrotic'];
+        const cellStateIndices = [CELL_STATE.HEALTHY, CELL_STATE.TUMOR, CELL_STATE.STEM, CELL_STATE.RESISTANT, CELL_STATE.NECROTIC];
+
+        cellTypeNames.forEach((name, index) => {
+            const stateIndex = cellStateIndices[index];
+            const color = stateColors[stateIndex];
+
+            const group = document.createElement('div');
+            group.className = 'control-group text-left w-full flex flex-row items-center justify-between';
+            
+            const label = document.createElement('label');
+            label.setAttribute('for', `${name.toLowerCase()}-color-input`);
+            label.className = 'text-sm font-medium';
+            label.textContent = `${name} Color`;
+
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            colorInput.id = `${name.toLowerCase()}-color-input`;
+            colorInput.className = 'w-12 h-8 p-0 border-none rounded-md';
+            colorInput.value = `#${color.getHexString()}`;
+
+            colorInput.addEventListener('input', (e) => {
+                stateColors[stateIndex].set(e.target.value);
+                // Also update the chart color
+                if (populationChart && populationChart.data.datasets[index]) {
+                    populationChart.data.datasets[index].borderColor = e.target.value;
+                    populationChart.update('none');
+                }
+                if (!isRunning) { // Update immediately if paused
+                    updateVisualization();
+                }
+            });
+
+            group.appendChild(label);
+            group.appendChild(colorInput);
+            colorSettingsContainer.appendChild(group);
+        });
+    }
+
+    function setupInfoPanel() {
+        document.getElementById('info-panel').addEventListener('click', (e) => {
+            if (e.target.closest('canvas') || e.target.closest('a')) return;
+            e.currentTarget.classList.toggle('expanded');
+        });
+
+        const ctx = document.getElementById('population-chart').getContext('2d');
+        populationChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Healthy', data: [], borderColor: stateColors[CELL_STATE.HEALTHY].getStyle(), pointRadius: 0, tension: 0.1 },
+                    { label: 'Tumor', data: [], borderColor: stateColors[CELL_STATE.TUMOR].getStyle(), pointRadius: 0, tension: 0.1 },
+                    { label: 'Stem', data: [], borderColor: stateColors[CELL_STATE.STEM].getStyle(), pointRadius: 0, tension: 0.1 },
+                    { label: 'Resistant', data: [], borderColor: stateColors[CELL_STATE.RESISTANT].getStyle(), pointRadius: 0, tension: 0.1 },
+                    { label: 'Necrotic', data: [], borderColor: stateColors[CELL_STATE.NECROTIC].getStyle(), pointRadius: 0, tension: 0.1 }
+                ].map(d => ({ ...d, backgroundColor: 'transparent', fill: false }))
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { beginAtZero: true, ticks: { color: '#9ca3af' } }, 
+                    x: { ticks: { display: false } } 
+                },
+                plugins: { legend: { labels: { color: '#e5e7eb' } } }
+            }
+        });
+    }
+
+    function onWindowResize() { 
+        camera.aspect = window.innerWidth / window.innerHeight; 
+        camera.updateProjectionMatrix(); 
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+    }
+
+    function animate() { 
+        const delta = clock.getDelta();
+        controls.update();
+
+        if(isRunning) {
+            timeSinceLastStep += delta;
+            if(timeSinceLastStep > 1.0 / simSpeed) {
+                timeSinceLastStep = 0;
+                if(stepSimulation()) {
+                   updateVisualization();
+                   updateChart();
+                } else {
+                    isRunning = false;
+                    const startStopBtn = document.getElementById('start-stop-btn');
+                    startStopBtn.textContent = 'Start';
+                    startStopBtn.classList.remove('active');
+                }
+            }
+        }
+        
+        renderer.render(scene, camera); 
+    }
+    
+    init();
+
+</script>
+</body>
+</html>
+
