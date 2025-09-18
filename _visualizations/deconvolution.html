@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Deconvolution/Deblurring Playground</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .action-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
+            font-weight: 500;
+        }
+        .action-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .action-button:disabled {
+            background-color: #374151;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .canvas-container {
+            background-color: #111827;
+            border: 1px solid #374151;
+            position: relative;
+        }
+        .canvas-container canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .upload-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            border: 2px dashed #4b5563;
+            border-radius: 0.5rem;
+            text-align: center;
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <header class="ui-panel border-b border-t-0 border-l-0 border-r-0 rounded-none z-20 p-2">
+        <h1 class="text-xl font-bold text-gray-200 text-center tracking-wider">Image Deconvolution Playground</h1>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden p-4 gap-4">
+        <!-- Main Content -->
+        <main class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-auto">
+            <div class="flex flex-col gap-2">
+                <h2 id="blurred-canvas-title" class="text-lg font-semibold text-center text-indigo-400">Blurred & Noisy Image</h2>
+                <div id="blurred-container" class="canvas-container flex-1 rounded-lg">
+                    <canvas id="blurred-canvas"></canvas>
+                    <div id="blurred-placeholder" class="upload-placeholder">
+                        <svg class="w-12 h-12 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
+                        <span>Upload an image using the controls below</span>
+                    </div>
+                    <div id="blurred-loader" class="loader hidden"></div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-2">
+                <h2 class="text-lg font-semibold text-center text-indigo-400">Deconvolved Result</h2>
+                <div id="deconvolved-container" class="canvas-container flex-1 rounded-lg">
+                    <canvas id="deconvolved-canvas"></canvas>
+                     <div id="deconvolved-placeholder" class="upload-placeholder">
+                        <svg class="w-12 h-12 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.572L16.5 21.75l-.398-1.178a3.375 3.375 0 00-2.456-2.456L12.75 18l1.178-.398a3.375 3.375 0 002.456-2.456L16.5 14.25l.398 1.178a3.375 3.375 0 002.456 2.456l1.178.398-1.178.398a3.375 3.375 0 00-2.456 2.456z" /></svg>
+                        <span>Result will appear here</span>
+                    </div>
+                    <div id="deconvolved-loader" class="loader hidden"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Controls Sidebar -->
+        <aside id="controls-panel" class="ui-panel rounded-lg w-full max-w-sm overflow-y-auto p-6 space-y-6">
+            <div>
+                <label for="image-upload" class="block mb-2 text-sm font-medium">1. Upload Image</label>
+                <input type="file" id="image-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-indigo-50 hover:file:bg-indigo-700 cursor-pointer"/>
+            </div>
+
+            <hr class="border-gray-600">
+            
+            <div>
+                <h3 class="text-md font-medium mb-3">2. Degradation Model</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-300">Deconvolve existing blur</span>
+                        <label for="deconvolve-only-switch" class="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" value="" id="deconvolve-only-switch" class="sr-only peer">
+                          <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+                     <div>
+                        <label for="blur-type" class="block mb-2 text-sm font-medium">Blur Type (PSF)</label>
+                        <select id="blur-type" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                            <option value="gaussian">Gaussian Blur</option>
+                            <option value="motion">Motion Blur</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="blur-amount" class="block mb-1 text-sm font-medium">Blur Amount: <span id="blur-amount-value">5</span></label>
+                        <input id="blur-amount" type="range" min="1" max="25" step="2" value="5">
+                    </div>
+                    <div id="motion-angle-container">
+                        <label for="motion-angle" class="block mb-1 text-sm font-medium">Motion Angle: <span id="motion-angle-value">45</span>°</label>
+                        <input id="motion-angle" type="range" min="0" max="180" step="1" value="45">
+                    </div>
+                     <div id="noise-amount-container">
+                        <label for="noise-amount" class="block mb-1 text-sm font-medium">Noise Level: <span id="noise-amount-value">0.02</span></label>
+                        <input id="noise-amount" type="range" min="0" max="0.2" step="0.01" value="0.02">
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-gray-600">
+
+            <div>
+                 <h3 class="text-md font-medium mb-3">3. Deconvolution</h3>
+                <div>
+                    <label for="iterations" class="block mb-1 text-sm font-medium">Iterations: <span id="iterations-value">10</span></label>
+                    <input id="iterations" type="range" min="1" max="50" step="1" value="10">
+                </div>
+            </div>
+              
+               <hr class="border-gray-600">
+
+            <div class="flex flex-col gap-3 pt-2">
+                <button id="run-button" class="action-button text-base font-bold w-full py-3 bg-indigo-600 hover:bg-indigo-700 border-indigo-500" disabled>Run Deconvolution</button>
+                <button id="download-button" class="action-button text-base w-full py-2 bg-emerald-600 hover:bg-emerald-700 border-emerald-500" disabled>Download Result</button>
+                <button id="reset-button" class="bg-gray-600 hover:bg-gray-700 text-base w-full py-2 rounded-lg transition-colors">Reset</button>
+            </div>
+
+        </aside>
+    </div>
+
+<script>
+    // --- DOM Elements ---
+    const imageUpload = document.getElementById('image-upload');
+    const blurredCanvas = document.getElementById('blurred-canvas');
+    const deconvolvedCanvas = document.getElementById('deconvolved-canvas');
+    const blurredCtx = blurredCanvas.getContext('2d');
+    const deconvolvedCtx = deconvolvedCanvas.getContext('2d');
+    const blurredCanvasTitle = document.getElementById('blurred-canvas-title');
+
+    // Loaders and Placeholders
+    const blurredLoader = document.getElementById('blurred-loader');
+    const deconvolvedLoader = document.getElementById('deconvolved-loader');
+    const blurredPlaceholder = document.getElementById('blurred-placeholder');
+    const deconvolvedPlaceholder = document.getElementById('deconvolved-placeholder');
+
+    // Controls
+    const deconvolveOnlySwitch = document.getElementById('deconvolve-only-switch');
+    const blurTypeSelect = document.getElementById('blur-type');
+    const blurAmountSlider = document.getElementById('blur-amount');
+    const motionAngleContainer = document.getElementById('motion-angle-container');
+    const motionAngleSlider = document.getElementById('motion-angle');
+    const noiseAmountContainer = document.getElementById('noise-amount-container');
+    const noiseAmountSlider = document.getElementById('noise-amount');
+    const iterationsSlider = document.getElementById('iterations');
+    const runButton = document.getElementById('run-button');
+    const downloadButton = document.getElementById('download-button');
+    const resetButton = document.getElementById('reset-button');
+    
+    // Value Displays
+    const blurAmountValue = document.getElementById('blur-amount-value');
+    const motionAngleValue = document.getElementById('motion-angle-value');
+    const noiseAmountValue = document.getElementById('noise-amount-value');
+    const iterationsValue = document.getElementById('iterations-value');
+
+    // --- State ---
+    let originalImageData = null;
+    let worker = null;
+    
+    // --- Initialization ---
+    function init() {
+        setupEventListeners();
+        updateUI();
+        setupWorker();
+    }
+
+    function setupWorker() {
+        const workerCode = `
+            // --- CORE WORKER FUNCTIONS ---
+            
+            // Helper for convolution with padding
+            function convolve(signal, kernel) {
+                const signalWidth = signal.width;
+                const signalHeight = signal.height;
+                const kernelSize = Math.sqrt(kernel.length);
+                const kernelHalf = Math.floor(kernelSize / 2);
+                const output = new Float32Array(signal.data.length);
+
+                for (let y = 0; y < signalHeight; y++) {
+                    for (let x = 0; x < signalWidth; x++) {
+                        for (let c = 0; c < 4; c++) {
+                            if (c === 3) { // Alpha channel
+                                output[(y * signalWidth + x) * 4 + c] = 255;
+                                continue;
+                            }
+                            let sum = 0;
+                            for (let ky = 0; ky < kernelSize; ky++) {
+                                for (let kx = 0; kx < kernelSize; kx++) {
+                                    const sy = Math.max(0, Math.min(signalHeight - 1, y + ky - kernelHalf));
+                                    const sx = Math.max(0, Math.min(signalWidth - 1, x + kx - kernelHalf));
+                                    const val = signal.data[(sy * signalWidth + sx) * 4 + c];
+                                    sum += val * kernel[ky * kernelSize + kx];
+                                }
+                            }
+                            output[(y * signalWidth + x) * 4 + c] = sum;
+                        }
+                    }
+                }
+                return output;
+            }
+
+            // Richardson-Lucy Deconvolution Algorithm
+            function richardsonLucy(observed, psf, iterations) {
+                let latent_est = new Float32Array(observed.data.length);
+                // Initial guess is the observed image
+                for (let i = 0; i < observed.data.length; i++) {
+                    latent_est[i] = observed.data[i];
+                }
+
+                const psf_flipped = [...psf].reverse();
+
+                for (let i = 0; i < iterations; i++) {
+                    const observed_width = observed.width;
+                    const observed_height = observed.height;
+                    
+                    const est_conv = convolve({data: latent_est, width: observed_width, height: observed_height}, psf);
+                    
+                    const relative_blur = new Float32Array(observed.data.length);
+                    for (let j = 0; j < observed.data.length; j+=4) {
+                        for (let c = 0; c < 3; c++) { // R, G, B channels
+                           if (est_conv[j+c] > 1e-6) {
+                                relative_blur[j+c] = observed.data[j+c] / est_conv[j+c];
+                           } else {
+                                relative_blur[j+c] = 0;
+                           }
+                        }
+                    }
+
+                    const error_est = convolve({data: relative_blur, width: observed_width, height: observed_height}, psf_flipped);
+
+                    for (let j = 0; j < latent_est.length; j+=4) {
+                         for (let c = 0; c < 3; c++) { // R, G, B channels
+                             latent_est[j+c] = latent_est[j+c] * error_est[j+c];
+                         }
+                    }
+                    self.postMessage({ type: 'progress', iteration: i + 1, total: iterations });
+                }
+                return latent_est;
+            }
+
+            // --- KERNEL GENERATION ---
+            function generateGaussianKernel(size, sigma) {
+                const kernel = new Float32Array(size * size);
+                const half = Math.floor(size / 2);
+                let sum = 0;
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        const val = Math.exp(-((x - half) ** 2 + (y - half) ** 2) / (2 * sigma ** 2));
+                        kernel[y * size + x] = val;
+                        sum += val;
+                    }
+                }
+                for (let i = 0; i < kernel.length; i++) kernel[i] /= sum;
+                return kernel;
+            }
+
+            function generateMotionKernel(size, angle) {
+                const kernel = new Float32Array(size * size).fill(0);
+                const half = Math.floor(size / 2);
+                const rad = angle * Math.PI / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+
+                const line = [];
+                for (let i = -half; i <= half; i++) {
+                    line.push({x: Math.round(i * cos), y: Math.round(i * sin)});
+                }
+
+                let count = 0;
+                line.forEach(p => {
+                    const x = p.x + half;
+                    const y = p.y + half;
+                    if (x >= 0 && x < size && y >= 0 && y < size) {
+                       kernel[y * size + x] = 1;
+                       count++;
+                    }
+                });
+                
+                if (count > 0) {
+                    for (let i = 0; i < kernel.length; i++) {
+                        kernel[i] /= count;
+                    }
+                } else {
+                    kernel[half * size + half] = 1; // single point if no line is drawn
+                }
+
+                return kernel;
+            }
+
+
+            self.onmessage = (e) => {
+                const { type, payload } = e.data;
+                const { imageData, blurType, blurAmount, motionAngle, noiseAmount, iterations } = payload;
+                
+                // 1. Generate Kernel (Point Spread Function - PSF)
+                const kernelSize = parseInt(blurAmount, 10);
+                let psf;
+                if (blurType === 'gaussian') {
+                    const sigma = kernelSize / 4;
+                    psf = generateGaussianKernel(kernelSize, sigma);
+                } else { // motion
+                    psf = generateMotionKernel(kernelSize, motionAngle);
+                }
+
+                let observedImage;
+
+                if (type === 'process') {
+                    // 2. Convolve (Blur) Image
+                    const blurredData = convolve(imageData, psf);
+
+                    // 3. Add Noise
+                    for (let i = 0; i < blurredData.length; i+=4) {
+                        for(let c=0; c<3; c++) {
+                            const noise = (Math.random() - 0.5) * 2 * noiseAmount * 255;
+                            blurredData[i+c] = Math.max(0, Math.min(255, blurredData[i+c] + noise));
+                        }
+                    }
+                    
+                    observedImage = { data: new Uint8ClampedArray(blurredData), width: imageData.width, height: imageData.height };
+                    self.postMessage({ type: 'blurred', imageData: observedImage });
+
+                } else if (type === 'deconvolve_only') {
+                    // Use the original image as the observed image
+                    observedImage = imageData;
+                }
+
+                // 4. Deconvolve
+                const deconvolvedData = richardsonLucy(observedImage, psf, iterations);
+                const deconvolvedImageData = { data: new Uint8ClampedArray(deconvolvedData), width: imageData.width, height: imageData.height };
+                
+                self.postMessage({ type: 'result', imageData: deconvolvedImageData });
+            };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        worker = new Worker(URL.createObjectURL(blob));
+
+        worker.onmessage = (e) => {
+            const { type, imageData, iteration, total } = e.data;
+            if (type === 'blurred') {
+                setCanvasContent(blurredCanvas, blurredCtx, imageData);
+                showLoader(blurredLoader, false);
+                 // Progress will start after blurring is done
+                deconvolvedPlaceholder.classList.remove('hidden');
+                deconvolvedPlaceholder.querySelector('span').textContent = 'Deconvolving...';
+
+            } else if (type === 'result') {
+                setCanvasContent(deconvolvedCanvas, deconvolvedCtx, imageData);
+                showLoader(deconvolvedLoader, false);
+                runButton.disabled = false;
+                downloadButton.disabled = false;
+            } else if (type === 'progress') {
+                deconvolvedPlaceholder.classList.remove('hidden');
+                deconvolvedPlaceholder.querySelector('span').textContent = `Deconvolving... Iteration ${iteration}/${total}`;
+            }
+        };
+    }
+    
+    // --- Event Listeners ---
+    function setupEventListeners() {
+        imageUpload.addEventListener('change', handleImageUpload);
+        runButton.addEventListener('click', runProcessing);
+        downloadButton.addEventListener('click', handleDownload);
+        resetButton.addEventListener('click', handleReset);
+        
+        deconvolveOnlySwitch.addEventListener('change', () => {
+             updateUI();
+             if (originalImageData) runProcessing();
+        });
+        blurTypeSelect.addEventListener('change', updateUI);
+        blurAmountSlider.addEventListener('input', () => blurAmountValue.textContent = blurAmountSlider.value);
+        motionAngleSlider.addEventListener('input', () => motionAngleValue.textContent = motionAngleSlider.value);
+        noiseAmountSlider.addEventListener('input', () => noiseAmountValue.textContent = parseFloat(noiseAmountSlider.value).toFixed(2));
+        iterationsSlider.addEventListener('input', () => iterationsValue.textContent = iterationsSlider.value);
+    }
+
+    function handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const { width, height } = getScaledDimensions(img);
+                
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                tempCtx.drawImage(img, 0, 0, width, height);
+                originalImageData = tempCtx.getImageData(0, 0, width, height);
+                
+                runButton.disabled = false;
+                downloadButton.disabled = true;
+                
+                setCanvasContent(deconvolvedCanvas, deconvolvedCtx, null); // Clear result
+                runProcessing();
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    function runProcessing() {
+        if (!originalImageData) {
+            // Using a simple notification instead of alert()
+            const msg = "Please upload an image first.";
+            console.warn(msg);
+            deconvolvedPlaceholder.querySelector('span').textContent = msg;
+            return;
+        }
+
+        runButton.disabled = true;
+        downloadButton.disabled = true;
+        
+        showLoader(deconvolvedLoader, true);
+        blurredPlaceholder.classList.add('hidden');
+        deconvolvedPlaceholder.classList.add('hidden');
+
+        const params = {
+            imageData: { 
+                data: new Uint8ClampedArray(originalImageData.data), 
+                width: originalImageData.width, 
+                height: originalImageData.height 
+            },
+            blurType: blurTypeSelect.value,
+            blurAmount: blurAmountSlider.value,
+            motionAngle: motionAngleSlider.value,
+            noiseAmount: noiseAmountSlider.value,
+            iterations: iterationsSlider.value
+        };
+
+        if (deconvolveOnlySwitch.checked) {
+            setCanvasContent(blurredCanvas, blurredCtx, originalImageData);
+            showLoader(blurredLoader, false);
+            worker.postMessage({ type: 'deconvolve_only', payload: params });
+        } else {
+            showLoader(blurredLoader, true);
+            worker.postMessage({ type: 'process', payload: params });
+        }
+    }
+
+    function handleDownload() {
+        const link = document.createElement('a');
+        link.download = 'deconvolved-image.png';
+        link.href = deconvolvedCanvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function handleReset() {
+        imageUpload.value = '';
+        originalImageData = null;
+        runButton.disabled = true;
+        downloadButton.disabled = true;
+        
+        deconvolveOnlySwitch.checked = false;
+        blurAmountSlider.value = 5;
+        motionAngleSlider.value = 45;
+        noiseAmountSlider.value = 0.02;
+        iterationsSlider.value = 10;
+        blurAmountValue.textContent = 5;
+        motionAngleValue.textContent = 45;
+        noiseAmountValue.textContent = '0.02';
+        iterationsValue.textContent = 10;
+        
+        updateUI();
+
+        setCanvasContent(blurredCanvas, blurredCtx, null);
+        setCanvasContent(deconvolvedCanvas, deconvolvedCtx, null);
+        
+        showLoader(blurredLoader, false);
+        showLoader(deconvolvedLoader, false);
+        
+        blurredPlaceholder.classList.remove('hidden');
+        deconvolvedPlaceholder.classList.remove('hidden');
+        blurredPlaceholder.querySelector('span').textContent = 'Upload an image using the controls below';
+        deconvolvedPlaceholder.querySelector('span').textContent = 'Result will appear here';
+    }
+
+    // --- UI Update Functions ---
+    function updateUI() {
+        motionAngleContainer.style.display = blurTypeSelect.value === 'motion' ? 'block' : 'none';
+        
+        const isDeconvolveOnly = deconvolveOnlySwitch.checked;
+        noiseAmountContainer.style.opacity = isDeconvolveOnly ? '0.5' : '1';
+        noiseAmountSlider.disabled = isDeconvolveOnly;
+        blurredCanvasTitle.textContent = isDeconvolveOnly ? 'Original Image' : 'Blurred & Noisy Image';
+    }
+
+    function showLoader(loaderElement, show) {
+        loaderElement.classList.toggle('hidden', !show);
+    }
+
+    function setCanvasContent(canvas, ctx, imageData) {
+        const placeholder = canvas.nextElementSibling;
+        const loader = placeholder.nextElementSibling;
+
+        if (imageData) {
+            canvas.width = imageData.width;
+            canvas.height = imageData.height;
+            const imgData = new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
+            ctx.putImageData(imgData, 0, 0);
+            showLoader(loader, false);
+            placeholder.classList.add('hidden');
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            placeholder.classList.remove('hidden');
+        }
+    }
+
+    function getScaledDimensions(img, maxWidth = 1024, maxHeight = 1024) {
+        let { width, height } = img;
+        if (width > height) {
+            if (width > maxWidth) {
+                height = Math.round(height * (maxWidth / width));
+                width = maxWidth;
+            }
+        } else {
+            if (height > maxHeight) {
+                width = Math.round(width * (maxHeight / height));
+                height = maxHeight;
+            }
+        }
+        return { width, height };
+    }
+    
+    // --- Start the App ---
+    init();
+
+</script>
+</body>
+</html>

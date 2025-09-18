@@ -848,6 +848,18 @@
             button.textContent = scenes[key].name;
             button.onclick = () => switchScene(key);
             menuDiv.appendChild(button);
+
+
+
+            // add performance link button too
+            const link_button = document.createElement('button');
+            link_button.className = 'menu-button';
+            link_button.textContent = 'Performance';
+            link_button.url = 'https://jtaal.github.io/visualizations/performance/voronoi-cell-division-performance.html';
+            link_button.onclick = () => window.open(link_button.url, '_blank');
+
+
+            menuDiv.appendChild(link_button);
         });
 
          document.getElementById('info-panel').addEventListener('click', (e) => {
