@@ -108,6 +108,11 @@
   thumbnail: /assets/images/molecular-biology.png
   visualization_url: /visualizations/molecular-biology.html
 
+- title: Multi Objective Evolutionary Algorithm
+  author: Jasper Taal
+  thumbnail: /assets/images/multi-objective-evolutionary-algorithm.png
+  visualization_url: /visualizations/multi-objective-evolutionary-algorithm.html
+
 - title: Multivariate Gaussian
   author: Jasper Taal
   thumbnail: /assets/images/multivariate-gaussian.png
