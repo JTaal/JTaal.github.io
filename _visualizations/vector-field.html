@@ -416,16 +416,53 @@
             { name: "Bowl", f: "x*x + y*y" },
             { name: "Saddle", f: "x*x - y*y" },
             { name: "Wave", f: "sin(x*2)*cos(y*2)" },
+            { name: "Ripples", f: "sin(sqrt(x*x + y*y) * 5)"},
+            { name: "Gaussian Bump", f: "exp(-(x*x + y*y))"},
+            { name: "Multi-Wave", f: "sin(x) + cos(2*y) + sin(z)" },
+            { name: "Exponential Decay", f: "exp(-0.5 * (x*x + y*y + z*z))" },
+            { name: "Cellular", f: "cos(x*2) * sin(y*2) * exp(z/4)" },
+            { name: "Inverse Square", f: "1 / (x*x + y*y + z*z + 0.1)" },
+            { name: "XYZ Saddle", f: "x*y*z" },
+            { name: "Paraboloid", f: "pow(x,2) + pow(y,2) - z" },
+            { name: "Interference Pattern", f: "cos(x) * sin(y) + cos(y) * sin(z) + cos(z) * sin(x)"},
+            { name: "Volcano", f: "exp(-(pow(sqrt(x*x+y*y)-1, 2))) - 0.5 * z*z" },
+            { name: "Gyroidal", f: "sin(x)*cos(y) + sin(y)*cos(z) + sin(z)*cos(x)" },
+            { name: "Double Bump", f: "exp(-pow(x-1,2) - y*y) + exp(-pow(x+1,2) - y*y)" },
+            { name: "Inverted Pyramid", f: "abs(x)+abs(y)-abs(z)"}
         ],
         divergence: [
             { name: "Source", p: "x", q: "y", r: "z" },
             { name: "Sink", p: "-x", q: "-y", r: "-z" },
+            { name: "2D Source (XY)", p: "x", q: "y", r: "0"},
             { name: "In/Out Flow", p: "sin(x)", q: "sin(y)", r: "sin(z)" },
+            { name: "Shear Flow", p: "y", q: "0", r: "0"},
+            { name: "Quadratic Source", p: "x*x", q: "y*y", r: "z*z" },
+            { name: "Zero Div (Saddle)", p: "x", q: "-y", r: "0"},
+            { name: "Zero Div (Rotation)", p: "y", q: "z", r: "x"},
+            { name: "Alternating Flow", p: "sin(PI*x)", q: "cos(PI*y)", r: "z" },
+            { name: "Localized Source", p: "x*exp(-(x*x+y*y))", q: "y*exp(-(x*x+y*y))", r: "0" },
+            { name: "Singularity Field", p: "x/(x*x+0.1)", q: "y/(y*y+0.1)", r: "z/(z*z+0.1)" },
+            { name: "Source & Sink", p: "(x-1)/((x-1)^2+y^2+z^2+0.1) - (x+1)/((x+1)^2+y^2+z^2+0.1)", q: "y/((x-1)^2+y^2+z^2+0.1) - y/((x+1)^2+y^2+z^2+0.1)", r: "z/((x-1)^2+y^2+z^2+0.1) - z/((x+1)^2+y^2+z^2+0.1)" },
+            { name: "Dipole Field", p: "(3*x*z)/pow(x*x+z*z, 2.5)", q: "0", r: "(2*z*z - x*x)/pow(x*x+z*z, 2.5)"},
+            { name: "Compression Flow", p: "x", q: "y", r: "-2*z" },
+            { name: "Radial Decay", p: "x/sqrt(x*x+y*y+z*z+0.1)", q: "y/sqrt(x*x+y*y+z*z+0.1)", r: "z/sqrt(x*x+y*y+z*z+0.1)" }
         ],
         curl: [
             { name: "Whirlpool (Z-axis)", p: "-y", q: "x", r: "0" },
             { name: "Torus Flow", p: "-y * (1 - sqrt(x*x+y*y))", q: "x * (1 - sqrt(x*x+y*y))", r: "0"},
+            { name: "Helix (Z-axis)", p: "-y", q: "x", r: "1"},
             { name: "Complex Swirl", p: "sin(z)", q: "sin(x)", r: "sin(y)" },
+            { name: "Conical Swirl", p: "-y*z", q: "x*z", r: "0"},
+            { name: "Double Vortex", p: "-y / (x*x + y*y + 0.1)", q: "x / (x*x + y*y + 0.1)", r: "0"},
+            { name: "No Curl (Gradient)", p: "2*x", q: "2*y", r: "2*z"},
+            { name: "Height-Varying Vortex", p: "y*cos(z)", q: "-x*cos(z)", r: "0" },
+            { name: "Constant Curl", p: "z", q: "x", r: "y" },
+            { name: "Quadratic Swirl", p: "y*y", q: "z*z", r: "x*x" },
+            { name: "ABC Flow", p: "sin(z)+cos(y)", q: "sin(x)+cos(z)", r: "sin(y)+cos(x)" },
+            { name: "Twisted Field", p: "sin(PI*y)", q: "sin(PI*z)", r: "sin(PI*x)"},
+            { name: "Hopf Fibration", p: "2*(-y+x*z)", q: "2*(x+y*z)", r: "1-x*x-y*y+z*z"},
+            { name: "Taylor-Green Vortex", p: "cos(x)*sin(y)", q: "-sin(x)*cos(y)", r: "0" },
+            { name: "Accelerating Vortex", p: "-y*(x*x+y*y)", q: "x*(x*x+y*y)", r: "0" }
         ]
     };
 
@@ -800,7 +837,6 @@
         document.getElementById('info-header').addEventListener('click', (e) => {
              const infoPanel = document.getElementById('info-panel');
              infoPanel.classList.toggle('collapsed');
-             // Delay resize to allow CSS transition to start
              setTimeout(onWindowResize, 50);
         });
         const menuButton = document.getElementById('mobile-menu-button');
