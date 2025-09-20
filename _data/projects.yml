@@ -203,6 +203,11 @@
   thumbnail: /assets/images/turing-patterns.png
   visualization_url: /visualizations/turing-patterns.html
 
+- title: Variational Auto Encoder
+  author: Jasper Taal
+  thumbnail: /assets/images/variational-auto-encoder.png
+  visualization_url: /visualizations/variational-auto-encoder.html
+
 - title: Vector Field
   author: Jasper Taal
   thumbnail: /assets/images/vector-field.png
