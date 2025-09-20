@@ -22,12 +22,22 @@
         canvas {
             display: block;
         }
-        #settings-panel {
+        #settings-panel, #info-panel {
             transition: transform 0.3s ease-in-out;
         }
         .algo-checkbox:checked + label {
             background-color: #4f46e5;
             border-color: #6366f1;
+        }
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
         }
     </style>
 </head>
@@ -37,7 +47,10 @@
 
     <header class="absolute top-0 left-0 right-0 bg-gray-900/50 backdrop-blur-sm z-20">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight">3D Sorting Algorithm Race</h1>
+             <button id="info-button" class="p-2 rounded-md hover:bg-gray-700 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </button>
+            <h1 class="text-xl md:text-2xl font-bold text-white tracking-tight hidden sm:block">3D Sorting Algorithm Race</h1>
             <div class="flex items-center gap-2">
                  <button id="race-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed text-sm sm:text-base">
                     Start Race
@@ -48,6 +61,16 @@
             </div>
         </div>
     </header>
+
+    <div id="info-panel" class="fixed top-0 left-0 h-full bg-gray-800 border-r border-gray-700 shadow-lg z-30 w-80 max-w-full transform -translate-x-full p-6 overflow-y-auto">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-gray-800 py-2">
+            <h2 class="text-2xl font-semibold text-indigo-400">Race Results</h2>
+            <button id="close-info-button" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
+        </div>
+        <div id="info-content" class="space-y-3">
+             <p class="text-gray-400">Race results will be displayed here after completion.</p>
+        </div>
+    </div>
 
     <div id="settings-panel" class="fixed top-0 right-0 h-full bg-gray-800 border-l border-gray-700 shadow-lg z-30 w-80 max-w-full transform translate-x-full p-6 overflow-y-auto">
         <div class="flex justify-between items-center mb-6 sticky top-0 bg-gray-800 py-2">
@@ -66,8 +89,18 @@
                         <label for="speed-slider" class="text-sm font-medium flex justify-between">Animation Delay <span id="speed-value" class="font-semibold text-indigo-300">10ms</span></label>
                         <input id="speed-slider" type="range" min="0" max="100" value="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
                     </div>
+                    <div>
+                        <label for="shuffle-type" class="text-sm font-medium">Initial Array State</label>
+                        <select id="shuffle-type" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="random">Random Shuffle</option>
+                            <option value="nearlySorted">Nearly Sorted</option>
+                            <option value="reversed">Reversed Order</option>
+                            <option value="fewUnique">Few Unique Values</option>
+                            <option value="sorted">Already Sorted</option>
+                        </select>
+                    </div>
                     <button id="generate-array" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
-                        Generate New Array
+                        Apply & Generate New Array
                     </button>
                 </div>
             </div>
@@ -92,18 +125,27 @@
         const generateArrayBtn = document.getElementById('generate-array');
         const sizeSlider = document.getElementById('size-slider');
         const speedSlider = document.getElementById('speed-slider');
+        const shuffleTypeSelect = document.getElementById('shuffle-type');
         const sizeValue = document.getElementById('size-value');
         const speedValue = document.getElementById('speed-value');
         const algoSelectionContainer = document.getElementById('algorithm-selection');
+        
         const settingsPanel = document.getElementById('settings-panel');
         const settingsButton = document.getElementById('settings-button');
         const closeSettingsButton = document.getElementById('close-settings-button');
+        
+        const infoPanel = document.getElementById('info-panel');
+        const infoButton = document.getElementById('info-button');
+        const closeInfoButton = document.getElementById('close-info-button');
+        const infoContent = document.getElementById('info-content');
+
 
         // --- State ---
         let masterArray = [];
         let racers = [];
         let arraySize = 50;
         let speed = 10;
+        let shuffleType = 'random';
         let isRacing = false;
         const BAR_WIDTH = 0.8;
         const BAR_DEPTH = 2.0;
@@ -157,6 +199,7 @@
         }
         
         function setupUI() {
+            // Algorithm selection checkboxes
             for (const key in algorithms) {
                 const div = document.createElement('div');
                 div.className = "relative";
@@ -165,9 +208,7 @@
                 input.id = `algo-${key}`;
                 input.dataset.algo = key;
                 input.className = 'algo-checkbox absolute opacity-0 w-full h-full cursor-pointer';
-                if (selectedAlgorithms.includes(key)) {
-                    input.checked = true;
-                }
+                if (selectedAlgorithms.includes(key)) input.checked = true;
                 const label = document.createElement('label');
                 label.htmlFor = `algo-${key}`;
                 label.textContent = algorithms[key].name;
@@ -177,9 +218,13 @@
                 algoSelectionContainer.appendChild(div);
             }
 
+            // Panel toggles
             settingsButton.addEventListener('click', () => settingsPanel.classList.remove('translate-x-full'));
             closeSettingsButton.addEventListener('click', () => settingsPanel.classList.add('translate-x-full'));
+            infoButton.addEventListener('click', () => infoPanel.classList.remove('-translate-x-full'));
+            closeInfoButton.addEventListener('click', () => infoPanel.classList.add('-translate-x-full'));
             
+            // Main controls
             raceBtn.addEventListener('click', () => {
                 if (isRacing) {
                     isRacing = false;
@@ -194,16 +239,26 @@
                 generateMasterArray();
                 createRaceLanes();
             });
+            
+            shuffleTypeSelect.addEventListener('change', e => {
+                if (isRacing) return;
+                shuffleType = e.target.value;
+                generateMasterArray();
+                createRaceLanes();
+            });
 
             sizeSlider.addEventListener('input', e => {
-                if (isRacing) return;
                 arraySize = parseInt(e.target.value);
                 sizeValue.textContent = arraySize;
+            });
+            sizeSlider.addEventListener('change', () => { // Update only on release
+                 if (isRacing) return;
                 generateMasterArray();
                 createRaceLanes();
                 camera.position.set(arraySize / 2, 60, arraySize + 20);
                 controls.target.set(arraySize * (BAR_WIDTH + 0.1) / 2, 0, 0);
             });
+
 
             speedSlider.addEventListener('input', e => {
                 speed = parseInt(e.target.value);
@@ -224,8 +279,40 @@
 
         function generateMasterArray() {
             masterArray = [];
+            let sortedArray = [];
             for (let i = 0; i < arraySize; i++) {
-                masterArray.push(Math.floor(Math.random() * 100) + 5);
+                 // Scale values to be between 5 and 105
+                 sortedArray.push(Math.floor((i / arraySize) * 100) + 5);
+            }
+
+            switch(shuffleType) {
+                case 'sorted':
+                    masterArray = [...sortedArray];
+                    break;
+                case 'reversed':
+                    masterArray = [...sortedArray].reverse();
+                    break;
+                case 'nearlySorted':
+                    masterArray = [...sortedArray];
+                    const swaps = Math.max(1, Math.floor(arraySize * 0.05)); // Swap 5% of elements
+                    for (let i = 0; i < swaps; i++) {
+                        const idx1 = Math.floor(Math.random() * arraySize);
+                        const idx2 = Math.floor(Math.random() * arraySize);
+                        [masterArray[idx1], masterArray[idx2]] = [masterArray[idx2], masterArray[idx1]];
+                    }
+                    break;
+                case 'fewUnique':
+                    const uniqueValues = [10, 25, 50, 75, 90, 105];
+                    for (let i = 0; i < arraySize; i++) {
+                        masterArray.push(uniqueValues[Math.floor(Math.random() * uniqueValues.length)]);
+                    }
+                    break;
+                case 'random':
+                default:
+                     for (let i = 0; i < arraySize; i++) {
+                        masterArray.push(Math.floor(Math.random() * 100) + 5);
+                    }
+                    break;
             }
         }
         
@@ -234,29 +321,22 @@
             const context = canvas.getContext('2d');
             const fontSize = 48;
             context.font = `Bold ${fontSize}px Inter, Arial, sans-serif`;
-
             const metrics = context.measureText(text);
             const textWidth = metrics.width;
             canvas.width = textWidth;
             canvas.height = fontSize * 1.2;
-
             context.font = `Bold ${fontSize}px Inter, Arial, sans-serif`;
-            const textColor = new THREE.Color(color).getStyle();
-            context.fillStyle = textColor;
+            context.fillStyle = new THREE.Color(color).getStyle();
             context.textAlign = 'center';
             context.textBaseline = 'middle';
             context.fillText(text, canvas.width / 2, canvas.height / 2);
-
             const texture = new THREE.CanvasTexture(canvas);
             texture.needsUpdate = true;
-
             const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
             const sprite = new THREE.Sprite(material);
-            
             const spriteHeight = 6;
             const spriteWidth = (spriteHeight / canvas.height) * canvas.width;
             sprite.scale.set(spriteWidth, spriteHeight, 1);
-
             return sprite;
         }
 
@@ -284,11 +364,9 @@
                 const textLabel = createTextLabel(algo.name, algo.color);
                 const barFieldWidth = arraySize * (BAR_WIDTH + 0.1);
                 const labelX = barFieldWidth + 25; 
-                
                 const baseHeight = 90;
                 const heightOffset = 20;
                 const labelY = baseHeight - (laneIndex % 3) * heightOffset; 
-                
                 const labelZ = 0;
                 textLabel.position.set(labelX, labelY, labelZ);
                 racerGroup.add(textLabel);
@@ -296,7 +374,6 @@
                 for (let i = 0; i < arraySize; i++) {
                     const height = initialArray[i];
                     const geometry = new THREE.BoxGeometry(BAR_WIDTH, height, BAR_DEPTH);
-                    // Use the algorithm's specific color for the initial state of the bars
                     const material = new THREE.MeshStandardMaterial({ color: algo.color });
                     const bar = new THREE.Mesh(geometry, material);
                     bar.position.set(i * (BAR_WIDTH + 0.1), height / 2, 0);
@@ -310,11 +387,14 @@
                 racers.push({
                     key: key,
                     name: algo.name,
-                    color: algo.color, // Store the color for the algorithm to use
+                    color: algo.color,
                     group: racerGroup,
                     bars: barMeshes,
                     array: initialArray,
-                    isSorted: false
+                    isSorted: false,
+                    startTime: 0,
+                    endTime: 0,
+                    elapsedTime: null,
                 });
             });
         }
@@ -322,22 +402,75 @@
         async function startRace() {
             isRacing = true;
             setUIState(true);
+            infoContent.innerHTML = `<p class="text-gray-400">Race in progress...</p>`;
             
+            // Regenerate array based on current settings right before the race starts
             generateMasterArray();
             createRaceLanes();
             
-            const racePromises = racers.map(racer => {
+            const racePromises = racers.map(async (racer) => {
+                racer.startTime = performance.now();
                 const algoFunc = algorithms[racer.key].func;
-                return algoFunc(racer);
+                await algoFunc(racer);
+                racer.endTime = performance.now();
+                if (isRacing) {
+                    racer.elapsedTime = racer.endTime - racer.startTime;
+                } else {
+                    racer.elapsedTime = null;
+                }
             });
             
             await Promise.all(racePromises);
 
+            updateResultsPanel();
             if(isRacing) {
                 isRacing = false;
                 setUIState(false);
             }
         }
+
+        function updateResultsPanel() {
+            infoContent.innerHTML = '';
+            
+            const sortedRacers = [...racers].sort((a, b) => {
+                const timeA = a.elapsedTime === null ? Infinity : a.elapsedTime;
+                const timeB = b.elapsedTime === null ? Infinity : b.elapsedTime;
+                return timeA - timeB;
+            });
+
+            sortedRacers.forEach(racer => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between';
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'flex items-center gap-3';
+                
+                const colorSwatch = document.createElement('div');
+                colorSwatch.className = 'w-4 h-4 rounded';
+                colorSwatch.style.backgroundColor = new THREE.Color(racer.color).getStyle();
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'font-semibold text-gray-300';
+                nameSpan.textContent = racer.name;
+
+                nameDiv.appendChild(colorSwatch);
+                nameDiv.appendChild(nameSpan);
+
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'font-mono text-indigo-300';
+                if (racer.elapsedTime !== null) {
+                    timeSpan.textContent = `${racer.elapsedTime.toFixed(2)} ms`;
+                } else {
+                    timeSpan.textContent = 'Cancelled';
+                    timeSpan.className = 'font-mono text-red-400';
+                }
+
+                resultDiv.appendChild(nameDiv);
+                resultDiv.appendChild(timeSpan);
+                infoContent.appendChild(resultDiv);
+            });
+        }
+
 
         function setUIState(racing) {
             raceBtn.disabled = false;
@@ -349,6 +482,7 @@
 
             generateArrayBtn.disabled = racing;
             sizeSlider.disabled = racing;
+            shuffleTypeSelect.disabled = racing;
             document.querySelectorAll('.algo-checkbox').forEach(cb => cb.disabled = racing);
         }
         
