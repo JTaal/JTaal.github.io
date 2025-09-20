@@ -188,6 +188,11 @@
   thumbnail: /assets/images/rotary-positional-embedding.png
   visualization_url: /visualizations/rotary-positional-embedding.html
 
+- title: Sorting Algorithms
+  author: Jasper Taal
+  thumbnail: /assets/images/sorting-algorithms.png
+  visualization_url: /visualizations/sorting-algorithms.html
+
 - title: Support Vector Machine
   author: Jasper Taal
   thumbnail: /assets/images/support-vector-machine.png
