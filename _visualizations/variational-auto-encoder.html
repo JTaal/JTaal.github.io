@@ -136,6 +136,13 @@
             align-items: center;
             gap: 0.5rem;
         }
+        select {
+            background-color: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            color: white;
+            padding: 0.25rem 0.5rem;
+        }
         .hidden { display: none !important; }
         canvas { display: block; }
 
@@ -291,22 +298,21 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
     let mainTitles = [];
     let latentVector = [0.0, 0.0, 0.0]; 
     const shapePresets = {
-        'Sphere': [0.0, 0.0, 0.0],
-        'Cube': [1.0, 0.0, 0.0],
-        'Spiky Ball': [0.0, 1.0, 0.0],
-        'Torus': [0.0, 0.0, 1.0],
-        'Spiky Cube': [1.0, 1.0, 0.0],
-        'Blocky Ring': [1.0, 0.0, 1.0],
+        'Sphere': [0.0, 0.0, 0.0], 'Cube': [1.0, 0.0, 0.0], 'Spiky Ball': [0.0, 1.0, 0.0],
+        'Torus': [0.0, 0.0, 1.0], 'Spiky Cube': [1.0, 1.0, 0.0], 'Blocky Ring': [1.0, 0.0, 1.0],
         'Spiky Torus': [0.0, 1.0, 1.0],
     };
     let currentShape = 'Sphere';
     const allLayers = [];
     let networkConfig = {
-        layerPairs: 2,
-        baseFilters: 4,
-        animationSpeed: 1.0,
-        layerSpacing: 1.0
+        layerPairs: 2, baseFilters: 4, animationSpeed: 1.0, layerSpacing: 1.0
     };
+    const latentProperties = {
+        none: 'None', cubeness: 'Cubeness', spikiness: 'Spikiness', hollowness: 'Hollowness'
+    };
+    let latentDimensionMap = { x: 'cubeness', y: 'spikiness', z: 'hollowness' };
+    let baseGeo, morphMat;
+
 
     function init() {
         clock = new THREE.Clock();
@@ -344,15 +350,13 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
     function initVaeVisualizer() {
         const DETAIL = 32;
         const RADIUS = 2;
-        const baseGeo = new THREE.SphereGeometry(RADIUS, DETAIL, DETAIL);
+        baseGeo = new THREE.SphereGeometry(RADIUS, DETAIL, DETAIL);
 
         const tempBoxGeo = new THREE.BoxGeometry(3, 3, 3);
         const boxSampler = new MeshSurfaceSampler(new THREE.Mesh(tempBoxGeo)).build();
         const cubePositions = new Float32Array(baseGeo.attributes.position.count * 3);
         for (let i = 0; i < baseGeo.attributes.position.count; i++) {
-            const p = new THREE.Vector3();
-            boxSampler.sample(p);
-            cubePositions.set([p.x, p.y, p.z], i * 3);
+            const p = new THREE.Vector3(); boxSampler.sample(p); cubePositions.set([p.x, p.y, p.z], i * 3);
         }
         
         const spikyPositions = new Float32Array(baseGeo.attributes.position.count * 3);
@@ -365,15 +369,10 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
         }
 
         const torusPositions = new Float32Array(baseGeo.attributes.position.count * 3);
-        const R = 1.5; // Major radius
-        const r = 0.75; // Minor radius
+        const R = 1.5, r = 0.75;
         for (let i = 0; i < baseGeo.attributes.position.count; i++) {
-            const sx = baseGeo.attributes.position.getX(i);
-            const sy = baseGeo.attributes.position.getY(i);
-            const sz = baseGeo.attributes.position.getZ(i);
-            const theta = Math.atan2(sx, sz);
-            const phi = Math.acos(sy / RADIUS);
-            
+            const sx = baseGeo.attributes.position.getX(i), sy = baseGeo.attributes.position.getY(i), sz = baseGeo.attributes.position.getZ(i);
+            const theta = Math.atan2(sx, sz); const phi = Math.acos(sy / RADIUS);
             const tx = (R + r * Math.cos(phi * 2)) * Math.sin(theta);
             const ty = r * Math.sin(phi * 2);
             const tz = (R + r * Math.cos(phi * 2)) * Math.cos(theta);
@@ -381,12 +380,10 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
         }
 
         baseGeo.morphAttributes.position = [
-            new THREE.BufferAttribute(cubePositions, 3),
-            new THREE.BufferAttribute(spikyPositions, 3),
-            new THREE.BufferAttribute(torusPositions, 3),
+            new THREE.BufferAttribute(cubePositions, 3), new THREE.BufferAttribute(spikyPositions, 3), new THREE.BufferAttribute(torusPositions, 3),
         ];
         
-        const morphMat = new THREE.MeshStandardMaterial({
+        morphMat = new THREE.MeshStandardMaterial({
             color: 0x818cf8, metalness: 0.1, roughness: 0.3, morphTargets: true
         });
 
@@ -402,22 +399,13 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
 
         latentViz = new THREE.Group();
         latentViz.position.set(0, 2, 0);
-        
-        const boxHelper = new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4)), 0x444444);
-        latentViz.add(boxHelper);
-
-        Object.entries(shapePresets).forEach(([name, vec]) => {
-            const [x, y, z] = vec;
-            const mesh = createLatentMesh(baseGeo.clone(), morphMat.clone(), [x, y, z]);
-            mesh.position.set((x - 0.5) * 4, (y - 0.5) * 4, (z - 0.5) * 4);
-            latentViz.add(mesh);
-        });
+        pipelineGroup.add(latentViz);
         
         const indicatorGeo = new THREE.SphereGeometry(0.15, 16, 16);
         const indicatorMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
         latentIndicator = new THREE.Mesh(indicatorGeo, indicatorMat);
-        latentViz.add(latentIndicator);
-        pipelineGroup.add(latentViz);
+        
+        updateLatentSpaceVisuals();
 
         updateFromLatentVector();
     }
@@ -450,26 +438,19 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
         const depthScale = 0.2;
         const volumeGeo = new THREE.BoxGeometry(w, h, d * depthScale);
         const volumeMat = new THREE.MeshStandardMaterial({
-            color: type === 'conv' ? 0x4f46e5 : 0xbe185d,
-            transparent: true,
-            opacity: 0.15,
+            color: type === 'conv' ? 0x4f46e5 : 0xbe185d, transparent: true, opacity: 0.15,
         });
         const volumeMesh = new THREE.Mesh(volumeGeo, volumeMat);
         
         const edges = new THREE.EdgesGeometry(volumeGeo);
         const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ 
-            color: type === 'conv' ? 0x818cf8 : 0xf472b6,
-            transparent: true,
-            opacity: 0.5
+            color: type === 'conv' ? 0x818cf8 : 0xf472b6, transparent: true, opacity: 0.5
         }));
         
         const filterSize = Math.min(w, h) * 0.4;
         const filterGeo = new THREE.BoxGeometry(filterSize, filterSize, (d * depthScale) + 0.01);
         const filterMat = new THREE.MeshStandardMaterial({
-            color: 0xfbbf24,
-            emissive: 0x92400e,
-            metalness: 0.2,
-            roughness: 0.4,
+            color: 0xfbbf24, emissive: 0x92400e, metalness: 0.2, roughness: 0.4,
         });
         const filterMesh = new THREE.Mesh(filterGeo, filterMat);
         filterMesh.visible = (type === 'conv' || type === 'up');
@@ -504,38 +485,30 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
 
         const { layerPairs, baseFilters, layerSpacing } = networkConfig;
         
-        const encoderConfigs = [];
-        let totalEncoderComplexity = 0;
-        let currentDim = 4.0;
-        let currentFilters = baseFilters;
+        const encoderConfigs = [], decoderConfigs = [];
+        let totalEncoderComplexity = 0, totalDecoderComplexity = 0;
+        let currentDim = 4.0, currentFilters = baseFilters;
 
         for (let i = 0; i < layerPairs; i++) {
             const convConfig = { w: currentDim, h: currentDim, d: currentFilters, label: `CONV ${i + 1}`, type: 'conv' };
             convConfig.complexity = convConfig.w * convConfig.h * convConfig.d;
             encoderConfigs.push(convConfig);
             totalEncoderComplexity += convConfig.complexity;
-
             currentDim /= 2;
             const poolConfig = { w: currentDim, h: currentDim, d: currentFilters, label: `POOL ${i + 1}`, type: 'pool' };
             poolConfig.complexity = poolConfig.w * poolConfig.h * poolConfig.d;
             encoderConfigs.push(poolConfig);
             totalEncoderComplexity += poolConfig.complexity;
-            
             if (i < layerPairs -1) currentFilters *= 2;
         }
-
-        const decoderConfigs = [];
-        let totalDecoderComplexity = 0;
 
         for (let i = 0; i < layerPairs; i++) {
             const upsampleConfig = { w: currentDim, h: currentDim, d: currentFilters, label: `UPSAMPLE ${i + 1}`, type: 'up' };
             upsampleConfig.complexity = upsampleConfig.w * upsampleConfig.h * upsampleConfig.d;
             decoderConfigs.push(upsampleConfig);
             totalDecoderComplexity += upsampleConfig.complexity;
-
             currentDim *= 2;
             if (i < layerPairs -1) currentFilters /= 2;
-
             const convConfig = { w: currentDim, h: currentDim, d: (i === layerPairs - 1) ? 1 : currentFilters, label: `CONV ${layerPairs + i + 1}`, type: 'conv'};
             convConfig.complexity = convConfig.w * convConfig.h * convConfig.d;
             decoderConfigs.push(convConfig);
@@ -544,40 +517,34 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
 
         const ENCODER_VISUAL_SPAN = (5 + (networkConfig.layerPairs * 2.0) + (networkConfig.baseFilters * 1.5)) * layerSpacing;
         const DECODER_VISUAL_SPAN = ENCODER_VISUAL_SPAN;
-        const LATENT_PADDING = 2.5;
-        const IO_PADDING = 4.0;
-
-        const encoderEnd = -LATENT_PADDING;
-        const encoderStart = encoderEnd - ENCODER_VISUAL_SPAN;
-        const decoderStart = LATENT_PADDING;
-        const decoderEnd = decoderStart + DECODER_VISUAL_SPAN;
-        const inputX = encoderStart - IO_PADDING;
-        const outputX = decoderEnd + IO_PADDING;
+        const LATENT_PADDING = 2.5, IO_PADDING = 4.0;
+        const encoderEnd = -LATENT_PADDING, encoderStart = encoderEnd - ENCODER_VISUAL_SPAN;
+        const decoderStart = LATENT_PADDING, decoderEnd = decoderStart + DECODER_VISUAL_SPAN;
+        const inputX = encoderStart - IO_PADDING, outputX = decoderEnd + IO_PADDING;
 
         inputMesh.position.x = inputX;
         outputMesh.position.x = outputX;
 
-        mainTitles.push(createText("INPUT", new THREE.Vector3(inputX, 5.5, 0)));
-        mainTitles.push(createText("ENCODER", new THREE.Vector3((encoderStart + encoderEnd) / 2, 5.5, 0)));
-        mainTitles.push(createText("LATENT SPACE", new THREE.Vector3(0, 5.5, 0)));
-        mainTitles.push(createText("DECODER", new THREE.Vector3((decoderStart + decoderEnd) / 2, 5.5, 0)));
-        mainTitles.push(createText("OUTPUT", new THREE.Vector3(outputX, 5.5, 0)));
+        mainTitles = [
+            createText("INPUT", new THREE.Vector3(inputX, 5.5, 0)),
+            createText("ENCODER", new THREE.Vector3((encoderStart + encoderEnd) / 2, 5.5, 0)),
+            createText("LATENT SPACE", new THREE.Vector3(0, 5.5, 0)),
+            createText("DECODER", new THREE.Vector3((decoderStart + decoderEnd) / 2, 5.5, 0)),
+            createText("OUTPUT", new THREE.Vector3(outputX, 5.5, 0))
+        ];
         mainTitles.forEach(t => pipelineGroup.add(t));
         
         let currentX = encoderStart;
         for (const config of encoderConfigs) {
             const layerSpan = (config.complexity / totalEncoderComplexity) * ENCODER_VISUAL_SPAN;
-            config.x = currentX + layerSpan / 2;
-            config.y = 2; config.z = 0;
+            config.x = currentX + layerSpan / 2; config.y = 2; config.z = 0;
             createConvLayer(config);
             currentX += layerSpan;
         }
-        
         currentX = decoderStart;
         for (const config of decoderConfigs) {
             const layerSpan = (config.complexity / totalDecoderComplexity) * DECODER_VISUAL_SPAN;
-            config.x = currentX + layerSpan / 2;
-            config.y = 2; config.z = 0;
+            config.x = currentX + layerSpan / 2; config.y = 2; config.z = 0;
             createConvLayer(config);
             currentX += layerSpan;
         }
@@ -596,157 +563,184 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
         return mesh;
     }
 
+    function updateLatentSpaceVisuals() {
+        while(latentViz.children.length > 0) {
+            const child = latentViz.children[0];
+            latentViz.remove(child);
+             child.traverse(obj => {
+                if(obj.isMesh){
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) obj.material.dispose();
+                }
+            });
+        }
+
+        const gridSize = 4, gridDivisions = 2, gridColor = 0x444444;
+        const gridXZ = new THREE.GridHelper(gridSize, gridDivisions, gridColor, gridColor);
+        latentViz.add(gridXZ);
+        const gridXY = new THREE.GridHelper(gridSize, gridDivisions, gridColor, gridColor);
+        gridXY.rotation.x = Math.PI / 2;
+        latentViz.add(gridXY);
+        const gridYZ = new THREE.GridHelper(gridSize, gridDivisions, gridColor, gridColor);
+        gridYZ.rotation.z = Math.PI / 2;
+        latentViz.add(gridYZ);
+
+        const corners = [ [0,0,0], [1,0,0], [0,1,0], [0,0,1], [1,1,0], [1,0,1], [0,1,1], [1,1,1] ];
+        corners.forEach(corner => {
+            const [x,y,z] = corner;
+            let influences = [0,0,0];
+            if(latentDimensionMap.x === 'cubeness') influences[0] = x; if(latentDimensionMap.x === 'spikiness') influences[1] = x; if(latentDimensionMap.x === 'hollowness') influences[2] = x;
+            if(latentDimensionMap.y === 'cubeness') influences[0] = y; if(latentDimensionMap.y === 'spikiness') influences[1] = y; if(latentDimensionMap.y === 'hollowness') influences[2] = y;
+            if(latentDimensionMap.z === 'cubeness') influences[0] = z; if(latentDimensionMap.z === 'spikiness') influences[1] = z; if(latentDimensionMap.z === 'hollowness') influences[2] = z;
+
+            const mesh = createLatentMesh(baseGeo.clone(), morphMat.clone(), influences);
+            mesh.position.set((x-0.5)*4, (y-0.5)*4, (z-0.5)*4);
+            latentViz.add(mesh);
+        });
+
+        latentViz.add(latentIndicator);
+    }
+
     function updateFromLatentVector() {
         if (!outputMesh || !outputMesh.morphTargetInfluences) return;
-        outputMesh.morphTargetInfluences[0] = latentVector[0];
-        outputMesh.morphTargetInfluences[1] = latentVector[1];
-        outputMesh.morphTargetInfluences[2] = latentVector[2];
-        inputMesh.morphTargetInfluences[0] = latentVector[0];
-        inputMesh.morphTargetInfluences[1] = latentVector[1];
-        inputMesh.morphTargetInfluences[2] = latentVector[2];
-        latentIndicator.position.set((latentVector[0] - 0.5) * 4, (latentVector[1] - 0.5) * 4, (latentVector[2] - 0.5) * 4);
+        
+        let influences = [0,0,0];
+        const map = {cubeness: 0, spikiness: 1, hollowness: 2};
+        
+        if (latentDimensionMap.x !== 'none') influences[map[latentDimensionMap.x]] += latentVector[0];
+        if (latentDimensionMap.y !== 'none') influences[map[latentDimensionMap.y]] += latentVector[1];
+        if (latentDimensionMap.z !== 'none') influences[map[latentDimensionMap.z]] += latentVector[2];
+
+        for(let i=0; i<3; i++) influences[i] = Math.min(1.0, influences[i]);
+
+        outputMesh.morphTargetInfluences = influences;
+        inputMesh.morphTargetInfluences = influences;
+
+        latentIndicator.position.set( (latentVector[0] - 0.5) * 4, (latentVector[1] - 0.5) * 4, (latentVector[2] - 0.5) * 4 );
     }
 
     function runAnimationCycle() {
         if (isAnimating) return;
         isAnimating = true;
 
-        const dataPacket = new THREE.Mesh(
-            new THREE.SphereGeometry(0.2, 16, 16),
-            new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xaaaaaa })
-        );
+        const dataPacket = new THREE.Mesh( new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xaaaaaa }) );
         scene.add(dataPacket);
 
         const encoderChildren = allLayers.filter(l => l.position.x < 0).sort((a,b) => a.position.x - b.position.x);
         const decoderChildren = allLayers.filter(l => l.position.x > 0).sort((a,b) => a.position.x - b.position.x);
-
-        const allWaypoints = [
-            inputMesh, 
-            ...encoderChildren,
-            latentIndicator,
-            ...decoderChildren, 
-            outputMesh
-        ];
+        const allWaypoints = [ inputMesh, ...encoderChildren, latentIndicator, ...decoderChildren, outputMesh ];
         
         const chainHead = new Tween({});
         let currentTween = chainHead;
         let duration = 500 / networkConfig.animationSpeed;
 
         for(let i = 0; i < allWaypoints.length - 1; i++) {
-            const startNode = allWaypoints[i];
-            const endNode = allWaypoints[i+1];
-            
-            const startPos = new THREE.Vector3();
-            startNode.getWorldPosition(startPos);
-            
-            const endPos = new THREE.Vector3();
-            endNode.getWorldPosition(endPos);
+            const startNode = allWaypoints[i], endNode = allWaypoints[i+1];
+            const startPos = new THREE.Vector3(), endPos = new THREE.Vector3();
+            startNode.getWorldPosition(startPos); endNode.getWorldPosition(endPos);
 
-            const tween = new Tween(dataPacket.position)
-                .to(endPos, duration)
-                .easing(TWEEN.Easing.Sinusoidal.InOut)
-                .onStart(() => {
-                    if (startNode.userData && startNode.userData.filter) {
-                        animateFilter(startNode);
-                    }
-                });
-
+            const tween = new Tween(dataPacket.position).to(endPos, duration).easing(TWEEN.Easing.Sinusoidal.InOut)
+                .onStart(() => { if (startNode.userData && startNode.userData.filter) animateFilter(startNode); });
             if (i === 0) dataPacket.position.copy(startPos);
-            
-            currentTween.chain(tween);
-            currentTween = tween;
+            currentTween.chain(tween); currentTween = tween;
         }
 
-        currentTween.onComplete(() => {
-            isAnimating = false;
-            scene.remove(dataPacket);
-        });
-        
+        currentTween.onComplete(() => { isAnimating = false; scene.remove(dataPacket); });
         chainHead.start();
     }
 
     function animateFilter(layer) {
-        const filter = layer.userData.filter;
-        const line = layer.userData.line;
-        if (!filter) return;
-
+        const filter = layer.userData.filter; const line = layer.userData.line; if (!filter) return;
         const startColor = { r: line.material.color.r, g: line.material.color.g, b: line.material.color.b };
-        new Tween(startColor)
-            .to({ r: 1, g: 1, b: 1}, 250 / networkConfig.animationSpeed)
-            .onUpdate(() => line.material.color.setRGB(startColor.r, startColor.g, startColor.b))
-            .yoyo(true)
-            .repeat(1)
-            .start();
-
-        const w = filter.geometry.parameters.width / 2;
-        const h = filter.geometry.parameters.height / 2;
+        new Tween(startColor).to({ r: 1, g: 1, b: 1}, 250 / networkConfig.animationSpeed)
+            .onUpdate(() => line.material.color.setRGB(startColor.r, startColor.g, startColor.b)).yoyo(true).repeat(1).start();
+        const w = filter.geometry.parameters.width / 2, h = filter.geometry.parameters.height / 2;
         filter.position.set(-w, h, 0);
-        new Tween(filter.position)
-            .to({ x: w, y: -h }, 500 / networkConfig.animationSpeed)
-            .easing(TWEEN.Easing.Linear.None)
-            .start();
+        new Tween(filter.position).to({ x: w, y: -h }, 500 / networkConfig.animationSpeed).easing(TWEEN.Easing.Linear.None).start();
     }
 
     function setupControls() {
         const controlsDiv = document.getElementById('controls-panel');
         controlsDiv.innerHTML = `
-            <div class="control-group">
-                <label class="text-sm font-medium">Input Shape</label>
-                <div id="shape-presets" class="flex gap-2 flex-wrap justify-center"></div>
-            </div>
-            <div class="control-group w-32">
-                 <label for="latent-x-slider" class="text-sm font-medium w-full flex justify-between">Cubeness: <span id="latent-x-value">0.0</span></label>
-                 <input id="latent-x-slider" type="range" min="0" max="1" step="0.01" value="0.0" class="w-full">
-            </div>
-            <div class="control-group w-32">
-                 <label for="latent-y-slider" class="text-sm font-medium w-full flex justify-between">Spikiness: <span id="latent-y-value">0.0</span></label>
-                 <input id="latent-y-slider" type="range" min="0" max="1" step="0.01" value="0.0" class="w-full">
-            </div>
-            <div class="control-group w-32">
-                 <label for="latent-z-slider" class="text-sm font-medium w-full flex justify-between">Hollowness: <span id="latent-z-value">0.0</span></label>
-                 <input id="latent-z-slider" type="range" min="0" max="1" step="0.01" value="0.0" class="w-full">
-            </div>
+            <div class="control-group"> <label class="text-sm font-medium">Input Shape</label> <div id="shape-presets" class="flex gap-2 flex-wrap justify-center"></div> </div>
+            <div id="latent-controls" class="flex gap-4"></div>
             <button id="run-btn" class="toggle-button active">Run Autoencoder</button>
         `;
+
+        const latentControls = document.getElementById('latent-controls');
+        ['x', 'y', 'z'].forEach((axis, i) => {
+            const group = document.createElement('div');
+            group.className = 'control-group w-32';
+            
+            const selectLabel = document.createElement('label');
+            selectLabel.className = 'text-sm font-medium';
+            selectLabel.textContent = `Dimension ${axis.toUpperCase()}:`;
+            
+            const select = document.createElement('select');
+            select.id = `latent-${axis}-select`;
+            for(const key in latentProperties) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = latentProperties[key];
+                if (key === latentDimensionMap[axis]) option.selected = true;
+                select.appendChild(option);
+            }
+
+            const sliderLabel = document.createElement('label');
+            sliderLabel.htmlFor = `latent-${axis}-slider`;
+            sliderLabel.className = 'text-sm font-medium w-full flex justify-between';
+            sliderLabel.innerHTML = `<span>${latentProperties[latentDimensionMap[axis]]}:</span><span id="latent-${axis}-value">0.0</span>`;
+
+            const slider = document.createElement('input');
+            slider.type = 'range'; slider.id = `latent-${axis}-slider`;
+            slider.min = 0; slider.max = 1; slider.step = 0.01; slider.value = 0; slider.className = 'w-full';
+
+            group.append(selectLabel, select, sliderLabel, slider);
+            latentControls.appendChild(group);
+
+            select.addEventListener('change', (e) => {
+                latentDimensionMap[axis] = e.target.value;
+                sliderLabel.children[0].textContent = `${latentProperties[e.target.value]}:`;
+                updateLatentSpaceVisuals();
+                updateFromLatentVector();
+            });
+            slider.addEventListener('input', (e) => {
+                latentVector[i] = parseFloat(e.target.value);
+                document.getElementById(`latent-${axis}-value`).textContent = latentVector[i].toFixed(2);
+                updateFromLatentVector();
+            });
+        });
 
         const presetsContainer = document.getElementById('shape-presets');
         Object.keys(shapePresets).forEach(name => {
             const btn = document.createElement('button');
-            btn.className = 'preset-button';
-            if (name === currentShape) btn.classList.add('active');
+            btn.className = 'preset-button'; if (name === currentShape) btn.classList.add('active');
             btn.textContent = name;
             btn.onclick = () => {
                 currentShape = name;
                 document.querySelectorAll('#shape-presets .preset-button').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                latentVector = shapePresets[name].slice();
-                document.getElementById('latent-x-slider').value = latentVector[0];
-                document.getElementById('latent-y-slider').value = latentVector[1];
-                document.getElementById('latent-z-slider').value = latentVector[2];
-                document.getElementById('latent-x-value').textContent = latentVector[0].toFixed(2);
-                document.getElementById('latent-y-value').textContent = latentVector[1].toFixed(2);
-                document.getElementById('latent-z-value').textContent = latentVector[2].toFixed(2);
+                
+                const presetVec = shapePresets[name];
+                latentVector = [0,0,0];
+                let assigned = { cubeness: false, spikiness: false, hollowness: false };
+
+                ['x','y','z'].forEach((axis, i) => {
+                    const prop = latentDimensionMap[axis];
+                    if (prop === 'cubeness' && !assigned.cubeness) { latentVector[i] = presetVec[0]; assigned.cubeness = true; }
+                    else if (prop === 'spikiness' && !assigned.spikiness) { latentVector[i] = presetVec[1]; assigned.spikiness = true; }
+                    else if (prop === 'hollowness' && !assigned.hollowness) { latentVector[i] = presetVec[2]; assigned.hollowness = true; }
+                    else { latentVector[i] = 0;}
+                });
+
+                ['x','y','z'].forEach((axis, i) => {
+                    document.getElementById(`latent-${axis}-slider`).value = latentVector[i];
+                    document.getElementById(`latent-${axis}-value`).textContent = latentVector[i].toFixed(2);
+                });
                 updateFromLatentVector();
             };
             presetsContainer.appendChild(btn);
         });
-
-        document.getElementById('latent-x-slider').addEventListener('input', (e) => {
-            latentVector[0] = parseFloat(e.target.value);
-            document.getElementById('latent-x-value').textContent = latentVector[0].toFixed(2);
-            updateFromLatentVector();
-        });
-        document.getElementById('latent-y-slider').addEventListener('input', (e) => {
-            latentVector[1] = parseFloat(e.target.value);
-            document.getElementById('latent-y-value').textContent = latentVector[1].toFixed(2);
-            updateFromLatentVector();
-        });
-        document.getElementById('latent-z-slider').addEventListener('input', (e) => {
-            latentVector[2] = parseFloat(e.target.value);
-            document.getElementById('latent-z-value').textContent = latentVector[2].toFixed(2);
-            updateFromLatentVector();
-        });
-        
         document.getElementById('run-btn').addEventListener('click', runAnimationCycle);
     }
     
@@ -782,56 +776,32 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
 
         function toggleSettingsPanel() {
             const isOpen = settingsPanel.classList.contains('open');
-            if (isOpen) {
-                settingsPanel.classList.remove('open');
-            } else {
-                settingsPanel.classList.remove('hidden');
-                requestAnimationFrame(() => {
-                    settingsPanel.classList.add('open');
-                });
-            }
+            if (isOpen) { settingsPanel.classList.remove('open'); }
+            else { settingsPanel.classList.remove('hidden'); requestAnimationFrame(() => { settingsPanel.classList.add('open'); }); }
         }
 
         settingsButton.addEventListener('click', toggleSettingsPanel);
         closeSettingsButton.addEventListener('click', toggleSettingsPanel);
-
-        settingsPanel.addEventListener('transitionend', () => {
-            if (!settingsPanel.classList.contains('open')) {
-                settingsPanel.classList.add('hidden');
-            }
-        });
+        settingsPanel.addEventListener('transitionend', () => { if (!settingsPanel.classList.contains('open')) { settingsPanel.classList.add('hidden'); } });
 
         graphicsSlider.addEventListener('input', (e) => {
-            const quality = parseFloat(e.target.value);
-            renderer.setPixelRatio(quality);
+            const quality = parseFloat(e.target.value); renderer.setPixelRatio(quality);
             if (quality < 0.8) graphicsQualityValue.textContent = "Low";
             else if (quality < 1.2) graphicsQualityValue.textContent = "Medium";
             else graphicsQualityValue.textContent = "High";
         });
 
-        layerPairsSlider.addEventListener('input', (e) => {
-            layerPairsValue.textContent = e.target.value;
-        });
-        layerPairsSlider.addEventListener('change', (e) => {
-            networkConfig.layerPairs = parseInt(e.target.value, 10);
-            buildNetworkArchitecture();
-        });
+        layerPairsSlider.addEventListener('input', (e) => { layerPairsValue.textContent = e.target.value; });
+        layerPairsSlider.addEventListener('change', (e) => { networkConfig.layerPairs = parseInt(e.target.value, 10); buildNetworkArchitecture(); });
 
-        filterCountSlider.addEventListener('input', (e) => {
-            filterCountValue.textContent = e.target.value;
-        });
-        filterCountSlider.addEventListener('change', (e) => {
-            networkConfig.baseFilters = parseInt(e.target.value, 10);
-            buildNetworkArchitecture();
-        });
+        filterCountSlider.addEventListener('input', (e) => { filterCountValue.textContent = e.target.value; });
+        filterCountSlider.addEventListener('change', (e) => { networkConfig.baseFilters = parseInt(e.target.value, 10); buildNetworkArchitecture(); });
         
         layerSpacingSlider.addEventListener('input', (e) => {
             networkConfig.layerSpacing = parseFloat(e.target.value);
             layerSpacingValue.textContent = `${networkConfig.layerSpacing.toFixed(1)}x`;
         });
-        layerSpacingSlider.addEventListener('change', () => {
-            buildNetworkArchitecture();
-        });
+        layerSpacingSlider.addEventListener('change', () => { buildNetworkArchitecture(); });
 
         animationSpeedSlider.addEventListener('input', (e) => {
             networkConfig.animationSpeed = parseFloat(e.target.value);
@@ -845,7 +815,6 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
         renderer.setSize(window.innerWidth, window.innerHeight); 
     }
     
-    // Simple TWEEN.js implementation
     const TWEEN = {
         _tweens: [],
         getAll: function() { return this._tweens; },
@@ -853,80 +822,50 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
         add: function(tween) { this._tweens.push(tween); },
         remove: function(tween) { var i = this._tweens.indexOf(tween); if (i !== -1) { this._tweens.splice(i, 1); } },
         update: function(time, preserve) {
-            if (this._tweens.length === 0) { return false; }
-            var i = 0;
-            time = time !== undefined ? time : (typeof window !== 'undefined' && window.performance !== undefined ? window.performance.now() : Date.now());
-            while (i < this._tweens.length) {
-                if (this._tweens[i].update(time) || preserve) { i++; } else { this._tweens.splice(i, 1); }
-            }
+            if (this._tweens.length === 0) return false;
+            var i = 0; time = time !== undefined ? time : (typeof window !== 'undefined' && window.performance !== undefined ? window.performance.now() : Date.now());
+            while (i < this._tweens.length) { if (this._tweens[i].update(time) || preserve) { i++; } else { this._tweens.splice(i, 1); } }
             return true;
         }
     };
     function Tween(object, group) {
-        this._object = object;
-        this._valuesStart = {};
-        this._valuesEnd = {};
-        this._valuesStartRepeat = {};
-        this._duration = 1000;
-        this._repeat = 0;
-        this._yoyo = false;
-        this._isPlaying = false;
-        this._reversed = false;
-        this._delayTime = 0;
-        this._startTime = null;
-        this._easingFunction = TWEEN.Easing.Linear.None;
-        this._interpolationFunction = TWEEN.Interpolation.Linear;
-        this._chainedTweens = [];
-        this._onStartCallback = null;
-        this._onStartCallbackFired = false;
-        this._onUpdateCallback = null;
-        this._onCompleteCallback = null;
-        this._onStopCallback = null;
-        this.parent = group || TWEEN;
+        this._object = object; this._valuesStart = {}; this._valuesEnd = {}; this._valuesStartRepeat = {};
+        this._duration = 1000; this._repeat = 0; this._yoyo = false; this._isPlaying = false; this._reversed = false;
+        this._delayTime = 0; this._startTime = null; this._easingFunction = TWEEN.Easing.Linear.None;
+        this._interpolationFunction = TWEEN.Interpolation.Linear; this._chainedTweens = []; this._onStartCallback = null;
+        this._onStartCallbackFired = false; this._onUpdateCallback = null; this._onCompleteCallback = null;
+        this._onStopCallback = null; this.parent = group || TWEEN;
     };
     Tween.prototype = {
         to: function(properties, duration) { this._valuesEnd = properties; if (duration !== undefined) { this._duration = duration; } return this; },
         start: function(time) {
-            this.parent.add(this);
-            this._isPlaying = true;
-            this._onStartCallbackFired = false;
+            this.parent.add(this); this._isPlaying = true; this._onStartCallbackFired = false;
             this._startTime = time !== undefined ? time : (typeof window !== 'undefined' && window.performance !== undefined ? window.performance.now() : Date.now());
             this._startTime += this._delayTime;
             for (var property in this._valuesEnd) {
                 if (this._valuesEnd[property] instanceof Array) {
-                    if (this._valuesEnd[property].length === 0) { continue; }
+                    if (this._valuesEnd[property].length === 0) continue;
                     this._valuesEnd[property] = [this._object[property]].concat(this._valuesEnd[property]);
                 }
-                if (this._object[property] === undefined) { continue; }
+                if (this._object[property] === undefined) continue;
                 this._valuesStart[property] = this._object[property];
                 if ((this._valuesStart[property] instanceof Array) === false) { this._valuesStart[property] *= 1.0; }
                 this._valuesStartRepeat[property] = this._valuesStart[property] || 0;
-            }
-            return this;
+            } return this;
         },
         update: function(time) {
             var property, elapsed, value;
-            if (time < this._startTime) { return true; }
-            if (this._onStartCallbackFired === false) {
-                if (this._onStartCallback !== null) { this._onStartCallback.call(this._object); }
-                this._onStartCallbackFired = true;
-            }
-            elapsed = (time - this._startTime) / this._duration;
-            elapsed = elapsed > 1 ? 1 : elapsed;
+            if (time < this._startTime) return true;
+            if (this._onStartCallbackFired === false) { if (this._onStartCallback !== null) { this._onStartCallback.call(this._object); } this._onStartCallbackFired = true; }
+            elapsed = (time - this._startTime) / this._duration; elapsed = elapsed > 1 ? 1 : elapsed;
             value = this._easingFunction(elapsed);
             for (property in this._valuesEnd) {
-                if (this._valuesStart[property] === undefined) { continue; }
-                var start = this._valuesStart[property] || 0;
-                var end = this._valuesEnd[property];
-                if (end instanceof Array) {
-                    this._object[property] = this._interpolationFunction(end, value);
-                } else {
+                if (this._valuesStart[property] === undefined) continue;
+                var start = this._valuesStart[property] || 0, end = this._valuesEnd[property];
+                if (end instanceof Array) { this._object[property] = this._interpolationFunction(end, value); }
+                else {
                     if (typeof(end) === 'string') {
-                        if (end.charAt(0) === '+' || end.charAt(0) === '-') {
-                            end = start + parseFloat(end);
-                        } else {
-                            end = parseFloat(end);
-                        }
+                        if (end.charAt(0) === '+' || end.charAt(0) === '-') { end = start + parseFloat(end); } else { end = parseFloat(end); }
                     }
                     if (typeof(end) === 'number') { this._object[property] = start + (end - start) * value; }
                 }
@@ -940,29 +879,21 @@ Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Out
                         if (this._yoyo) { var tmp = this._valuesStartRepeat[property]; this._valuesStartRepeat[property] = this._valuesEnd[property]; this._valuesEnd[property] = tmp; }
                         this._valuesStart[property] = this._valuesStartRepeat[property];
                     }
-                    if (this._yoyo) { this._reversed = !this._reversed; }
-                    this._startTime = time + this._delayTime;
-                    return true;
+                    if (this._yoyo) { this._reversed = !this._reversed; } this._startTime = time + this._delayTime; return true;
                 } else {
-                     if (this._onCompleteCallback !== null) { this._onCompleteCallback.call(this._object); }
-                    for (var i = 0, numChainedTweens = this._chainedTweens.length; i < numChainedTweens; i++) {
-                        this._chainedTweens[i].start(this._startTime + this._duration);
-                    }
+                    if (this._onCompleteCallback !== null) { this._onCompleteCallback.call(this._object); }
+                    for (var i = 0, numChainedTweens = this._chainedTweens.length; i < numChainedTweens; i++) { this._chainedTweens[i].start(this._startTime + this._duration); }
                     return false;
                 }
-            }
-            return true;
+            } return true;
         },
-        easing: function(easing) { this._easingFunction = easing; return this; },
-        chain: function() { this._chainedTweens = arguments; return this; },
-        onStart: function(callback) { this._onStartCallback = callback; return this; },
-        onUpdate: function(callback) { this._onUpdateCallback = callback; return this; },
-        onComplete: function(callback) { this._onCompleteCallback = callback; return this; },
-        yoyo: function(yoyo) { this._yoyo = yoyo; return this; },
-        repeat: function(repeat) { this._repeat = repeat; return this; },
+        easing: function(e) { this._easingFunction = e; return this; }, chain: function() { this._chainedTweens = arguments; return this; },
+        onStart: function(c) { this._onStartCallback = c; return this; }, onUpdate: function(c) { this._onUpdateCallback = c; return this; },
+        onComplete: function(c) { this._onCompleteCallback = c; return this; }, yoyo: function(y) { this._yoyo = y; return this; },
+        repeat: function(r) { this._repeat = r; return this; },
     };
     TWEEN.Easing = { Linear: { None: function(k) { return k; } }, Sinusoidal: { InOut: function(k) { return -0.5 * (Math.cos(Math.PI * k) - 1); } } };
-    TWEEN.Interpolation = { Linear: function(v, k) { /* ... */ return v[0]; } }; // Simplified
+    TWEEN.Interpolation = { Linear: function(v, k) { return v[0]; } };
 
 
     function animate() { 
