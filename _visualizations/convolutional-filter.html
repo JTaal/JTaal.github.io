@@ -71,7 +71,7 @@
             padding: 1.5rem;
             padding-top: 2rem;
             display: flex;
-            justify-content: flex-start; /* Align items to the start for scrolling */
+            justify-content: flex-start;
             align-items: center;
             gap: 1.5rem;
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -101,31 +101,18 @@
             transition: opacity 0.2s ease-in-out;
             width: 100%;
             display: flex;
-            flex-wrap: nowrap; /* Prevent wrapping */
-            overflow-x: auto; /* Enable horizontal scrolling */
+            flex-wrap: nowrap;
+            overflow-x: auto;
             align-items: center;
             justify-content: flex-start;
             gap: 1.5rem;
-            padding-bottom: 1rem; /* Space for scrollbar */
+            padding-bottom: 1rem;
         }
-        #controls-wrapper::-webkit-scrollbar {
-            height: 8px;
-        }
-        #controls-wrapper::-webkit-scrollbar-track {
-            background: rgba(31, 41, 55, 0.5);
-            border-radius: 4px;
-        }
-        #controls-wrapper::-webkit-scrollbar-thumb {
-            background-color: #4f46e5;
-            border-radius: 4px;
-        }
-        #controls-wrapper::-webkit-scrollbar-thumb:hover {
-            background-color: #6366f1;
-        }
-        #controls-panel.collapsed #controls-wrapper {
-            opacity: 0;
-            pointer-events: none;
-        }
+        #controls-wrapper::-webkit-scrollbar { height: 8px; }
+        #controls-wrapper::-webkit-scrollbar-track { background: rgba(31, 41, 55, 0.5); border-radius: 4px; }
+        #controls-wrapper::-webkit-scrollbar-thumb { background-color: #4f46e5; border-radius: 4px; }
+        #controls-wrapper::-webkit-scrollbar-thumb:hover { background-color: #6366f1; }
+        #controls-panel.collapsed #controls-wrapper { opacity: 0; pointer-events: none; }
         header {
             position: absolute;
             top: 0;
@@ -166,6 +153,24 @@
             transform: none;
             background-color: rgba(55, 65, 81, 0.8);
         }
+        select {
+             background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2220%22%20height%3D%2220%22%20fill%3D%22%239ca3af%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5z%22/%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.2em;
+            padding-right: 2.5rem;
+        }
         input[type="number"] {
             -moz-appearance: textfield;
             background-color: #1f2937;
@@ -183,17 +188,11 @@
             flex-direction: column;
             align-items: center;
             gap: 0.5rem;
-            flex-shrink: 0; /* Prevent control groups from shrinking */
+            flex-shrink: 0;
         }
         #kernel-grid {
             display: grid;
             gap: 5px;
-        }
-        #presets-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
         }
         .canvas-label {
             position: absolute;
@@ -203,6 +202,28 @@
             border-radius: 5px;
             font-size: 14px;
             pointer-events: none;
+        }
+        #calculation-panel {
+            position: absolute;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            font-family: 'monospace';
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: #d1d5db;
+            text-shadow: 1px 1px 2px #000;
+        }
+        .calc-line {
+            display: inline-block;
+            margin-right: 5px;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .calc-line.highlight {
+            background-color: rgba(79, 70, 229, 0.7);
         }
         #settings-button {
             position: absolute;
@@ -265,7 +286,10 @@
                  <label class="text-sm font-medium">Kernel Size</label>
                  <div id="kernel-size-selector" class="flex gap-2"></div>
             </div>
-            <div id="presets-container" class="control-group"></div>
+            <div id="presets-container" class="control-group">
+                <label for="presets-select" class="text-sm font-medium">Presets</label>
+                <select id="presets-select"></select>
+            </div>
             <div class="control-group">
                 <label class="text-sm font-medium mb-1">Kernel Matrix</label>
                 <div id="kernel-grid"></div>
@@ -276,9 +300,16 @@
                     <div class="control-group"><label for="offset-input" class="text-sm font-medium">Offset</label><input id="offset-input" type="number" value="0" step="0.1" class="w-20 h-10"></div>
                 </div>
             </div>
+            <div class="control-group">
+                <label for="animation-speed-slider" class="text-sm font-medium">Animation Speed</label>
+                <input id="animation-speed-slider" type="range" min="0" max="100" value="50">
+            </div>
+             <button id="convolve-button" class="menu-button self-end">Animate Convolution</button>
         </div>
     </div>
     
+    <div id="calculation-panel" class="ui-panel hidden"></div>
+
     <button id="settings-button" title="Settings">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
@@ -317,12 +348,16 @@
 
     let scene, camera, renderer, controls, labelRenderer, raycaster;
     let inputPlane, outputPlane, kernelViz, textureLoader;
+    let outputDataTexture, animatedMaterial;
     const kernelInputs = [];
-    const mouse = new THREE.Vector2(1,1); // Offscreen initially
+    const mouse = new THREE.Vector2(1,1);
     let convolutionLines, outputLine;
     const tempVec = new THREE.Vector3();
     let heightData = null, imageDimensions = { width: 0, height: 0 };
     const MESH_DISPLACEMENT_SCALE = 0.2;
+
+    let isAnimating = false;
+    let animState = { x: 0, y: 0, kernelIdx: 0, timeout: 50 };
 
     const uniforms = {
         uTexture: { value: null },
@@ -334,11 +369,27 @@
     };
     
     const presets = {
-        identity: { name: 'Identity', kernel: [0,0,0, 0,1,0, 0,0,0], divisor: 1, offset: 0 },
-        sharpen: { name: 'Sharpen', kernel: [0,-1,0, -1,5,-1, 0,-1,0], divisor: 1, offset: 0 },
-        boxBlur: { name: 'Box Blur', kernel: [1,1,1, 1,1,1, 1,1,1], divisor: 9, offset: 0 },
-        edgeDetect: { name: 'Edge Detect', kernel: [-1,-1,-1, -1,8,-1, -1,-1,-1], divisor: 1, offset: 0 },
-        emboss: { name: 'Emboss', kernel: [-2,-1,0, -1,1,1, 0,1,2], divisor: 1, offset: 0.5 },
+        '3': {
+            identity: { name: 'Identity', kernel: [0,0,0, 0,1,0, 0,0,0], divisor: 1, offset: 0 },
+            sharpen: { name: 'Sharpen', kernel: [0,-1,0, -1,5,-1, 0,-1,0], divisor: 1, offset: 0 },
+            sharpen_more: { name: 'Sharpen More', kernel: [-1,-1,-1, -1,9,-1, -1,-1,-1], divisor: 1, offset: 0 },
+            box_blur: { name: 'Box Blur', kernel: [1,1,1, 1,1,1, 1,1,1], divisor: 9, offset: 0 },
+            edge_detect: { name: 'Edge Detect', kernel: [-1,-1,-1, -1,8,-1, -1,-1,-1], divisor: 1, offset: 0 },
+            emboss: { name: 'Emboss', kernel: [-2,-1,0, -1,1,1, 0,1,2], divisor: 1, offset: 0.5 },
+            sobel_h: { name: 'Sobel Horizontal', kernel: [1,2,1, 0,0,0, -1,-2,-1], divisor: 1, offset: 0.5 },
+            sobel_v: { name: 'Sobel Vertical', kernel: [1,0,-1, 2,0,-2, 1,0,-1], divisor: 1, offset: 0.5 },
+        },
+        '5': {
+            identity: { name: 'Identity', kernel: Array(25).fill(0).map((_, i) => i === 12 ? 1 : 0), divisor: 1, offset: 0 },
+            gaussian_blur: { name: 'Gaussian Blur 5x5', kernel: [1,4,7,4,1, 4,16,26,16,4, 7,26,41,26,7, 4,16,26,16,4, 1,4,7,4,1], divisor: 273, offset: 0 },
+            unsharp_mask: { name: 'Unsharp Masking', kernel: [1,4,6,4,1, 4,16,24,16,4, 6,24,-476,24,6, 4,16,24,16,4, 1,4,6,4,1], divisor: -256, offset: 0 },
+            motion_blur: { name: 'Motion Blur', kernel: [1,0,0,0,0, 0,1,0,0,0, 0,0,1,0,0, 0,0,0,1,0, 0,0,0,0,1], divisor: 5, offset: 0 },
+        },
+        '7': {
+            identity: { name: 'Identity', kernel: Array(49).fill(0).map((_, i) => i === 24 ? 1 : 0), divisor: 1, offset: 0 },
+            gaussian_blur: { name: 'Gaussian Blur 7x7', kernel: [1,1,2,2,2,1,1, 1,2,5,5,5,2,1, 2,5,12,15,12,5,2, 2,5,15,20,15,5,2, 2,5,12,15,12,5,2, 1,2,5,5,5,2,1, 1,1,2,2,2,1,1], divisor: 220, offset: 0 },
+            lens_blur: { name: 'Lens Blur', kernel: [0,0,1,1,1,0,0, 0,1,1,1,1,1,0, 1,1,1,1,1,1,1, 1,1,1,1,1,1,1, 1,1,1,1,1,1,1, 0,1,1,1,1,1,0, 0,0,1,1,1,0,0], divisor: 33, offset: 0 },
+        }
     };
 
     function init() {
@@ -423,7 +474,7 @@
                         if (i >= uKernelSize) break;
                         for (int j = 0; j < ${MAX_KERNEL_SIZE}; j++) {
                              if (j >= uKernelSize) break;
-                             vec2 offset = vec2(float(j - radius), float(radius - i)); // Flipped y-axis for texture coords
+                             vec2 offset = vec2(float(j - radius), float(radius - i));
                              sum += texture2D(uTexture, vUv + uTexelSize * offset) * uKernel[i * uKernelSize + j];
                         }
                     }
@@ -493,24 +544,6 @@
         document.getElementById('divisor-input').addEventListener('input', updateFromUI);
         document.getElementById('offset-input').addEventListener('input', updateFromUI);
 
-        const presetsContainer = document.getElementById('presets-container');
-        const presetsLabel = document.createElement('label');
-        presetsLabel.className = 'text-sm font-medium';
-        presetsLabel.textContent = '3x3 Presets';
-        presetsContainer.appendChild(presetsLabel);
-        const presetButtons = document.createElement('div');
-        presetButtons.className = 'flex gap-2';
-        presetsContainer.appendChild(presetButtons);
-
-        Object.keys(presets).forEach(key => {
-            const button = document.createElement('button');
-            button.className = 'menu-button';
-            button.textContent = presets[key].name;
-            button.dataset.key = key;
-            button.addEventListener('click', () => applyPreset(key));
-            presetButtons.appendChild(button);
-        });
-
         const sizeSelector = document.getElementById('kernel-size-selector');
         [3, 5, 7].forEach(size => {
             const button = document.createElement('button');
@@ -521,6 +554,15 @@
             sizeSelector.appendChild(button);
         });
         
+        document.getElementById('presets-select').addEventListener('change', (e) => applyPreset(e.target.value));
+        document.getElementById('convolve-button').addEventListener('click', toggleConvolutionAnimation);
+
+        const animSpeedSlider = document.getElementById('animation-speed-slider');
+        animSpeedSlider.addEventListener('input', (e) => {
+            const speed = 100 - parseInt(e.target.value, 10);
+            animState.timeout = speed;
+        });
+
         document.getElementById('info-panel').addEventListener('click', (e) => e.currentTarget.classList.add('expanded'));
         document.getElementById('toggle-icon').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -572,28 +614,40 @@
     }
     
     function changeKernelSize(size) {
+        if(isAnimating) return;
         currentKernelSize = size;
         uniforms.uKernelSize.value = size;
 
-        // Update UI
         document.querySelectorAll('#kernel-size-selector button').forEach(btn => {
             btn.classList.toggle('active', parseInt(btn.dataset.size) === size);
         });
-        document.getElementById('presets-container').style.display = (size === 3) ? 'flex' : 'none';
-
-        // Rebuild grids and visualizations
+        
+        updatePresetDropdown(size);
         rebuildKernelUI(size);
         rebuildKernelViz(size);
         rebuildLineGeometries(size);
+        
+        applyPreset('identity');
+    }
 
-        // Set to identity kernel
-        const kernel = new Float32Array(size * size).fill(0);
-        const center = Math.floor(size*size / 2);
-        kernel[center] = 1;
-        kernelInputs[center].value = 1;
-        document.getElementById('divisor-input').value = 1;
-        document.getElementById('offset-input').value = 0;
-        updateFromUI();
+    function updatePresetDropdown(size) {
+        const select = document.getElementById('presets-select');
+        select.innerHTML = '';
+        
+        const customOption = document.createElement('option');
+        customOption.value = 'custom';
+        customOption.textContent = 'Custom';
+        select.appendChild(customOption);
+
+        const sizePresets = presets[size];
+        if (!sizePresets) return;
+
+        Object.keys(sizePresets).forEach(key => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = sizePresets[key].name;
+            select.appendChild(option);
+        });
     }
 
     function rebuildKernelUI(size) {
@@ -606,7 +660,7 @@
             input.type = 'number';
             input.step = '0.1';
             input.value = 0;
-            input.addEventListener('input', updateFromUI);
+            input.addEventListener('input', () => updateFromUI(true));
             grid.appendChild(input);
             kernelInputs.push(input);
         }
@@ -639,16 +693,23 @@
     }
     
     function applyPreset(key) {
-        if (currentKernelSize !== 3) return;
-        const preset = presets[key];
-        preset.kernel.forEach((val, i) => kernelInputs[i].value = val);
+        if (key === 'custom') return;
+        const preset = presets[currentKernelSize]?.[key];
+        if (!preset) { // Handle identity for sizes without specific presets
+            changeKernelSize(currentKernelSize); // Resets to identity
+            return;
+        };
+        
+        preset.kernel.forEach((val, i) => {
+             if(kernelInputs[i]) kernelInputs[i].value = val
+        });
         document.getElementById('divisor-input').value = preset.divisor;
         document.getElementById('offset-input').value = preset.offset;
-        document.querySelectorAll('#presets-container button').forEach(btn => btn.classList.toggle('active', btn.dataset.key === key));
-        updateFromUI();
+        document.getElementById('presets-select').value = key;
+        updateFromUI(false);
     }
     
-    function updateFromUI() {
+    function updateFromUI(fromInput = true) {
         const size = currentKernelSize;
         const newKernel = new Float32Array(MAX_KERNEL_SIZE * MAX_KERNEL_SIZE).fill(0);
         let activeKernel = [];
@@ -661,9 +722,11 @@
         uniforms.uKernel.value = newKernel;
         uniforms.uDivisor.value = parseFloat(document.getElementById('divisor-input').value) || 1.0;
         uniforms.uOffset.value = parseFloat(document.getElementById('offset-input').value) || 0.0;
-        if(currentKernelSize === 3) {
-           document.querySelectorAll('#presets-container button').forEach(btn => btn.classList.remove('active'));
+        
+        if (fromInput) {
+            document.getElementById('presets-select').value = 'custom';
         }
+        
         updateKernelViz(activeKernel);
     }
 
@@ -683,11 +746,13 @@
     }
 
     function onMouseMove(event) {
+        if(isAnimating) return;
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     }
-    
-    function updateRaycaster() {
+
+    function updateFromRaycaster() {
+        if(isAnimating) return;
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObject(inputPlane);
 
@@ -699,53 +764,8 @@
             kernelViz.visible = true;
             convolutionLines.visible = true;
             outputLine.visible = true;
-
-            const ix = Math.floor(uv.x * imageDimensions.width);
-            const iy = Math.floor((1 - uv.y) * imageDimensions.height);
-            const centerHeight = heightData[iy * imageDimensions.width + ix] || 0;
-
-            kernelViz.position.set(point.x, centerHeight * MESH_DISPLACEMENT_SCALE + 0.1, point.z);
             
-            const stepX = inputPlane.geometry.parameters.width / imageDimensions.width;
-            const stepZ = inputPlane.geometry.parameters.height / imageDimensions.height;
-            
-            const linePos = convolutionLines.geometry.attributes.position;
-            const outPos = outputLine.geometry.attributes.position;
-            let lineIdx = 0;
-            let outputGrayValue = 0;
-            const size = currentKernelSize;
-            const radius = (size - 1) / 2;
-
-            for(let i=0; i < size*size; i++) {
-                const cube = kernelViz.children[i];
-                cube.getWorldPosition(tempVec);
-                linePos.setXYZ(lineIdx, tempVec.x, tempVec.y, tempVec.z);
-                
-                const d_row = Math.floor(i / size) - radius;
-                const d_col = (i % size) - radius;
-
-                const nx = ix + d_col;
-                const ny = iy + d_row;
-
-                let neighborHeight = 0;
-                if (nx >= 0 && nx < imageDimensions.width && ny >= 0 && ny < imageDimensions.height) {
-                    neighborHeight = heightData[ny * imageDimensions.width + nx];
-                }
-                outputGrayValue += neighborHeight * uniforms.uKernel.value[i];
-
-                linePos.setXYZ(lineIdx + 1, point.x + d_col * stepX, neighborHeight * MESH_DISPLACEMENT_SCALE, point.z - d_row * stepZ);
-                lineIdx += 2;
-            }
-            linePos.needsUpdate = true;
-            
-            outputGrayValue = (outputGrayValue / uniforms.uDivisor.value) + uniforms.uOffset.value;
-            outputGrayValue = Math.max(0, Math.min(1, outputGrayValue)); // clamp
-
-            const centerIndex = Math.floor(size*size / 2);
-            kernelViz.children[centerIndex].getWorldPosition(tempVec);
-            outPos.setXYZ(0, tempVec.x, tempVec.y, tempVec.z);
-            outPos.setXYZ(1, point.x, outputGrayValue * MESH_DISPLACEMENT_SCALE, outputPlane.position.z);
-            outPos.needsUpdate = true;
+            updateKernelAndLines(uv, point);
             
         } else {
             kernelViz.visible = false;
@@ -753,6 +773,192 @@
             outputLine.visible = false;
         }
     }
+    
+    function updateKernelAndLines(uv, point) {
+        const ix = Math.floor(uv.x * imageDimensions.width);
+        const iy = Math.floor((1 - uv.y) * imageDimensions.height);
+        const centerHeight = heightData[iy * imageDimensions.width + ix] || 0;
+
+        kernelViz.position.set(point.x, centerHeight * MESH_DISPLACEMENT_SCALE + 0.1, point.z);
+        
+        const stepX = inputPlane.geometry.parameters.width / imageDimensions.width;
+        const stepZ = inputPlane.geometry.parameters.height / imageDimensions.height;
+        
+        const linePos = convolutionLines.geometry.attributes.position;
+        const outPos = outputLine.geometry.attributes.position;
+        let lineIdx = 0;
+        let outputGrayValue = 0;
+        const size = currentKernelSize;
+        const radius = (size - 1) / 2;
+
+        for(let i=0; i < size*size; i++) {
+            const cube = kernelViz.children[i];
+            cube.getWorldPosition(tempVec);
+            linePos.setXYZ(lineIdx, tempVec.x, tempVec.y, tempVec.z);
+            
+            const d_row = Math.floor(i / size) - radius;
+            const d_col = (i % size) - radius;
+
+            const nx = ix + d_col;
+            const ny = iy + d_row;
+
+            let neighborHeight = 0;
+            if (nx >= 0 && nx < imageDimensions.width && ny >= 0 && ny < imageDimensions.height) {
+                neighborHeight = heightData[ny * imageDimensions.width + nx];
+            }
+            outputGrayValue += neighborHeight * uniforms.uKernel.value[i];
+
+            linePos.setXYZ(lineIdx + 1, point.x + d_col * stepX, neighborHeight * MESH_DISPLACEMENT_SCALE, point.z - d_row * stepZ);
+            lineIdx += 2;
+        }
+        linePos.needsUpdate = true;
+        
+        outputGrayValue = (outputGrayValue / uniforms.uDivisor.value) + uniforms.uOffset.value;
+        outputGrayValue = Math.max(0, Math.min(1, outputGrayValue)); // clamp
+
+        const centerIndex = Math.floor(size*size / 2);
+        kernelViz.children[centerIndex].getWorldPosition(tempVec);
+        outPos.setXYZ(0, tempVec.x, tempVec.y, tempVec.z);
+        outPos.setXYZ(1, point.x, outputGrayValue * MESH_DISPLACEMENT_SCALE, outputPlane.position.z);
+        outPos.needsUpdate = true;
+    }
+
+    // --- Animation Logic ---
+    
+    function toggleConvolutionAnimation() {
+        if(isAnimating) {
+            stopConvolutionAnimation();
+        } else {
+            startConvolutionAnimation();
+        }
+    }
+    
+    function startConvolutionAnimation() {
+        if(!heightData) return;
+        isAnimating = true;
+        
+        document.getElementById('controls-wrapper').style.pointerEvents = 'none';
+        document.getElementById('controls-wrapper').style.opacity = '0.5';
+        const convolveBtn = document.getElementById('convolve-button');
+        convolveBtn.textContent = 'Cancel Animation';
+        convolveBtn.classList.add('active');
+
+        controls.enabled = false;
+        
+        const data = new Uint8Array(imageDimensions.width * imageDimensions.height * 4);
+        outputDataTexture = new THREE.DataTexture(data, imageDimensions.width, imageDimensions.height);
+        outputDataTexture.colorSpace = THREE.SRGBColorSpace;
+
+        animatedMaterial = new THREE.MeshBasicMaterial({ map: outputDataTexture });
+        outputPlane.material = animatedMaterial;
+
+        animState = { x: 0, y: 0, kernelIdx: 0, sum: 0, terms: [] };
+        
+        kernelViz.visible = true;
+        convolutionLines.visible = true;
+        outputLine.visible = true;
+
+        document.getElementById('calculation-panel').classList.remove('hidden');
+
+        requestAnimationFrame(convolutionStep);
+    }
+
+    function stopConvolutionAnimation() {
+        isAnimating = false;
+        document.getElementById('controls-wrapper').style.pointerEvents = 'auto';
+        document.getElementById('controls-wrapper').style.opacity = '1';
+        const convolveBtn = document.getElementById('convolve-button');
+        convolveBtn.textContent = 'Animate Convolution';
+        convolveBtn.classList.remove('active');
+
+        controls.enabled = true;
+        outputPlane.material = outputPlane.geometry.attributes.position.count > 0 ? outputPlane.material.clone() : new THREE.MeshBasicMaterial();
+        outputPlane.material.uniforms = uniforms;
+        outputPlane.material.needsUpdate = true;
+        
+        kernelViz.visible = false;
+        convolutionLines.visible = false;
+        outputLine.visible = false;
+        document.getElementById('calculation-panel').classList.add('hidden');
+    }
+
+    function convolutionStep() {
+        if (!isAnimating) return;
+
+        const { width, height } = imageDimensions;
+        const size = currentKernelSize;
+        const radius = (size - 1) / 2;
+
+        // --- Calculation for one kernel element ---
+        const d_row = Math.floor(animState.kernelIdx / size) - radius;
+        const d_col = (animState.kernelIdx % size) - radius;
+        const nx = animState.x + d_col;
+        const ny = animState.y + d_row;
+
+        let neighborHeight = 0;
+        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+            neighborHeight = heightData[ny * width + nx];
+        }
+        
+        const kernelValue = uniforms.uKernel.value[animState.kernelIdx];
+        const term = neighborHeight * kernelValue;
+        animState.sum += term;
+        animState.terms.push({val: neighborHeight, kernel: kernelValue, term});
+
+        // --- Update visualizations ---
+        const uv = new THREE.Vector2((animState.x + 0.5) / width, 1 - (animState.y + 0.5) / height);
+        const planePoint = new THREE.Vector3( (uv.x - 0.5) * inputPlane.geometry.parameters.width, 0, (uv.y - 0.5) * inputPlane.geometry.parameters.height);
+        planePoint.z *= -1; // Correct for plane orientation
+        updateKernelAndLines(uv, planePoint);
+        updateCalculationPanel();
+
+        camera.position.lerp(new THREE.Vector3(planePoint.x, 3, planePoint.z + 4), 0.1);
+        controls.target.lerp(planePoint, 0.1);
+
+        // --- Move to next state ---
+        animState.kernelIdx++;
+        if (animState.kernelIdx >= size * size) {
+            // --- Finalize pixel ---
+            let finalValue = (animState.sum / uniforms.uDivisor.value) + uniforms.uOffset.value;
+            finalValue = Math.floor(Math.max(0, Math.min(1, finalValue)) * 255);
+            
+            const dataIdx = (animState.y * width + animState.x) * 4;
+            outputDataTexture.image.data[dataIdx] = finalValue;
+            outputDataTexture.image.data[dataIdx + 1] = finalValue;
+            outputDataTexture.image.data[dataIdx + 2] = finalValue;
+            outputDataTexture.image.data[dataIdx + 3] = 255;
+            outputDataTexture.needsUpdate = true;
+
+            // --- Move to next pixel ---
+            animState.kernelIdx = 0;
+            animState.sum = 0;
+            animState.terms = [];
+            animState.x++;
+            if (animState.x >= width) {
+                animState.x = 0;
+                animState.y++;
+                if (animState.y >= height) {
+                    stopConvolutionAnimation();
+                    return;
+                }
+            }
+        }
+        
+        setTimeout(() => requestAnimationFrame(convolutionStep), animState.timeout);
+    }
+
+    function updateCalculationPanel() {
+        const panel = document.getElementById('calculation-panel');
+        let html = '';
+        animState.terms.forEach((t, i) => {
+            const highlight = (i === animState.terms.length - 1) ? 'highlight' : '';
+            html += `<span class="calc-line ${highlight}">(${t.val.toFixed(2)}*${t.kernel.toFixed(1)})</span> + `;
+        });
+        html = html.slice(0, -2); // remove trailing +
+        html += `= ${animState.sum.toFixed(2)}`;
+        panel.innerHTML = html;
+    }
+
 
     function onWindowResize() { 
         camera.aspect = window.innerWidth / window.innerHeight; 
@@ -763,7 +969,9 @@
 
     function animate() { 
         controls.update(); 
-        updateRaycaster();
+        if(!isAnimating) {
+           updateFromRaycaster();
+        }
         renderer.render(scene, camera); 
         labelRenderer.render(scene, camera);
     }
