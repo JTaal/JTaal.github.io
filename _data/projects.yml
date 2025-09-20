@@ -33,6 +33,11 @@
   thumbnail: /assets/images/complex-numbers.png
   visualization_url: /visualizations/complex-numbers.html
 
+- title: Convolutional Filter
+  author: Jasper Taal
+  thumbnail: /assets/images/convolutional-filter.png
+  visualization_url: /visualizations/convolutional-filter.html
+
 - title: Deconvolution
   author: Jasper Taal
   thumbnail: /assets/images/deconvolution.png
