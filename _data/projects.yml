@@ -108,6 +108,11 @@
   thumbnail: /assets/images/molecular-biology.png
   visualization_url: /visualizations/molecular-biology.html
 
+- title: Morphological Image Operations
+  author: Jasper Taal
+  thumbnail: /assets/images/morphological-image-operations.png
+  visualization_url: /visualizations/morphological-image-operations.html
+
 - title: Multi Objective Evolutionary Algorithm
   author: Jasper Taal
   thumbnail: /assets/images/multi-objective-evolutionary-algorithm.png
