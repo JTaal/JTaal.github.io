@@ -203,6 +203,11 @@
   thumbnail: /assets/images/turing-patterns.png
   visualization_url: /visualizations/turing-patterns.html
 
+- title: Vector Field
+  author: Jasper Taal
+  thumbnail: /assets/images/vector-field.png
+  visualization_url: /visualizations/vector-field.html
+
 - title: Voronoi Cell Division
   author: Jasper Taal
   thumbnail: /assets/images/voronoi-cell-division.png
