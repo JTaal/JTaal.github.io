@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Convolutional VAE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh; 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        .formula-placeholder {
+            font-family: 'monospace', serif;
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            color: #d1d5db;
+            border: 1px solid #374151;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        
+        .menu-button, .preset-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .menu-button:hover, .preset-button:hover, .toggle-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .preset-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hidden { display: none !important; }
+        canvas { display: block; }
+
+        #settings-button, #fullscreen-button {
+            position: absolute;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #settings-button {
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+        }
+        #fullscreen-button {
+            bottom: 120px;
+            right: 20px;
+            z-index: 11;
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding-right: 2rem; 
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+        #close-settings {
+            font-size: 2.5rem;
+            line-height: 1;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">3D Convolutional VAE</h1>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">Convolutional VAE</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300">
+                This shows a Variational Autoencoder using <b>Convolutional Neural Networks (CNNs)</b> to process 3D data.
+                <br><br>
+                <b>Encoder:</b> A series of <b>convolutional</b> and <b>pooling</b> layers analyze the input shape. Each layer extracts features and reduces the data's size, funneling it towards the compact latent vector.
+                <br><br>
+                <b>Decoder:</b> A reverse series of <b>upsampling</b> and <b>convolutional</b> layers reconstructs the shape from the latent vector.
+             </p>
+             <div id="info-placeholder" class="formula-placeholder">
+Input → CONV → POOL → ... → Latent → ... → UPSAMPLE → CONV → Output
+             </div>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel"></div>
+   
+    <button id="fullscreen-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+   
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+   
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div class="space-y-6">
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Network Architecture</h4>
+            <div class="control-group text-left w-full">
+                <label for="layer-pairs-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Layer Pairs:</span>
+                    <span id="layer-pairs-value">2</span>
+                </label>
+                <input id="layer-pairs-slider" type="range" min="1" max="3" step="1" value="2" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="filter-count-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Base Filters:</span>
+                    <span id="filter-count-value">4</span>
+                </label>
+                <input id="filter-count-slider" type="range" min="4" max="16" step="4" value="4" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="layer-spacing-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Layer Spacing:</span>
+                    <span id="layer-spacing-value">1.0x</span>
+                </label>
+                <input id="layer-spacing-slider" type="range" min="0.5" max="2.5" step="0.1" value="1.0" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="animation-speed-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Animation Speed:</span>
+                    <span id="animation-speed-value">1.0x</span>
+                </label>
+                <input id="animation-speed-slider" type="range" min="0.2" max="3" step="0.1" value="1.0" class="w-full">
+            </div>
+
+            <hr class="border-gray-600">
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Graphics</h4>
+            <div class="control-group text-left w-full">
+                <label for="graphics-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Quality:</span>
+                    <span id="graphics-quality-value">High</span>
+                </label>
+                <input id="graphics-slider" type="range" min="0.5" max="2" step="0.1" value="1.5" class="w-full">
+                 <div class="text-xs text-gray-500 w-full flex justify-between mt-1">
+                     <span>Low</span>
+                     <span>Native</span>
+                     <span>High</span>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+    import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler.js';
+
+    let scene, camera, renderer, controls, clock;
+    let activeSceneObjects = new THREE.Group();
+    let isAnimating = false;
+
+    // --- VAE Specific variables ---
+    let inputMesh, outputMesh, latentViz, latentIndicator, pipelineGroup;
+    let mainTitles = [];
+    let latentVector = [0.0, 0.0, 0.0]; 
+    const shapePresets = {
+        'Sphere': [0.0, 0.0, 0.0],
+        'Cube': [1.0, 0.0, 0.0],
+        'Spiky Ball': [0.0, 1.0, 0.0],
+        'Torus': [0.0, 0.0, 1.0],
+        'Spiky Cube': [1.0, 1.0, 0.0],
+        'Blocky Ring': [1.0, 0.0, 1.0],
+        'Spiky Torus': [0.0, 1.0, 1.0],
+    };
+    let currentShape = 'Sphere';
+    const allLayers = [];
+    let networkConfig = {
+        layerPairs: 2,
+        baseFilters: 4,
+        animationSpeed: 1.0,
+        layerSpacing: 1.0
+    };
+
+    function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 5, 25);
+       
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 2, 0);
+
+        const ambient = new THREE.AmbientLight(0xcccccc);
+        scene.add(ambient);
+        const light1 = new THREE.DirectionalLight(0xffffff, 0.7);
+        light1.position.set(10, 10, 10);
+        scene.add(light1);
+       
+        scene.add(activeSceneObjects);
+
+        initVaeVisualizer();
+        setupControls();
+        setupInfoPanel();
+        setupSettingsPanel();
+        setupFullscreen();
+       
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.setAnimationLoop(animate);
+    }
+    
+    function initVaeVisualizer() {
+        const DETAIL = 32;
+        const RADIUS = 2;
+        const baseGeo = new THREE.SphereGeometry(RADIUS, DETAIL, DETAIL);
+
+        const tempBoxGeo = new THREE.BoxGeometry(3, 3, 3);
+        const boxSampler = new MeshSurfaceSampler(new THREE.Mesh(tempBoxGeo)).build();
+        const cubePositions = new Float32Array(baseGeo.attributes.position.count * 3);
+        for (let i = 0; i < baseGeo.attributes.position.count; i++) {
+            const p = new THREE.Vector3();
+            boxSampler.sample(p);
+            cubePositions.set([p.x, p.y, p.z], i * 3);
+        }
+        
+        const spikyPositions = new Float32Array(baseGeo.attributes.position.count * 3);
+        const tempVec = new THREE.Vector3();
+        for (let i = 0; i < baseGeo.attributes.position.count; i++) {
+            tempVec.fromBufferAttribute(baseGeo.attributes.position, i);
+            const spike = 1.0 + (Math.sin(tempVec.y * 5) * Math.cos(tempVec.x * 5)) * 0.3;
+            tempVec.setLength(RADIUS * spike);
+            spikyPositions.set([tempVec.x, tempVec.y, tempVec.z], i * 3);
+        }
+
+        const torusPositions = new Float32Array(baseGeo.attributes.position.count * 3);
+        const R = 1.5; // Major radius
+        const r = 0.75; // Minor radius
+        for (let i = 0; i < baseGeo.attributes.position.count; i++) {
+            const sx = baseGeo.attributes.position.getX(i);
+            const sy = baseGeo.attributes.position.getY(i);
+            const sz = baseGeo.attributes.position.getZ(i);
+            const theta = Math.atan2(sx, sz);
+            const phi = Math.acos(sy / RADIUS);
+            
+            const tx = (R + r * Math.cos(phi * 2)) * Math.sin(theta);
+            const ty = r * Math.sin(phi * 2);
+            const tz = (R + r * Math.cos(phi * 2)) * Math.cos(theta);
+            torusPositions.set([tx, ty, tz], i * 3);
+        }
+
+        baseGeo.morphAttributes.position = [
+            new THREE.BufferAttribute(cubePositions, 3),
+            new THREE.BufferAttribute(spikyPositions, 3),
+            new THREE.BufferAttribute(torusPositions, 3),
+        ];
+        
+        const morphMat = new THREE.MeshStandardMaterial({
+            color: 0x818cf8, metalness: 0.1, roughness: 0.3, morphTargets: true
+        });
+
+        inputMesh = new THREE.Mesh(baseGeo, morphMat);
+        outputMesh = new THREE.Mesh(baseGeo.clone(), morphMat);
+        outputMesh.morphTargetInfluences = [0, 0, 0];
+        activeSceneObjects.add(inputMesh, outputMesh);
+
+        pipelineGroup = new THREE.Group();
+        activeSceneObjects.add(pipelineGroup);
+        
+        buildNetworkArchitecture(); 
+
+        latentViz = new THREE.Group();
+        latentViz.position.set(0, 2, 0);
+        
+        const boxHelper = new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4)), 0x444444);
+        latentViz.add(boxHelper);
+
+        Object.entries(shapePresets).forEach(([name, vec]) => {
+            const [x, y, z] = vec;
+            const mesh = createLatentMesh(baseGeo.clone(), morphMat.clone(), [x, y, z]);
+            mesh.position.set((x - 0.5) * 4, (y - 0.5) * 4, (z - 0.5) * 4);
+            latentViz.add(mesh);
+        });
+        
+        const indicatorGeo = new THREE.SphereGeometry(0.15, 16, 16);
+        const indicatorMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+        latentIndicator = new THREE.Mesh(indicatorGeo, indicatorMat);
+        latentViz.add(latentIndicator);
+        pipelineGroup.add(latentViz);
+
+        updateFromLatentVector();
+    }
+
+    function createText(text, pos, size = 40) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 512;
+        context.font = `Bold ${size}px Inter`;
+        context.fillStyle = "rgba(230, 230, 230, 0.9)";
+        context.textAlign = 'center';
+        context.fillText(text, canvas.width/2, 50);
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.scale.set(canvas.width / 100, canvas.height / 100, 1.0);
+        sprite.position.copy(pos);
+        return sprite;
+    }
+
+    function createConvLayer(config) {
+        const { w, h, d, x, y, z, label, type } = config;
+        const group = new THREE.Group();
+        group.position.set(x, y, z);
+        
+        const rotatableGroup = new THREE.Group();
+        rotatableGroup.rotation.y = Math.PI / 2;
+        group.add(rotatableGroup);
+
+        const depthScale = 0.2;
+        const volumeGeo = new THREE.BoxGeometry(w, h, d * depthScale);
+        const volumeMat = new THREE.MeshStandardMaterial({
+            color: type === 'conv' ? 0x4f46e5 : 0xbe185d,
+            transparent: true,
+            opacity: 0.15,
+        });
+        const volumeMesh = new THREE.Mesh(volumeGeo, volumeMat);
+        
+        const edges = new THREE.EdgesGeometry(volumeGeo);
+        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ 
+            color: type === 'conv' ? 0x818cf8 : 0xf472b6,
+            transparent: true,
+            opacity: 0.5
+        }));
+        
+        const filterSize = Math.min(w, h) * 0.4;
+        const filterGeo = new THREE.BoxGeometry(filterSize, filterSize, (d * depthScale) + 0.01);
+        const filterMat = new THREE.MeshStandardMaterial({
+            color: 0xfbbf24,
+            emissive: 0x92400e,
+            metalness: 0.2,
+            roughness: 0.4,
+        });
+        const filterMesh = new THREE.Mesh(filterGeo, filterMat);
+        filterMesh.visible = (type === 'conv' || type === 'up');
+
+        rotatableGroup.add(volumeMesh, line, filterMesh);
+
+        group.add(createText(`${label}`, new THREE.Vector3(0, -Math.max(w,h)/2 - 0.7, 0), 24));
+        group.add(createText(`${w}x${h}x${d}`, new THREE.Vector3(0, Math.max(w,h)/2 + 0.7, 0), 24));
+        
+        group.userData.filter = filterMesh;
+        group.userData.line = line;
+
+        pipelineGroup.add(group);
+        allLayers.push(group);
+        return group;
+    }
+
+    function buildNetworkArchitecture() {
+        while(allLayers.length > 0) {
+            const layer = allLayers.pop();
+            layer.traverse(obj => {
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if(Array.isArray(obj.material)) obj.material.forEach(m=>m.dispose());
+                    else obj.material.dispose();
+                }
+            });
+            pipelineGroup.remove(layer);
+        }
+        mainTitles.forEach(t => pipelineGroup.remove(t));
+        mainTitles = [];
+
+        const { layerPairs, baseFilters, layerSpacing } = networkConfig;
+        
+        const encoderConfigs = [];
+        let totalEncoderComplexity = 0;
+        let currentDim = 4.0;
+        let currentFilters = baseFilters;
+
+        for (let i = 0; i < layerPairs; i++) {
+            const convConfig = { w: currentDim, h: currentDim, d: currentFilters, label: `CONV ${i + 1}`, type: 'conv' };
+            convConfig.complexity = convConfig.w * convConfig.h * convConfig.d;
+            encoderConfigs.push(convConfig);
+            totalEncoderComplexity += convConfig.complexity;
+
+            currentDim /= 2;
+            const poolConfig = { w: currentDim, h: currentDim, d: currentFilters, label: `POOL ${i + 1}`, type: 'pool' };
+            poolConfig.complexity = poolConfig.w * poolConfig.h * poolConfig.d;
+            encoderConfigs.push(poolConfig);
+            totalEncoderComplexity += poolConfig.complexity;
+            
+            if (i < layerPairs -1) currentFilters *= 2;
+        }
+
+        const decoderConfigs = [];
+        let totalDecoderComplexity = 0;
+
+        for (let i = 0; i < layerPairs; i++) {
+            const upsampleConfig = { w: currentDim, h: currentDim, d: currentFilters, label: `UPSAMPLE ${i + 1}`, type: 'up' };
+            upsampleConfig.complexity = upsampleConfig.w * upsampleConfig.h * upsampleConfig.d;
+            decoderConfigs.push(upsampleConfig);
+            totalDecoderComplexity += upsampleConfig.complexity;
+
+            currentDim *= 2;
+            if (i < layerPairs -1) currentFilters /= 2;
+
+            const convConfig = { w: currentDim, h: currentDim, d: (i === layerPairs - 1) ? 1 : currentFilters, label: `CONV ${layerPairs + i + 1}`, type: 'conv'};
+            convConfig.complexity = convConfig.w * convConfig.h * convConfig.d;
+            decoderConfigs.push(convConfig);
+            totalDecoderComplexity += convConfig.complexity;
+        }
+
+        const ENCODER_VISUAL_SPAN = (5 + (networkConfig.layerPairs * 2.0) + (networkConfig.baseFilters * 1.5)) * layerSpacing;
+        const DECODER_VISUAL_SPAN = ENCODER_VISUAL_SPAN;
+        const LATENT_PADDING = 2.5;
+        const IO_PADDING = 4.0;
+
+        const encoderEnd = -LATENT_PADDING;
+        const encoderStart = encoderEnd - ENCODER_VISUAL_SPAN;
+        const decoderStart = LATENT_PADDING;
+        const decoderEnd = decoderStart + DECODER_VISUAL_SPAN;
+        const inputX = encoderStart - IO_PADDING;
+        const outputX = decoderEnd + IO_PADDING;
+
+        inputMesh.position.x = inputX;
+        outputMesh.position.x = outputX;
+
+        mainTitles.push(createText("INPUT", new THREE.Vector3(inputX, 5.5, 0)));
+        mainTitles.push(createText("ENCODER", new THREE.Vector3((encoderStart + encoderEnd) / 2, 5.5, 0)));
+        mainTitles.push(createText("LATENT SPACE", new THREE.Vector3(0, 5.5, 0)));
+        mainTitles.push(createText("DECODER", new THREE.Vector3((decoderStart + decoderEnd) / 2, 5.5, 0)));
+        mainTitles.push(createText("OUTPUT", new THREE.Vector3(outputX, 5.5, 0)));
+        mainTitles.forEach(t => pipelineGroup.add(t));
+        
+        let currentX = encoderStart;
+        for (const config of encoderConfigs) {
+            const layerSpan = (config.complexity / totalEncoderComplexity) * ENCODER_VISUAL_SPAN;
+            config.x = currentX + layerSpan / 2;
+            config.y = 2; config.z = 0;
+            createConvLayer(config);
+            currentX += layerSpan;
+        }
+        
+        currentX = decoderStart;
+        for (const config of decoderConfigs) {
+            const layerSpan = (config.complexity / totalDecoderComplexity) * DECODER_VISUAL_SPAN;
+            config.x = currentX + layerSpan / 2;
+            config.y = 2; config.z = 0;
+            createConvLayer(config);
+            currentX += layerSpan;
+        }
+    }
+    
+    function createLatentMesh(baseGeo, morphMat, influences) {
+        const mesh = new THREE.Mesh(baseGeo, morphMat);
+        if (mesh.morphTargetInfluences) {
+            mesh.morphTargetInfluences[0] = influences[0];
+            mesh.morphTargetInfluences[1] = influences[1];
+            mesh.morphTargetInfluences[2] = influences[2];
+        }
+        mesh.scale.set(0.2, 0.2, 0.2);
+        mesh.rotation.x = Math.PI / 6;
+        mesh.rotation.y = Math.PI / 4;
+        return mesh;
+    }
+
+    function updateFromLatentVector() {
+        if (!outputMesh || !outputMesh.morphTargetInfluences) return;
+        outputMesh.morphTargetInfluences[0] = latentVector[0];
+        outputMesh.morphTargetInfluences[1] = latentVector[1];
+        outputMesh.morphTargetInfluences[2] = latentVector[2];
+        inputMesh.morphTargetInfluences[0] = latentVector[0];
+        inputMesh.morphTargetInfluences[1] = latentVector[1];
+        inputMesh.morphTargetInfluences[2] = latentVector[2];
+        latentIndicator.position.set((latentVector[0] - 0.5) * 4, (latentVector[1] - 0.5) * 4, (latentVector[2] - 0.5) * 4);
+    }
+
+    function runAnimationCycle() {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        const dataPacket = new THREE.Mesh(
+            new THREE.SphereGeometry(0.2, 16, 16),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xaaaaaa })
+        );
+        scene.add(dataPacket);
+
+        const encoderChildren = allLayers.filter(l => l.position.x < 0).sort((a,b) => a.position.x - b.position.x);
+        const decoderChildren = allLayers.filter(l => l.position.x > 0).sort((a,b) => a.position.x - b.position.x);
+
+        const allWaypoints = [
+            inputMesh, 
+            ...encoderChildren,
+            latentIndicator,
+            ...decoderChildren, 
+            outputMesh
+        ];
+        
+        const chainHead = new Tween({});
+        let currentTween = chainHead;
+        let duration = 500 / networkConfig.animationSpeed;
+
+        for(let i = 0; i < allWaypoints.length - 1; i++) {
+            const startNode = allWaypoints[i];
+            const endNode = allWaypoints[i+1];
+            
+            const startPos = new THREE.Vector3();
+            startNode.getWorldPosition(startPos);
+            
+            const endPos = new THREE.Vector3();
+            endNode.getWorldPosition(endPos);
+
+            const tween = new Tween(dataPacket.position)
+                .to(endPos, duration)
+                .easing(TWEEN.Easing.Sinusoidal.InOut)
+                .onStart(() => {
+                    if (startNode.userData && startNode.userData.filter) {
+                        animateFilter(startNode);
+                    }
+                });
+
+            if (i === 0) dataPacket.position.copy(startPos);
+            
+            currentTween.chain(tween);
+            currentTween = tween;
+        }
+
+        currentTween.onComplete(() => {
+            isAnimating = false;
+            scene.remove(dataPacket);
+        });
+        
+        chainHead.start();
+    }
+
+    function animateFilter(layer) {
+        const filter = layer.userData.filter;
+        const line = layer.userData.line;
+        if (!filter) return;
+
+        const startColor = { r: line.material.color.r, g: line.material.color.g, b: line.material.color.b };
+        new Tween(startColor)
+            .to({ r: 1, g: 1, b: 1}, 250 / networkConfig.animationSpeed)
+            .onUpdate(() => line.material.color.setRGB(startColor.r, startColor.g, startColor.b))
+            .yoyo(true)
+            .repeat(1)
+            .start();
+
+        const w = filter.geometry.parameters.width / 2;
+        const h = filter.geometry.parameters.height / 2;
+        filter.position.set(-w, h, 0);
+        new Tween(filter.position)
+            .to({ x: w, y: -h }, 500 / networkConfig.animationSpeed)
+            .easing(TWEEN.Easing.Linear.None)
+            .start();
+    }
+
+    function setupControls() {
+        const controlsDiv = document.getElementById('controls-panel');
+        controlsDiv.innerHTML = `
+            <div class="control-group">
+                <label class="text-sm font-medium">Input Shape</label>
+                <div id="shape-presets" class="flex gap-2 flex-wrap justify-center"></div>
+            </div>
+            <div class="control-group w-32">
+                 <label for="latent-x-slider" class="text-sm font-medium w-full flex justify-between">Cubeness: <span id="latent-x-value">0.0</span></label>
+                 <input id="latent-x-slider" type="range" min="0" max="1" step="0.01" value="0.0" class="w-full">
+            </div>
+            <div class="control-group w-32">
+                 <label for="latent-y-slider" class="text-sm font-medium w-full flex justify-between">Spikiness: <span id="latent-y-value">0.0</span></label>
+                 <input id="latent-y-slider" type="range" min="0" max="1" step="0.01" value="0.0" class="w-full">
+            </div>
+            <div class="control-group w-32">
+                 <label for="latent-z-slider" class="text-sm font-medium w-full flex justify-between">Hollowness: <span id="latent-z-value">0.0</span></label>
+                 <input id="latent-z-slider" type="range" min="0" max="1" step="0.01" value="0.0" class="w-full">
+            </div>
+            <button id="run-btn" class="toggle-button active">Run Autoencoder</button>
+        `;
+
+        const presetsContainer = document.getElementById('shape-presets');
+        Object.keys(shapePresets).forEach(name => {
+            const btn = document.createElement('button');
+            btn.className = 'preset-button';
+            if (name === currentShape) btn.classList.add('active');
+            btn.textContent = name;
+            btn.onclick = () => {
+                currentShape = name;
+                document.querySelectorAll('#shape-presets .preset-button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                latentVector = shapePresets[name].slice();
+                document.getElementById('latent-x-slider').value = latentVector[0];
+                document.getElementById('latent-y-slider').value = latentVector[1];
+                document.getElementById('latent-z-slider').value = latentVector[2];
+                document.getElementById('latent-x-value').textContent = latentVector[0].toFixed(2);
+                document.getElementById('latent-y-value').textContent = latentVector[1].toFixed(2);
+                document.getElementById('latent-z-value').textContent = latentVector[2].toFixed(2);
+                updateFromLatentVector();
+            };
+            presetsContainer.appendChild(btn);
+        });
+
+        document.getElementById('latent-x-slider').addEventListener('input', (e) => {
+            latentVector[0] = parseFloat(e.target.value);
+            document.getElementById('latent-x-value').textContent = latentVector[0].toFixed(2);
+            updateFromLatentVector();
+        });
+        document.getElementById('latent-y-slider').addEventListener('input', (e) => {
+            latentVector[1] = parseFloat(e.target.value);
+            document.getElementById('latent-y-value').textContent = latentVector[1].toFixed(2);
+            updateFromLatentVector();
+        });
+        document.getElementById('latent-z-slider').addEventListener('input', (e) => {
+            latentVector[2] = parseFloat(e.target.value);
+            document.getElementById('latent-z-value').textContent = latentVector[2].toFixed(2);
+            updateFromLatentVector();
+        });
+        
+        document.getElementById('run-btn').addEventListener('click', runAnimationCycle);
+    }
+    
+    function setupInfoPanel() {
+        document.getElementById('info-panel').addEventListener('click', (e) => {
+            e.currentTarget.classList.toggle('expanded');
+        });
+    }
+
+    function setupFullscreen() {
+        const btn = document.getElementById('fullscreen-button');
+        if (!document.fullscreenEnabled) { btn.style.display = 'none'; return; }
+        btn.addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        });
+    }
+   
+    function setupSettingsPanel() {
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsButton = document.getElementById('settings-button');
+        const closeSettingsButton = document.getElementById('close-settings');
+        const graphicsSlider = document.getElementById('graphics-slider');
+        const graphicsQualityValue = document.getElementById('graphics-quality-value');
+        const layerPairsSlider = document.getElementById('layer-pairs-slider');
+        const layerPairsValue = document.getElementById('layer-pairs-value');
+        const filterCountSlider = document.getElementById('filter-count-slider');
+        const filterCountValue = document.getElementById('filter-count-value');
+        const animationSpeedSlider = document.getElementById('animation-speed-slider');
+        const animationSpeedValue = document.getElementById('animation-speed-value');
+        const layerSpacingSlider = document.getElementById('layer-spacing-slider');
+        const layerSpacingValue = document.getElementById('layer-spacing-value');
+
+        function toggleSettingsPanel() {
+            const isOpen = settingsPanel.classList.contains('open');
+            if (isOpen) {
+                settingsPanel.classList.remove('open');
+            } else {
+                settingsPanel.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    settingsPanel.classList.add('open');
+                });
+            }
+        }
+
+        settingsButton.addEventListener('click', toggleSettingsPanel);
+        closeSettingsButton.addEventListener('click', toggleSettingsPanel);
+
+        settingsPanel.addEventListener('transitionend', () => {
+            if (!settingsPanel.classList.contains('open')) {
+                settingsPanel.classList.add('hidden');
+            }
+        });
+
+        graphicsSlider.addEventListener('input', (e) => {
+            const quality = parseFloat(e.target.value);
+            renderer.setPixelRatio(quality);
+            if (quality < 0.8) graphicsQualityValue.textContent = "Low";
+            else if (quality < 1.2) graphicsQualityValue.textContent = "Medium";
+            else graphicsQualityValue.textContent = "High";
+        });
+
+        layerPairsSlider.addEventListener('input', (e) => {
+            layerPairsValue.textContent = e.target.value;
+        });
+        layerPairsSlider.addEventListener('change', (e) => {
+            networkConfig.layerPairs = parseInt(e.target.value, 10);
+            buildNetworkArchitecture();
+        });
+
+        filterCountSlider.addEventListener('input', (e) => {
+            filterCountValue.textContent = e.target.value;
+        });
+        filterCountSlider.addEventListener('change', (e) => {
+            networkConfig.baseFilters = parseInt(e.target.value, 10);
+            buildNetworkArchitecture();
+        });
+        
+        layerSpacingSlider.addEventListener('input', (e) => {
+            networkConfig.layerSpacing = parseFloat(e.target.value);
+            layerSpacingValue.textContent = `${networkConfig.layerSpacing.toFixed(1)}x`;
+        });
+        layerSpacingSlider.addEventListener('change', () => {
+            buildNetworkArchitecture();
+        });
+
+        animationSpeedSlider.addEventListener('input', (e) => {
+            networkConfig.animationSpeed = parseFloat(e.target.value);
+            animationSpeedValue.textContent = `${networkConfig.animationSpeed.toFixed(1)}x`;
+        });
+    }
+
+    function onWindowResize() { 
+        camera.aspect = window.innerWidth / window.innerHeight; 
+        camera.updateProjectionMatrix(); 
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+    }
+    
+    // Simple TWEEN.js implementation
+    const TWEEN = {
+        _tweens: [],
+        getAll: function() { return this._tweens; },
+        removeAll: function() { this._tweens = []; },
+        add: function(tween) { this._tweens.push(tween); },
+        remove: function(tween) { var i = this._tweens.indexOf(tween); if (i !== -1) { this._tweens.splice(i, 1); } },
+        update: function(time, preserve) {
+            if (this._tweens.length === 0) { return false; }
+            var i = 0;
+            time = time !== undefined ? time : (typeof window !== 'undefined' && window.performance !== undefined ? window.performance.now() : Date.now());
+            while (i < this._tweens.length) {
+                if (this._tweens[i].update(time) || preserve) { i++; } else { this._tweens.splice(i, 1); }
+            }
+            return true;
+        }
+    };
+    function Tween(object, group) {
+        this._object = object;
+        this._valuesStart = {};
+        this._valuesEnd = {};
+        this._valuesStartRepeat = {};
+        this._duration = 1000;
+        this._repeat = 0;
+        this._yoyo = false;
+        this._isPlaying = false;
+        this._reversed = false;
+        this._delayTime = 0;
+        this._startTime = null;
+        this._easingFunction = TWEEN.Easing.Linear.None;
+        this._interpolationFunction = TWEEN.Interpolation.Linear;
+        this._chainedTweens = [];
+        this._onStartCallback = null;
+        this._onStartCallbackFired = false;
+        this._onUpdateCallback = null;
+        this._onCompleteCallback = null;
+        this._onStopCallback = null;
+        this.parent = group || TWEEN;
+    };
+    Tween.prototype = {
+        to: function(properties, duration) { this._valuesEnd = properties; if (duration !== undefined) { this._duration = duration; } return this; },
+        start: function(time) {
+            this.parent.add(this);
+            this._isPlaying = true;
+            this._onStartCallbackFired = false;
+            this._startTime = time !== undefined ? time : (typeof window !== 'undefined' && window.performance !== undefined ? window.performance.now() : Date.now());
+            this._startTime += this._delayTime;
+            for (var property in this._valuesEnd) {
+                if (this._valuesEnd[property] instanceof Array) {
+                    if (this._valuesEnd[property].length === 0) { continue; }
+                    this._valuesEnd[property] = [this._object[property]].concat(this._valuesEnd[property]);
+                }
+                if (this._object[property] === undefined) { continue; }
+                this._valuesStart[property] = this._object[property];
+                if ((this._valuesStart[property] instanceof Array) === false) { this._valuesStart[property] *= 1.0; }
+                this._valuesStartRepeat[property] = this._valuesStart[property] || 0;
+            }
+            return this;
+        },
+        update: function(time) {
+            var property, elapsed, value;
+            if (time < this._startTime) { return true; }
+            if (this._onStartCallbackFired === false) {
+                if (this._onStartCallback !== null) { this._onStartCallback.call(this._object); }
+                this._onStartCallbackFired = true;
+            }
+            elapsed = (time - this._startTime) / this._duration;
+            elapsed = elapsed > 1 ? 1 : elapsed;
+            value = this._easingFunction(elapsed);
+            for (property in this._valuesEnd) {
+                if (this._valuesStart[property] === undefined) { continue; }
+                var start = this._valuesStart[property] || 0;
+                var end = this._valuesEnd[property];
+                if (end instanceof Array) {
+                    this._object[property] = this._interpolationFunction(end, value);
+                } else {
+                    if (typeof(end) === 'string') {
+                        if (end.charAt(0) === '+' || end.charAt(0) === '-') {
+                            end = start + parseFloat(end);
+                        } else {
+                            end = parseFloat(end);
+                        }
+                    }
+                    if (typeof(end) === 'number') { this._object[property] = start + (end - start) * value; }
+                }
+            }
+            if (this._onUpdateCallback !== null) { this._onUpdateCallback.call(this._object, value); }
+            if (elapsed === 1) {
+                if (this._repeat > 0) {
+                    if (isFinite(this._repeat)) { this._repeat--; }
+                    for (property in this._valuesStartRepeat) {
+                        if (typeof(this._valuesEnd[property]) === 'string') { this._valuesStartRepeat[property] = this._valuesStartRepeat[property] + parseFloat(this._valuesEnd[property]); }
+                        if (this._yoyo) { var tmp = this._valuesStartRepeat[property]; this._valuesStartRepeat[property] = this._valuesEnd[property]; this._valuesEnd[property] = tmp; }
+                        this._valuesStart[property] = this._valuesStartRepeat[property];
+                    }
+                    if (this._yoyo) { this._reversed = !this._reversed; }
+                    this._startTime = time + this._delayTime;
+                    return true;
+                } else {
+                     if (this._onCompleteCallback !== null) { this._onCompleteCallback.call(this._object); }
+                    for (var i = 0, numChainedTweens = this._chainedTweens.length; i < numChainedTweens; i++) {
+                        this._chainedTweens[i].start(this._startTime + this._duration);
+                    }
+                    return false;
+                }
+            }
+            return true;
+        },
+        easing: function(easing) { this._easingFunction = easing; return this; },
+        chain: function() { this._chainedTweens = arguments; return this; },
+        onStart: function(callback) { this._onStartCallback = callback; return this; },
+        onUpdate: function(callback) { this._onUpdateCallback = callback; return this; },
+        onComplete: function(callback) { this._onCompleteCallback = callback; return this; },
+        yoyo: function(yoyo) { this._yoyo = yoyo; return this; },
+        repeat: function(repeat) { this._repeat = repeat; return this; },
+    };
+    TWEEN.Easing = { Linear: { None: function(k) { return k; } }, Sinusoidal: { InOut: function(k) { return -0.5 * (Math.cos(Math.PI * k) - 1); } } };
+    TWEEN.Interpolation = { Linear: function(v, k) { /* ... */ return v[0]; } }; // Simplified
+
+
+    function animate() { 
+        const delta = clock.getDelta();
+        TWEEN.update();
+        controls.update(); 
+        
+        if (latentViz) {
+            const cameraNormal = camera.position.clone().normalize();
+            latentViz.children.forEach(child => {
+                if (child.isMesh && child !== latentIndicator) {
+                    child.quaternion.copy(camera.quaternion);
+                }
+            });
+        }
+
+        renderer.render(scene, camera); 
+    }
+   
+    init();
+
+</script>
+</body>
+</html>
+
