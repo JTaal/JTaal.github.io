@@ -188,6 +188,11 @@
   thumbnail: /assets/images/rotary-positional-embedding.png
   visualization_url: /visualizations/rotary-positional-embedding.html
 
+- title: Schrödinger'S Equation
+  author: Jasper Taal
+  thumbnail: /assets/images/Schrödinger's-equation.png
+  visualization_url: /visualizations/Schrödinger's-equation.html
+
 - title: Sorting Algorithms
   author: Jasper Taal
   thumbnail: /assets/images/sorting-algorithms.png
