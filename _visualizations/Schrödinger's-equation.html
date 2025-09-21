@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Wavepacket Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh;
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        .formula-placeholder {
+            font-family: 'Georgia', serif;
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-top: 1rem;
+            color: #d1d5db;
+            border: 1px solid #374151;
+        }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        #menu {
+            display: flex;
+            gap: 10px;
+        }
+        .menu-button, .preset-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .menu-button:hover, .preset-button:hover, .toggle-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .preset-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type="text"], input[type="number"] {
+            -moz-appearance: textfield;
+            background-color: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            color: white;
+            text-align: center;
+            padding: 0.25rem 0.5rem;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hidden { display: none !important; }
+        canvas { display: block; }
+
+        #settings-button, #fullscreen-button {
+            position: absolute;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #settings-button {
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+        }
+        #fullscreen-button {
+            bottom: 120px;
+            right: 20px;
+            z-index: 11;
+        }
+        #settings-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px) rotate(45deg);
+        }
+        #fullscreen-button:hover {
+             background-color: #4338ca;
+            transform: translateY(-2px) scale(1.1);
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding-right: 2rem;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel::-webkit-scrollbar {
+            width: 12px;
+        }
+        #settings-panel::-webkit-scrollbar-track {
+            background: rgba(17, 24, 39, 0.1);
+        }
+        #settings-panel::-webkit-scrollbar-thumb {
+            background-color: #4f46e5;
+            border-radius: 10px;
+            border: 3px solid rgba(17, 24, 39, 0.85);
+            background-clip: padding-box;
+        }
+        #settings-panel::-webkit-scrollbar-thumb:hover {
+            background-color: #6366f1;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+        #close-settings {
+            font-size: 2.5rem;
+            line-height: 1;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 40px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+        }
+        input[type="color"]::-moz-color-swatch {
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+        }
+        body.fullscreen-active header,
+        body.fullscreen-active #info-panel {
+            display: none !important;
+        }
+        body.fullscreen-active #controls-panel,
+        body.fullscreen-active #settings-button,
+        body.fullscreen-active #fullscreen-button {
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        body.fullscreen-active #controls-panel.show-on-hover,
+        body.fullscreen-active #settings-button.show-on-hover,
+        body.fullscreen-active #fullscreen-button.show-on-hover {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
+        .mobile-menu-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 10px 16px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .mobile-menu-item:hover {
+            background-color: #4338ca;
+        }
+        .mobile-menu-item.active {
+            background-color: #4f46e5;
+            font-weight: bold;
+        }
+        #mobile-menu-container { display: none; }
+        .label-text {
+            color: white;
+            padding: 4px 8px;
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 4px;
+        }
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            header h1 { font-size: 1.125rem; }
+            #menu { display: none !important; }
+            #mobile-menu-container { display: block; }
+            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #fullscreen-button { bottom: 100px; right: 10px; }
+            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
+            #controls-panel { padding: 0.75rem; gap: 0.75rem; justify-content: space-around; }
+            .control-group { gap: 0.25rem; }
+            #controls-panel .text-3xl { font-size: 1.5rem; }
+            #controls-panel label, #controls-panel .text-sm, #controls-panel .text-xs { font-size: 0.75rem; }
+            input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Quantum Visualizer</h1>
+        <div id="menu"></div>
+        <div id="mobile-menu-container" class="relative">
+            <button id="mobile-menu-button" class="menu-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <span id="mobile-menu-label">Views</span>
+            </button>
+            <div id="mobile-menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-30"></div>
+        </div>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400"></h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300"></p>
+             <div id="info-placeholder" class="formula-placeholder"></div>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel"></div>
+
+    <button id="fullscreen-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-inherit z-10 py-2">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div class="space-y-6">
+             <!-- General Settings -->
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">VR Mode</label>
+                <button id="vr-button" title="Enter VR Mode" class="toggle-button w-full flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12.3C2 7.8 5.8 4 10.3 4s8.3 3.8 8.3 8.3-3.5 8.3-8.3 8.3S2 16.8 2 12.3z"/><path d="M12.3 4a8.3 8.3 0 0 1 8.3 8.3 8.3 8.3 0 0 1-8.3 8.3"/></svg>
+                    <span>Enter VR</span>
+                </button>
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="energy-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Animation Speed:</span>
+                    <span id="energy-value">0.1x</span>
+                </label>
+                <input id="energy-slider" type="range" min="0" max="2" step="0.05" value="0.1" class="w-full">
+            </div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Graphics</h4>
+             <div class="control-group text-left w-full">
+                <label for="graphics-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Quality:</span>
+                    <span id="graphics-quality-value">High</span>
+                </label>
+                <input id="graphics-slider" type="range" min="0.5" max="2" step="0.1" value="1.5" class="w-full">
+                 <div class="text-xs text-gray-500 w-full flex justify-between mt-1">
+                     <span>Low</span>
+                     <span>Native</span>
+                     <span>High</span>
+                 </div>
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="zoom-speed-slider" class="text-sm font-medium self-start w-full">Camera Zoom Speed</label>
+                <input id="zoom-speed-slider" type="range" min="0.1" max="5" step="0.1" value="1" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="rotate-speed-slider" class="text-sm font-medium self-start w-full">Camera Rotate Speed</label>
+                <input id="rotate-speed-slider" type="range" min="0.1" max="5" step="0.1" value="1" class="w-full">
+            </div>
+
+            <!-- Scene-Specific Settings Container -->
+            <div id="scene-specific-settings" class="space-y-6 mt-6 pt-6 border-t border-gray-600"></div>
+        </div>
+    </div>
+
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+    import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
+    import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
+    import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+
+
+    // --- Core Three.js Components ---
+    let scene, camera, renderer, controls, clock, composer, labelRenderer;
+
+    // --- VR Components ---
+    let playerDolly;
+    let controllers = []; // Store controllers
+
+    // --- App State & Scene Management ---
+    let activeSceneObjects = new THREE.Group();
+    let currentUpdate = () => {};
+    let currentCleanup = () => {};
+    let currentSceneKey = null;
+
+    // --- VR Input State ---
+    const vrInputs = {
+        left: { grip: false, trigger: false, thumbstick: { x: 0, y: 0 } },
+        right: { grip: false, trigger: false, thumbstick: { x: 0, y: 0 } },
+        isZooming: false,
+        initialZoomDistance: 0,
+        initialDollyScale: new THREE.Vector3()
+    };
+
+    // --- Global Settings ---
+    let animationSpeed = 0.1;
+    let isPaused = false;
+    let waveColor = new THREE.Color(0x8b5cf6);
+    let waveThickness = 0.1;
+    let gridScale = 20;
+    let gridDensity = 20;
+    
+    const scenes = {
+        phase_space_uncertainty: {
+            title: "Phase Space Uncertainty",
+            description: 'This simulation demonstrates the trade-off inherent in the Heisenberg Uncertainty Principle. A Gaussian wave packet is special because it achieves the absolute minimum possible uncertainty. Use the slider to prioritize localizing the particle in position (a sharp spike) or in momentum (a smooth wave). Notice how sharpening one blurs the other, while their product always remains at the fundamental limit of $$\\hbar/2$$.',
+            init: initHeisenbergLimit,
+        },
+        wavepacket_superposition_3d_phase: {
+            title: 'Wavepacket Superposition (3D Phase)',
+            description: 'This simulation shows the superposition of two 3D combined wave packets. The total wavefunction is the sum of the individual wavefunctions ($$\\Psi_{total} = \\Psi_1 + \\Psi_2$$), creating complex interference patterns in three dimensions.',
+            init: initCombinedInterference,
+        },
+        single_wavepacket_3d_phase: {
+            title: 'Single Wavepacket (3D Phase)',
+            description: 'This visualization combines the real and imaginary components of the wavefunction into a single 3D spiral. The path of the spiral shows the evolution of the complex phase, giving an intuitive look at the particle\'s quantum state.',
+            init: initCombined3DWave,
+        },
+        interference_2d_probability: {
+            title: 'Interference (2D Probability)',
+            description: 'This simulation shows the superposition of two Gaussian wave packets. According to quantum mechanics, the total wavefunction is the sum of individual wavefunctions: $$\\Psi_{total} = \\Psi_1 + \\Psi_2$$. The resulting probability density $$|\\Psi_{total}|^2$$ reveals interference patterns where the waves combine.',
+            init: initWavePacketInterference,
+        },
+        single_wavepacket_2d_components: {
+            title: 'Single Wavepacket (2D Components)',
+            description: '', // Handled in switchScene
+            init: initGaussianWavePacket,
+        },
+        harmonic_oscillator_probability_cloud: {
+            title: 'Harmonic Oscillator (Probability Cloud)',
+            description: 'A visualization of the probability density for a particle in a 3D quantum harmonic oscillator potential. This represents a superposition of quantum states evolving over time.',
+            init: initSchrodinger,
+        },
+    };
+
+    // --- Main Initialization ---
+    function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 2.5, 12);
+
+        playerDolly = new THREE.Group();
+        playerDolly.add(camera);
+        scene.add(playerDolly);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        
+        labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        dirLight.position.set(5, 5, 5);
+        scene.add(dirLight);
+
+        scene.add(activeSceneObjects);
+
+        // Post-processing for bloom effect
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.1;
+        bloomPass.strength = 0.8;
+        bloomPass.radius = 0.5;
+
+        composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        createMenu();
+        setupMobileMenu();
+        setupInfoPanel();
+        setupSettingsPanel();
+        setupFullscreen();
+        setupVR();
+
+        switchScene('phase_space_uncertainty');
+
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.setAnimationLoop(animate);
+    }
+
+    // --- Scene Management ---
+    function switchScene(key) {
+        if (key === currentSceneKey) return;
+        isPaused = false;
+        if(currentCleanup) currentCleanup();
+        controls.reset();
+        const isWaveScene = key.includes('wave') || key.includes('interference') || key.includes('heisenberg') || key.includes('phase_space');
+        camera.position.set(0, isWaveScene ? 2.5 : 0, 12);
+        controls.target.set(0,0,0);
+
+
+        while(activeSceneObjects.children.length > 0) {
+            const obj = activeSceneObjects.children[0];
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+                if (Array.isArray(obj.material)) {
+                    obj.material.forEach(m => m.dispose());
+                } else {
+                    obj.material.dispose();
+                }
+            }
+            activeSceneObjects.remove(obj);
+        }
+        document.getElementById('controls-panel').innerHTML = '';
+        document.getElementById('scene-specific-settings').innerHTML = '';
+
+        const sceneData = scenes[key];
+        document.getElementById('info-title').textContent = sceneData.title;
+        document.getElementById('info-description').textContent = '';
+        
+        const infoPlaceholder = document.getElementById('info-placeholder');
+        
+        if (key === 'single_wavepacket_2d_components') {
+             infoPlaceholder.innerHTML = `
+                ${scenes[key].description}
+                <strong class="text-indigo-300 block mb-2">Nonrelativistic Schrödinger Equation:</strong>
+                $$i \\hbar \\frac{\\partial \\Psi(x,t)}{\\partial t} = -\\frac{\\hbar^2}{2m} \\frac{\\partial^2 \\Psi(x,t)}{\\partial x^2}$$
+                <strong class="text-indigo-300 block mt-4 mb-2">1D Gaussian Wave Packet Solution:</strong>
+                $$\\Psi(x,t) = A e^{-\\frac{(x - vt)^2}{4a^2}} e^{i(kx - \\omega t)}$$
+             `;
+        } else if (key === 'single_wavepacket_3d_phase' || key === 'phase_space_uncertainty') {
+            const h_bar = 1;
+            infoPlaceholder.innerHTML = `
+                 ${sceneData.description}
+                <div id="heisenberg-display" class="text-sm mt-4 text-center">
+                    <strong class="text-indigo-300 block mb-2">Heisenberg Uncertainty Principle</strong>
+                    <div class="text-lg mb-2">
+                        $$\\Delta x \\cdot \\Delta p \\ge \\frac{\\hbar}{2}$$
+                    </div>
+                    <div class="text-lg border-t border-gray-600 pt-2">
+                        <span class="text-gray-300" id="delta-x-val">...</span>
+                        <span class="text-gray-500"> ⋅ </span>
+                        <span class="text-gray-300" id="delta-p-val">...</span>
+                        <span class="text-gray-500"> = </span>
+                        <span class="font-bold" id="product-val">...</span>
+                        <span class="text-gray-500"> ≥ </span>
+                        <span class="font-bold text-yellow-400">${(h_bar / 2).toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+        } else {
+             infoPlaceholder.innerHTML = sceneData.description;
+        }
+
+        if(window.MathJax) { 
+            setTimeout(() => window.MathJax.typesetPromise(), 0); 
+        }
+
+        if (currentSceneKey) {
+            document.getElementById(`btn-${currentSceneKey}`).classList.remove('active');
+            document.getElementById(`mobile-btn-${currentSceneKey}`)?.classList.remove('active');
+        }
+        document.getElementById(`btn-${key}`).classList.add('active');
+        document.getElementById(`mobile-btn-${key}`)?.classList.add('active');
+        document.getElementById('mobile-menu-label').textContent = sceneData.title;
+
+        currentSceneKey = key;
+        const result = sceneData.init();
+        currentUpdate = result.update;
+        currentCleanup = result.cleanup;
+    }
+    
+    // --- Helper for creating lines ---
+    const createLine = (color, width, points = 500) => {
+        const material = new THREE.LineBasicMaterial({ color: color, linewidth: width });
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(points * 3);
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        return new THREE.Line(geometry, material);
+    };
+
+    // --- Wave Packet Calculation Helper ---
+    function calculateGaussianWave(params, time, x) {
+        const { k0, a, x0, h_bar = 1, m = 1 } = params;
+        const width_t_sq = a * a + (h_bar * h_bar * time * time) / (4 * m * m * a * a);
+        const norm = Math.pow(2 * Math.PI * width_t_sq, -0.25);
+        const pos_term = x - x0 - (h_bar * k0 / m) * time;
+        const envelope = norm * Math.exp(-pos_term * pos_term / (4 * width_t_sq));
+        const phase_arg = k0 * x - (h_bar * k0 * k0 / (2 * m)) * time;
+        return {
+            real: envelope * Math.cos(phase_arg),
+            imag: envelope * Math.sin(phase_arg)
+        };
+    }
+    
+    function initHeisenbergLimit() {
+        const points = 500;
+        const h_bar = 1, m = 1;
+        let packet = { k0: 0, a: Math.sqrt(h_bar / (2*m)), x0: 0 }; 
+
+        let gridHelper = new THREE.GridHelper(gridScale, gridDensity, 0x888888, 0x444444);
+        activeSceneObjects.add(gridHelper);
+        
+        let tubeMesh, tubeMat;
+        let deltaX_el, deltaP_el, product_el;
+
+        let uncertaintyEllipse;
+        const ellipseMaterial = new THREE.LineBasicMaterial({ color: 0x22c55e });
+        uncertaintyEllipse = new THREE.Line(new THREE.BufferGeometry(), ellipseMaterial);
+        uncertaintyEllipse.rotation.x = -Math.PI / 2;
+        activeSceneObjects.add(uncertaintyEllipse);
+        
+        let arrowHelper;
+        const arrowDir = new THREE.Vector3(1, 0, 0);
+        const arrowOrigin = new THREE.Vector3(0, 0, 0);
+        arrowHelper = new THREE.ArrowHelper(arrowDir, arrowOrigin, 1, 0xff0000);
+        activeSceneObjects.add(arrowHelper);
+        
+        const textDiv = document.createElement('div');
+        textDiv.className = 'label-text';
+        const textLabel = new CSS2DObject(textDiv);
+        activeSceneObjects.add(textLabel);
+
+
+        function createOrUpdateTube(pointsArray) {
+            const path = new THREE.CatmullRomCurve3(pointsArray.map(p => new THREE.Vector3(p.x, p.y, p.z)));
+            if (tubeMesh) {
+                tubeMesh.geometry.dispose();
+                tubeMesh.geometry = new THREE.TubeGeometry(path, points - 1, waveThickness, 8, false);
+            } else {
+                const tubeGeo = new THREE.TubeGeometry(path, points - 1, waveThickness, 8, false);
+                 tubeMat = new THREE.MeshPhysicalMaterial({
+                    color: waveColor, metalness: 0.1, roughness: 0.2, transmission: 1.0, ior: 1.3, thickness: 0.5,
+                });
+                tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
+                activeSceneObjects.add(tubeMesh);
+            }
+        }
+        
+        function updateDisplay() {
+            if (!deltaX_el) {
+                deltaX_el = document.getElementById('delta-x-val');
+                deltaP_el = document.getElementById('delta-p-val');
+                product_el = document.getElementById('product-val');
+            }
+            const delta_x = packet.a;
+            const delta_p = h_bar / (2 * packet.a);
+            const product = delta_x * delta_p;
+
+            if (deltaX_el) deltaX_el.textContent = delta_x.toFixed(3);
+            if (deltaP_el) deltaP_el.textContent = delta_p.toFixed(3);
+            if (product_el) {
+                product_el.textContent = product.toFixed(3);
+                product_el.classList.add('text-green-400');
+            }
+
+            const tubePoints = [];
+            for (let i = 0; i < points; i++) {
+                const x = (i / (points - 1) - 0.5) * gridScale;
+                const wave = calculateGaussianWave(packet, 0, x);
+                tubePoints.push({ x: x, y: wave.real, z: wave.imag });
+            }
+            createOrUpdateTube(tubePoints);
+            
+            const radiusX = delta_x * 2;
+            const radiusZ = delta_p * 4;
+            const ellipseCurve = new THREE.EllipseCurve(0, 0, radiusX, radiusZ, 0, 2 * Math.PI, false, 0);
+            uncertaintyEllipse.geometry.setFromPoints(ellipseCurve.getPoints(50));
+
+            const isCircle = Math.abs(radiusX - radiusZ) < 0.01;
+            const distance = Math.sqrt(radiusX * radiusX);
+            arrowHelper.setLength(distance);
+            textLabel.position.set(distance / 2, 0, 0.5);
+            textDiv.textContent = isCircle ? "ħ/2" : distance.toFixed(2);
+        }
+
+        const controlsDiv = document.getElementById('controls-panel');
+        controlsDiv.innerHTML = `
+            <div class="control-group w-64">
+                <label for="localization-slider" class="text-sm font-medium w-full flex justify-between">
+                    <span>Localize Momentum</span>
+                    <span>Localize Position</span>
+                </label>
+                <input id="localization-slider" type="range" min="-1" max="1" step="0.05" value="0" class="w-full">
+            </div>
+        `;
+        
+        document.getElementById('localization-slider').addEventListener('input', (e) => {
+            const v = parseFloat(e.target.value);
+            packet.a = Math.pow(Math.sqrt(2), v) * Math.sqrt(h_bar / (2*m));
+            updateDisplay();
+        });
+
+        updateDisplay();
+        
+        function update(delta) {}
+        function cleanup() {
+            if (tubeMesh) tubeMesh.geometry.dispose();
+            if (tubeMat) tubeMat.dispose();
+            uncertaintyEllipse.geometry.dispose();
+            ellipseMaterial.dispose();
+        }
+        return { update, cleanup };
+    }
+
+    function initCombinedInterference() {
+        let simulationTime = 0;
+        const points = 500;
+
+        let packet1 = { k0: 2, a: 0.8, x0: -6 };
+        let packet2 = { k0: -1.5, a: 1.0, x0: 6 };
+
+        let gridHelper = new THREE.GridHelper(gridScale, gridDensity, 0x888888, 0x444444);
+        activeSceneObjects.add(gridHelper);
+
+        let tubeMesh, tubeMat;
+        const realLine = createLine(0x00ff00, 2);
+        realLine.visible = false;
+        activeSceneObjects.add(realLine);
+        const imagLine = createLine(0xff00ff, 2);
+        imagLine.visible = false;
+        activeSceneObjects.add(imagLine);
+
+        let pointLight = new THREE.PointLight(waveColor, 0.5, 10);
+        activeSceneObjects.add(pointLight);
+
+        function createOrUpdateTube(pointsArray) {
+            const path = new THREE.CatmullRomCurve3(pointsArray.map(p => new THREE.Vector3(p.x, p.y, p.z)));
+            if (tubeMesh) {
+                tubeMesh.geometry.dispose();
+                tubeMesh.geometry = new THREE.TubeGeometry(path, points - 1, waveThickness, 8, false);
+            } else {
+                const tubeGeo = new THREE.TubeGeometry(path, points - 1, waveThickness, 8, false);
+                 tubeMat = new THREE.MeshPhysicalMaterial({
+                    color: waveColor, metalness: 0.1, roughness: 0.2, transmission: 1.0, ior: 1.3, thickness: 0.5,
+                });
+                tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
+                activeSceneObjects.add(tubeMesh);
+            }
+        }
+
+        function updateInterference() {
+            const time = simulationTime;
+            const combinedPoints = [];
+            const realPos = realLine.geometry.attributes.position.array;
+            const imagPos = imagLine.geometry.attributes.position.array;
+            let maxProb = 0;
+            let maxProbX = 0;
+
+            for (let i = 0; i < points; i++) {
+                const x = (i / (points - 1) - 0.5) * gridScale;
+                
+                const wave1 = calculateGaussianWave(packet1, time, x);
+                const wave2 = calculateGaussianWave(packet2, time, x);
+
+                const totalReal = wave1.real + wave2.real;
+                const totalImag = wave1.imag + wave2.imag;
+                
+                combinedPoints.push({x: x, y: totalReal, z: totalImag});
+                realPos[i * 3] = x; realPos[i * 3 + 1] = totalReal; realPos[i * 3 + 2] = 0;
+                imagPos[i * 3] = x; imagPos[i * 3 + 1] = 0;      imagPos[i * 3 + 2] = totalImag;
+
+                const prob = totalReal*totalReal + totalImag*totalImag;
+                if (prob > maxProb) {
+                    maxProb = prob;
+                    maxProbX = x;
+                }
+            }
+            createOrUpdateTube(combinedPoints);
+            realLine.geometry.attributes.position.needsUpdate = true;
+            imagLine.geometry.attributes.position.needsUpdate = true;
+
+            pointLight.position.x = maxProbX;
+            pointLight.intensity = maxProb * 2;
+        }
+
+        const controlsDiv = document.getElementById('controls-panel');
+        controlsDiv.innerHTML = `
+             <button id="play-pause-btn" class="toggle-button">Play</button>
+             <div class="p-2 border border-gray-600 rounded-lg flex flex-col gap-2 items-center">
+                <span class="font-bold text-indigo-400">Packet 1</span>
+                 <div class="control-group w-32"><label for="k1" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k1-val">2.0</span></label><input type="range" id="k1" min="-4" max="4" step="0.1" value="2" class="w-full"></div>
+                <div class="control-group w-32"><label class="text-xs">Position (x₀)</label><input type="range" id="x1" min="-10" max="10" step="0.5" value="-6" class="w-full"></div>
+             </div>
+              <div class="p-2 border border-gray-600 rounded-lg flex flex-col gap-2 items-center">
+                <span class="font-bold text-purple-400">Packet 2</span>
+                 <div class="control-group w-32"><label for="k2" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k2-val">-1.5</span></label><input type="range" id="k2" min="-4" max="4" step="0.1" value="-1.5" class="w-full"></div>
+                <div class="control-group w-32"><label class="text-xs">Position (x₀)</label><input type="range" id="x2" min="-10" max="10" step="0.5" value="6" class="w-full"></div>
+             </div>
+        `;
+        
+        const settingsContainer = document.getElementById('scene-specific-settings');
+        settingsContainer.innerHTML = `
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Component Waves</h4>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">Show Total Real Wave</label>
+                <button id="real-wave-toggle" class="toggle-button">Off</button>
+            </div>
+             <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">Show Total Imaginary Wave</label>
+                <button id="imag-wave-toggle" class="toggle-button">Off</button>
+            </div>
+        `;
+        
+        document.getElementById('real-wave-toggle').addEventListener('click', (e) => {
+            realLine.visible = !realLine.visible;
+            e.target.textContent = realLine.visible ? 'On' : 'Off';
+            e.target.classList.toggle('active', realLine.visible);
+        });
+        document.getElementById('imag-wave-toggle').addEventListener('click', (e) => {
+            imagLine.visible = !imagLine.visible;
+            e.target.textContent = imagLine.visible ? 'On' : 'Off';
+            e.target.classList.toggle('active', imagLine.visible);
+        });
+        
+        isPaused = true;
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        playPauseBtn.addEventListener('click', () => { isPaused = !isPaused; playPauseBtn.textContent = isPaused ? 'Play' : 'Pause'; playPauseBtn.classList.toggle('active', !isPaused); });
+
+        const resetSim = () => { simulationTime = 0; updateInterference(); };
+        
+        const k1Val = document.getElementById('k1-val');
+        document.getElementById('k1').addEventListener('input', (e) => { const v = parseFloat(e.target.value); packet1.k0 = v; k1Val.textContent = v.toFixed(1); resetSim(); });
+        document.getElementById('x1').addEventListener('input', (e) => { packet1.x0 = parseFloat(e.target.value); resetSim(); });
+        
+        const k2Val = document.getElementById('k2-val');
+        document.getElementById('k2').addEventListener('input', (e) => { const v = parseFloat(e.target.value); packet2.k0 = v; k2Val.textContent = v.toFixed(1); resetSim(); });
+        document.getElementById('x2').addEventListener('input', (e) => { packet2.x0 = parseFloat(e.target.value); resetSim(); });
+
+        updateInterference();
+
+        function update(delta) {
+            if (!isPaused) {
+                simulationTime += delta * animationSpeed * 5;
+                updateInterference();
+            }
+        }
+        function cleanup() {
+            if (tubeMesh) tubeMesh.geometry.dispose();
+            if (tubeMat) tubeMat.dispose();
+        }
+        return { update, cleanup };
+    }
+
+    function initCombined3DWave() {
+        let simulationTime = 0;
+        const points = 500;
+        const h_bar = 1, m = 1;
+        let packet = { k0: 2, a: 0.8, x0: -8 };
+        
+        let gridHelper = new THREE.GridHelper(gridScale, gridDensity, 0x888888, 0x444444);
+        activeSceneObjects.add(gridHelper);
+
+        const realLine = createLine(0x00ff00, 2);
+        realLine.visible = false;
+        activeSceneObjects.add(realLine);
+        
+        const imagLine = createLine(0xff00ff, 2);
+        imagLine.visible = false;
+        activeSceneObjects.add(imagLine);
+
+        let tubeMesh, tubeMat;
+        let deltaX_el, deltaP_el, product_el;
+
+        function createOrUpdateTube(pointsArray) {
+            const path = new THREE.CatmullRomCurve3(pointsArray.map(p => new THREE.Vector3(p.x, p.y, p.z)));
+            if (tubeMesh) {
+                tubeMesh.geometry.dispose();
+                tubeMesh.geometry = new THREE.TubeGeometry(path, points - 1, waveThickness, 8, false);
+            } else {
+                const tubeGeo = new THREE.TubeGeometry(path, points - 1, waveThickness, 8, false);
+                 tubeMat = new THREE.MeshPhysicalMaterial({
+                    color: waveColor, metalness: 0.1, roughness: 0.2, transmission: 1.0, ior: 1.3, thickness: 0.5,
+                });
+                tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
+                activeSceneObjects.add(tubeMesh);
+            }
+        }
+        
+        function updateUncertaintyDisplay() {
+            if (!deltaX_el) { // Cache DOM elements
+                deltaX_el = document.getElementById('delta-x-val');
+                deltaP_el = document.getElementById('delta-p-val');
+                product_el = document.getElementById('product-val');
+            }
+            const delta_x = packet.a * Math.sqrt(1 + Math.pow(h_bar * simulationTime / (2 * m * packet.a * packet.a), 2));
+            const delta_p = h_bar / (2 * packet.a);
+            const product = delta_x * delta_p;
+
+            if (deltaX_el) deltaX_el.textContent = delta_x.toFixed(3);
+            if (deltaP_el) deltaP_el.textContent = delta_p.toFixed(3);
+            if (product_el) {
+                product_el.textContent = product.toFixed(3);
+                product_el.classList.toggle('text-green-400', product >= (h_bar / 2));
+                product_el.classList.toggle('text-red-400', product < (h_bar / 2));
+            }
+        }
+
+        function updateCombinedWave() {
+            const time = simulationTime;
+            const tubePoints = [];
+            const realPos = realLine.geometry.attributes.position.array;
+            const imagPos = imagLine.geometry.attributes.position.array;
+
+            for (let i = 0; i < points; i++) {
+                const x = (i / (points - 1) - 0.5) * gridScale;
+                const wave = calculateGaussianWave(packet, time, x);
+                tubePoints.push({ x: x, y: wave.real, z: wave.imag });
+                realPos[i * 3] = x; realPos[i * 3 + 1] = wave.real; realPos[i * 3 + 2] = 0;
+                imagPos[i * 3] = x; imagPos[i * 3 + 1] = 0;      imagPos[i * 3 + 2] = wave.imag;
+            }
+            createOrUpdateTube(tubePoints);
+            realLine.geometry.attributes.position.needsUpdate = true;
+            imagLine.geometry.attributes.position.needsUpdate = true;
+            updateUncertaintyDisplay();
+        }
+        
+        const controlsDiv = document.getElementById('controls-panel');
+        controlsDiv.innerHTML = `
+            <button id="play-pause-btn" class="toggle-button">Play</button>
+             <div class="control-group w-40">
+                <label for="position-slider" class="text-sm font-medium w-full flex justify-between">
+                    <span>Position (x₀)</span>
+                    <span id="position-val">-8.0</span>
+                </label>
+                <input id="position-slider" type="range" min="-10" max="10" step="0.5" value="-8" class="w-full">
+            </div>
+            <div class="control-group w-40">
+                <label for="momentum-slider" class="text-sm font-medium w-full flex justify-between">
+                    <span>Momentum (k₀)</span>
+                    <span id="momentum-val">2.0</span>
+                </label>
+                <input id="momentum-slider" type="range" min="-4" max="4" step="0.1" value="2" class="w-full">
+            </div>
+            <div class="control-group w-40">
+                <label for="width-slider" class="text-sm font-medium w-full flex justify-between">
+                    <span>Initial Width (a)</span>
+                    <span id="width-val">0.8</span>
+                </label>
+                <input id="width-slider" type="range" min="0.2" max="2" step="0.1" value="0.8" class="w-full">
+            </div>
+        `;
+
+        const settingsContainer = document.getElementById('scene-specific-settings');
+        settingsContainer.innerHTML = `
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Component Waves</h4>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">Show Real Wave (Vertical)</label>
+                <button id="real-wave-toggle" class="toggle-button">Off</button>
+            </div>
+             <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full">Show Imaginary Wave (Horizontal)</label>
+                <button id="imag-wave-toggle" class="toggle-button">Off</button>
+            </div>
+        `;
+        
+        document.getElementById('real-wave-toggle').addEventListener('click', (e) => {
+            realLine.visible = !realLine.visible;
+            e.target.textContent = realLine.visible ? 'On' : 'Off';
+            e.target.classList.toggle('active', realLine.visible);
+        });
+        document.getElementById('imag-wave-toggle').addEventListener('click', (e) => {
+            imagLine.visible = !imagLine.visible;
+            e.target.textContent = imagLine.visible ? 'On' : 'Off';
+            e.target.classList.toggle('active', imagLine.visible);
+        });
+
+
+        isPaused = true;
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        playPauseBtn.addEventListener('click', () => { isPaused = !isPaused; playPauseBtn.textContent = isPaused ? 'Play' : 'Pause'; playPauseBtn.classList.toggle('active', !isPaused); });
+        
+        const resetSim = () => { simulationTime = 0; updateCombinedWave(); };
+        
+        const positionVal = document.getElementById('position-val');
+        document.getElementById('position-slider').addEventListener('input', (e) => {
+            const v = parseFloat(e.target.value);
+            packet.x0 = v;
+            positionVal.textContent = v.toFixed(1);
+            resetSim();
+        });
+        
+        const momentumVal = document.getElementById('momentum-val');
+        document.getElementById('momentum-slider').addEventListener('input', (e) => {
+            const v = parseFloat(e.target.value);
+            packet.k0 = v;
+            momentumVal.textContent = v.toFixed(1);
+            resetSim();
+        });
+        
+        const widthVal = document.getElementById('width-val');
+        document.getElementById('width-slider').addEventListener('input', (e) => {
+            const v = parseFloat(e.target.value);
+            packet.a = v;
+            widthVal.textContent = v.toFixed(1);
+            resetSim();
+        });
+        
+        updateCombinedWave(); // Initial call
+
+        function update(delta) {
+             if (!isPaused) {
+                simulationTime += delta * animationSpeed * 5;
+                updateCombinedWave();
+            }
+        }
+        function cleanup() {
+            if (tubeMesh) tubeMesh.geometry.dispose();
+            if (tubeMat) tubeMat.dispose();
+        }
+        return { update, cleanup };
+    }
+
+    function initWavePacketInterference() {
+        let simulationTime = 0;
+        const points = 500;
+
+        let packet1 = { k0: 2, a: 0.5, x0: -6 };
+        let packet2 = { k0: -1.5, a: 0.8, x0: 6 };
+
+        let gridHelper = new THREE.GridHelper(gridScale, gridDensity, 0x888888, 0x444444);
+        gridHelper.rotation.x = Math.PI / 2;
+        activeSceneObjects.add(gridHelper);
+        
+        const realLine = createLine(0x00ff00, 3);
+        const imagLine = createLine(0xff00ff, 3);
+        const probLine = createLine(0xffff00, 4);
+        activeSceneObjects.add(realLine, imagLine, probLine);
+
+        function updateInterference() {
+            const realPos = realLine.geometry.attributes.position.array;
+            const imagPos = imagLine.geometry.attributes.position.array;
+            const probPos = probLine.geometry.attributes.position.array;
+
+            for (let i = 0; i < points; i++) {
+                const x = (i / (points - 1) - 0.5) * gridScale;
+                
+                const wave1 = calculateGaussianWave(packet1, simulationTime, x);
+                const wave2 = calculateGaussianWave(packet2, simulationTime, x);
+
+                const totalReal = wave1.real + wave2.real;
+                const totalImag = wave1.imag + wave2.imag;
+                const probDensity = (totalReal * totalReal + totalImag * totalImag) * 2.5;
+
+                realPos[i * 3] = x; realPos[i * 3 + 1] = totalReal;
+                imagPos[i * 3] = x; imagPos[i * 3 + 1] = totalImag;
+                probPos[i * 3] = x; probPos[i * 3 + 1] = probDensity;
+            }
+
+            realLine.geometry.attributes.position.needsUpdate = true;
+            imagLine.geometry.attributes.position.needsUpdate = true;
+            probLine.geometry.attributes.position.needsUpdate = true;
+        }
+
+        const controlsDiv = document.getElementById('controls-panel');
+        controlsDiv.innerHTML = `
+             <button id="play-pause-btn" class="toggle-button">Play</button>
+             <div class="p-2 border border-gray-600 rounded-lg flex flex-col gap-2 items-center">
+                <span class="font-bold text-indigo-400">Packet 1</span>
+                <div class="control-group w-32"><label for="k1" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k1-val">2.0</span></label><input type="range" id="k1" min="-4" max="4" step="0.1" value="2" class="w-full"></div>
+                <div class="control-group w-32"><label class="text-xs">Position (x₀)</label><input type="range" id="x1" min="-10" max="10" step="0.5" value="-6" class="w-full"></div>
+             </div>
+              <div class="p-2 border border-gray-600 rounded-lg flex flex-col gap-2 items-center">
+                <span class="font-bold text-purple-400">Packet 2</span>
+                 <div class="control-group w-32"><label for="k2" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k2-val">-1.5</span></label><input type="range" id="k2" min="-4" max="4" step="0.1" value="-1.5" class="w-full"></div>
+                <div class="control-group w-32"><label class="text-xs">Position (x₀)</label><input type="range" id="x2" min="-10" max="10" step="0.5" value="6" class="w-full"></div>
+             </div>
+        `;
+        
+        isPaused = true;
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        playPauseBtn.addEventListener('click', () => { isPaused = !isPaused; playPauseBtn.textContent = isPaused ? 'Play' : 'Pause'; playPauseBtn.classList.toggle('active', !isPaused); });
+
+        const resetSim = () => { simulationTime = 0; updateInterference(); };
+
+        const k1Val = document.getElementById('k1-val');
+        document.getElementById('k1').addEventListener('input', (e) => { const v = parseFloat(e.target.value); packet1.k0 = v; k1Val.textContent = v.toFixed(1); resetSim(); });
+        document.getElementById('x1').addEventListener('input', (e) => { packet1.x0 = parseFloat(e.target.value); resetSim(); });
+        
+        const k2Val = document.getElementById('k2-val');
+        document.getElementById('k2').addEventListener('input', (e) => { const v = parseFloat(e.target.value); packet2.k0 = v; k2Val.textContent = v.toFixed(1); resetSim(); });
+        document.getElementById('x2').addEventListener('input', (e) => { packet2.x0 = parseFloat(e.target.value); resetSim(); });
+
+        updateInterference();
+
+        function update(delta) {
+            if (!isPaused) {
+                simulationTime += delta * animationSpeed * 5;
+                updateInterference();
+            }
+        }
+        function cleanup() {}
+
+        return { update, cleanup };
+    }
+    
+    function initGaussianWavePacket() {
+        let is3DMode = false;
+        let k0 = 2; 
+        let a = 0.5; 
+        let x0 = -5;
+        let simulationTime = 0;
+
+        const points = 500;
+        let x_range = gridScale;
+
+        let group2D = new THREE.Group();
+        let gridHelper2D = new THREE.GridHelper(gridScale, gridDensity, 0x888888, 0x444444);
+        gridHelper2D.rotation.x = Math.PI / 2;
+        group2D.add(gridHelper2D);
+        
+        const realLine = createLine(0x00ff00, 3);
+        const imagLine = createLine(0xff00ff, 3);
+        const probLine = createLine(0xffff00, 4);
+        group2D.add(realLine, imagLine, probLine);
+        activeSceneObjects.add(group2D);
+
+        let group3D = new THREE.Group();
+        let gridHelper3D = new THREE.GridHelper(gridScale, gridDensity, 0x888888, 0x444444);
+        group3D.add(gridHelper3D);
+        
+        let probSurfaceGeo = new THREE.PlaneGeometry(x_range, 5, points - 1, 50);
+        let probSurfaceMat = new THREE.MeshBasicMaterial({
+            color: 0x0077ff, wireframe: true, transparent: true, opacity: 0.5, side: THREE.DoubleSide
+        });
+        let probSurface = new THREE.Mesh(probSurfaceGeo, probSurfaceMat);
+        probSurface.rotation.x = -Math.PI / 2;
+        group3D.add(probSurface);
+
+        const realLine3D = createLine(0x00ff00, 3);
+        const imagLine3D = createLine(0xff00ff, 3);
+        group3D.add(realLine3D, imagLine3D);
+
+        activeSceneObjects.add(group3D);
+
+        function updateWavePacket() {
+            const time = simulationTime;
+            const waveData = [];
+            for (let i = 0; i < points; i++) {
+                const x = (i / (points - 1) - 0.5) * x_range;
+                 const wave = calculateGaussianWave({ k0, a, x0 }, time, x);
+                waveData.push({ x, ...wave, prob: wave.real * wave.real + wave.imag * wave.imag });
+            }
+            
+            if (is3DMode) {
+                const realPos = realLine3D.geometry.attributes.position.array;
+                const imagPos = imagLine3D.geometry.attributes.position.array;
+                const surfacePos = probSurface.geometry.attributes.position.array;
+
+                waveData.forEach((d, i) => {
+                    realPos[i * 3] = d.x; realPos[i * 3 + 1] = d.real; realPos[i * 3 + 2] = 0;
+                    imagPos[i * 3] = d.x; imagPos[i * 3 + 1] = 0;      imagPos[i * 3 + 2] = d.imag;
+                });
+                
+                for(let i = 0; i < points; i++) {
+                    const prob = waveData[i].prob * 10;
+                    for(let j = 0; j < 51; j++) {
+                        surfacePos[(j * points + i) * 3 + 1] = prob;
+                    }
+                }
+
+                realLine3D.geometry.attributes.position.needsUpdate = true;
+                imagLine3D.geometry.attributes.position.needsUpdate = true;
+                probSurface.geometry.attributes.position.needsUpdate = true;
+                probSurface.geometry.computeVertexNormals();
+            } else {
+                const realPos = realLine.geometry.attributes.position.array;
+                const imagPos = imagLine.geometry.attributes.position.array;
+                const probPos = probLine.geometry.attributes.position.array;
+                waveData.forEach((d, i) => {
+                    realPos[i * 3] = d.x; realPos[i * 3 + 1] = d.real; realPos[i * 3 + 2] = 0;
+                    imagPos[i * 3] = d.x; imagPos[i * 3 + 1] = d.imag; imagPos[i * 3 + 2] = 0;
+                    probPos[i * 3] = d.x; probPos[i * 3 + 1] = d.prob * 5; probPos[i * 3 + 2] = 0;
+                });
+                realLine.geometry.attributes.position.needsUpdate = true;
+                imagLine.geometry.attributes.position.needsUpdate = true;
+                probLine.geometry.attributes.position.needsUpdate = true;
+            }
+        }
+
+        const controlsDiv = document.getElementById('controls-panel');
+        controlsDiv.innerHTML = `
+            <button id="play-pause-btn" class="toggle-button active">Pause</button>
+            <button id="view-toggle-btn" class="toggle-button">Toggle 3D/2D</button>
+            <div class="control-group w-40">
+                <label for="momentum-slider" class="text-sm font-medium w-full flex justify-between">
+                    <span>Momentum (k₀)</span>
+                    <span id="momentum-val">2.0</span>
+                </label>
+                <input id="momentum-slider" type="range" min="-5" max="5" step="0.1" value="2" class="w-full">
+            </div>
+            <div class="control-group w-40">
+                <label for="width-slider" class="text-sm font-medium w-full flex justify-between">
+                    <span>Initial Width (a)</span>
+                    <span id="width-val">0.5</span>
+                </label>
+                <input id="width-slider" type="range" min="0.2" max="2" step="0.1" value="0.5" class="w-full">
+            </div>
+        `;
+        
+        const setViewMode = () => {
+             group2D.visible = !is3DMode;
+             group3D.visible = is3DMode;
+             if(is3DMode) {
+                controls.target.set(0, 0, 0);
+                camera.position.set(10, 8, 10);
+             } else {
+                controls.target.set(0, 0, 0);
+                camera.position.set(0, 2.5, 12);
+             }
+             updateWavePacket();
+        };
+
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        playPauseBtn.addEventListener('click', () => { isPaused = !isPaused; playPauseBtn.textContent = isPaused ? 'Play' : 'Pause'; playPauseBtn.classList.toggle('active', !isPaused); });
+        isPaused = false;
+        
+        document.getElementById('view-toggle-btn').addEventListener('click', () => { is3DMode = !is3DMode; setViewMode(); });
+
+        const resetSim = () => { simulationTime = 0; updateWavePacket(); };
+        
+        const momentumVal = document.getElementById('momentum-val');
+        document.getElementById('momentum-slider').addEventListener('input', (e) => { const v = parseFloat(e.target.value); k0 = v; momentumVal.textContent = v.toFixed(1); resetSim(); });
+        
+        const widthVal = document.getElementById('width-val');
+        document.getElementById('width-slider').addEventListener('input', (e) => { const v = parseFloat(e.target.value); a = v; widthVal.textContent = v.toFixed(1); resetSim(); });
+
+        setViewMode();
+
+        function update(delta) {
+            if (!isPaused) {
+                simulationTime += delta * animationSpeed * 5;
+                updateWavePacket();
+            }
+        }
+        function cleanup() {}
+
+        return { update, cleanup };
+    }
+
+    function initSchrodinger() {
+        let gridHelper = new THREE.GridHelper(gridScale, gridDensity, 0x888888, 0x444444);
+        activeSceneObjects.add(gridHelper);
+
+        const controlsDiv = document.getElementById('controls-panel');
+        controlsDiv.innerHTML = `<div class="text-lg text-gray-400">Visualizing probability density $$|\\Psi|^2$$ of a quantum harmonic oscillator.</div>`;
+
+        const particleCount = 50000;
+        const particlesGeometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+
+        const boxSize = 8;
+        for (let i = 0; i < particleCount * 3; i++) {
+            positions[i] = (Math.random() - 0.5) * boxSize;
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.05,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            opacity: 0.8
+        });
+        const particleSystem = new THREE.Points(particlesGeometry, particlesMaterial);
+        activeSceneObjects.add(particleSystem);
+
+        const states = [
+            { nx: 1, ny: 0, nz: 0, E: 2.5, c: 1 / Math.sqrt(2) },
+            { nx: 0, ny: 1, nz: 0, E: 2.5, c: -1 / Math.sqrt(2) },
+        ];
+        
+        const factorial = (n) => (n <= 1 ? 1 : n * factorial(n - 1));
+        const H = (n, x) => {
+            if (n === 0) return 1;
+            if (n === 1) return 2 * x;
+            if (n === 2) return 4 * x * x - 2;
+            return 1;
+        };
+        const psi_n = (n, x) => {
+            return (1 / Math.sqrt(Math.pow(2, n) * factorial(n))) * Math.pow(Math.PI, -0.25) * Math.exp(-x * x / 2) * H(n, x);
+        };
+        
+        const color = new THREE.Color();
+        const highProbColor = new THREE.Color(0x8b5cf6);
+        const midProbColor = new THREE.Color(0x3b82f6);
+        const lowProbColor = new THREE.Color(0x1e40af);
+
+        function update(delta) {
+            const time = clock.getElapsedTime() * animationSpeed * 5;
+            const positions = particleSystem.geometry.attributes.position.array;
+            const colors = particleSystem.geometry.attributes.color.array;
+            let maxProb = 0;
+            const probs = new Float32Array(particleCount);
+
+            for (let i = 0; i < particleCount; i++) {
+                const x = positions[i * 3];
+                const y = positions[i * 3 + 1];
+                const z = positions[i * 3 + 2];
+                let psi_real = 0;
+                let psi_imag = 0;
+
+                states.forEach(state => {
+                    const phase = -state.E * time;
+                    const wavefunc_val = psi_n(state.nx, x) * psi_n(state.ny, y) * psi_n(state.nz, z);
+                    psi_real += state.c * wavefunc_val * Math.cos(phase);
+                    psi_imag += state.c * wavefunc_val * Math.sin(phase);
+                });
+
+                const prob = psi_real * psi_real + psi_imag * psi_imag;
+                probs[i] = prob;
+                if (prob > maxProb) maxProb = prob;
+            }
+
+            for (let i = 0; i < particleCount; i++) {
+                const normalizedProb = maxProb > 0 ? probs[i] / maxProb : 0;
+                if (normalizedProb > 0.05) {
+                    if (normalizedProb > 0.5) {
+                        color.lerpColors(midProbColor, highProbColor, (normalizedProb - 0.5) * 2);
+                    } else {
+                        color.lerpColors(lowProbColor, midProbColor, normalizedProb * 2);
+                    }
+                } else {
+                    color.setRGB(0, 0, 0);
+                }
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+            }
+            particleSystem.geometry.attributes.color.needsUpdate = true;
+        }
+
+        function cleanup() {}
+        return { update, cleanup };
+    }
+
+    // --- START: VR CONTROLLER FIX ---
+    function setupVR() {
+        renderer.xr.enabled = true;
+        const vrButton = document.getElementById('vr-button');
+
+        if ('xr' in navigator) {
+            navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                vrButton.disabled = !supported;
+                if (supported) {
+                    vrButton.addEventListener('click', () => {
+                        const session = renderer.xr.getSession();
+                        if (session) session.end();
+                        else navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'] })
+                            .then((session) => renderer.xr.setSession(session));
+                    });
+
+                    renderer.xr.addEventListener('sessionstart', () => {
+                        playerDolly.position.copy(camera.position);
+                        playerDolly.quaternion.copy(camera.quaternion);
+                        camera.position.set(0, 0, 0);
+                        camera.quaternion.identity();
+                        controls.enabled = false;
+                        vrButton.querySelector('span').textContent = 'Exit VR';
+                        vrButton.classList.add('active');
+                    });
+                    renderer.xr.addEventListener('sessionend', () => {
+                        camera.position.copy(playerDolly.position);
+                        camera.scale.copy(playerDolly.scale);
+                        playerDolly.position.set(0, 0, 0);
+                        playerDolly.quaternion.identity();
+                        playerDolly.scale.set(1, 1, 1);
+                        controls.enabled = true;
+                        vrButton.querySelector('span').textContent = 'Enter VR';
+                        vrButton.classList.remove('active');
+                    });
+                }
+            });
+        }
+
+        const controllerModelFactory = new XRControllerModelFactory();
+        const controllerGrip0 = renderer.xr.getControllerGrip(0);
+        controllerGrip0.add(controllerModelFactory.createControllerModel(controllerGrip0));
+        playerDolly.add(controllerGrip0);
+        const controller0 = renderer.xr.getController(0);
+        controller0.addEventListener('squeezestart', () => { vrInputs.left.grip = true; });
+        controller0.addEventListener('squeezeend', () => { vrInputs.left.grip = false; vrInputs.isZooming = false; });
+        controller0.addEventListener('selectstart', () => { vrInputs.left.trigger = true; });
+        controller0.addEventListener('selectend', () => { vrInputs.left.trigger = false; });
+        playerDolly.add(controller0);
+        controllers.push({ grip: controllerGrip0, gamepad: controller0 });
+
+        const controllerGrip1 = renderer.xr.getControllerGrip(1);
+        controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
+        playerDolly.add(controllerGrip1);
+        const controller1 = renderer.xr.getController(1);
+        controller1.addEventListener('squeezestart', () => { vrInputs.right.grip = true; });
+        controller1.addEventListener('squeezeend', () => { vrInputs.right.grip = false; vrInputs.isZooming = false; });
+        controller1.addEventListener('selectstart', () => { vrInputs.right.trigger = true; });
+        controller1.addEventListener('selectend', () => { vrInputs.right.trigger = false; });
+        playerDolly.add(controller1);
+        controllers.push({ grip: controllerGrip1, gamepad: controller1 });
+
+        const handModelFactory = new XRHandModelFactory();
+        const hand1 = renderer.xr.getHand(0); hand1.add(handModelFactory.createHandModel(hand1)); playerDolly.add(hand1);
+        const hand2 = renderer.xr.getHand(1); hand2.add(handModelFactory.createHandModel(hand2)); playerDolly.add(hand2);
+    }
+
+    function handleVRInput(delta) {
+        if (!renderer.xr.isPresenting) return;
+        const deadzone = 0.15;
+        const leftController = controllers[0]?.gamepad;
+        const rightController = controllers[1]?.gamepad;
+
+        if (leftController && leftController.gamepad) {
+            vrInputs.left.thumbstick.x = Math.abs(leftController.gamepad.axes[2]) > deadzone ? leftController.gamepad.axes[2] : 0;
+            vrInputs.left.thumbstick.y = Math.abs(leftController.gamepad.axes[3]) > deadzone ? leftController.gamepad.axes[3] : 0;
+        }
+        if (rightController && rightController.gamepad) {
+            vrInputs.right.thumbstick.x = Math.abs(rightController.gamepad.axes[2]) > deadzone ? rightController.gamepad.axes[2] : 0;
+            vrInputs.right.thumbstick.y = Math.abs(rightController.gamepad.axes[3]) > deadzone ? rightController.gamepad.axes[3] : 0;
+        }
+
+        const speed = 3.0;
+        const moveDir = new THREE.Vector3(vrInputs.left.thumbstick.x, 0, vrInputs.left.thumbstick.y);
+        if (moveDir.lengthSq() > 0.01) {
+            const cameraYaw = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ').y;
+            const flatCamQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
+            moveDir.applyQuaternion(flatCamQuat).multiplyScalar(speed * delta);
+            playerDolly.position.add(moveDir);
+        }
+
+        const turnSpeed = 1.5;
+        if (Math.abs(vrInputs.right.thumbstick.x) > deadzone) {
+            playerDolly.rotation.y -= vrInputs.right.thumbstick.x * turnSpeed * delta;
+        }
+        if (Math.abs(vrInputs.right.thumbstick.y) > deadzone) {
+            playerDolly.position.y -= vrInputs.right.thumbstick.y * speed * delta;
+        }
+
+        const bothGrips = vrInputs.left.grip && vrInputs.right.grip;
+        if (bothGrips && !vrInputs.isZooming) {
+            vrInputs.isZooming = true;
+            vrInputs.initialZoomDistance = controllers[0].grip.position.distanceTo(controllers[1].grip.position);
+            vrInputs.initialDollyScale.copy(playerDolly.scale);
+        } else if (bothGrips && vrInputs.isZooming) {
+            const currentDist = controllers[0].grip.position.distanceTo(controllers[1].grip.position);
+            if (vrInputs.initialZoomDistance > 0.01) {
+                const scaleFactor = currentDist / vrInputs.initialZoomDistance;
+                playerDolly.scale.copy(vrInputs.initialDollyScale.clone().multiplyScalar(scaleFactor)).clampScalar(0.1, 10.0);
+            }
+        }
+    }
+    // --- END: VR CONTROLLER FIX ---
+
+
+    // --- UI & CORE SYSTEM SETUP (Boilerplate) ---
+
+    function createMenu() {
+        const menuDiv = document.getElementById('menu');
+        const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+        menuDiv.innerHTML = '';
+        mobileMenuDropdown.innerHTML = '';
+        Object.keys(scenes).forEach(key => {
+            const sceneTitle = scenes[key].title;
+            const desktopButton = document.createElement('button');
+            desktopButton.id = `btn-${key}`;
+            desktopButton.className = 'menu-button';
+            desktopButton.textContent = sceneTitle;
+            desktopButton.onclick = () => switchScene(key);
+            menuDiv.appendChild(desktopButton);
+            const mobileButton = document.createElement('button');
+            mobileButton.id = `mobile-btn-${key}`;
+            mobileButton.className = 'mobile-menu-item text-white';
+            mobileButton.textContent = sceneTitle;
+            mobileButton.onclick = () => { switchScene(key); mobileMenuDropdown.classList.add('hidden'); };
+            mobileMenuDropdown.appendChild(mobileButton);
+        });
+    }
+
+    function setupMobileMenu() {
+        const menuButton = document.getElementById('mobile-menu-button');
+        const dropdown = document.getElementById('mobile-menu-dropdown');
+        menuButton.addEventListener('click', (e) => { e.stopPropagation(); dropdown.classList.toggle('hidden'); });
+        window.addEventListener('click', () => { if (!dropdown.classList.contains('hidden')) dropdown.classList.add('hidden'); });
+    }
+
+    function setupInfoPanel() {
+        document.getElementById('info-panel').addEventListener('click', (e) => {
+            if (e.target.closest('canvas') || e.target.closest('a') || e.target.classList.contains('formula-placeholder')) return;
+            e.currentTarget.classList.toggle('expanded');
+        });
+        
+        const script = document.createElement('script');
+        script.id = 'mathjax-script';
+        script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+        script.async = true;
+        document.head.appendChild(script);
+    }
+
+    function setupFullscreen() {
+        const fullscreenButton = document.getElementById('fullscreen-button');
+        const enterIcon = document.getElementById('fullscreen-enter-icon');
+        const exitIcon = document.getElementById('fullscreen-exit-icon');
+        if (!document.fullscreenEnabled) { fullscreenButton.style.display = 'none'; return; }
+        fullscreenButton.addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        });
+        const handleFullscreenChange = () => {
+            const isFullscreen = !!document.fullscreenElement;
+            enterIcon.classList.toggle('hidden', isFullscreen);
+            exitIcon.classList.toggle('hidden', !isFullscreen);
+            document.body.classList.toggle('fullscreen-active', isFullscreen);
+            if (!isFullscreen) document.querySelectorAll('.show-on-hover').forEach(el => el.classList.remove('show-on-hover'));
+            setTimeout(onWindowResize, 100);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+    }
+
+    function setupSettingsPanel() {
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsButton = document.getElementById('settings-button');
+        const closeSettingsButton = document.getElementById('close-settings');
+        const graphicsSlider = document.getElementById('graphics-slider');
+        const graphicsQualityValue = document.getElementById('graphics-quality-value');
+        const energySlider = document.getElementById('energy-slider');
+        const energyValue = document.getElementById('energy-value');
+        const zoomSlider = document.getElementById('zoom-speed-slider');
+        const rotateSlider = document.getElementById('rotate-speed-slider');
+
+        function toggleSettingsPanel() {
+            if (settingsPanel.classList.contains('open')) settingsPanel.classList.remove('open');
+            else { settingsPanel.classList.remove('hidden'); requestAnimationFrame(() => settingsPanel.classList.add('open')); }
+        }
+        settingsButton.addEventListener('click', toggleSettingsPanel);
+        closeSettingsButton.addEventListener('click', () => settingsPanel.classList.remove('open'));
+        settingsPanel.addEventListener('transitionend', (e) => {
+            if (e.propertyName === 'transform' && !settingsPanel.classList.contains('open')) settingsPanel.classList.add('hidden');
+        });
+
+        energySlider.addEventListener('input', (e) => {
+            animationSpeed = parseFloat(e.target.value); energyValue.textContent = `${animationSpeed.toFixed(2)}x`;
+        });
+
+        graphicsSlider.addEventListener('input', (e) => {
+            const quality = parseFloat(e.target.value);
+            renderer.setPixelRatio(quality);
+            if (composer) composer.setPixelRatio(quality);
+            if (quality < 0.8) graphicsQualityValue.textContent = "Low";
+            else if (quality < 1.5) graphicsQualityValue.textContent = "Medium";
+            else graphicsQualityValue.textContent = "High";
+        });
+
+        zoomSlider.addEventListener('input', (e) => { controls.zoomSpeed = parseFloat(e.target.value); });
+        rotateSlider.addEventListener('input', (e) => { controls.rotateSpeed = parseFloat(e.target.value); });
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+        const delta = clock.getDelta();
+        handleVRInput(delta);
+        if (!renderer.xr.isPresenting) controls.update();
+        if(currentUpdate) currentUpdate(delta);
+        composer.render();
+        labelRenderer.render(scene, camera);
+    }
+
+    init();
+
+</script>
+</body>
+</html>
+
