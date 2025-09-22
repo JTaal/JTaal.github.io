@@ -108,6 +108,11 @@
   thumbnail: /assets/images/mandlebrot-julia-analysis.png
   visualization_url: /visualizations/mandlebrot-julia-analysis.html
 
+- title: Markov Chain
+  author: Jasper Taal
+  thumbnail: /assets/images/markov-chain.png
+  visualization_url: /visualizations/markov-chain.html
+
 - title: Matrix Eigenvectors
   author: Jasper Taal
   thumbnail: /assets/images/matrix-eigenvectors.png
