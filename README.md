@@ -19,7 +19,7 @@
 
 <div align="center">
 
-[![Connect on LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/<YOUR-LINKEDIN-ID>/)
+[![Connect on LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/jasper-taal-71b0321b9/)
 &nbsp;
 [![ORCID](https://img.shields.io/badge/ORCID-A6CE39?style=for-the-badge&logo=orcid&logoColor=white)](https://orcid.org/<YOUR-ORCID-ID>)
 
@@ -29,7 +29,7 @@
 
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-%E2%9D%A4-red?style=for-the-badge&logo=github)](https://github.com/sponsors/JTaal)
 &nbsp;
-[![Donate with Stripe](https://img.shields.io/badge/Donate-Stripe-6772E5?style=for-the-badge&logo=stripe&logoColor=white)](https://<YOUR-STRIPE-PAYMENT-LINK>)
+[![Donate with Stripe](https://img.shields.io/badge/Donate-Stripe-6772E5?style=for-the-badge&logo=stripe&logoColor=white)](https://donate.stripe.com/eVqaEW1x118bb2v2ie7IY01)
 &nbsp;
 [![Donate](https://img.shields.io/badge/Donate-PayPal-blue?style=for-the-badge&logo=paypal)](https://paypal.me/<YOUR-PAYPAL-USERNAME>)
 
