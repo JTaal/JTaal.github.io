@@ -332,15 +332,11 @@
     }
 
      function calculateCrowdingDistance(front) {
-        if (front.length <= 2) {
-            front.forEach(p => p.crowdingDistance = Infinity);
-            return;
-        }
+        if (front.length <= 2) { front.forEach(p => p.crowdingDistance = Infinity); return; }
         front.forEach(p => p.crowdingDistance = 0);
         for (let m = 0; m < numObjectives; m++) {
             front.sort((a, b) => a.objectives[m] - b.objectives[m]);
-            const minObj = front[0].objectives[m];
-            const maxObj = front[front.length - 1].objectives[m];
+            const minObj = front[0].objectives[m], maxObj = front[front.length - 1].objectives[m];
             if (maxObj === minObj) continue;
             front[0].crowdingDistance = Infinity;
             front[front.length - 1].crowdingDistance = Infinity;
@@ -355,65 +351,62 @@
         pop.forEach(p => {
             p.dominationCount = 0;
             p.dominatedSolutions = [];
-            p.rank = -1; // Not ranked yet
+            p.rank = -1;
             pop.forEach(q => {
                 if (p === q) return;
                 if (dominates(p, q)) p.dominatedSolutions.push(q);
                 else if (dominates(q, p)) p.dominationCount++;
             });
-            if (p.dominationCount === 0) {
-                p.rank = 0;
-                fronts[0].push(p);
-            }
+            if (p.dominationCount === 0) p.rank = 0;
         });
+        pop.forEach(p => { if(p.rank === 0) fronts[0].push(p); });
 
         let i = 0;
         while (fronts[i] && fronts[i].length > 0) {
             calculateCrowdingDistance(fronts[i]);
             const nextFront = [];
-            fronts[i].forEach(p => {
-                p.dominatedSolutions.forEach(q => {
-                    q.dominationCount--;
-                    if (q.dominationCount === 0) {
-                        q.rank = i + 1;
-                        nextFront.push(q);
-                    }
-                });
-            });
+            fronts[i].forEach(p => p.dominatedSolutions.forEach(q => {
+                q.dominationCount--;
+                if (q.dominationCount === 0) {
+                    q.rank = i + 1;
+                    nextFront.push(q);
+                }
+            }));
             i++;
             if (nextFront.length > 0) fronts[i] = nextFront;
         }
         return fronts;
     }
     
-    function calculateHypervolume(front) {
+    /**
+     * Calculates hypervolume using Monte Carlo approximation.
+     * This is more accurate than slice-based methods for 3D+.
+     */
+    function calculateHypervolume(front, samples = 5000) {
         if (!front || front.length === 0) return 0;
-        let volume = 0;
-        if (optimizationMode === 'minimize') {
-            const refPoint = [3, 3, 3];
-            const sorted = [...front].sort((a, b) => a.objectives[0] - b.objectives[0]);
-            let lastX = 0;
-            sorted.forEach(p => {
-                const dx = p.objectives[0] - lastX;
-                const dy = refPoint[1] - p.objectives[1];
-                const dz = refPoint[2] - p.objectives[2];
-                if (dx > 0 && dy > 0 && dz > 0) volume += dx * dy * dz;
-                lastX = p.objectives[0];
-            });
-            return volume / (refPoint[0] * refPoint[1] * refPoint[2]);
-        } else { // Maximize
-            const refPoint = [0, 0, 0];
-            const sorted = [...front].sort((a, b) => b.objectives[0] - a.objectives[0]);
-            let lastX = 3;
-            sorted.forEach(p => {
-                const dx = lastX - p.objectives[0];
-                const dy = p.objectives[1] - refPoint[1];
-                const dz = p.objectives[2] - refPoint[2];
-                if (dx > 0 && dy > 0 && dz > 0) volume += dx * dy * dz;
-                lastX = p.objectives[0];
-            });
-            return volume / (3 * 3 * 3);
+        
+        let dominatedCount = 0;
+        const refPoint = optimizationMode === 'minimize' ? [3, 3, 3] : [0, 0, 0];
+        const boundsMin = optimizationMode === 'minimize' ? [0, 0, 0] : refPoint;
+        const boundsMax = optimizationMode === 'minimize' ? refPoint : [3, 3, 3];
+        
+        for (let i = 0; i < samples; i++) {
+            const randomPoint = {
+                objectives: [
+                    Math.random() * (boundsMax[0] - boundsMin[0]) + boundsMin[0],
+                    Math.random() * (boundsMax[1] - boundsMin[1]) + boundsMin[1],
+                    Math.random() * (boundsMax[2] - boundsMin[2]) + boundsMin[2]
+                ]
+            };
+            
+            for (const p of front) {
+                if (dominates(p, randomPoint)) {
+                    dominatedCount++;
+                    break;
+                }
+            }
         }
+        return dominatedCount / samples;
     }
 
 
@@ -451,8 +444,8 @@
             offspring.push(child1, child2);
         }
 
-        let combinedPopulation = [...population, ...offspring];
-        const fronts = nonDominatedSort(combinedPopulation);
+        const combined = [...population, ...offspring];
+        const fronts = nonDominatedSort(combined);
         let nextPopulation = [];
         let frontIndex = 0;
         while (fronts[frontIndex] && nextPopulation.length + fronts[frontIndex].length <= populationSize) {
@@ -462,10 +455,8 @@
         if (nextPopulation.length < populationSize && fronts[frontIndex]) {
             const lastFront = fronts[frontIndex];
             lastFront.sort((a,b) => b.crowdingDistance - a.crowdingDistance);
-            const remaining = populationSize - nextPopulation.length;
-            nextPopulation.push(...lastFront.slice(0, remaining));
+            nextPopulation.push(...lastFront.slice(0, populationSize - nextPopulation.length));
         }
-
         population = nextPopulation;
         generation++;
         updateVisualization(fronts);
@@ -520,33 +511,33 @@
     }
 
     function drawHypervolumeViz(front) {
+        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+        const minMaterial = new THREE.MeshBasicMaterial({ color: 0x8A2BE2, transparent: true, opacity: 0.05 });
+        const maxMaterial = new THREE.MeshBasicMaterial({ color: 0x00BFFF, transparent: true, opacity: 0.05 });
+
         if (optimizationMode === 'minimize') {
             const refPoint = new THREE.Vector3(3,3,3);
-            const sorted = [...front].sort((a,b)=>a.objectives[0]-b.objectives[0]);
-            let lastX = 0;
-            sorted.forEach(p => {
+            front.forEach(p => {
                 const pos = new THREE.Vector3(...p.objectives);
-                const size = new THREE.Vector3(pos.x - lastX, refPoint.y - pos.y, refPoint.z - pos.z);
+                const size = refPoint.clone().sub(pos);
                 if (size.x > 0 && size.y > 0 && size.z > 0) {
-                    const box = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), new THREE.MeshBasicMaterial({ color: 0x8A2BE2, transparent: true, opacity: 0.1 }));
-                    box.position.set(lastX + size.x / 2, pos.y + size.y / 2, pos.z + size.z / 2);
+                    const box = new THREE.Mesh(boxGeo, minMaterial);
+                    box.scale.copy(size);
+                    box.position.copy(pos).add(size.clone().multiplyScalar(0.5));
                     metricsGroup.add(box);
                 }
-                lastX = pos.x;
             });
         } else { // Maximize
             const refPoint = new THREE.Vector3(0,0,0);
-            const sorted = [...front].sort((a,b)=>b.objectives[0]-a.objectives[0]);
-            let lastX = 3;
-            sorted.forEach(p => {
+             front.forEach(p => {
                 const pos = new THREE.Vector3(...p.objectives);
-                const size = new THREE.Vector3(lastX - pos.x, pos.y - refPoint.y, pos.z - refPoint.z);
-                 if (size.x > 0 && size.y > 0 && size.z > 0) {
-                    const box = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), new THREE.MeshBasicMaterial({ color: 0x00BFFF, transparent: true, opacity: 0.1 }));
-                    box.position.set(pos.x + size.x / 2, refPoint.y + size.y / 2, refPoint.z + size.z / 2);
+                const size = pos.clone().sub(refPoint);
+                if (size.x > 0 && size.y > 0 && size.z > 0) {
+                    const box = new THREE.Mesh(boxGeo, maxMaterial);
+                    box.scale.copy(size);
+                    box.position.copy(refPoint).add(size.clone().multiplyScalar(0.5));
                     metricsGroup.add(box);
                 }
-                lastX = pos.x;
             });
         }
     }
