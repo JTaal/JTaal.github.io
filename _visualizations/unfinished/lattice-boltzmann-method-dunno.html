@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" xintegrity="sha384-n8MVd4RsNIU07vaPkIFjs/pfy8L65nAqlRMJ5uptzQbl/N/6C+E6qv8xddXXZsdj" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" xintegrity="sha384-XjKyOOlVjOTgjdwwsEchLAhppT97KW+zPA7EhG+DmCDEuOIIr6pEVsAdfHMyogBK" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" xintegrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" xintegrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
 
     <script type="importmap">
         {
@@ -429,13 +429,6 @@
             <hr class="border-gray-600">
              <div id="lbm-settings-container" class="space-y-6 hidden">
                  <h4 class="text-lg font-bold text-gray-300 text-left w-full">LBM Visualization</h4>
-                 <div id="coherence-control-container" class="control-group text-left w-full hidden">
-                    <label class="text-sm font-medium self-start w-full">Dynamic Flow Coherence</label>
-                    <div class="flex gap-1 w-full">
-                        <button data-coherence="incoherent" class="toggle-button active w-1/2">Incoherent</button>
-                        <button data-coherence="coherent" class="toggle-button w-1/2">Coherent</button>
-                    </div>
-                </div>
                   <div class="control-group text-left w-full">
                     <label for="voxel-resolution-slider" class="text-sm font-medium self-start w-full flex justify-between">
                         <span>Voxelization Quality:</span>
@@ -448,14 +441,14 @@
                         <span>Line Count:</span>
                         <span id="lbm-line-count-value">2000</span>
                     </label>
-                    <input id="lbm-line-count-slider" type="range" min="100" max="10000" step="100" value="2000" class="w-full">
+                    <input id="lbm-line-count-slider" type="range" min="100" max="1000000" step="100" value="2000" class="w-full">
                 </div>
                 <div class="control-group text-left w-full">
                     <label for="lbm-line-length-slider" class="text-sm font-medium self-start w-full flex justify-between">
                         <span>Line Length:</span>
                         <span id="lbm-line-length-value">1.0</span>
                     </label>
-                    <input id="lbm-line-length-slider" type="range" min="0.1" max="5.0" step="0.1" value="1.0" class="w-full">
+                    <input id="lbm-line-length-slider" type="range" min="0.1" max="5.0" step="0.01" value="1.0" class="w-full">
                 </div>
                  <div class="control-group text-left w-full">
                     <label for="lbm-particle-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
@@ -466,35 +459,6 @@
                 </div>
                  <div class="control-group text-left w-full">
                     <button id="reset-particles-button" class="toggle-button w-full">Reset Particles</button>
-                </div>
-                 <hr class="border-gray-600">
-                 <h4 class="text-lg font-bold text-gray-300 text-left w-full">Custom Obstacle Transform</h4>
-                <div class="control-group text-left w-full">
-                    <label class="text-sm font-medium self-start w-full flex justify-between">Position X: <span id="stl-pos-x-value">0</span></label>
-                    <input id="stl-pos-x-slider" type="range" value="0">
-                </div>
-                 <div class="control-group text-left w-full">
-                    <label class="text-sm font-medium self-start w-full flex justify-between">Position Y: <span id="stl-pos-y-value">0</span></label>
-                    <input id="stl-pos-y-slider" type="range" value="0">
-                </div>
-                 <div class="control-group text-left w-full">
-                    <label class="text-sm font-medium self-start w-full flex justify-between">Position Z: <span id="stl-pos-z-value">0</span></label>
-                    <input id="stl-pos-z-slider" type="range" value="0">
-                </div>
-                 <div class="control-group text-left w-full">
-                    <label class="text-sm font-medium self-start w-full flex justify-between">Rotation X: <span id="stl-rot-x-value">0</span>°</label>
-                    <input id="stl-rot-x-slider" type="range" min="-180" max="180" value="0">
-                </div>
-                <div class="control-group text-left w-full">
-                    <label class="text-sm font-medium self-start w-full flex justify-between">Rotation Y: <span id="stl-rot-y-value">0</span>°</label>
-                    <input id="stl-rot-y-slider" type="range" min="-180" max="180" value="0">
-                </div>
-                <div class="control-group text-left w-full">
-                    <label class="text-sm font-medium self-start w-full flex justify-between">Rotation Z: <span id="stl-rot-z-value">0</span>°</label>
-                    <input id="stl-rot-z-slider" type="range" min="-180" max="180" value="0">
-                </div>
-                <div class="control-group text-left w-full">
-                     <button id="update-obstacle-btn" class="toggle-button w-full">Update Obstacle</button>
                 </div>
                 <div class="control-group text-left w-full">
                     <button id="load-stl-button" class="toggle-button w-full">Load Custom Obstacle (.stl)</button>
@@ -663,17 +627,11 @@
         const formulaDiv = document.getElementById('info-formula');
         formulaDiv.innerHTML = `
             <p><strong>LBM Equation (BGK):</strong></p>
-            <div>$$\\frac{\\partial f}{\\partial t} + \\mathbf{e} \\cdot \\nabla f = -\\frac{1}{\\tau}(f - f^{eq})$$</div>
+            <div>$$ \\frac{\\partial f}{\\partial t} + \\mathbf{e} \\cdot \\nabla f = -\\frac{1}{\\tau}(f - f^{eq}) $$</div>
             <p class="text-sm text-gray-400 mt-2"><strong>Model:</strong> D3Q19 (3 Dimensions, 19 Velocities)</p>
         `;
         if (window.renderMathInElement) {
-             setTimeout(() => {
-                try {
-                    renderMathInElement(document.body);
-                } catch (e) {
-                    console.error("KaTeX rendering failed:", e);
-                }
-             }, 100);
+            renderMathInElement(formulaDiv);
         }
 
         // --- Simulation Parameters ---
@@ -709,7 +667,6 @@
         // --- Visualization State ---
         let visualizationMode = 'particles';
         let flowMode = 'dynamic';
-        let coherenceMode = 'incoherent';
         let particles, gridLines;
         let lineLength = 1.0;
         let lineCount = 2000;
@@ -720,7 +677,6 @@
         let slicePosition = Math.floor(NX / 2);
         let colorMode = 'velocity';
         let obstacleMesh, voxelMesh;
-        let stlGeometry = null;
 
         const idx = (x, y, z) => (x * NY * NZ) + (y * NZ) + z;
 
@@ -751,7 +707,7 @@
                 gridTracerPositions[i * 3 + 1] = Math.random() * NY;
                 gridTracerPositions[i * 3 + 2] = Math.random() * NZ;
             }
-            
+
             const side = Math.ceil(Math.sqrt(lineCount));
             for (let i = 0; i < lineCount; i++) {
                  const yIndex = i % side;
@@ -806,7 +762,7 @@
             boxHelper.position.set(NX/2, NY/2, NZ/2).sub(boxSize.clone().multiplyScalar(0.5));
             activeSceneObjects.add(boxHelper);
             setSphereBarrier();
-            flowMode === 'static' ? setupStaticGrid() : resetGridTracers();
+            resetGridTracers();
         }
 
         function step() {
@@ -841,7 +797,7 @@
         const controlsDiv = document.getElementById('controls-panel');
         controlsDiv.innerHTML = `
             <div class="control-group"><label class="text-sm font-medium">Viscosity</label><input id="viscosity-slider" type="range" min="0.51" max="1.5" step="0.01" value="${tau}"><span id="viscosity-value" class="text-xs">${tau.toFixed(2)}</span></div>
-            <div class="control-group"><label class="text-sm font-medium">Flow Speed</label><input id="flow-speed-slider" type="range" min="0.01" max="0.1" step="0.005" value="${flowSpeed}"><span id="flow-speed-value" class="text-xs">${flowSpeed.toFixed(3)}</span></div>
+            <div class="control-group"><label class="text-sm font-medium">Flow Speed</label><input id="flow-speed-slider" type="range" min="0.01" max="0.3" step="0.005" value="${flowSpeed}"><span id="flow-speed-value" class="text-xs">${flowSpeed.toFixed(3)}</span></div>
             <div class="control-group"><label class="text-sm font-medium">View Mode</label><button id="viz-toggle-btn" class="toggle-button">Grid Lines</button></div>
             <div class="control-group" id="flow-mode-control"><label class="text-sm font-medium">Flow Mode</label><div class="flex gap-1"><button data-mode="dynamic" class="toggle-button active">Dynamic</button><button data-mode="static" class="toggle-button">Static</button></div></div>
             <div class="control-group"><label class="text-sm font-medium">Color By</label><button id="color-mode-btn" class="toggle-button">Density</button></div>
@@ -851,14 +807,11 @@
 
         document.getElementById('viscosity-slider').addEventListener('input', e => { tau = parseFloat(e.target.value); document.getElementById('viscosity-value').textContent = tau.toFixed(2); });
         document.getElementById('flow-speed-slider').addEventListener('input', e => { flowSpeed = parseFloat(e.target.value); document.getElementById('flow-speed-value').textContent = flowSpeed.toFixed(3); });
-        
-        const coherenceControl = document.getElementById('coherence-control-container');
         document.getElementById('viz-toggle-btn').addEventListener('click', e => {
             visualizationMode = (visualizationMode === 'particles') ? 'grid' : 'particles';
             e.target.textContent = (visualizationMode === 'grid') ? 'Particles' : 'Grid Lines';
             particles.visible = (visualizationMode === 'particles'); gridLines.visible = (visualizationMode === 'grid');
             document.getElementById('flow-mode-control').classList.toggle('hidden', visualizationMode !== 'grid');
-            coherenceControl.classList.toggle('hidden', visualizationMode !== 'grid' || flowMode !== 'dynamic');
         });
 
         document.getElementById('flow-mode-control').addEventListener('click', e => {
@@ -866,21 +819,7 @@
                 document.querySelectorAll('#flow-mode-control .toggle-button').forEach(btn => btn.classList.remove('active'));
                 e.target.classList.add('active');
                 flowMode = e.target.dataset.mode;
-                if (flowMode === 'static') {
-                    setupStaticGrid();
-                    coherenceControl.classList.add('hidden');
-                } else {
-                    resetGridTracers();
-                    coherenceControl.classList.remove('hidden');
-                }
-            }
-        });
-
-        coherenceControl.addEventListener('click', e => {
-             if (e.target.tagName === 'BUTTON') {
-                document.querySelectorAll('#coherence-control-container .toggle-button').forEach(btn => btn.classList.remove('active'));
-                e.target.classList.add('active');
-                coherenceMode = e.target.dataset.coherence;
+                if (flowMode === 'static') setupStaticGrid(); else resetGridTracers();
             }
         });
 
@@ -904,61 +843,9 @@
         document.getElementById('reset-obstacle-btn').addEventListener('click', setSphereBarrier);
 
         const stlFileInput = document.getElementById('stl-file-input'); document.getElementById('load-stl-button').addEventListener('click', () => stlFileInput.click());
-        stlFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const loader = new STLLoader();
-                stlGeometry = loader.parse(e.target.result); // Store original geometry
-                applyStlTransformAndVoxelize();
-            };
-            reader.readAsArrayBuffer(file);
-            stlFileInput.value = '';
-        });
-        
-        document.getElementById('update-obstacle-btn').addEventListener('click', () => {
-             if (stlGeometry) applyStlTransformAndVoxelize();
-        });
+        stlFileInput.addEventListener('change', handleStlUpload);
 
-        // Setup 6DoF sliders
-        const stlSliders = {
-            posX: document.getElementById('stl-pos-x-slider'), posY: document.getElementById('stl-pos-y-slider'), posZ: document.getElementById('stl-pos-z-slider'),
-            rotX: document.getElementById('stl-rot-x-slider'), rotY: document.getElementById('stl-rot-y-slider'), rotZ: document.getElementById('stl-rot-z-slider'),
-        };
-        const stlValues = {
-            posX: document.getElementById('stl-pos-x-value'), posY: document.getElementById('stl-pos-y-value'), posZ: document.getElementById('stl-pos-z-value'),
-            rotX: document.getElementById('stl-rot-x-value'), rotY: document.getElementById('stl-rot-y-value'), rotZ: document.getElementById('stl-rot-z-value'),
-        };
-        stlSliders.posX.min = -NX/2; stlSliders.posX.max = NX/2; stlValues.posX.textContent = stlSliders.posX.value;
-        stlSliders.posY.min = -NY/2; stlSliders.posY.max = NY/2; stlValues.posY.textContent = stlSliders.posY.value;
-        stlSliders.posZ.min = -NZ/2; stlSliders.posZ.max = NZ/2; stlValues.posZ.textContent = stlSliders.posZ.value;
-        stlSliders.rotX.addEventListener('input', e => stlValues.rotX.textContent = e.target.value);
-        stlSliders.rotY.addEventListener('input', e => stlValues.rotY.textContent = e.target.value);
-        stlSliders.rotZ.addEventListener('input', e => stlValues.rotZ.textContent = e.target.value);
-        stlSliders.posX.addEventListener('input', e => stlValues.posX.textContent = e.target.value);
-        stlSliders.posY.addEventListener('input', e => stlValues.posY.textContent = e.target.value);
-        stlSliders.posZ.addEventListener('input', e => stlValues.posZ.textContent = e.target.value);
-
-        async function applyStlTransformAndVoxelize() {
-            if (!stlGeometry) return;
-            const transformedGeometry = stlGeometry.clone();
-            
-            // Apply rotations in ZYX order to be more intuitive
-            transformedGeometry.rotateZ(parseInt(stlSliders.rotZ.value) * Math.PI / 180);
-            transformedGeometry.rotateY(parseInt(stlSliders.rotY.value) * Math.PI / 180);
-            transformedGeometry.rotateX(parseInt(stlSliders.rotX.value) * Math.PI / 180);
-            
-            // Apply translation
-            transformedGeometry.translate(
-                parseInt(stlSliders.posX.value),
-                parseInt(stlSliders.posY.value),
-                parseInt(stlSliders.posZ.value)
-            );
-            
-            await voxelizeGeometry(transformedGeometry);
-        }
-
+        function handleStlUpload(event) { const file=event.target.files[0]; if(!file)return; const reader=new FileReader(); reader.onload=(e)=>{const loader=new STLLoader();const geometry=loader.parse(e.target.result);voxelizeGeometry(geometry);}; reader.readAsArrayBuffer(file); stlFileInput.value='';}
         async function voxelizeGeometry(geometry) {
             const loadingOverlay=document.getElementById('loading-overlay'); const progressBar=document.getElementById('progress-bar'); const progressText=document.getElementById('progress-text'); const subdivisions=parseInt(document.getElementById('voxel-resolution-slider').value,10);
             loadingOverlay.classList.remove('hidden');
@@ -977,7 +864,7 @@
             if(isPaused)return;for(let i=0;i<2;++i)step();
             if(visualizationMode==='particles'){const posAttr=particles.geometry.attributes.position;const colAttr=particles.geometry.attributes.color;for(let i=0;i<PARTICLE_COUNT;++i){let x=posAttr.getX(i);let y=posAttr.getY(i);let z=posAttr.getZ(i);if(x<0||x>=NX-1||y<0||y>=NY-1||z<0||z>=NZ-1){x=Math.random()*2;y=Math.random()*NY;z=Math.random()*NZ;}const gridIdx=idx(Math.floor(x),Math.floor(y),Math.floor(z));if(barrier[gridIdx]){x=Math.random()*2;y=Math.random()*NY;z=Math.random()*NZ;}else{const velX=ux[gridIdx];const velY=uy[gridIdx];const velZ=uz[gridIdx];x+=velX*50*delta;y+=velY*50*delta;z+=velZ*50*delta;const speed=Math.sqrt(velX*velX+velY*velY+velZ*velZ)/0.1;color.setHSL(0.6-speed*0.5,1.0,0.5);colAttr.setXYZ(i,color.r,color.g,color.b);}posAttr.setXYZ(i,x,y,z);}posAttr.needsUpdate=true;colAttr.needsUpdate=true;}
             else{const gridPosAttr=gridLines.geometry.attributes.position;const gridColAttr=gridLines.geometry.attributes.color;
-                if(flowMode==='dynamic'){for(let i=0;i<lineCount;i++){let tracerX=gridTracerPositions[i*3];let tracerY=gridTracerPositions[i*3+1];let tracerZ=gridTracerPositions[i*3+2];const preMoveGridX=Math.floor(tracerX);const preMoveGridY=Math.floor(tracerY);const preMoveGridZ=Math.floor(tracerZ);if(preMoveGridX>=0&&preMoveGridX<NX&&preMoveGridY>=0&&preMoveGridY<NY&&preMoveGridZ>=0&&preMoveGridZ<NZ){const preMoveGridIdx=idx(preMoveGridX,preMoveGridY,preMoveGridZ);if(!barrier[preMoveGridIdx]){tracerX+=ux[preMoveGridIdx]*30*delta;tracerY+=uy[preMoveGridIdx]*30*delta;tracerZ+=uz[preMoveGridIdx]*30*delta;}}const gridX=Math.floor(tracerX);const gridY=Math.floor(tracerY);const gridZ=Math.floor(tracerZ);let needsReset=false;if(gridX<0||gridX>=NX||gridY<0||gridY>=NY||gridZ<0||gridZ>=NZ){needsReset=true;}else{const currentGridIdx=idx(gridX,gridY,gridZ);if(barrier[currentGridIdx]){needsReset=true;}}if(needsReset){if(coherenceMode==='coherent'){tracerX=gridCoherentInitialPositions[i*3];tracerY=gridCoherentInitialPositions[i*3+1];tracerZ=gridCoherentInitialPositions[i*3+2];}else{tracerX=Math.random()*1;tracerY=Math.random()*NY;tracerZ=Math.random()*NZ;}}gridTracerPositions[i*3]=tracerX;gridTracerPositions[i*3+1]=tracerY;gridTracerPositions[i*3+2]=tracerZ;const currentGridIdx=idx(Math.min(NX-1,Math.max(0,gridX)),Math.min(NY-1,Math.max(0,gridY)),Math.min(NZ-1,Math.max(0,gridZ)));let shouldDraw=sliceAxis==='none'||(sliceAxis==='x'&&gridX===slicePosition)||(sliceAxis==='y'&&gridY===slicePosition)||(sliceAxis==='z'&&gridZ===slicePosition);if(needsReset||!shouldDraw||barrier[currentGridIdx]){gridPosAttr.setXYZ(i*2,tracerX,tracerY,-1000);gridPosAttr.setXYZ(i*2+1,tracerX,tracerY,-1000);}else{const velX=ux[currentGridIdx];const velY=uy[currentGridIdx];const velZ=uz[currentGridIdx];const speed=Math.sqrt(velX*velX+velY*velY+velZ*velZ);if(colorMode==='velocity'){color.setHSL(0.7-(speed/(flowSpeed*2))*0.7,1.0,0.5);}else{color.setHSL(0.6,1.0,Math.max(0,Math.min(1,(rho[currentGridIdx]-0.98)/0.04))*0.8+0.1);}const v_len=speed>1e-6?speed:1e-6;const nvx=velX/v_len,nvy=velY/v_len,nvz=velZ/v_len;const startX=tracerX-nvx*lineLength/2,startY=tracerY-nvy*lineLength/2,startZ=tracerZ-nvz*lineLength/2;const endX=tracerX+nvx*lineLength/2,endY=tracerY+nvy*lineLength/2,endZ=tracerZ+nvz*lineLength/2;gridPosAttr.setXYZ(i*2,startX,startY,startZ);gridPosAttr.setXYZ(i*2+1,endX,endY,endZ);gridColAttr.setXYZ(i*2,color.r,color.g,color.b);gridColAttr.setXYZ(i*2+1,color.r,color.g,color.b);}}}
+                if(flowMode==='dynamic'){for(let i=0;i<lineCount;i++){let tracerX=gridTracerPositions[i*3];let tracerY=gridTracerPositions[i*3+1];let tracerZ=gridTracerPositions[i*3+2];const preMoveGridX=Math.floor(tracerX);const preMoveGridY=Math.floor(tracerY);const preMoveGridZ=Math.floor(tracerZ);if(preMoveGridX>=0&&preMoveGridX<NX&&preMoveGridY>=0&&preMoveGridY<NY&&preMoveGridZ>=0&&preMoveGridZ<NZ){const preMoveGridIdx=idx(preMoveGridX,preMoveGridY,preMoveGridZ);if(!barrier[preMoveGridIdx]){tracerX+=ux[preMoveGridIdx]*30*delta;tracerY+=uy[preMoveGridIdx]*30*delta;tracerZ+=uz[preMoveGridIdx]*30*delta;}}const gridX=Math.floor(tracerX);const gridY=Math.floor(tracerY);const gridZ=Math.floor(tracerZ);let needsReset=false;if(gridX<0||gridX>=NX||gridY<0||gridY>=NY||gridZ<0||gridZ>=NZ){needsReset=true;}else{const currentGridIdx=idx(gridX,gridY,gridZ);if(barrier[currentGridIdx]){needsReset=true;}}if(needsReset){tracerX=gridCoherentInitialPositions[i*3];tracerY=gridCoherentInitialPositions[i*3+1];tracerZ=gridCoherentInitialPositions[i*3+2];}gridTracerPositions[i*3]=tracerX;gridTracerPositions[i*3+1]=tracerY;gridTracerPositions[i*3+2]=tracerZ;const currentGridIdx=idx(Math.min(NX-1,Math.max(0,gridX)),Math.min(NY-1,Math.max(0,gridY)),Math.min(NZ-1,Math.max(0,gridZ)));let shouldDraw=sliceAxis==='none'||(sliceAxis==='x'&&gridX===slicePosition)||(sliceAxis==='y'&&gridY===slicePosition)||(sliceAxis==='z'&&gridZ===slicePosition);if(needsReset||!shouldDraw||barrier[currentGridIdx]){gridPosAttr.setXYZ(i*2,tracerX,tracerY,-1000);gridPosAttr.setXYZ(i*2+1,tracerX,tracerY,-1000);}else{const velX=ux[currentGridIdx];const velY=uy[currentGridIdx];const velZ=uz[currentGridIdx];const speed=Math.sqrt(velX*velX+velY*velY+velZ*velZ);if(colorMode==='velocity'){color.setHSL(0.7-(speed/(flowSpeed*2))*0.7,1.0,0.5);}else{color.setHSL(0.6,1.0,Math.max(0,Math.min(1,(rho[currentGridIdx]-0.98)/0.04))*0.8+0.1);}const v_len=speed>1e-6?speed:1e-6;const nvx=velX/v_len,nvy=velY/v_len,nvz=velZ/v_len;const startX=tracerX-nvx*lineLength/2,startY=tracerY-nvy*lineLength/2,startZ=tracerZ-nvz*lineLength/2;const endX=tracerX+nvx*lineLength/2,endY=tracerY+nvy*lineLength/2,endZ=tracerZ+nvz*lineLength/2;gridPosAttr.setXYZ(i*2,startX,startY,startZ);gridPosAttr.setXYZ(i*2+1,endX,endY,endZ);gridColAttr.setXYZ(i*2,color.r,color.g,color.b);gridColAttr.setXYZ(i*2+1,color.r,color.g,color.b);}}}
                 else{for(let i=0;i<staticGridIndices.length;i++){const gridIdx=staticGridIndices[i];const x=Math.floor(gridIdx/(NY*NZ));const y=Math.floor((gridIdx/NZ)%NY);const z=gridIdx%NZ;let shouldDraw=sliceAxis==='none'||(sliceAxis==='x'&&x===slicePosition)||(sliceAxis==='y'&&y===slicePosition)||(sliceAxis==='z'&&z===slicePosition);if(barrier[gridIdx]||!shouldDraw){gridPosAttr.setXYZ(i*2,x,y,-1000);gridPosAttr.setXYZ(i*2+1,x,y,-1000);}else{const velX=ux[gridIdx];const velY=uy[gridIdx];const velZ=uz[gridIdx];const speed=Math.sqrt(velX*velX+velY*velY+velZ*velZ);if(colorMode==='velocity'){color.setHSL(0.7-(speed/(flowSpeed*2))*0.7,1.0,0.5);}else{color.setHSL(0.6,1.0,Math.max(0,Math.min(1,(rho[gridIdx]-0.98)/0.04))*0.8+0.1);}const v_len=speed>1e-6?speed:1e-6;const nvx=velX/v_len,nvy=velY/v_len,nvz=velZ/v_len;const startX=x-nvx*lineLength/2,startY=y-nvy*lineLength/2,startZ=z-nvz*lineLength/2;const endX=x+nvx*lineLength/2,endY=y+nvy*lineLength/2,endZ=z+nvz*lineLength/2;gridPosAttr.setXYZ(i*2,startX,startY,startZ);gridPosAttr.setXYZ(i*2+1,endX,endY,endZ);gridColAttr.setXYZ(i*2,color.r,color.g,color.b);gridColAttr.setXYZ(i*2+1,color.r,color.g,color.b);}}}
                 gridPosAttr.needsUpdate=true;gridColAttr.needsUpdate=true;}}
 
