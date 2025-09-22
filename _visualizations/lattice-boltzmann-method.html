@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive 3D Simulations</title>
+    <title>Lattice Boltzmann Method</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" xintegrity="sha384-n8MVd4RsNIU07vaPkIFjs/pfy8L65nAqlRMJ5uptzQbl/N/6C+E6qv8xddXXZsdj" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" xintegrity="sha384-XjKyOOlVjOTgjdwwsEchLAhppT97KW+zPA7EhG+DmCDEuOIIr6pEVsAdfHMyogBK" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" xintegrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+
     <script type="importmap">
         {
             "imports": {
@@ -51,12 +54,13 @@
         #toggle-icon { transition: transform 0.3s ease-in-out; }
         #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
         .formula-placeholder {
-            font-family: 'Georgia', serif;
+            font-family: 'monospace', serif;
             background-color: #1f2937;
             padding: 1rem;
             border-radius: 0.5rem;
             text-align: center;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+            line-height: 1.6;
             margin-top: 1rem;
             color: #d1d5db;
             border: 1px solid #374151;
@@ -144,12 +148,6 @@
         input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
-        }
-        .chart-container {
-            background-color: #111827;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
         }
         .control-group {
             display: flex;
@@ -283,6 +281,41 @@
             font-weight: bold;
         }
         #mobile-menu-container { display: none; }
+        
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(3, 7, 18, 0.9);
+            z-index: 999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #loading-box {
+            background-color: #1f2937;
+            padding: 2rem 3rem;
+            border-radius: 12px;
+            border: 1px solid #374151;
+            text-align: center;
+            width: 350px;
+        }
+        #progress-bar-container {
+            width: 100%;
+            background-color: #374151;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 12px;
+            background-color: #4f46e5;
+            transition: width 0.3s ease-in-out;
+        }
+
         @media (max-width: 768px) {
             header { padding: 0.75rem 1rem; }
             header h1 { font-size: 1.125rem; }
@@ -301,8 +334,19 @@
     </style>
 </head>
 <body>
+    <div id="loading-overlay" class="hidden">
+        <div id="loading-box">
+            <h3 class="text-xl font-bold text-gray-200">Processing Model</h3>
+            <p class="text-sm text-gray-400 mt-2">Voxelizing STL file, please wait...</p>
+            <div id="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
+            <p id="progress-text" class="text-xs text-gray-500 mt-2">0%</p>
+        </div>
+    </div>
+    
     <header>
-        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Interactive 3D Simulations</h1>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Lattice Boltzmann Method</h1>
         <div id="menu"></div>
         <div id="mobile-menu-container" class="relative">
             <button id="mobile-menu-button" class="menu-button">
@@ -322,14 +366,7 @@
         </div>
         <div id="info-content" class="pt-4 space-y-3">
              <p id="info-description" class="text-gray-300"></p>
-             <div id="info-placeholder" class="formula-placeholder">Current Seed: <span id="seed-display">none</span></div>
-             <div id="charts-placeholder" class="space-y-4">
-                  <h3 class="font-bold text-lg text-indigo-400 mt-4">Planet Elevation Distribution</h3>
-                  <p class="text-sm text-gray-300">This chart shows the distribution of elevations across the generated planet's surface.</p>
-                  <div class="chart-container">
-                       <canvas id="placeholder-chart"></canvas>
-                  </div>
-             </div>
+             <div id="info-formula" class="formula-placeholder hidden"></div>
         </div>
     </div>
 
@@ -357,20 +394,21 @@
                     <span>Enter VR</span>
                 </button>
             </div>
-            <div class="control-group text-left w-full">
-                <label class="text-sm font-medium self-start w-full">Follow Planet</label>
-                <button id="follow-toggle" class="toggle-button">Off</button>
-            </div>
-            <div class="control-group text-left w-full">
-                <label for="planet-resolution-slider" class="text-sm font-medium self-start w-full flex justify-between">
-                    <span>Planet Resolution:</span>
-                    <span id="planet-resolution-value">64</span>
-                </label>
-                <input id="planet-resolution-slider" type="range" min="8" max="256" step="8" value="64" class="w-full">
+             <div id="lbm-resolution-container" class="control-group text-left w-full hidden">
+                <label class="text-sm font-medium self-start w-full">Simulation Resolution</label>
+                <div class="flex items-center justify-between gap-1 w-full">
+                    <span class="text-xs text-gray-400">X:</span>
+                    <input id="sim-res-x" type="number" value="40" class="w-1/4 text-center">
+                    <span class="text-xs text-gray-400">Y:</span>
+                    <input id="sim-res-y" type="number" value="20" class="w-1/4 text-center">
+                     <span class="text-xs text-gray-400">Z:</span>
+                    <input id="sim-res-z" type="number" value="40" class="w-1/4 text-center">
+                    <button id="apply-res-btn" class="toggle-button text-xs py-1 px-2">Apply</button>
+                </div>
             </div>
             <div class="control-group text-left w-full">
                 <label for="energy-slider" class="text-sm font-medium self-start w-full flex justify-between">
-                    <span>Rotation Speed:</span>
+                    <span>Animation Speed:</span>
                     <span id="energy-value">0.1x</span>
                 </label>
                 <input id="energy-slider" type="range" min="0" max="2" step="0.05" value="0.1" class="w-full">
@@ -389,6 +427,45 @@
                 <input id="grid-lines-slider" type="range" min="5" max="50" step="1" value="15" class="w-full">
             </div>
             <hr class="border-gray-600">
+             <div id="lbm-settings-container" class="space-y-6 hidden">
+                 <h4 class="text-lg font-bold text-gray-300 text-left w-full">LBM Visualization</h4>
+                  <div class="control-group text-left w-full">
+                    <label for="voxel-resolution-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                        <span>Voxelization Quality:</span>
+                        <span id="voxel-resolution-value">Medium</span>
+                    </label>
+                    <input id="voxel-resolution-slider" type="range" min="1" max="4" step="1" value="2" class="w-full">
+                </div>
+                 <div class="control-group text-left w-full">
+                    <label for="lbm-line-count-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                        <span>Line Count:</span>
+                        <span id="lbm-line-count-value">2000</span>
+                    </label>
+                    <input id="lbm-line-count-slider" type="range" min="100" max="1000000" step="100" value="2000" class="w-full">
+                </div>
+                <div class="control-group text-left w-full">
+                    <label for="lbm-line-length-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                        <span>Line Length:</span>
+                        <span id="lbm-line-length-value">1.0</span>
+                    </label>
+                    <input id="lbm-line-length-slider" type="range" min="0.1" max="5.0" step="0.01" value="1.0" class="w-full">
+                </div>
+                 <div class="control-group text-left w-full">
+                    <label for="lbm-particle-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                        <span>Particle Size:</span>
+                        <span id="lbm-particle-size-value">0.20</span>
+                    </label>
+                    <input id="lbm-particle-size-slider" type="range" min="0.05" max="1.0" step="0.01" value="0.2" class="w-full">
+                </div>
+                 <div class="control-group text-left w-full">
+                    <button id="reset-particles-button" class="toggle-button w-full">Reset Particles</button>
+                </div>
+                <div class="control-group text-left w-full">
+                    <button id="load-stl-button" class="toggle-button w-full">Load Custom Obstacle (.stl)</button>
+                    <input type="file" id="stl-file-input" class="hidden" accept=".stl">
+                </div>
+                 <hr class="border-gray-600">
+            </div>
             <div class="control-group text-left w-full">
                 <label for="graphics-slider" class="text-sm font-medium self-start w-full flex justify-between">
                     <span>Graphics Quality:</span>
@@ -408,6 +485,7 @@
 <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+    import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
     import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
     import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
 
@@ -435,28 +513,18 @@
 
     // --- Global Settings ---
     let animationSpeed = 0.1;
-    let followMode = false;
     let isPaused = false;
-    let planetSeed = 'hello world';
-    let planetResolution = 64;
-    let followObject = null;
-    let elevationChart;
-
+    
     const scenes = {
-        lbm_simulation: {
-            title: 'LBM Fluid Simulation',
-            description: 'This scene visualizes a 3D fluid simulation using the Lattice Boltzmann Method (LBM), a powerful technique for computational fluid dynamics. Instead of solving complex equations for the fluid as a whole, LBM simulates the collective behavior of fictitious particles on a grid. This approach is excellent for modeling complex fluid flows, like the one you see here around the sphere. Use the controls to adjust the fluid\'s properties and visualization.',
-            init: initLbmSimulation,
+        lbm_simulation_3d: {
+            title: '3D LBM Simulation',
+            description: 'This scene visualizes a 3D fluid simulation using the Lattice Boltzmann Method. LBM simulates the collective behavior of fictitious particles on a grid to model complex fluid flows. This simulation uses the D3Q19 model (3 dimensions, 19 velocity vectors), which is well-suited for a wide range of 3D aerodynamic and hydrodynamic problems.',
+            init: initLbmSimulation3D,
         },
-        procedural_planet: {
-            title: 'Procedural Planet',
-            description: 'A unique planet is generated using procedural noise. The terrain, mountains, and oceans are all created based on a "seed" - a piece of text that acts as a starting point. Change the seed and click Generate to explore a new world.',
-            init: initProceduralPlanet,
-        },
-        starfield: {
-            title: 'Starfield',
-            description: 'A simple, dynamic starfield to demonstrate a second scene.',
-            init: initStarfield,
+        lbm_simulation_2d: {
+            title: '2D LBM Simulation',
+            description: 'A 2D Lattice Boltzmann simulation showing fluid flow around a cylinder. This uses the D2Q9 model (2 dimensions, 9 velocity vectors), a standard for 2D fluid dynamics. The color represents the fluid density, clearly showing the von Kármán vortex street that forms behind the obstacle.',
+            init: initLbmSimulation2D,
         }
     };
 
@@ -494,7 +562,7 @@
         setupFullscreen();
         setupVR();
 
-        switchScene('lbm_simulation');
+        switchScene('lbm_simulation_3d');
 
         window.addEventListener('resize', onWindowResize, false);
         renderer.setAnimationLoop(animate);
@@ -502,10 +570,9 @@
 
     // --- Scene Management ---
     function switchScene(key) {
-        if (key === currentSceneKey) return;
+        if (key === currentSceneKey && key !== 'lbm_simulation_3d') return; // Allow 3D LBM to re-init
         isPaused = false;
         if(currentCleanup) currentCleanup();
-        followObject = null;
 
         while(activeSceneObjects.children.length > 0) {
             const obj = activeSceneObjects.children[0];
@@ -513,7 +580,7 @@
             if (obj.material) {
                 if (Array.isArray(obj.material)) {
                     obj.material.forEach(m => m.dispose());
-                } else {
+                } else if(obj.material.dispose) {
                     obj.material.dispose();
                 }
             }
@@ -525,16 +592,19 @@
         document.getElementById('info-title').textContent = sceneData.title;
         document.getElementById('info-description').textContent = sceneData.description;
         
-        const infoPlaceholder = document.getElementById('info-placeholder');
-        const chartsPlaceholder = document.getElementById('charts-placeholder');
-        if (key === 'procedural_planet') {
-            infoPlaceholder.style.display = 'block';
-            chartsPlaceholder.style.display = 'block';
-        } else {
-            infoPlaceholder.style.display = 'none';
-            chartsPlaceholder.style.display = 'none';
-        }
+        const formulaPanel = document.getElementById('info-formula');
+        const lbmSettings = document.getElementById('lbm-settings-container');
+        const lbmResSettings = document.getElementById('lbm-resolution-container');
 
+        if (key === 'lbm_simulation_3d') {
+            lbmSettings.classList.remove('hidden');
+            lbmResSettings.classList.remove('hidden');
+            formulaPanel.classList.remove('hidden');
+        } else {
+            lbmSettings.classList.add('hidden');
+            lbmResSettings.classList.add('hidden');
+            formulaPanel.classList.add('hidden');
+        }
 
         if (currentSceneKey) {
             document.getElementById(`btn-${currentSceneKey}`).classList.remove('active');
@@ -548,123 +618,34 @@
         const result = sceneData.init();
         currentUpdate = result.update;
         currentCleanup = result.cleanup;
-        if (result.followTarget) followObject = result.followTarget;
 
-        // Reset camera for different scenes
-        if (key === 'procedural_planet' || key === 'starfield') {
-            camera.position.set(0, 0, 10);
-        } else if (key === 'lbm_simulation') {
-            camera.position.set(0, 5, 25);
-        }
         controls.target.set(0, 0, 0);
     }
 
-    class NoiseGenerator {
-        constructor(seed) {
-            let h = 1779033703 ^ seed.length;
-            for(let i = 0; i < seed.length; i++) {
-                h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);
-                h = h << 13 | h >>> 19;
-            }
-            const random = () => {
-                h = Math.imul(h ^ h >>> 16, 2246822507);
-                h = Math.imul(h ^ h >>> 13, 3266489909);
-                return (h ^= h >>> 16) >>> 0;
-            };
-            this.p = new Uint8Array(512);
-            const p = new Uint8Array(256);
-            for (let i = 0; i < 256; i++) p[i] = i;
-            for (let i = 255; i > 0; i--) {
-                const n = random() % (i + 1);
-                [p[i], p[n]] = [p[n], p[i]];
-            }
-            for (let i = 0; i < 512; i++) this.p[i] = p[i & 255];
+    // --- START: 3D LBM Simulation ---
+    function initLbmSimulation3D() {
+        const formulaDiv = document.getElementById('info-formula');
+        formulaDiv.innerHTML = `
+            <p><strong>LBM Equation (BGK):</strong></p>
+            <div>$$ \\frac{\\partial f}{\\partial t} + \\mathbf{e} \\cdot \\nabla f = -\\frac{1}{\\tau}(f - f^{eq}) $$</div>
+            <p class="text-sm text-gray-400 mt-2"><strong>Model:</strong> D3Q19 (3 Dimensions, 19 Velocities)</p>
+        `;
+        if (window.renderMathInElement) {
+            renderMathInElement(formulaDiv);
         }
-        fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
-        lerp(t, a, b) { return a + t * (b - a); }
-        grad(hash, x, y, z) {
-            const h = hash & 15;
-            const u = h < 8 ? x : y;
-            const v = h < 4 ? y : h === 12 || h === 14 ? x : z;
-            return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
-        }
-        noise(x, y, z) {
-            const X = Math.floor(x) & 255;
-            const Y = Math.floor(y) & 255;
-            const Z = Math.floor(z) & 255;
-            x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
-            const u = this.fade(x), v = this.fade(y), w = this.fade(z);
-            const p = this.p;
-            const A = p[X] + Y, AA = p[A] + Z, AB = p[A + 1] + Z;
-            const B = p[X + 1] + Y, BA = p[B] + Z, BB = p[B + 1] + Z;
-            return this.lerp(w, this.lerp(v, this.lerp(u, this.grad(p[AA], x, y, z), this.grad(p[BA], x - 1, y, z)), this.lerp(u, this.grad(p[AB], x, y - 1, z), this.grad(p[BB], x - 1, y - 1, z))), this.lerp(v, this.lerp(u, this.grad(p[AA + 1], x, y, z - 1), this.grad(p[BA + 1], x - 1, y, z - 1)), this.lerp(u, this.grad(p[AB + 1], x, y - 1, z - 1), this.grad(p[BB + 1], x - 1, y - 1, z - 1))));
-        }
-    }
 
-    function initProceduralPlanet() {
-        const PLANET_RADIUS = 4;
-        let planetMesh;
-        let noiseGen = new NoiseGenerator(planetSeed);
-        function generatePlanet() {
-            noiseGen = new NoiseGenerator(planetSeed);
-            const tempVec = new THREE.Vector3();
-            const positions = planetMesh.geometry.attributes.position;
-            const colors = planetMesh.geometry.attributes.color;
-            const elevations = [];
-            const octaves = 6, persistence = 0.5, lacunarity = 2.0;
-            const initialFrequency = 1.2, elevationScale = 0.4;
-            for (let i = 0; i < positions.count; i++) {
-                tempVec.fromBufferAttribute(positions, i).normalize();
-                let noiseValue = 0, frequency = initialFrequency, amplitude = 1.0, maxAmplitude = 0;
-                for (let o = 0; o < octaves; o++) {
-                    noiseValue += noiseGen.noise(tempVec.x * frequency, tempVec.y * frequency, tempVec.z * frequency) * amplitude;
-                    maxAmplitude += amplitude;
-                    amplitude *= persistence;
-                    frequency *= lacunarity;
-                }
-                const elevation = noiseValue / maxAmplitude;
-                elevations.push(elevation);
-                const displacement = PLANET_RADIUS + elevation * elevationScale;
-                tempVec.setLength(displacement);
-                positions.setXYZ(i, tempVec.x, tempVec.y, tempVec.z);
-                const color = new THREE.Color();
-                if (elevation < -0.1) color.set(0x0a2773);
-                else if (elevation < 0) color.set(0x134fa3);
-                else if (elevation < 0.05) color.set(0x968a52);
-                else if (elevation < 0.3) color.set(0x22541d);
-                else if (elevation < 0.5) color.set(0x555555);
-                else color.set(0xffffff);
-                colors.setXYZ(i, color.r, color.g, color.b);
-            }
-            positions.needsUpdate = true;
-            colors.needsUpdate = true;
-            planetMesh.geometry.computeVertexNormals();
-            updateElevationChart(elevations);
-        }
-        const geometry = new THREE.SphereGeometry(1, planetResolution, planetResolution);
-        geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(geometry.attributes.position.count * 3), 3));
-        const material = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.1, roughness: 0.8 });
-        planetMesh = new THREE.Mesh(geometry, material);
-        activeSceneObjects.add(planetMesh);
-        generatePlanet();
-        const controlsDiv = document.getElementById('controls-panel');
-        controlsDiv.innerHTML = `<div class="control-group"><label for="seed-input" class="text-sm font-medium">Generation Seed</label><input id="seed-input" type="text" value="${planetSeed}" class="w-40"></div><button id="generate-btn" class="toggle-button active">Generate New Planet</button>`;
-        document.getElementById('seed-display').textContent = planetSeed;
-        const seedInput = document.getElementById('seed-input');
-        seedInput.addEventListener('input', () => { planetSeed = seedInput.value; });
-        document.getElementById('generate-btn').addEventListener('click', () => {
-             document.getElementById('seed-display').textContent = planetSeed;
-             generatePlanet();
-        });
-        function update(delta) { if (!isPaused) planetMesh.rotation.y += delta * animationSpeed * 0.2; }
-        function cleanup() {}
-        return { update, cleanup, followTarget: planetMesh };
-    }
-
-    // --- START: LBM Simulation ---
-    function initLbmSimulation() {
         // --- Simulation Parameters ---
-        const NX = 40, NY = 20, NZ = 20; // Grid dimensions
+        const resX = parseInt(document.getElementById('sim-res-x').value, 10) || 40;
+        const resY = parseInt(document.getElementById('sim-res-y').value, 10) || 20;
+        const resZ = parseInt(document.getElementById('sim-res-z').value, 10) || 40;
+        const NX = Math.max(10, Math.min(100, resX));
+        const NY = Math.max(10, Math.min(100, resY));
+        const NZ = Math.max(10, Math.min(100, resZ));
+
+        document.getElementById('sim-res-x').value = NX;
+        document.getElementById('sim-res-y').value = NY;
+        document.getElementById('sim-res-z').value = NZ;
+
         let tau = 0.6; // Relaxation time (related to viscosity)
         let flowSpeed = 0.04; // Inflow speed
         const Q = 19; // D3Q19 model
@@ -675,8 +656,8 @@
         const opposite = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 18, 17];
         
         // --- Data Arrays ---
-        let f = new Float32Array(NX * NY * NZ * Q); // Current distribution
-        let f_new = new Float32Array(NX * NY * NZ * Q); // Next step distribution
+        let f = new Float32Array(NX * NY * NZ * Q);
+        let f_new = new Float32Array(NX * NY * NZ * Q);
         let rho = new Float32Array(NX * NY * NZ);
         let ux = new Float32Array(NX * NY * NZ);
         let uy = new Float32Array(NX * NY * NZ);
@@ -685,447 +666,360 @@
 
         // --- Visualization State ---
         let visualizationMode = 'particles';
+        let flowMode = 'dynamic';
         let particles, gridLines;
         let lineLength = 1.0;
         let lineCount = 2000;
         let gridTracerPositions;
-        let gridInitialPositions;
-        let sliceAxis = 'none'; // 'x', 'y', 'z', 'none'
+        let gridCoherentInitialPositions;
+        let staticGridIndices = [];
+        let sliceAxis = 'none';
         let slicePosition = Math.floor(NX / 2);
-        let colorMode = 'velocity'; // 'velocity', 'density'
-        let coherenceMode = 'incoherent'; // 'coherent', 'incoherent'
+        let colorMode = 'velocity';
+        let obstacleMesh, voxelMesh;
 
-
-        // --- Helper for indexing ---
         const idx = (x, y, z) => (x * NY * NZ) + (y * NZ) + z;
+
+        function setupStaticGrid() {
+            if (gridLines && gridLines.geometry) gridLines.geometry.dispose();
+            staticGridIndices = [];
+            const totalPoints = NX * NY * NZ;
+            const step = Math.max(1, Math.floor(totalPoints / lineCount));
+            
+            for (let i = 0; i < totalPoints; i += step) {
+                 staticGridIndices.push(i);
+            }
+            
+            const numLines = staticGridIndices.length;
+            const newGeo = new THREE.BufferGeometry();
+            newGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(numLines * 2 * 3), 3));
+            newGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(numLines * 2 * 3), 3));
+            gridLines.geometry = newGeo;
+        }
 
         function resetGridTracers() {
             if (gridLines && gridLines.geometry) gridLines.geometry.dispose();
-
             gridTracerPositions = new Float32Array(lineCount * 3);
-            gridInitialPositions = new Float32Array(lineCount * 3);
+            gridCoherentInitialPositions = new Float32Array(lineCount * 3);
 
             for (let i = 0; i < lineCount; i++) {
-                const x = Math.random() * NX;
-                const y = Math.random() * NY;
-                const z = Math.random() * NZ;
-                gridTracerPositions[i * 3] = x;
-                gridInitialPositions[i * 3] = x;
-                gridTracerPositions[i * 3 + 1] = y;
-                gridInitialPositions[i * 3 + 1] = y;
-                gridTracerPositions[i * 3 + 2] = z;
-                gridInitialPositions[i * 3 + 2] = z;
+                gridTracerPositions[i * 3] = Math.random() * NX;
+                gridTracerPositions[i * 3 + 1] = Math.random() * NY;
+                gridTracerPositions[i * 3 + 2] = Math.random() * NZ;
             }
+
+            const side = Math.ceil(Math.sqrt(lineCount));
+            for (let i = 0; i < lineCount; i++) {
+                 const yIndex = i % side;
+                 const zIndex = Math.floor(i / side);
+                 const yPos = (side > 1) ? (yIndex / (side - 1)) * (NY - 2) + 1 : NY / 2;
+                 const zPos = (side > 1) ? (zIndex / (side - 1)) * (NZ - 2) + 1 : NZ / 2;
+                 gridCoherentInitialPositions[i * 3]     = 0.1;
+                 gridCoherentInitialPositions[i * 3 + 1] = yPos;
+                 gridCoherentInitialPositions[i * 3 + 2] = zPos;
+            }
+
             if (gridLines) {
-                const newGridLinesGeometry = new THREE.BufferGeometry();
-                newGridLinesGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lineCount * 2 * 3), 3));
-                newGridLinesGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineCount * 2 * 3), 3));
-                gridLines.geometry = newGridLinesGeometry;
+                const newGeo = new THREE.BufferGeometry();
+                newGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lineCount * 2 * 3), 3));
+                newGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineCount * 2 * 3), 3));
+                gridLines.geometry = newGeo;
             }
         }
-
-        // --- Initialization ---
-        function initialize() {
+        
+        function initializeLattice() {
             for (let x = 0; x < NX; x++) {
                 for (let y = 0; y < NY; y++) {
                     for (let z = 0; z < NZ; z++) {
                         const i = idx(x, y, z);
-                        barrier[i] = 0;
-                        // Add a spherical obstacle
-                        const dx = x - NX / 2, dy = y - NY / 2, dz = z - NZ / 2;
-                        if (dx*dx + dy*dy + dz*dz < (NY/4)*(NY/4)) {
-                            barrier[i] = 1;
-                        }
-
-                        rho[i] = 1.0;
-                        ux[i] = flowSpeed;
-                        uy[i] = 0;
-                        uz[i] = 0;
-                        
+                        rho[i] = 1.0; ux[i] = flowSpeed; uy[i] = 0; uz[i] = 0;
                         const u_sq = ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i];
                         for (let k = 0; k < Q; k++) {
                            const cu = c[k][0]*ux[i] + c[k][1]*uy[i] + c[k][2]*uz[i];
                            const feq = w[k] * rho[i] * (1 + 3*cu + 4.5*cu*cu - 1.5*u_sq);
-                           f[i * Q + k] = feq;
-                           f_new[i * Q + k] = feq;
+                           f[i * Q + k] = feq; f_new[i * Q + k] = feq;
                         }
                     }
                 }
             }
+        }
+        
+        function setSphereBarrier() {
+            barrier.fill(0);
+            const radiusSq = (NY/4)*(NY/4);
+            for (let x = 0; x < NX; x++) { for (let y = 0; y < NY; y++) { for (let z = 0; z < NZ; z++) { const dx = x-NX/2, dy=y-NY/2, dz=z-NZ/2; if (dx*dx+dy*dy+dz*dz < radiusSq) barrier[idx(x,y,z)] = 1; }}}
+            if(voxelMesh) voxelMesh.visible = false;
+            if(obstacleMesh) obstacleMesh.visible = true;
+            initializeLattice();
+        }
+
+        function initialize() {
+            camera.position.set(NX / 2, NY / 2, NZ * 1.5); controls.target.set(0, 0, 0);
+            obstacleMesh = new THREE.Mesh( new THREE.SphereGeometry(NY/4, 32, 32), new THREE.MeshStandardMaterial({color: 0x555555, transparent: true, opacity: 0.5}) );
+            obstacleMesh.position.set(NX/2, NY/2, NZ/2).sub(boxSize.clone().multiplyScalar(0.5));
+            activeSceneObjects.add(obstacleMesh);
+            const boxHelper = new THREE.BoxHelper( new THREE.Mesh(new THREE.BoxGeometry(NX,NY,NZ)), 0x444444);
+            boxHelper.position.set(NX/2, NY/2, NZ/2).sub(boxSize.clone().multiplyScalar(0.5));
+            activeSceneObjects.add(boxHelper);
+            setSphereBarrier();
             resetGridTracers();
         }
 
         function step() {
-            // --- Collision ---
             for (let i = 0; i < NX * NY * NZ; i++) {
                 if (barrier[i]) continue;
-                // Macroscopic properties
                 let current_rho = 0, current_ux = 0, current_uy = 0, current_uz = 0;
-                for(let k=0; k<Q; ++k) {
-                    current_rho += f[i*Q + k];
-                    current_ux += c[k][0] * f[i*Q + k];
-                    current_uy += c[k][1] * f[i*Q + k];
-                    current_uz += c[k][2] * f[i*Q + k];
-                }
+                for(let k=0; k<Q; ++k) { current_rho += f[i*Q+k]; current_ux += c[k][0]*f[i*Q+k]; current_uy += c[k][1]*f[i*Q+k]; current_uz += c[k][2]*f[i*Q+k]; }
                 current_ux /= current_rho; current_uy /= current_rho; current_uz /= current_rho;
-
-                // Inlet boundary condition (Zou-He)
-                if (i >= (NX-1) * NY * NZ) {
-                     current_ux = flowSpeed;
-                }
-
+                if (i >= (NX-1) * NY * NZ) current_ux = flowSpeed;
                 rho[i] = current_rho; ux[i] = current_ux; uy[i] = current_uy; uz[i] = current_uz;
-
                 const u_sq = current_ux*current_ux + current_uy*current_uy + current_uz*current_uz;
-
-                for (let k = 0; k < Q; k++) {
-                    const cu = c[k][0]*current_ux + c[k][1]*current_uy + c[k][2]*current_uz;
-                    const feq = w[k] * current_rho * (1 + 3*cu + 4.5*cu*cu - 1.5*u_sq);
-                    f[i*Q + k] = f[i*Q + k] * (1 - 1/tau) + feq * (1/tau);
-                }
+                for (let k = 0; k < Q; k++) { const cu = c[k][0]*current_ux+c[k][1]*current_uy+c[k][2]*current_uz; const feq = w[k]*current_rho*(1+3*cu+4.5*cu*cu-1.5*u_sq); f[i*Q+k]=f[i*Q+k]*(1-1/tau)+feq*(1/tau); }
             }
-
-            // --- Streaming ---
-            for (let x = 0; x < NX; x++) {
-                for (let y = 0; y < NY; y++) {
-                    for (let z = 0; z < NZ; z++) {
-                        const i = idx(x,y,z);
-                        if (barrier[i]) continue;
-                        for (let k = 0; k < Q; k++) {
-                            const next_x = (x + c[k][0] + NX) % NX;
-                            const next_y = (y + c[k][1] + NY) % NY;
-                            const next_z = (z + c[k][2] + NZ) % NZ;
-                            const next_i = idx(next_x, next_y, next_z);
-
-                            if (barrier[next_i]) {
-                                // Bounce-back boundary condition
-                                f_new[i * Q + opposite[k]] = f[i * Q + k];
-                            } else {
-                                f_new[next_i * Q + k] = f[i * Q + k];
-                            }
-                        }
-                    }
-                }
-            }
-            // Swap buffers
+            for (let x=0; x<NX; x++) { for (let y=0; y<NY; y++) { for (let z=0; z<NZ; z++) { const i=idx(x,y,z); if (barrier[i]) continue; for (let k=0; k<Q; k++) { const next_x=(x+c[k][0]+NX)%NX; const next_y=(y+c[k][1]+NY)%NY; const next_z=(z+c[k][2]+NZ)%NZ; const next_i=idx(next_x,next_y,next_z); if(barrier[next_i]){ f_new[i*Q+opposite[k]]=f[i*Q+k]; } else { f_new[next_i*Q+k]=f[i*Q+k]; }}}}}
             [f, f_new] = [f_new, f];
         }
 
-        
-        // --- Visualization with Three.js ---
         const boxSize = new THREE.Vector3(NX, NY, NZ);
-        const obstacleMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(NY/4, 32, 32),
-            new THREE.MeshStandardMaterial({color: 0x555555, transparent: true, opacity: 0.5})
-        );
-        obstacleMesh.position.set(NX/2, NY/2, NZ/2).sub(boxSize.clone().multiplyScalar(0.5));
-        activeSceneObjects.add(obstacleMesh);
-        
-        const boxHelper = new THREE.BoxHelper( new THREE.Mesh(new THREE.BoxGeometry(NX,NY,NZ)), 0x444444);
-        boxHelper.position.set(NX/2, NY/2, NZ/2).sub(boxSize.clone().multiplyScalar(0.5));
-        activeSceneObjects.add(boxHelper);
-
-        // --- Particle Visualization ---
         const PARTICLE_COUNT = 15000;
-        const particlePositions = new Float32Array(PARTICLE_COUNT * 3);
-        const particleColors = new Float32Array(PARTICLE_COUNT * 3);
+        const particlePositions = new Float32Array(PARTICLE_COUNT*3); const particleColors = new Float32Array(PARTICLE_COUNT*3);
         const particleGeometry = new THREE.BufferGeometry();
-        for(let i=0; i < PARTICLE_COUNT; i++) {
-            particlePositions[i*3 + 0] = Math.random() * NX;
-            particlePositions[i*3 + 1] = Math.random() * NY;
-            particlePositions[i*3 + 2] = Math.random() * NZ;
-        }
-        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-        particleGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+        function resetParticles() { const posAttr = particleGeometry.attributes.position; for(let i=0; i<PARTICLE_COUNT; i++) { posAttr.setXYZ(i, Math.random()*NX, Math.random()*NY, Math.random()*NZ); } posAttr.needsUpdate = true; }
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3)); particleGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
         const particleMaterial = new THREE.PointsMaterial({ size: 0.2, vertexColors: true, sizeAttenuation: true });
-        particles = new THREE.Points(particleGeometry, particleMaterial);
-        particles.position.sub(boxSize.clone().multiplyScalar(0.5));
-        activeSceneObjects.add(particles);
+        particles = new THREE.Points(particleGeometry, particleMaterial); particles.position.sub(boxSize.clone().multiplyScalar(0.5)); activeSceneObjects.add(particles); resetParticles();
         
-        // --- Grid Lines Visualization ---
-        const gridLinesGeometry = new THREE.BufferGeometry();
-        const gridMaterial = new THREE.LineBasicMaterial({ vertexColors: true });
-        gridLines = new THREE.LineSegments(gridLinesGeometry, gridMaterial);
-        gridLines.position.sub(boxSize.clone().multiplyScalar(0.5));
-        gridLines.visible = false;
-        activeSceneObjects.add(gridLines);
-
+        const gridLinesGeometry = new THREE.BufferGeometry(); const gridMaterial = new THREE.LineBasicMaterial({ vertexColors: true });
+        gridLines = new THREE.LineSegments(gridLinesGeometry, gridMaterial); gridLines.position.sub(boxSize.clone().multiplyScalar(0.5)); gridLines.visible = false; activeSceneObjects.add(gridLines);
+        
         initialize();
-
         const color = new THREE.Color();
-        
-        // --- Controls ---
         const controlsDiv = document.getElementById('controls-panel');
         controlsDiv.innerHTML = `
-            <div class="control-group">
-                <label class="text-sm font-medium">Viscosity</label>
-                <input id="viscosity-slider" type="range" min="0.51" max="1.5" step="0.01" value="${tau}">
-                <span id="viscosity-value" class="text-xs">${tau.toFixed(2)}</span>
-            </div>
-            <div class="control-group">
-                <label class="text-sm font-medium">Flow Speed</label>
-                <input id="flow-speed-slider" type="range" min="0.01" max="0.1" step="0.005" value="${flowSpeed}">
-                <span id="flow-speed-value" class="text-xs">${flowSpeed.toFixed(3)}</span>
-            </div>
-            <div class="control-group">
-                <label class="text-sm font-medium">View Mode</label>
-                <button id="viz-toggle-btn" class="toggle-button">Grid Lines</button>
-            </div>
-             <div class="control-group">
-                <label class="text-sm font-medium">Coherence</label>
-                <button id="coherence-toggle-btn" class="toggle-button">Coherent</button>
-            </div>
-             <div class="control-group w-32">
-                <label class="text-sm font-medium">Line Count</label>
-                <input id="line-count-slider" type="range" min="100" max="5000" step="100" value="${lineCount}">
-                <span id="line-count-value" class="text-xs">${lineCount}</span>
-            </div>
-            <div class="control-group w-32">
-                <label class="text-sm font-medium">Line Length</label>
-                <input id="line-length-slider" type="range" min="0.1" max="5.0" step="0.1" value="${lineLength}">
-                <span id="line-length-value" class="text-xs">${lineLength.toFixed(1)}</span>
-            </div>
-            <div class="control-group">
-                <label class="text-sm font-medium">Color By</label>
-                <button id="color-mode-btn" class="toggle-button">Density</button>
-            </div>
-            <div class="control-group" id="slice-axis-control">
-                 <label class="text-sm font-medium">Slice Axis</label>
-                 <div class="flex gap-1">
-                    <button data-axis="none" class="toggle-button active">3D</button>
-                    <button data-axis="x" class="toggle-button">X</button>
-                    <button data-axis="y" class="toggle-button">Y</button>
-                    <button data-axis="z" class="toggle-button">Z</button>
-                 </div>
-            </div>
-            <div id="slice-slider-container" class="control-group w-40 hidden">
-                 <label class="text-sm font-medium">Slice Position</label>
-                 <input id="slice-slider" type="range" min="0" max="${NX - 1}" value="${slicePosition}">
-                 <span id="slice-value" class="text-xs">${slicePosition}</span>
-            </div>
-        `;
-        document.getElementById('viscosity-slider').addEventListener('input', e => {
-            tau = parseFloat(e.target.value);
-            document.getElementById('viscosity-value').textContent = tau.toFixed(2);
-        });
-        document.getElementById('flow-speed-slider').addEventListener('input', e => {
-            flowSpeed = parseFloat(e.target.value);
-            document.getElementById('flow-speed-value').textContent = flowSpeed.toFixed(3);
-        });
+            <div class="control-group"><label class="text-sm font-medium">Viscosity</label><input id="viscosity-slider" type="range" min="0.51" max="1.5" step="0.01" value="${tau}"><span id="viscosity-value" class="text-xs">${tau.toFixed(2)}</span></div>
+            <div class="control-group"><label class="text-sm font-medium">Flow Speed</label><input id="flow-speed-slider" type="range" min="0.01" max="0.1" step="0.005" value="${flowSpeed}"><span id="flow-speed-value" class="text-xs">${flowSpeed.toFixed(3)}</span></div>
+            <div class="control-group"><label class="text-sm font-medium">View Mode</label><button id="viz-toggle-btn" class="toggle-button">Grid Lines</button></div>
+            <div class="control-group" id="flow-mode-control"><label class="text-sm font-medium">Flow Mode</label><div class="flex gap-1"><button data-mode="dynamic" class="toggle-button active">Dynamic</button><button data-mode="static" class="toggle-button">Static</button></div></div>
+            <div class="control-group"><label class="text-sm font-medium">Color By</label><button id="color-mode-btn" class="toggle-button">Density</button></div>
+            <div class="control-group" id="slice-axis-control"><label class="text-sm font-medium">Slice Axis</label><div class="flex gap-1"><button data-axis="none" class="toggle-button active">3D</button><button data-axis="x" class="toggle-button">X</button><button data-axis="y" class="toggle-button">Y</button><button data-axis="z" class="toggle-button">Z</button></div></div>
+            <div id="slice-slider-container" class="control-group w-40 hidden"><label class="text-sm font-medium">Slice Position</label><input id="slice-slider" type="range" min="0" max="${NX - 1}" value="${slicePosition}"><span id="slice-value" class="text-xs">${slicePosition}</span></div>
+            <div class="control-group"><label class="text-sm font-medium">Obstacle</label><button id="reset-obstacle-btn" class="toggle-button">Reset to Sphere</button></div>`;
+
+        document.getElementById('viscosity-slider').addEventListener('input', e => { tau = parseFloat(e.target.value); document.getElementById('viscosity-value').textContent = tau.toFixed(2); });
+        document.getElementById('flow-speed-slider').addEventListener('input', e => { flowSpeed = parseFloat(e.target.value); document.getElementById('flow-speed-value').textContent = flowSpeed.toFixed(3); });
         document.getElementById('viz-toggle-btn').addEventListener('click', e => {
             visualizationMode = (visualizationMode === 'particles') ? 'grid' : 'particles';
             e.target.textContent = (visualizationMode === 'grid') ? 'Particles' : 'Grid Lines';
-            particles.visible = (visualizationMode === 'particles');
-            gridLines.visible = (visualizationMode === 'grid');
-        });
-        document.getElementById('coherence-toggle-btn').addEventListener('click', e => {
-            coherenceMode = (coherenceMode === 'incoherent') ? 'coherent' : 'incoherent';
-            e.target.textContent = (coherenceMode === 'coherent') ? 'Incoherent' : 'Coherent';
-        });
-         document.getElementById('line-count-slider').addEventListener('input', e => {
-            lineCount = parseInt(e.target.value, 10);
-            document.getElementById('line-count-value').textContent = lineCount;
-            resetGridTracers();
-        });
-        document.getElementById('line-length-slider').addEventListener('input', e => {
-            lineLength = parseFloat(e.target.value);
-            document.getElementById('line-length-value').textContent = lineLength.toFixed(1);
-        });
-        document.getElementById('color-mode-btn').addEventListener('click', e => {
-            colorMode = (colorMode === 'velocity') ? 'density' : 'velocity';
-            e.target.textContent = (colorMode === 'velocity') ? 'Density' : 'Velocity';
+            particles.visible = (visualizationMode === 'particles'); gridLines.visible = (visualizationMode === 'grid');
+            document.getElementById('flow-mode-control').classList.toggle('hidden', visualizationMode !== 'grid');
         });
 
-        // Slicing controls
-        const sliceSliderContainer = document.getElementById('slice-slider-container');
-        const sliceSlider = document.getElementById('slice-slider');
-        const sliceValue = document.getElementById('slice-value');
+        document.getElementById('flow-mode-control').addEventListener('click', e => {
+            if (e.target.tagName === 'BUTTON') {
+                document.querySelectorAll('#flow-mode-control .toggle-button').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                flowMode = e.target.dataset.mode;
+                if (flowMode === 'static') setupStaticGrid(); else resetGridTracers();
+            }
+        });
+
+        document.getElementById('lbm-line-count-slider').addEventListener('input', e => { lineCount = parseInt(e.target.value, 10); document.getElementById('lbm-line-count-value').textContent = lineCount; if (flowMode === 'static') setupStaticGrid(); else resetGridTracers(); });
+        document.getElementById('lbm-line-length-slider').addEventListener('input', e => { lineLength = parseFloat(e.target.value); document.getElementById('lbm-line-length-value').textContent = lineLength.toFixed(1); });
+        document.getElementById('lbm-particle-size-slider').addEventListener('input', e => { const newSize = parseFloat(e.target.value); if (particles) particles.material.size = newSize; document.getElementById('lbm-particle-size-value').textContent = newSize.toFixed(2); });
+        document.getElementById('reset-particles-button').addEventListener('click', resetParticles);
+
+        document.getElementById('color-mode-btn').addEventListener('click', e => { colorMode = (colorMode === 'velocity') ? 'density' : 'velocity'; e.target.textContent = (colorMode === 'velocity') ? 'Density' : 'Velocity'; });
+
+        const sliceSliderContainer = document.getElementById('slice-slider-container'); const sliceSlider = document.getElementById('slice-slider'); const sliceValue = document.getElementById('slice-value');
         document.getElementById('slice-axis-control').addEventListener('click', e => {
             if(e.target.tagName === 'BUTTON') {
-                document.querySelectorAll('#slice-axis-control .toggle-button').forEach(btn => btn.classList.remove('active'));
-                e.target.classList.add('active');
+                document.querySelectorAll('#slice-axis-control .toggle-button').forEach(btn => btn.classList.remove('active')); e.target.classList.add('active');
                 sliceAxis = e.target.dataset.axis;
                 sliceSliderContainer.classList.toggle('hidden', sliceAxis === 'none');
-                if(sliceAxis !== 'none') {
-                    let max = (sliceAxis === 'x') ? NX - 1 : (sliceAxis === 'y') ? NY - 1 : NZ - 1;
-                    sliceSlider.max = max;
-                    slicePosition = Math.floor(max / 2);
-                    sliceSlider.value = slicePosition;
-                    sliceValue.textContent = slicePosition;
-                }
+                if(sliceAxis !== 'none') { let max = (sliceAxis==='x')?NX-1:(sliceAxis==='y')?NY-1:NZ-1; sliceSlider.max=max; slicePosition=Math.floor(max/2); sliceSlider.value=slicePosition; sliceValue.textContent=slicePosition; }
             }
         });
-        sliceSlider.addEventListener('input', e => {
-            slicePosition = parseInt(e.target.value, 10);
-            sliceValue.textContent = slicePosition;
-        });
+        sliceSlider.addEventListener('input', e => { slicePosition = parseInt(e.target.value, 10); sliceValue.textContent = slicePosition; });
+        document.getElementById('reset-obstacle-btn').addEventListener('click', setSphereBarrier);
 
+        const stlFileInput = document.getElementById('stl-file-input'); document.getElementById('load-stl-button').addEventListener('click', () => stlFileInput.click());
+        stlFileInput.addEventListener('change', handleStlUpload);
+
+        function handleStlUpload(event) { const file=event.target.files[0]; if(!file)return; const reader=new FileReader(); reader.onload=(e)=>{const loader=new STLLoader();const geometry=loader.parse(e.target.result);voxelizeGeometry(geometry);}; reader.readAsArrayBuffer(file); stlFileInput.value='';}
+        async function voxelizeGeometry(geometry) {
+            const loadingOverlay=document.getElementById('loading-overlay'); const progressBar=document.getElementById('progress-bar'); const progressText=document.getElementById('progress-text'); const subdivisions=parseInt(document.getElementById('voxel-resolution-slider').value,10);
+            loadingOverlay.classList.remove('hidden');
+            geometry.computeBoundingBox(); const bbox=geometry.boundingBox; const modelSize=new THREE.Vector3(); bbox.getSize(modelSize); const maxDim=Math.max(modelSize.x,modelSize.y,modelSize.z); const scale=(Math.min(NX,NY,NZ)-4)/maxDim;
+            geometry.translate(-bbox.min.x,-bbox.min.y,-bbox.min.z); geometry.scale(scale,scale,scale); geometry.computeBoundingBox(); bbox.getSize(modelSize); geometry.translate((NX-modelSize.x)/2,(NY-modelSize.y)/2,(NZ-modelSize.z)/2);
+            const tempMesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial()); const raycaster=new THREE.Raycaster(); const rayDirection=new THREE.Vector3(1,0,0);
+            barrier.fill(0); let voxelCount=0;
+            for(let x=0;x<NX;x++){for(let y=0;y<NY;y++){for(let z=0;z<NZ;z++){let isInside=false;for(let sx=0;sx<subdivisions;sx++){for(let sy=0;sy<subdivisions;sy++){for(let sz=0;sz<subdivisions;sz++){const point=new THREE.Vector3(x+(sx+0.5)/subdivisions,y+(sy+0.5)/subdivisions,z+(sz+0.5)/subdivisions);raycaster.set(point,rayDirection);const intersects=raycaster.intersectObject(tempMesh,false);if(intersects.length>0&&intersects.length%2===1){barrier[idx(x,y,z)]=1;voxelCount++;isInside=true;break;}}if(isInside)break;}if(isInside)break;}}}const percent=Math.round(((x+1)/NX)*100);progressBar.style.width=`${percent}%`;progressText.textContent=`${percent}%`;await new Promise(resolve=>setTimeout(resolve,0));}
+            if(voxelMesh){activeSceneObjects.remove(voxelMesh);voxelMesh.geometry.dispose();voxelMesh.material.dispose();}
+            const voxelGeo=new THREE.BoxGeometry(1,1,1);const voxelMat=new THREE.MeshStandardMaterial({color:0x888888});voxelMesh=new THREE.InstancedMesh(voxelGeo,voxelMat,voxelCount);
+            const dummy=new THREE.Object3D();let i=0;for(let x=0;x<NX;x++){for(let y=0;y<NY;y++){for(let z=0;z<NZ;z++){if(barrier[idx(x,y,z)]===1){dummy.position.set(x,y,z);dummy.updateMatrix();voxelMesh.setMatrixAt(i++,dummy.matrix);}}}}
+            voxelMesh.instanceMatrix.needsUpdate=true;voxelMesh.position.sub(boxSize.clone().multiplyScalar(0.5));activeSceneObjects.add(voxelMesh);
+            if(obstacleMesh)obstacleMesh.visible=false;loadingOverlay.classList.add('hidden');initializeLattice();}
 
         function update(delta) {
-            if (isPaused) return;
-
-            for(let i=0; i<2; ++i) step(); // Run multiple simulation steps per frame for stability
-            
-            if (visualizationMode === 'particles') {
-                const posAttr = particles.geometry.attributes.position;
-                const colAttr = particles.geometry.attributes.color;
-    
-                for(let i=0; i<PARTICLE_COUNT; ++i) {
-                    let x = posAttr.getX(i);
-                    let y = posAttr.getY(i);
-                    let z = posAttr.getZ(i);
-    
-                    if(x < 0 || x >= NX-1 || y < 0 || y >= NY-1 || z < 0 || z >= NZ-1) {
-                        x = Math.random() * 2; y = Math.random() * NY; z = Math.random() * NZ;
-                    }
-                    
-                    const gridIdx = idx(Math.floor(x), Math.floor(y), Math.floor(z));
-                    if(barrier[gridIdx]) {
-                        x = Math.random() * 2; y = Math.random() * NY; z = Math.random() * NZ;
-                    } else {
-                        const velX = ux[gridIdx];
-                        const velY = uy[gridIdx];
-                        const velZ = uz[gridIdx];
-                        x += velX * 50 * delta;
-                        y += velY * 50 * delta;
-                        z += velZ * 50 * delta;
-    
-                        const speed = Math.sqrt(velX*velX + velY*velY + velZ*velZ) / 0.1;
-                        color.setHSL(0.6 - speed * 0.5, 1.0, 0.5);
-                        colAttr.setXYZ(i, color.r, color.g, color.b);
-                    }
-                    posAttr.setXYZ(i, x, y, z);
-                }
-                posAttr.needsUpdate = true;
-                colAttr.needsUpdate = true;
-            } else { // visualizationMode === 'grid'
-                const gridPosAttr = gridLines.geometry.attributes.position;
-                const gridColAttr = gridLines.geometry.attributes.color;
-                
-                for (let i = 0; i < lineCount; i++) {
-                    let tracerX = gridTracerPositions[i * 3];
-                    let tracerY = gridTracerPositions[i * 3 + 1];
-                    let tracerZ = gridTracerPositions[i * 3 + 2];
-                    
-                    const gridX = Math.floor(tracerX);
-                    const gridY = Math.floor(tracerY);
-                    const gridZ = Math.floor(tracerZ);
-
-                    if (gridX < 0 || gridX >= NX || gridY < 0 || gridY >= NY || gridZ < 0 || gridZ >= NZ) {
-                        if (coherenceMode === 'coherent') {
-                            tracerX = gridInitialPositions[i*3];
-                            tracerY = gridInitialPositions[i*3+1];
-                            tracerZ = gridInitialPositions[i*3+2];
-                        } else {
-                            tracerX = Math.random() * 1;
-                            tracerY = Math.random() * NY;
-                            tracerZ = Math.random() * NZ;
-                        }
-                    }
-
-                    const currentGridIdx = idx(Math.floor(tracerX), Math.floor(tracerY), Math.floor(tracerZ));
-                    
-                    if(barrier[currentGridIdx]) {
-                         if (coherenceMode === 'coherent') {
-                            tracerX = gridInitialPositions[i*3];
-                            tracerY = gridInitialPositions[i*3+1];
-                            tracerZ = gridInitialPositions[i*3+2];
-                        } else {
-                            tracerX = Math.random() * 1;
-                            tracerY = Math.random() * NY;
-                            tracerZ = Math.random() * NZ;
-                        }
-                    } else {
-                         const velX = ux[currentGridIdx];
-                         const velY = uy[currentGridIdx];
-                         const velZ = uz[currentGridIdx];
-                         tracerX += velX * 30 * delta;
-                         tracerY += velY * 30 * delta;
-                         tracerZ += velZ * 30 * delta;
-                    }
-
-                    gridTracerPositions[i * 3] = tracerX;
-                    gridTracerPositions[i * 3 + 1] = tracerY;
-                    gridTracerPositions[i * 3 + 2] = tracerZ;
-                    
-                    let shouldDraw = sliceAxis === 'none' ||
-                        (sliceAxis === 'x' && gridX === slicePosition) ||
-                        (sliceAxis === 'y' && gridY === slicePosition) ||
-                        (sliceAxis === 'z' && gridZ === slicePosition);
-
-                    if (barrier[currentGridIdx] || !shouldDraw) {
-                        gridPosAttr.setXYZ(i * 2, 0, 0, 0);
-                        gridPosAttr.setXYZ(i * 2 + 1, 0, 0, 0);
-                    } else {
-                        const velX = ux[currentGridIdx];
-                        const velY = uy[currentGridIdx];
-                        const velZ = uz[currentGridIdx];
-                        const speed = Math.sqrt(velX*velX + velY*velY + velZ*velZ);
-                        
-                        if (colorMode === 'velocity') {
-                            const normSpeed = speed / (flowSpeed * 2);
-                            color.setHSL(0.7 - normSpeed * 0.7, 1.0, 0.5);
-                        } else { // density
-                            const normDensity = Math.max(0, Math.min(1, (rho[currentGridIdx] - 0.98) / 0.04));
-                            color.setHSL(0.6, 1.0, normDensity * 0.8 + 0.1);
-                        }
-                        
-                        const v_len = speed > 1e-6 ? speed : 1e-6;
-                        const nvx = velX / v_len, nvy = velY / v_len, nvz = velZ / v_len;
-                        
-                        const startX = tracerX - nvx * lineLength / 2;
-                        const startY = tracerY - nvy * lineLength / 2;
-                        const startZ = tracerZ - nvz * lineLength / 2;
-                        const endX = tracerX + nvx * lineLength / 2;
-                        const endY = tracerY + nvy * lineLength / 2;
-                        const endZ = tracerZ + nvz * lineLength / 2;
-
-                        gridPosAttr.setXYZ(i * 2, startX, startY, startZ);
-                        gridPosAttr.setXYZ(i * 2 + 1, endX, endY, endZ);
-                        gridColAttr.setXYZ(i * 2, color.r, color.g, color.b);
-                        gridColAttr.setXYZ(i * 2 + 1, color.r, color.g, color.b);
-                    }
-                }
-                gridPosAttr.needsUpdate = true;
-                gridColAttr.needsUpdate = true;
-            }
-        }
+            if(isPaused)return;for(let i=0;i<2;++i)step();
+            if(visualizationMode==='particles'){const posAttr=particles.geometry.attributes.position;const colAttr=particles.geometry.attributes.color;for(let i=0;i<PARTICLE_COUNT;++i){let x=posAttr.getX(i);let y=posAttr.getY(i);let z=posAttr.getZ(i);if(x<0||x>=NX-1||y<0||y>=NY-1||z<0||z>=NZ-1){x=Math.random()*2;y=Math.random()*NY;z=Math.random()*NZ;}const gridIdx=idx(Math.floor(x),Math.floor(y),Math.floor(z));if(barrier[gridIdx]){x=Math.random()*2;y=Math.random()*NY;z=Math.random()*NZ;}else{const velX=ux[gridIdx];const velY=uy[gridIdx];const velZ=uz[gridIdx];x+=velX*50*delta;y+=velY*50*delta;z+=velZ*50*delta;const speed=Math.sqrt(velX*velX+velY*velY+velZ*velZ)/0.1;color.setHSL(0.6-speed*0.5,1.0,0.5);colAttr.setXYZ(i,color.r,color.g,color.b);}posAttr.setXYZ(i,x,y,z);}posAttr.needsUpdate=true;colAttr.needsUpdate=true;}
+            else{const gridPosAttr=gridLines.geometry.attributes.position;const gridColAttr=gridLines.geometry.attributes.color;
+                if(flowMode==='dynamic'){for(let i=0;i<lineCount;i++){let tracerX=gridTracerPositions[i*3];let tracerY=gridTracerPositions[i*3+1];let tracerZ=gridTracerPositions[i*3+2];const preMoveGridX=Math.floor(tracerX);const preMoveGridY=Math.floor(tracerY);const preMoveGridZ=Math.floor(tracerZ);if(preMoveGridX>=0&&preMoveGridX<NX&&preMoveGridY>=0&&preMoveGridY<NY&&preMoveGridZ>=0&&preMoveGridZ<NZ){const preMoveGridIdx=idx(preMoveGridX,preMoveGridY,preMoveGridZ);if(!barrier[preMoveGridIdx]){tracerX+=ux[preMoveGridIdx]*30*delta;tracerY+=uy[preMoveGridIdx]*30*delta;tracerZ+=uz[preMoveGridIdx]*30*delta;}}const gridX=Math.floor(tracerX);const gridY=Math.floor(tracerY);const gridZ=Math.floor(tracerZ);let needsReset=false;if(gridX<0||gridX>=NX||gridY<0||gridY>=NY||gridZ<0||gridZ>=NZ){needsReset=true;}else{const currentGridIdx=idx(gridX,gridY,gridZ);if(barrier[currentGridIdx]){needsReset=true;}}if(needsReset){tracerX=gridCoherentInitialPositions[i*3];tracerY=gridCoherentInitialPositions[i*3+1];tracerZ=gridCoherentInitialPositions[i*3+2];}gridTracerPositions[i*3]=tracerX;gridTracerPositions[i*3+1]=tracerY;gridTracerPositions[i*3+2]=tracerZ;const currentGridIdx=idx(Math.min(NX-1,Math.max(0,gridX)),Math.min(NY-1,Math.max(0,gridY)),Math.min(NZ-1,Math.max(0,gridZ)));let shouldDraw=sliceAxis==='none'||(sliceAxis==='x'&&gridX===slicePosition)||(sliceAxis==='y'&&gridY===slicePosition)||(sliceAxis==='z'&&gridZ===slicePosition);if(needsReset||!shouldDraw||barrier[currentGridIdx]){gridPosAttr.setXYZ(i*2,tracerX,tracerY,-1000);gridPosAttr.setXYZ(i*2+1,tracerX,tracerY,-1000);}else{const velX=ux[currentGridIdx];const velY=uy[currentGridIdx];const velZ=uz[currentGridIdx];const speed=Math.sqrt(velX*velX+velY*velY+velZ*velZ);if(colorMode==='velocity'){color.setHSL(0.7-(speed/(flowSpeed*2))*0.7,1.0,0.5);}else{color.setHSL(0.6,1.0,Math.max(0,Math.min(1,(rho[currentGridIdx]-0.98)/0.04))*0.8+0.1);}const v_len=speed>1e-6?speed:1e-6;const nvx=velX/v_len,nvy=velY/v_len,nvz=velZ/v_len;const startX=tracerX-nvx*lineLength/2,startY=tracerY-nvy*lineLength/2,startZ=tracerZ-nvz*lineLength/2;const endX=tracerX+nvx*lineLength/2,endY=tracerY+nvy*lineLength/2,endZ=tracerZ+nvz*lineLength/2;gridPosAttr.setXYZ(i*2,startX,startY,startZ);gridPosAttr.setXYZ(i*2+1,endX,endY,endZ);gridColAttr.setXYZ(i*2,color.r,color.g,color.b);gridColAttr.setXYZ(i*2+1,color.r,color.g,color.b);}}}
+                else{for(let i=0;i<staticGridIndices.length;i++){const gridIdx=staticGridIndices[i];const x=Math.floor(gridIdx/(NY*NZ));const y=Math.floor((gridIdx/NZ)%NY);const z=gridIdx%NZ;let shouldDraw=sliceAxis==='none'||(sliceAxis==='x'&&x===slicePosition)||(sliceAxis==='y'&&y===slicePosition)||(sliceAxis==='z'&&z===slicePosition);if(barrier[gridIdx]||!shouldDraw){gridPosAttr.setXYZ(i*2,x,y,-1000);gridPosAttr.setXYZ(i*2+1,x,y,-1000);}else{const velX=ux[gridIdx];const velY=uy[gridIdx];const velZ=uz[gridIdx];const speed=Math.sqrt(velX*velX+velY*velY+velZ*velZ);if(colorMode==='velocity'){color.setHSL(0.7-(speed/(flowSpeed*2))*0.7,1.0,0.5);}else{color.setHSL(0.6,1.0,Math.max(0,Math.min(1,(rho[gridIdx]-0.98)/0.04))*0.8+0.1);}const v_len=speed>1e-6?speed:1e-6;const nvx=velX/v_len,nvy=velY/v_len,nvz=velZ/v_len;const startX=x-nvx*lineLength/2,startY=y-nvy*lineLength/2,startZ=z-nvz*lineLength/2;const endX=x+nvx*lineLength/2,endY=y+nvy*lineLength/2,endZ=z+nvz*lineLength/2;gridPosAttr.setXYZ(i*2,startX,startY,startZ);gridPosAttr.setXYZ(i*2+1,endX,endY,endZ);gridColAttr.setXYZ(i*2,color.r,color.g,color.b);gridColAttr.setXYZ(i*2+1,color.r,color.g,color.b);}}}
+                gridPosAttr.needsUpdate=true;gridColAttr.needsUpdate=true;}}
 
         function cleanup() { }
         return { update, cleanup };
     }
-    // --- END: LBM Simulation ---
+    // --- END: 3D LBM Simulation ---
 
-    function initStarfield() {
-        const starCount = 10000;
-        const vertices = [];
-        for (let i = 0; i < starCount; i++) {
-            vertices.push(THREE.MathUtils.randFloatSpread(1000), THREE.MathUtils.randFloatSpread(1000), THREE.MathUtils.randFloatSpread(1000));
+    // --- START: 2D LBM Simulation ---
+    function initLbmSimulation2D() {
+        camera.position.set(0, 0, 150);
+        controls.enableRotate = false; // Lock rotation for 2D view
+
+        // --- Simulation Parameters ---
+        const NX = 200, NY = 100;
+        let tau = 0.53;
+        const Q = 9;
+
+        // --- LBM Constants (D2Q9) ---
+        const c = [[0,0], [1,0], [0,1], [-1,0], [0,-1], [1,1], [-1,1], [-1,-1], [1,-1]];
+        const w = [4/9, 1/9, 1/9, 1/9, 1/9, 1/36, 1/36, 1/36, 1/36];
+        const opposite = [0, 3, 4, 1, 2, 7, 8, 5, 6];
+
+        // --- Data Arrays ---
+        let f = new Float32Array(NX * NY * Q);
+        let f_new = new Float32Array(NX * NY * Q);
+        let rho = new Float32Array(NX * NY);
+        let ux = new Float32Array(NX * NY);
+        let uy = new Float32Array(NX * NY);
+        let barrier = new Uint8Array(NX * NY);
+
+        const idx = (x, y) => x * NY + y;
+
+        // --- Initialization ---
+        function initialize() {
+            // Set obstacle
+            const obstacleRadiusSq = (NY/5)*(NY/5);
+            for (let x=0; x<NX; x++) {
+                for (let y=0; y<NY; y++) {
+                    const i = idx(x,y);
+                    barrier[i] = 0;
+                    const dx = x - NX/4, dy = y - NY/2;
+                    if (dx*dx + dy*dy < obstacleRadiusSq) {
+                        barrier[i] = 1;
+                    }
+                }
+            }
+
+            // Init lattice
+            const u0 = 0.04;
+            for (let i = 0; i < NX * NY; i++) {
+                rho[i] = 1.0;
+                ux[i] = u0;
+                uy[i] = 0;
+                const u_sq = ux[i]*ux[i] + uy[i]*uy[i];
+                for (let k = 0; k < Q; k++) {
+                    const cu = c[k][0]*ux[i] + c[k][1]*uy[i];
+                    const feq = w[k] * rho[i] * (1 + 3*cu + 4.5*cu*cu - 1.5*u_sq);
+                    f[i*Q + k] = feq;
+                }
+            }
         }
-        const geometry = new THREE.BufferGeometry();
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        const material = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5, sizeAttenuation: true });
-        const stars = new THREE.Points(geometry, material);
-        activeSceneObjects.add(stars);
-        document.getElementById('controls-panel').innerHTML = `<div class="text-lg text-gray-400">A dynamic starfield background.</div>`;
-        function update(delta) { if(!isPaused) stars.rotation.y += delta * animationSpeed * 0.05; }
-        function cleanup() {}
+        
+        // --- Simulation Step ---
+        function step() {
+            // Collision
+            for(let i=0; i<NX*NY; ++i) {
+                if(barrier[i]) continue;
+                let current_rho = 0, current_ux = 0, current_uy = 0;
+                for(let k=0; k<Q; ++k) {
+                    current_rho += f[i*Q + k];
+                    current_ux += c[k][0] * f[i*Q + k];
+                    current_uy += c[k][1] * f[i*Q + k];
+                }
+                current_ux /= current_rho; current_uy /= current_rho;
+                rho[i] = current_rho; ux[i] = current_ux; uy[i] = current_uy;
+
+                const u_sq = current_ux*current_ux + current_uy*current_uy;
+                for(let k=0; k<Q; ++k) {
+                    const cu = c[k][0]*current_ux + c[k][1]*current_uy;
+                    const feq = w[k] * current_rho * (1 + 3*cu + 4.5*cu*cu - 1.5*u_sq);
+                    f[i*Q + k] += -(1/tau) * (f[i*Q+k] - feq);
+                }
+            }
+
+            // Streaming
+            for (let x = 0; x < NX; x++) {
+                for (let y = 0; y < NY; y++) {
+                    const i = idx(x, y);
+                    for (let k = 0; k < Q; k++) {
+                        const next_x = (x + c[k][0] + NX) % NX;
+                        const next_y = (y + c[k][1] + NY) % NY;
+                        const next_i = idx(next_x, next_y);
+                        
+                        if (barrier[i]) {
+                            f_new[i * Q + opposite[k]] = f[i * Q + k];
+                        } else {
+                            f_new[next_i * Q + k] = f[i * Q + k];
+                        }
+                    }
+                }
+            }
+             [f, f_new] = [f_new, f];
+        }
+
+        // --- Visualization ---
+        const canvas = document.createElement('canvas');
+        canvas.width = NX; canvas.height = NY;
+        const ctx = canvas.getContext('2d');
+        const texture = new THREE.CanvasTexture(canvas);
+        const geometry = new THREE.PlaneGeometry(NX, NY);
+        const material = new THREE.MeshBasicMaterial({ map: texture });
+        const plane = new THREE.Mesh(geometry, material);
+        activeSceneObjects.add(plane);
+
+        initialize();
+
+        const controlsDiv = document.getElementById('controls-panel');
+        controlsDiv.innerHTML = `
+            <div class="control-group"><label class="text-sm font-medium">Viscosity (τ)</label><input id="viscosity-slider-2d" type="range" min="0.51" max="1.0" step="0.01" value="${tau}"><span id="viscosity-value-2d" class="text-xs">${tau.toFixed(2)}</span></div>
+            <div class="control-group"><label class="text-sm font-medium">Visualization</label><div class="text-gray-300">Fluid Density</div></div>
+        `;
+        document.getElementById('viscosity-slider-2d').addEventListener('input', e => { tau = parseFloat(e.target.value); document.getElementById('viscosity-value-2d').textContent = tau.toFixed(2); });
+
+        function update(delta) {
+            if (isPaused) return;
+            for(let i=0; i<10; ++i) step();
+            
+            const imageData = ctx.createImageData(NX, NY);
+            for(let i=0; i<NX*NY; ++i) {
+                const normalizedRho = (rho[i] - 0.95) * 20;
+                const speed = Math.sqrt(ux[i]*ux[i] + uy[i]*uy[i]);
+                const hue = 240 - speed * 1800;
+                const lightness = 50 + (normalizedRho-1) * 40;
+                const [r,g,b] = hslToRgb(hue/360, 1.0, lightness/100);
+
+                imageData.data[i*4 + 0] = r;
+                imageData.data[i*4 + 1] = g;
+                imageData.data[i*4 + 2] = b;
+                imageData.data[i*4 + 3] = 255;
+            }
+            ctx.putImageData(imageData, 0, 0);
+            texture.needsUpdate = true;
+        }
+
+        function hslToRgb(h, s, l){ let r, g, b; if(s == 0){ r = g = b = l; }else{ const hue2rgb = (p, q, t) => { if(t < 0) t += 1; if(t > 1) t -= 1; if(t < 1/6) return p + (q - p) * 6 * t; if(t < 1/2) return q; if(t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; }; const q = l < 0.5 ? l * (1 + s) : l + s - l * s; const p = 2 * l - q; r = hue2rgb(p, q, h + 1/3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1/3); } return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)]; }
+        function cleanup() { controls.enableRotate = true; }
         return { update, cleanup };
     }
+    // --- END: 2D LBM Simulation ---
 
-    // --- START: VR CONTROLLER FIX ---
-    // The previous implementation polled controller state every frame, which can be unreliable.
-    // This new implementation is event-driven for button presses and more robustly handles
-    // controller connections, disconnections, and provides visual feedback.
-
-    /**
-     * Sets up the VR environment, session management, and controllers.
-     */
+    // --- START: VR CONTROLLER & UI SETUP ---
     function setupVR() {
         renderer.xr.enabled = true;
         const vrButton = document.getElementById('vr-button');
-
-        // Check for VR support
         if ('xr' in navigator) {
             navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
                 vrButton.disabled = !supported;
@@ -1136,145 +1030,62 @@
                         else navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'] })
                             .then((session) => renderer.xr.setSession(session));
                     });
-
                     renderer.xr.addEventListener('sessionstart', () => {
-                        // When entering VR, move the camera rig (dolly) to the current camera position
-                        playerDolly.position.copy(camera.position);
-                        playerDolly.quaternion.copy(camera.quaternion);
-                        camera.position.set(0, 0, 0); // Reset camera local position
-                        camera.quaternion.identity();
+                        playerDolly.position.copy(camera.position); playerDolly.quaternion.copy(camera.quaternion);
+                        camera.position.set(0, 0, 0); camera.quaternion.identity();
                         controls.enabled = false;
-                        vrButton.querySelector('span').textContent = 'Exit VR';
-                        vrButton.classList.add('active');
+                        vrButton.querySelector('span').textContent = 'Exit VR'; vrButton.classList.add('active');
                     });
                     renderer.xr.addEventListener('sessionend', () => {
-                        // When exiting VR, move the camera back to the rig's position
-                        camera.position.copy(playerDolly.position);
-                        camera.scale.copy(playerDolly.scale);
-                        playerDolly.position.set(0, 0, 0); // Reset dolly
-                        playerDolly.quaternion.identity();
-                        playerDolly.scale.set(1, 1, 1);
+                        camera.position.copy(playerDolly.position); camera.scale.copy(playerDolly.scale);
+                        playerDolly.position.set(0, 0, 0); playerDolly.quaternion.identity(); playerDolly.scale.set(1, 1, 1);
                         controls.enabled = true;
-                        vrButton.querySelector('span').textContent = 'Enter VR';
-                        vrButton.classList.remove('active');
+                        vrButton.querySelector('span').textContent = 'Enter VR'; vrButton.classList.remove('active');
                     });
                 }
             });
         }
-
-        // --- Controller Setup ---
         const controllerModelFactory = new XRControllerModelFactory();
-
-        // Left Controller (index 0)
-        const controllerGrip0 = renderer.xr.getControllerGrip(0);
-        controllerGrip0.add(controllerModelFactory.createControllerModel(controllerGrip0));
-        playerDolly.add(controllerGrip0);
+        const controllerGrip0 = renderer.xr.getControllerGrip(0); controllerGrip0.add(controllerModelFactory.createControllerModel(controllerGrip0)); playerDolly.add(controllerGrip0);
         const controller0 = renderer.xr.getController(0);
-        controller0.addEventListener('squeezestart', () => { vrInputs.left.grip = true; });
-        controller0.addEventListener('squeezeend', () => { vrInputs.left.grip = false; vrInputs.isZooming = false; });
-        controller0.addEventListener('selectstart', () => { vrInputs.left.trigger = true; });
-        controller0.addEventListener('selectend', () => { vrInputs.left.trigger = false; });
-        playerDolly.add(controller0);
-        controllers.push({ grip: controllerGrip0, gamepad: controller0 });
-
-        // Right Controller (index 1)
-        const controllerGrip1 = renderer.xr.getControllerGrip(1);
-        controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
-        playerDolly.add(controllerGrip1);
+        controller0.addEventListener('squeezestart', () => { vrInputs.left.grip = true; }); controller0.addEventListener('squeezeend', () => { vrInputs.left.grip = false; vrInputs.isZooming = false; });
+        controller0.addEventListener('selectstart', () => { vrInputs.left.trigger = true; }); controller0.addEventListener('selectend', () => { vrInputs.left.trigger = false; });
+        playerDolly.add(controller0); controllers.push({ grip: controllerGrip0, gamepad: controller0 });
+        const controllerGrip1 = renderer.xr.getControllerGrip(1); controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1)); playerDolly.add(controllerGrip1);
         const controller1 = renderer.xr.getController(1);
-        controller1.addEventListener('squeezestart', () => { vrInputs.right.grip = true; });
-        controller1.addEventListener('squeezeend', () => { vrInputs.right.grip = false; vrInputs.isZooming = false; });
-        controller1.addEventListener('selectstart', () => { vrInputs.right.trigger = true; });
-        controller1.addEventListener('selectend', () => { vrInputs.right.trigger = false; });
-        playerDolly.add(controller1);
-        controllers.push({ grip: controllerGrip1, gamepad: controller1 });
-
-        // Hand tracking setup can remain as is
+        controller1.addEventListener('squeezestart', () => { vrInputs.right.grip = true; }); controller1.addEventListener('squeezeend', () => { vrInputs.right.grip = false; vrInputs.isZooming = false; });
+        controller1.addEventListener('selectstart', () => { vrInputs.right.trigger = true; }); controller1.addEventListener('selectend', () => { vrInputs.right.trigger = false; });
+        playerDolly.add(controller1); controllers.push({ grip: controllerGrip1, gamepad: controller1 });
         const handModelFactory = new XRHandModelFactory();
         const hand1 = renderer.xr.getHand(0); hand1.add(handModelFactory.createHandModel(hand1)); playerDolly.add(hand1);
         const hand2 = renderer.xr.getHand(1); hand2.add(handModelFactory.createHandModel(hand2)); playerDolly.add(hand2);
     }
 
-    /**
-     * This function is called every frame to handle VR controller inputs.
-     * It updates thumbstick values and processes movement, turning, and scaling.
-     * @param {number} delta - Time since the last frame.
-     */
     function handleVRInput(delta) {
         if (!renderer.xr.isPresenting) return;
-
-        // --- 1. Poll analog inputs (thumbsticks) ---
         const deadzone = 0.15;
-        const leftController = controllers[0]?.gamepad;
-        const rightController = controllers[1]?.gamepad;
-
-        if (leftController && leftController.gamepad) {
-            vrInputs.left.thumbstick.x = Math.abs(leftController.gamepad.axes[2]) > deadzone ? leftController.gamepad.axes[2] : 0;
-            vrInputs.left.thumbstick.y = Math.abs(leftController.gamepad.axes[3]) > deadzone ? leftController.gamepad.axes[3] : 0;
-        }
-        if (rightController && rightController.gamepad) {
-            vrInputs.right.thumbstick.x = Math.abs(rightController.gamepad.axes[2]) > deadzone ? rightController.gamepad.axes[2] : 0;
-            vrInputs.right.thumbstick.y = Math.abs(rightController.gamepad.axes[3]) > deadzone ? rightController.gamepad.axes[3] : 0;
-        }
-
-        // --- 2. Handle Locomotion (Left Stick) ---
+        const leftController = controllers[0]?.gamepad; const rightController = controllers[1]?.gamepad;
+        if (leftController && leftController.gamepad) { vrInputs.left.thumbstick.x = Math.abs(leftController.gamepad.axes[2]) > deadzone ? leftController.gamepad.axes[2] : 0; vrInputs.left.thumbstick.y = Math.abs(leftController.gamepad.axes[3]) > deadzone ? leftController.gamepad.axes[3] : 0; }
+        if (rightController && rightController.gamepad) { vrInputs.right.thumbstick.x = Math.abs(rightController.gamepad.axes[2]) > deadzone ? rightController.gamepad.axes[2] : 0; vrInputs.right.thumbstick.y = Math.abs(rightController.gamepad.axes[3]) > deadzone ? rightController.gamepad.axes[3] : 0; }
         const speed = 3.0;
         const moveDir = new THREE.Vector3(vrInputs.left.thumbstick.x, 0, vrInputs.left.thumbstick.y);
-        if (moveDir.lengthSq() > 0.01) {
-            // Get camera's Y-axis rotation to move relative to where the player is looking
-            const cameraYaw = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ').y;
-            const flatCamQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
-            moveDir.applyQuaternion(flatCamQuat).multiplyScalar(speed * delta);
-            playerDolly.position.add(moveDir);
-        }
-
-        // --- 3. Handle Turning and Vertical Movement (Right Stick) ---
+        if (moveDir.lengthSq() > 0.01) { const cameraYaw = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ').y; const flatCamQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw); moveDir.applyQuaternion(flatCamQuat).multiplyScalar(speed * delta); playerDolly.position.add(moveDir); }
         const turnSpeed = 1.5;
-        if (Math.abs(vrInputs.right.thumbstick.x) > deadzone) {
-            playerDolly.rotation.y -= vrInputs.right.thumbstick.x * turnSpeed * delta;
-        }
-        if (Math.abs(vrInputs.right.thumbstick.y) > deadzone) {
-            playerDolly.position.y -= vrInputs.right.thumbstick.y * speed * delta;
-        }
-
-        // --- 4. Handle Scaling/Zoom (Both Grip Buttons) ---
+        if (Math.abs(vrInputs.right.thumbstick.x) > deadzone) { playerDolly.rotation.y -= vrInputs.right.thumbstick.x * turnSpeed * delta; }
+        if (Math.abs(vrInputs.right.thumbstick.y) > deadzone) { playerDolly.position.y -= vrInputs.right.thumbstick.y * speed * delta; }
         const bothGrips = vrInputs.left.grip && vrInputs.right.grip;
-        if (bothGrips && !vrInputs.isZooming) {
-            vrInputs.isZooming = true;
-            vrInputs.initialZoomDistance = controllers[0].grip.position.distanceTo(controllers[1].grip.position);
-            vrInputs.initialDollyScale.copy(playerDolly.scale);
-        } else if (bothGrips && vrInputs.isZooming) {
-            const currentDist = controllers[0].grip.position.distanceTo(controllers[1].grip.position);
-            if (vrInputs.initialZoomDistance > 0.01) {
-                const scaleFactor = currentDist / vrInputs.initialZoomDistance;
-                playerDolly.scale.copy(vrInputs.initialDollyScale.clone().multiplyScalar(scaleFactor)).clampScalar(0.1, 10.0);
-            }
-        }
+        if (bothGrips && !vrInputs.isZooming) { vrInputs.isZooming = true; vrInputs.initialZoomDistance = controllers[0].grip.position.distanceTo(controllers[1].grip.position); vrInputs.initialDollyScale.copy(playerDolly.scale);
+        } else if (bothGrips && vrInputs.isZooming) { const currentDist = controllers[0].grip.position.distanceTo(controllers[1].grip.position); if (vrInputs.initialZoomDistance > 0.01) { const scaleFactor = currentDist / vrInputs.initialZoomDistance; playerDolly.scale.copy(vrInputs.initialDollyScale.clone().multiplyScalar(scaleFactor)).clampScalar(0.1, 10.0); } }
     }
-    // --- END: VR CONTROLLER FIX ---
-
-
-    // --- UI & CORE SYSTEM SETUP (Boilerplate) ---
 
     function createMenu() {
         const menuDiv = document.getElementById('menu');
         const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
-        menuDiv.innerHTML = '';
-        mobileMenuDropdown.innerHTML = '';
+        menuDiv.innerHTML = ''; mobileMenuDropdown.innerHTML = '';
         Object.keys(scenes).forEach(key => {
             const sceneTitle = scenes[key].title;
-            const desktopButton = document.createElement('button');
-            desktopButton.id = `btn-${key}`;
-            desktopButton.className = 'menu-button';
-            desktopButton.textContent = sceneTitle;
-            desktopButton.onclick = () => switchScene(key);
-            menuDiv.appendChild(desktopButton);
-            const mobileButton = document.createElement('button');
-            mobileButton.id = `mobile-btn-${key}`;
-            mobileButton.className = 'mobile-menu-item text-white';
-            mobileButton.textContent = sceneTitle;
-            mobileButton.onclick = () => { switchScene(key); mobileMenuDropdown.classList.add('hidden'); };
-            mobileMenuDropdown.appendChild(mobileButton);
+            const desktopButton = document.createElement('button'); desktopButton.id = `btn-${key}`; desktopButton.className = 'menu-button'; desktopButton.textContent = sceneTitle; desktopButton.onclick = () => switchScene(key); menuDiv.appendChild(desktopButton);
+            const mobileButton = document.createElement('button'); mobileButton.id = `mobile-btn-${key}`; mobileButton.className = 'mobile-menu-item text-white'; mobileButton.textContent = sceneTitle; mobileButton.onclick = () => { switchScene(key); mobileMenuDropdown.classList.add('hidden'); }; mobileMenuDropdown.appendChild(mobileButton);
         });
     }
 
@@ -1285,40 +1096,10 @@
         window.addEventListener('click', () => { if (!dropdown.classList.contains('hidden')) dropdown.classList.add('hidden'); });
     }
 
-    function updateElevationChart(elevations) {
-        if (!elevationChart) return;
-        const bins = 20;
-        const counts = new Array(bins).fill(0);
-        const minElev = -1, maxElev = 1;
-        elevations.forEach(e => {
-            const binIndex = Math.floor(((e - minElev) / (maxElev - minElev)) * bins);
-            if(binIndex >= 0 && binIndex < bins) counts[binIndex]++;
-        });
-        elevationChart.data.datasets[0].data = counts;
-        elevationChart.update();
-    }
-
     function setupInfoPanel() {
         document.getElementById('info-panel').addEventListener('click', (e) => {
             if (e.target.closest('canvas') || e.target.closest('a')) return;
             e.currentTarget.classList.toggle('expanded');
-        });
-        const ctx = document.getElementById('placeholder-chart').getContext('2d');
-        const labels = Array.from({length: 20}, (_, i) => ((i / 10) - 1).toFixed(1) );
-        elevationChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Elevation Count', data: [],
-                    backgroundColor: 'rgba(79, 70, 229, 0.5)', borderColor: 'rgba(129, 140, 248, 1)',
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, ticks: { color: '#9ca3af' } }, x: { ticks: { color: '#9ca3af', maxRotation: 90, minRotation: 45 } } },
-                plugins: { legend: { display: false } }
-            }
         });
     }
 
@@ -1327,19 +1108,14 @@
         const enterIcon = document.getElementById('fullscreen-enter-icon');
         const exitIcon = document.getElementById('fullscreen-exit-icon');
         if (!document.fullscreenEnabled) { fullscreenButton.style.display = 'none'; return; }
-        fullscreenButton.addEventListener('click', () => {
-            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-            else document.exitFullscreen();
-        });
-        const handleFullscreenChange = () => {
+        fullscreenButton.addEventListener('click', () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); });
+        document.addEventListener('fullscreenchange', () => {
             const isFullscreen = !!document.fullscreenElement;
-            enterIcon.classList.toggle('hidden', isFullscreen);
-            exitIcon.classList.toggle('hidden', !isFullscreen);
+            enterIcon.classList.toggle('hidden', isFullscreen); exitIcon.classList.toggle('hidden', !isFullscreen);
             document.body.classList.toggle('fullscreen-active', isFullscreen);
             if (!isFullscreen) document.querySelectorAll('.show-on-hover').forEach(el => el.classList.remove('show-on-hover'));
             setTimeout(onWindowResize, 100);
-        };
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        });
     }
 
     function setupSettingsPanel() {
@@ -1350,31 +1126,25 @@
         const graphicsQualityValue = document.getElementById('graphics-quality-value');
         const energySlider = document.getElementById('energy-slider');
         const energyValue = document.getElementById('energy-value');
-        const followToggle = document.getElementById('follow-toggle');
-        const planetResSlider = document.getElementById('planet-resolution-slider');
-        const planetResValue = document.getElementById('planet-resolution-value');
+        const voxelResSlider = document.getElementById('voxel-resolution-slider');
+        const voxelResValue = document.getElementById('voxel-resolution-value');
 
-        function toggleSettingsPanel() {
-            if (settingsPanel.classList.contains('open')) settingsPanel.classList.remove('open');
-            else { settingsPanel.classList.remove('hidden'); requestAnimationFrame(() => settingsPanel.classList.add('open')); }
-        }
+        function toggleSettingsPanel() { if (settingsPanel.classList.contains('open')) settingsPanel.classList.remove('open'); else { settingsPanel.classList.remove('hidden'); requestAnimationFrame(() => settingsPanel.classList.add('open')); } }
         settingsButton.addEventListener('click', toggleSettingsPanel);
         closeSettingsButton.addEventListener('click', () => settingsPanel.classList.remove('open'));
-        settingsPanel.addEventListener('transitionend', (e) => {
-            if (e.propertyName === 'transform' && !settingsPanel.classList.contains('open')) settingsPanel.classList.add('hidden');
-        });
+        settingsPanel.addEventListener('transitionend', (e) => { if (e.propertyName === 'transform' && !settingsPanel.classList.contains('open')) settingsPanel.classList.add('hidden'); });
 
-        followToggle.addEventListener('click', (e) => {
-            followMode = !followMode; e.target.textContent = followMode ? 'On' : 'Off'; e.target.classList.toggle('active', followMode);
-        });
-        energySlider.addEventListener('input', (e) => {
-            animationSpeed = parseFloat(e.target.value); energyValue.textContent = `${animationSpeed.toFixed(2)}x`;
-        });
-        planetResSlider.addEventListener('input', (e) => planetResValue.textContent = e.target.value);
-        planetResSlider.addEventListener('change', (e) => {
-            if (currentSceneKey !== 'procedural_planet') return;
-            planetResolution = parseInt(e.target.value, 10); switchScene(currentSceneKey);
-        });
+        document.getElementById('apply-res-btn').addEventListener('click', () => { if (currentSceneKey === 'lbm_simulation_3d') switchScene('lbm_simulation_3d'); });
+        energySlider.addEventListener('input', (e) => { animationSpeed = parseFloat(e.target.value); energyValue.textContent = `${animationSpeed.toFixed(2)}x`; });
+        
+        const updateVoxelResLabel = (value) => {
+            const qualities = { 1: 'Low', 2: 'Medium', 3: 'High', 4: 'Ultra' };
+            voxelResValue.textContent = qualities[value] || 'Medium';
+        };
+        voxelResSlider.addEventListener('input', (e) => updateVoxelResLabel(e.target.value));
+        updateVoxelResLabel(voxelResSlider.value);
+
+
         graphicsSlider.addEventListener('input', (e) => {
             const quality = parseFloat(e.target.value); renderer.setPixelRatio(quality);
             if (quality < 0.8) graphicsQualityValue.textContent = "Low";
@@ -1389,27 +1159,11 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    function updateCameraFollow() {
-        if(followMode && followObject) {
-            const distance = 10;
-            const offset = controls.target.clone().sub(camera.position).normalize().multiplyScalar(distance);
-            const targetPosition = followObject.position.clone().sub(offset);
-            const container = renderer.xr.isPresenting ? playerDolly : camera;
-            container.position.lerp(targetPosition, 0.1);
-            if (!renderer.xr.isPresenting) controls.target.lerp(followObject.position, 0.1);
-        }
-    }
-
     function animate() {
         const delta = clock.getDelta();
-
-        // Use the new, unified VR input handler
         handleVRInput(delta);
-
         if (!renderer.xr.isPresenting) controls.update();
         if(currentUpdate) currentUpdate(delta);
-
-        updateCameraFollow();
         renderer.render(scene, camera);
     }
 
