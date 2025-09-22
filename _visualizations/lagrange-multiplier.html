@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizing Lagrange Multipliers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@11.8.0/lib/browser/math.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            width: 450px;
+            max-width: 90vw;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh; 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        .math-display {
+            font-family: 'Georgia', 'Cambria', serif;
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            color: #d1d5db;
+            border: 1px solid #374151;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            word-wrap: break-word;
+        }
+        .math-display .variable { color: #93c5fd; } /* blue-300 */
+        .math-display .function { color: #a78bfa; } /* violet-400 */
+        .math-display .symbol { color: #f87171; } /* red-400 */
+
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        .control-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+        }
+        .control-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .control-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type="text"] {
+            background-color: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            color: white;
+            padding: 0.25rem 0.5rem;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hidden { display: none !important; }
+        canvas { display: block; }
+        #settings-button {
+            position: absolute; top: 80px; right: 20px; z-index: 11;
+            background-color: rgba(55, 65, 81, 0.8); border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white; padding: 10px; border-radius: 50%; cursor: pointer; transition: all 0.3s;
+        }
+        #settings-button:hover { background-color: #4338ca; transform: translateY(-2px) rotate(45deg); }
+        #settings-panel {
+            top: 80px; right: 0; width: 350px; max-width: 90vw;
+            border-radius: 12px 0 0 12px; transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            max-height: calc(100vh - 100px); overflow-y: auto; z-index: 12;
+            padding-bottom: 2rem;
+        }
+        #settings-panel.open { transform: translateX(0); }
+        
+        .dropdown { position: relative; }
+        .dropdown-content {
+            position: absolute;
+            right: 0;
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            min-width: 220px;
+            border-radius: 8px;
+            z-index: 30;
+            margin-top: 8px;
+            overflow: hidden;
+            max-height: 60vh; /* Scrollbar appears if content exceeds this height */
+            overflow-y: auto;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
+        }
+        .dropdown-content.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        /* Custom scrollbar for dropdown */
+        .dropdown-content::-webkit-scrollbar { width: 8px; }
+        .dropdown-content::-webkit-scrollbar-track { background: #1f2937; }
+        .dropdown-content::-webkit-scrollbar-thumb { background-color: #4f46e5; border-radius: 4px; }
+
+        .dropdown-content .category {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #9ca3af;
+            background-color: #374151;
+        }
+        .dropdown-content button {
+            color: white;
+            padding: 10px 16px;
+            text-decoration: none;
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .dropdown-content button:hover { background-color: #4338ca; }
+        
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            header h1 { font-size: 1.1rem; }
+            #info-panel { top: 70px; left: 10px; right: 10px; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #settings-panel { top: 70px; width: 300px; max-height: calc(100vh - 80px);}
+            #controls-panel { flex-direction: column; gap: 1rem; padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">Lagrange Multipliers</h1>
+        
+        <div class="dropdown">
+            <button id="preset-button" class="control-button flex items-center text-sm">
+                <span id="preset-label">Presets</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block ml-1"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div id="preset-dropdown" class="dropdown-content">
+                <!-- Dropdown items will be injected by JS -->
+            </div>
+        </div>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">The Principle</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div class="pt-4 space-y-3">
+             <p class="text-gray-300">To find the maximum or minimum of a function <span class="function">f(x, y)</span> subject to a constraint <span class="function">g(x, y) = c</span>, we search for points where their gradient vectors are parallel. This condition is expressed by the equation:</p>
+             <div class="math-display text-center">
+                <span class="symbol">∇</span><span class="function">f</span>(<span class="variable">x</span>,<span class="variable">y</span>) = <span class="symbol">λ</span> <span class="symbol">∇</span><span class="function">g</span>(<span class="variable">x</span>, <span class="variable">y</span>)
+            </div>
+            <div id="dynamic-info" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel"></div>
+   
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+   
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors text-3xl leading-none">&times;</button>
+        </div>
+        <div class="space-y-6">
+            <div>
+                <h3 class="text-xl font-bold text-gray-200">Problem Definition</h3>
+                <div class="space-y-4 mt-4">
+                    <div>
+                        <label for="f-input" class="block mb-1 text-sm font-medium"><span class="function">f(x, y)</span> = Objective Function</label>
+                        <input type="text" id="f-input" class="w-full text-sm">
+                    </div>
+                    <div>
+                        <label for="g-input" class="block mb-1 text-sm font-medium"><span class="function">g(x, y)</span> = Constraint Function</label>
+                        <input type="text" id="g-input" class="w-full text-sm">
+                    </div>
+                    <div class="control-group text-left w-full">
+                        <label for="c-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                            <span>Constraint Value <span class="variable">c</span>:</span> <span id="c-value">1.0</span>
+                        </label>
+                        <input id="c-slider" type="range" min="0.1" max="5" step="0.1" value="1.0">
+                    </div>
+                    <button id="update-functions-btn" class="control-button w-full active">Update Visualization</button>
+                </div>
+            </div>
+             <hr class="border-gray-600">
+             <div>
+                <h3 class="text-xl font-bold text-gray-200">Scene Settings</h3>
+                <div class="space-y-4 mt-4">
+                     <!-- FIX: Added H-Scale and Combined-Scale sliders -->
+                    <div class="control-group text-left w-full">
+                        <label for="v-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                            <span>Vertical Scale:</span> <span id="v-scale-value">1.0x</span>
+                        </label>
+                        <input id="v-scale-slider" type="range" min="0.1" max="3" step="0.1" value="1.0">
+                    </div>
+                    <div class="control-group text-left w-full">
+                        <label for="h-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                            <span>Horizontal Scale:</span> <span id="h-scale-value">1.0x</span>
+                        </label>
+                        <input id="h-scale-slider" type="range" min="0.2" max="2" step="0.1" value="1.0">
+                    </div>
+                     <hr class="border-gray-500 border-dashed">
+                    <div class="control-group text-left w-full">
+                        <label for="combined-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                            <span>Combined Scale (Zoom):</span> <span id="combined-scale-value">1.0x</span>
+                        </label>
+                        <input id="combined-scale-slider" type="range" min="0.2" max="2" step="0.1" value="1.0">
+                    </div>
+                </div>
+            </div>
+            <hr class="border-gray-600">
+            <div>
+                <h3 class="text-xl font-bold text-gray-200">View Controls</h3>
+                 <div class="grid grid-cols-3 gap-2 mt-4">
+                    <button id="view-reset-btn" class="control-button text-sm active">Default</button>
+                    <button id="view-top-btn" class="control-button text-sm">Top</button>
+                    <button id="view-side-btn" class="control-button text-sm">Side</button>
+                </div>
+            </div>
+             <hr class="border-gray-600">
+             <div>
+                <h3 class="text-xl font-bold text-gray-200">Display Settings</h3>
+                <div class="grid grid-cols-3 gap-2 mt-4">
+                    <button id="toggle-surface-btn" class="control-button text-sm active">Surface</button>
+                    <button id="toggle-wireframe-btn" class="control-button text-sm">Wireframe</button>
+                    <button id="toggle-grid-btn" class="control-button text-sm active">Grid</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    let scene, camera, renderer, controls;
+    let surfaceMesh, constraintCurve, movablePoint, gradFArrow, gradGArrow, gridHelper;
+
+    const state = {
+        f_text: '4 - x^2 - y^2/2',
+        g_text: 'x^2 + y^2',
+        c: 1.0,
+        theta: 0,
+        verticalScale: 1.0,
+        horizontalScale: 1.0, // FIX: Added horizontal scale
+        f_func: null,
+        g_func: null,
+        grad_f: null,
+        grad_g: null
+    };
+    
+    const presets = {
+        'Simple Shapes': {
+            'Paraboloid': { f: '4 - x^2 - y^2/2', g: 'x^2 + y^2', c: 2.0 },
+            'Bowl': { f: 'x^2/2 + y^2/2', g: 'x^2 + y^2', c: 3.0 },
+            'Saddle': { f: 'x^2 - y^2', g: 'x^2 + y^2', c: 1.5 },
+        },
+        'Trigonometric': {
+            'Wave': { f: 'sin(x*2) + cos(y*2)', g: 'x^2 + y^2', c: 2.0 },
+            'Ripple': { f: 'sin(sqrt(x^2+y^2)*5)', g: 'x^2+y^2', c: 2.5 },
+            'Interference': {f: 'sin(x*3)*cos(y*3)', g: 'x^2+y^2', c: 4.0 },
+            'Tilted Wave': { f: 'sin(x+y)', g: 'x^2+y^2', c: 4 }
+        },
+        'Advanced': {
+            'Monkey Saddle': { f: 'x^3 - 3*x*y^2', g: 'x^2+y^2', c: 1.0 },
+            'Gaussian Peak': {f: '4*exp(-(x^2+y^2))', g: 'x^2 + y^2', c: 1.5},
+            'Sloped Plane': { f: '2 - x/2 - y', g: 'x^2+y^2', c: 3.0 }
+        },
+        'Complex Landscapes': {
+            'Rastrigin': { f: '10 - (x^2 - 5*cos(2*pi*x)) - (y^2 - 5*cos(2*pi*y))', g: 'x^2+y^2', c: 3.0 },
+            'Himmelblau': { f: '2 - ( (x^2+y-11)^2 + (x+y^2-7)^2 ) / 100', g: 'x^2+y^2', c: 4.0 },
+            'Easom': { f: '2 + 3*cos(x)*cos(y)*exp(-((x-pi)^2 + (y-pi)^2))', g: 'x^2+y^2', c: 2.0 },
+            'Peaks': { f: '3*(1-x)^2*exp(-x^2-(y+1)^2) - 10*(x/5-x^3-y^5)*exp(-x^2-y^2) - 1/3*exp(-(x+1)^2-y^2)', g: 'x^2+y^2', c: 2.5 },
+            'Ackley': { f: '10 - (20*exp(-0.2*sqrt(0.5*(x^2+y^2))) + exp(0.5*(cos(2*pi*x)+cos(2*pi*y))))', g: 'x^2+y^2', c: 4.0 },
+            'Three-Hump': { f: '2*x^2 - 1.05*x^4 + x^6/6 + x*y + y^2', g: 'x^2+y^2', c: 1.5 }
+        },
+        'Other Constraints': {
+            'Elliptical': {f: '4 - x^2 - y^2', g: 'x^2/4 + y^2', c: 1.0},
+            'Linear': { f: 'x*y', g: 'x+y', c: 2 },
+            'Hyperbolic': { f: 'x+y', g: 'x*y', c: 2 },
+            'Parabolic': { f: '4 - x^2 - y^2', g: 'y-x^2', c: 1.0 }
+        }
+    };
+
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(4, 4, 6);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 1, 0);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 8, 7);
+        scene.add(dirLight);
+        
+        gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x444444);
+        scene.add(gridHelper);
+
+        setupUI();
+        loadPreset('Simple Shapes', 'Paraboloid');
+
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.setAnimationLoop(animate);
+    }
+    
+    function parseFunctions() {
+        try {
+            state.f_node = math.parse(state.f_text);
+            state.g_node = math.parse(state.g_text);
+            state.f_func = state.f_node.compile();
+            state.g_func = state.g_node.compile();
+            state.grad_f = {
+                x: math.derivative(state.f_node, 'x').compile(),
+                y: math.derivative(state.f_node, 'y').compile()
+            };
+            state.grad_g = {
+                x: math.derivative(state.g_node, 'x').compile(),
+                y: math.derivative(state.g_node, 'y').compile()
+            };
+            return true;
+        } catch (e) {
+            alert("Error parsing functions: " + e.message);
+            return false;
+        }
+    }
+
+    function createVisualization() {
+        [surfaceMesh, constraintCurve, movablePoint, gradFArrow, gradGArrow].forEach(obj => {
+            if (obj) {
+                if(obj.geometry) obj.geometry.dispose();
+                if(obj.material) obj.material.dispose();
+                scene.remove(obj);
+            }
+        });
+        
+        // --- FIX: Use horizontal scale to determine the visual range ---
+        const range = 5 / state.horizontalScale;
+        const segments = 60;
+        const geometry = new THREE.PlaneGeometry(range * 2, range * 2, segments, segments);
+        geometry.rotateX(-Math.PI / 2);
+
+        const positions = geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+            const x = positions.getX(i);
+            const z = positions.getZ(i);
+            // --- FIX: Evaluate function at scaled coordinates ---
+            const y = state.f_func.evaluate({ x: x * state.horizontalScale, y: z * state.horizontalScale }) * state.verticalScale;
+            positions.setY(i, isNaN(y) ? 0 : y);
+        }
+        geometry.computeVertexNormals();
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x6366f1, transparent: true, opacity: 0.8, side: THREE.DoubleSide, wireframe: false
+        });
+        surfaceMesh = new THREE.Mesh(geometry, material);
+        scene.add(surfaceMesh);
+
+        const curvePoints = [];
+        const isCircular = state.g_text.replace(/\s/g, '') === 'x^2+y^2';
+        if (isCircular && state.c >= 0) {
+            const radius = Math.sqrt(state.c);
+            for (let i = 0; i <= 200; i++) {
+                const theta = (i / 200) * Math.PI * 2;
+                const x_func = radius * Math.cos(theta);
+                const y_func = radius * Math.sin(theta);
+                const y_3d = (state.f_func.evaluate({ x: x_func, y: y_func }) * state.verticalScale) + 0.02;
+                if (!isNaN(y_3d)) curvePoints.push(new THREE.Vector3(x_func / state.horizontalScale, y_3d, y_func / state.horizontalScale));
+            }
+        } else { // Generic case
+            const evalRange = 5;
+            const step = 0.1;
+             for (let x = -evalRange; x <= evalRange; x += step) {
+                for (let y_func = -evalRange; y_func <= evalRange; y_func += step) {
+                     try {
+                         const val = state.g_func.evaluate({ x, y: y_func });
+                         if (Math.abs(val - state.c) < 0.05) {
+                             const y_3d = (state.f_func.evaluate({x, y: y_func}) * state.verticalScale) + 0.02;
+                             if (!isNaN(y_3d)) curvePoints.push(new THREE.Vector3(x / state.horizontalScale, y_3d, y_func / state.horizontalScale));
+                         }
+                     } catch (e) { /* ignore eval errors */ }
+                }
+            }
+            curvePoints.sort((a,b) => Math.atan2(a.z, a.x) - Math.atan2(b.z, b.x));
+        }
+
+        if (curvePoints.length > 1) {
+             const curveGeom = new THREE.BufferGeometry().setFromPoints(curvePoints);
+             const curveMat = new THREE.LineBasicMaterial({ color: 0xfbbf24, linewidth: 3 });
+             constraintCurve = new THREE.Line(curveGeom, curveMat);
+             scene.add(constraintCurve);
+        }
+
+        movablePoint = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        scene.add(movablePoint);
+        gradFArrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0x3b82f6, 0.2, 0.1);
+        gradGArrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0xf87171, 0.2, 0.1);
+        scene.add(gradFArrow);
+        scene.add(gradGArrow);
+        updateMovablePoint();
+    }
+    
+    function updateMovablePoint() {
+        if (!state.f_func || !constraintCurve || constraintCurve.geometry.attributes.position.count === 0) return;
+
+        const pos = constraintCurve.geometry.attributes.position;
+        const index = Math.floor((state.theta / (2 * Math.PI)) * pos.count) % pos.count;
+        const x_3d = pos.getX(index);
+        const z_3d = pos.getZ(index); 
+        const y_3d = pos.getY(index);
+        
+        movablePoint.position.set(x_3d, y_3d, z_3d);
+
+        const scope = { x: x_3d * state.horizontalScale, y: z_3d * state.horizontalScale };
+        const dfdx = state.grad_f.x.evaluate(scope);
+        const dfdy = state.grad_f.y.evaluate(scope);
+        const dgdx = state.grad_g.x.evaluate(scope);
+        const dgdy = state.grad_g.y.evaluate(scope);
+        
+        const gradF = new THREE.Vector3(dfdx, 0, dfdy).normalize();
+        const gradG = new THREE.Vector3(dgdx, 0, dgdy).normalize();
+
+        gradFArrow.position.copy(movablePoint.position);
+        gradGArrow.position.copy(movablePoint.position);
+        gradFArrow.setDirection(gradF);
+        gradGArrow.setDirection(gradG);
+        
+        const functionValue = (y_3d - 0.02) / state.verticalScale;
+        document.getElementById('function-value').textContent = `f(x,y) = ${functionValue.toFixed(2)}`;
+        updateInfoPanel(scope.x, scope.y, functionValue, gradF, gradG);
+    }
+    
+    function updateInfoPanel(x_func, y_func, z_val, gradF, gradG) {
+        const dotProduct = gradF.dot(gradG);
+        const dgdx_val = state.grad_g.x.evaluate({x: x_func, y: y_func});
+        const lambda = dgdx_val !== 0 ? (state.verticalScale * state.grad_f.x.evaluate({x: x_func, y: y_func}) / dgdx_val).toFixed(2) : 'N/A';
+        const infoDiv = document.getElementById('dynamic-info');
+        infoDiv.innerHTML = `
+            <div class="math-display">
+                <span class="function">f(x, y)</span> = ${state.f_text}<br>
+                <span class="function">g(x, y)</span> = ${state.g_text} = <span class="variable">${state.c.toFixed(1)}</span>
+            </div>
+            <div class="math-display text-sm">
+                <b>Position:</b> <span class="variable">x</span>:${x_func.toFixed(2)}, <span class="variable">y</span>:${y_func.toFixed(2)}, <span class="variable">f(x,y)</span>:${z_val.toFixed(2)}<br>
+                <b>Alignment (Dot Product):</b> ${dotProduct.toFixed(2)} (parallel at ±1)<br>
+                <b>Lagrange Multiplier <span class="symbol">λ</span>:</b> ${isNaN(lambda) ? 'N/A' : lambda}
+            </div>
+        `;
+    }
+
+    function setupUI() {
+        document.getElementById('info-panel').addEventListener('click', (e) => {
+            if (e.target.closest('input, button, a')) return;
+            e.currentTarget.classList.toggle('expanded');
+        });
+
+        document.getElementById('controls-panel').innerHTML = `
+            <div class="control-group">
+                <label for="theta-slider" class="text-sm font-medium">Position on Constraint (θ)</label>
+                <div class="flex items-center gap-2">
+                    <span>0</span> <input id="theta-slider" type="range" min="0" max="${2 * Math.PI}" step="0.01" value="0" class="w-48"> <span>2π</span>
+                </div>
+            </div>
+             <div class="text-center">
+                <div class="text-2xl font-bold" id="function-value">f(x,y) = 0.00</div>
+                <div class="text-xs text-gray-400">Objective Value</div>
+            </div>`;
+        document.getElementById('theta-slider').addEventListener('input', e => {
+            state.theta = parseFloat(e.target.value);
+            updateMovablePoint();
+        });
+
+        const settingsPanel = document.getElementById('settings-panel');
+        document.getElementById('settings-button').addEventListener('click', () => {
+             settingsPanel.classList.remove('hidden');
+             requestAnimationFrame(() => settingsPanel.classList.add('open'));
+        });
+        
+        document.getElementById('close-settings').addEventListener('click', () => {
+            settingsPanel.classList.remove('open');
+        });
+
+        document.getElementById('f-input').addEventListener('change', e => state.f_text = e.target.value);
+        document.getElementById('g-input').addEventListener('change', e => state.g_text = e.target.value);
+        document.getElementById('c-slider').addEventListener('input', e => {
+            state.c = parseFloat(e.target.value);
+            document.getElementById('c-value').textContent = state.c.toFixed(1);
+        });
+        document.getElementById('update-functions-btn').addEventListener('click', () => {
+             if (parseFunctions()) createVisualization();
+        });
+
+        const vScaleSlider = document.getElementById('v-scale-slider');
+        const vScaleValue = document.getElementById('v-scale-value');
+        const hScaleSlider = document.getElementById('h-scale-slider');
+        const hScaleValue = document.getElementById('h-scale-value');
+        const combinedScaleSlider = document.getElementById('combined-scale-slider');
+        const combinedScaleValue = document.getElementById('combined-scale-value');
+
+        vScaleSlider.addEventListener('input', e => {
+            state.verticalScale = parseFloat(e.target.value);
+            vScaleValue.textContent = `${state.verticalScale.toFixed(1)}x`;
+        });
+        vScaleSlider.addEventListener('change', () => { if (parseFunctions()) createVisualization(); });
+
+        hScaleSlider.addEventListener('input', e => {
+            state.horizontalScale = parseFloat(e.target.value);
+            hScaleValue.textContent = `${state.horizontalScale.toFixed(1)}x`;
+        });
+        hScaleSlider.addEventListener('change', () => { if (parseFunctions()) createVisualization(); });
+        
+        combinedScaleSlider.addEventListener('input', e => {
+            const scale = parseFloat(e.target.value);
+            state.verticalScale = scale;
+            state.horizontalScale = scale;
+            vScaleSlider.value = scale;
+            hScaleSlider.value = scale;
+            vScaleValue.textContent = `${scale.toFixed(1)}x`;
+            hScaleValue.textContent = `${scale.toFixed(1)}x`;
+            combinedScaleValue.textContent = `${scale.toFixed(1)}x`;
+        });
+        combinedScaleSlider.addEventListener('change', () => { if (parseFunctions()) createVisualization(); });
+        
+        const presetDropdown = document.getElementById('preset-dropdown');
+        for (const category in presets) {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'category';
+            categoryDiv.textContent = category;
+            presetDropdown.appendChild(categoryDiv);
+            for (const name in presets[category]) {
+                const button = document.createElement('button');
+                button.textContent = name;
+                button.onclick = () => {
+                    loadPreset(category, name);
+                    presetDropdown.classList.remove('visible');
+                };
+                presetDropdown.appendChild(button);
+            }
+        }
+        
+        const presetButton = document.getElementById('preset-button');
+        presetButton.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            presetDropdown.classList.toggle('visible');
+        });
+
+        window.addEventListener('click', (e) => {
+            if (!presetDropdown.contains(e.target) && !presetButton.contains(e.target)) {
+                presetDropdown.classList.remove('visible');
+            }
+            if (!settingsPanel.contains(e.target) && !document.getElementById('settings-button').contains(e.target)) {
+                 settingsPanel.classList.remove('open');
+             }
+        });
+
+        document.getElementById('view-reset-btn').addEventListener('click', () => setCameraView('reset'));
+        document.getElementById('view-top-btn').addEventListener('click', () => setCameraView('top'));
+        document.getElementById('view-side-btn').addEventListener('click', () => setCameraView('side'));
+        
+        document.getElementById('toggle-surface-btn').addEventListener('click', (e) => {
+            if(surfaceMesh) {
+                surfaceMesh.visible = !surfaceMesh.visible;
+                e.target.classList.toggle('active', surfaceMesh.visible);
+            }
+        });
+        document.getElementById('toggle-wireframe-btn').addEventListener('click', (e) => {
+            if(surfaceMesh) {
+                surfaceMesh.material.wireframe = !surfaceMesh.material.wireframe;
+                e.target.classList.toggle('active', surfaceMesh.material.wireframe);
+            }
+        });
+        document.getElementById('toggle-grid-btn').addEventListener('click', (e) => {
+            if(gridHelper) {
+                gridHelper.visible = !gridHelper.visible;
+                e.target.classList.toggle('active', gridHelper.visible);
+            }
+        });
+    }
+
+    function setCameraView(view) {
+        controls.target.set(0, 0, 0);
+        switch(view) {
+            case 'top': camera.position.set(0, 10, 0.01); break;
+            case 'side': camera.position.set(10, 2, 0); break;
+            case 'reset': 
+            default: camera.position.set(4, 4, 6); controls.target.set(0, 1, 0); break;
+        }
+        document.getElementById('view-reset-btn').classList.toggle('active', view === 'reset');
+        document.getElementById('view-top-btn').classList.toggle('active', view === 'top');
+        document.getElementById('view-side-btn').classList.toggle('active', view === 'side');
+    }
+    
+    function loadPreset(category, name) {
+        const preset = presets[category][name];
+        state.f_text = preset.f;
+        state.g_text = preset.g;
+        state.c = preset.c;
+        document.getElementById('f-input').value = state.f_text;
+        document.getElementById('g-input').value = state.g_text;
+        document.getElementById('c-slider').value = state.c;
+        document.getElementById('c-value').textContent = state.c.toFixed(1);
+        if (parseFunctions()) createVisualization();
+    }
+
+    function onWindowResize() { 
+        camera.aspect = window.innerWidth / window.innerHeight; 
+        camera.updateProjectionMatrix(); 
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+    }
+
+    function animate() { 
+        controls.update(); 
+        renderer.render(scene, camera); 
+    }
+   
+    init();
+</script>
+</body>
+</html>
+
