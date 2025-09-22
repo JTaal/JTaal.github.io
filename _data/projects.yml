@@ -88,6 +88,11 @@
   thumbnail: /assets/images/lagrange-multiplier.png
   visualization_url: /visualizations/lagrange-multiplier.html
 
+- title: Lattice Boltzmann Method
+  author: Jasper Taal
+  thumbnail: /assets/images/lattice-boltzmann-method.png
+  visualization_url: /visualizations/lattice-boltzmann-method.html
+
 - title: Linear Regression
   author: Jasper Taal
   thumbnail: /assets/images/linear-regression.png
