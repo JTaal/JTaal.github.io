@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D MOEA Demo</title>
+    <title>3D MOEA Suite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script type="importmap">
@@ -19,7 +19,7 @@
             font-family: 'Inter', sans-serif;
             margin: 0;
             overflow: hidden;
-            background-color: #030712; /* bg-gray-950 */
+            background-color: #030712;
             color: #e5e7eb;
         }
         .ui-panel {
@@ -31,30 +31,41 @@
             z-index: 10;
         }
         #info-panel {
-            top: 80px;
-            left: 20px;
-            max-width: 420px;
+            top: 65px; /* Positioned below header */
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 0;
+            border-left: 0;
+            border-right: 0;
+            border-top: 0;
+            max-height: 48px; /* Collapsed height */
             cursor: pointer;
             overflow: hidden;
-            border-radius: 12px;
-            max-height: 58px; /* Collapsed */
+            padding: 0.5rem 1.5rem;
         }
         #info-panel.expanded {
-            max-height: 90vh; 
-            cursor: default;
+            max-height: 50vh; 
             overflow-y: auto;
-            z-index: 11;
         }
         #info-header { display: flex; justify-content: space-between; align-items: center; }
         #toggle-icon { transition: transform 0.3s ease-in-out; }
         #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        #info-content {
+             transition: opacity 0.3s ease-in-out;
+        }
+        #info-panel:not(.expanded) #info-content {
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+        }
         #controls-panel {
             bottom: 0;
             left: 0;
             right: 0;
             width: 100%;
             border-radius: 12px 12px 0 0;
-            padding: 0; /* Padding moved to inner container */
+            padding: 0;
             display: flex;
             flex-direction: column;
             transition: transform 0.4s ease-in-out;
@@ -69,6 +80,7 @@
             justify-content: center;
             align-items: center;
             cursor: pointer;
+            flex-shrink: 0;
         }
         #controls-toggle svg {
             transition: transform 0.3s ease-in-out;
@@ -84,7 +96,14 @@
             align-items: center;
             gap: 1.5rem;
             width: 100%;
+            max-height: 25vh;
+            overflow-y: auto;
         }
+        #controls-content::-webkit-scrollbar { width: 8px; }
+        #controls-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        #controls-content::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 4px; }
+        #controls-content::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+        
         header {
             position: absolute;
             top: 0;
@@ -92,14 +111,14 @@
             right: 0;
             z-index: 20;
             display: flex;
-            justify-content: center; /* Center title */
+            justify-content: center;
             align-items: center;
             padding: 1rem 1.5rem;
             background-color: rgba(3, 7, 18, 0.5);
             backdrop-filter: blur(5px);
             border-bottom: 1px solid rgba(55, 65, 81, 0.7);
         }
-        .control-button, .toggle-button {
+        .control-button, .toggle-button, select {
             background-color: rgba(55, 65, 81, 0.8);
             border: 1px solid rgba(75, 85, 99, 0.9);
             color: white;
@@ -110,7 +129,7 @@
             font-weight: 500;
             font-size: 0.875rem;
         }
-        .control-button:hover, .toggle-button:hover {
+        .control-button:hover, .toggle-button:hover, select:hover {
             background-color: #4338ca;
             transform: translateY(-2px);
         }
@@ -127,7 +146,6 @@
         }
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
             width: 18px;
             height: 18px;
             background: #818cf8;
@@ -141,67 +159,48 @@
             gap: 0.5rem;
         }
         .hidden { display: none !important; }
-        canvas { display: block; }
         .metric-display {
             background-color: #1f2937;
             padding: 0.5rem 1rem;
             border-radius: 0.5rem;
             border: 1px solid #374151;
         }
-        .viz-toggle-group button {
-            padding: 6px 10px;
-            font-size: 0.8rem;
-        }
         #fullscreen-button {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            z-index: 9; /* Below controls panel */
+            z-index: 9;
             width: 44px;
             height: 44px;
             padding: 10px;
             border-radius: 50%;
         }
-        #controls-panel.collapsed ~ #fullscreen-button {
-            transform: translateY(-45px); /* Move up when panel is collapsed */
-             transition: transform 0.4s ease-in-out;
-        }
-        #controls-panel ~ #fullscreen-button {
-             transform: translateY(0);
-             transition: transform 0.4s ease-in-out;
-        }
-
         @media (max-width: 768px) {
-            header h1 { font-size: 1.125rem; }
-            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
-            #controls-content { padding: 0.75rem; gap: 0.75rem; justify-content: space-around; flex-direction: column; }
+            #controls-content { flex-direction: column; gap: 1rem; }
             .control-group { width: 100%; }
-            input[type="range"] { width: 100%; }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">3D Multi-Objective Evolutionary Algorithm (NSGA-II)</h1>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">3D Multi-Objective Optimization Suite</h1>
     </header>
 
     <div id="info-panel" class="ui-panel">
         <div id="info-header">
-            <h2 id="info-title" class="text-xl font-bold text-indigo-400">What is this?</h2>
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">About MOEAs</h2>
             <div id="toggle-icon" class="text-indigo-400">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </div>
         </div>
         <div id="info-content" class="pt-4 space-y-4 text-gray-300">
-            <p>This is a visualization of a <strong>Multi-Objective Evolutionary Algorithm (MOEA)</strong> solving a problem with three competing objectives (X, Y, and Z).</p>
+             <div>
+                <h3 class="font-bold text-indigo-400">Algorithm: <span id="algorithm-name-display">NSGA-II</span></h3>
+                <p id="algorithm-description-display"></p>
+             </div>
             <div>
                 <h3 class="font-bold text-indigo-400">The Pareto Front</h3>
-                <p>The optimal set of trade-off solutions is called the <strong>Pareto Front</strong>. Use the Visualization toggle to see metrics in 3D.</p>
-                <ul class="list-disc list-inside ml-2 mt-2 space-y-1">
-                    <li><span class="font-bold text-green-400">Green Spheres:</span> The current best-found Pareto Front.</li>
-                    <li><span class="text-yellow-400">Yellow</span> to <span class="text-red-400">Red Spheres:</span> Less optimal solutions.</li>
-                    <li><strong>Wireframe Mesh:</strong> The known, perfect solution for the current goal.</li>
-                </ul>
+                <p>The optimal set of trade-off solutions is the <strong>Pareto Front</strong>.</p>
             </div>
             <div>
                 <h3 class="font-bold text-indigo-400">Performance Metrics</h3>
@@ -224,28 +223,44 @@
                 <button id="reset-btn" class="control-button">Reset</button>
             </div>
             <div class="text-lg">Generation: <span id="generation-counter">0</span></div>
-            <div class="control-group">
+             <div class="control-group">
+                <label for="algorithm-select" class="text-sm">Algorithm</label>
+                <select id="algorithm-select">
+                    <option value="nsga2">NSGA-II</option>
+                    <option value="nsga1">NSGA</option>
+                    <option value="nsga3">NSGA-III</option>
+                </select>
+            </div>
+             <div class="control-group">
                 <label class="text-sm">Goal</label>
                 <button id="optimization-mode-toggle" class="toggle-button w-24">Minimize</button>
             </div>
              <div class="control-group">
                 <label class="text-sm">Visualization</label>
                 <div id="viz-toggle-group" class="flex rounded-md bg-gray-700">
-                    <button data-viz="none" class="viz-toggle-btn toggle-button active">None</button>
-                    <button data-viz="crowding" class="viz-toggle-btn toggle-button">Crowding</button>
-                    <button data-viz="hypervolume" class="viz-toggle-btn toggle-button">Hypervolume</button>
+                    <button data-viz="none" class="toggle-button active">None</button>
+                    <button data-viz="crowding" class="toggle-button">Crowding</button>
+                    <button data-viz="hypervolume" class="toggle-button">Hypervolume</button>
                 </div>
+            </div>
+            <div id="nsga1-params" class="control-group hidden">
+                 <label for="sharing-slider" class="text-sm">Sharing Radius: <span id="sharing-value">0.1</span></label>
+                <input type="range" id="sharing-slider" min="0.01" max="0.5" step="0.01" value="0.1">
+            </div>
+             <div id="nsga3-params" class="control-group hidden">
+                <label for="refpoints-slider" class="text-sm">Ref. Points: <span id="refpoints-value">91</span></label>
+                <input type="range" id="refpoints-slider" min="4" max="15" step="1" value="12">
             </div>
             <div class="control-group">
                 <label for="population-slider" class="text-sm">Population: <span id="population-value">100</span></label>
                 <input type="range" id="population-slider" min="20" max="300" step="4" value="100">
             </div>
-            <div class="control-group">
-                <label for="crossover-slider" class="text-sm">Crossover: <span id="crossover-value">0.9</span></label>
+             <div class="control-group">
+                <label for="crossover-slider" class="text-sm">Crossover: <span id="crossover-value">0.90</span></label>
                 <input type="range" id="crossover-slider" min="0.1" max="1.0" step="0.05" value="0.9">
             </div>
             <div class="control-group">
-                <label for="mutation-slider" class="text-sm">Mutation: <span id="mutation-value">0.1</span></label>
+                <label for="mutation-slider" class="text-sm">Mutation: <span id="mutation-value">0.10</span></label>
                 <input type="range" id="mutation-slider" min="0.01" max="0.5" step="0.01" value="0.1">
             </div>
         </div>
@@ -262,48 +277,39 @@
 
     let scene, camera, renderer, controls;
     let populationGroup, minFrontMesh, maxFrontMesh, metricsGroup;
+    let isRunning = false, generation = 0, population = [];
+    let activeAlgorithm = 'nsga2', optimizationMode = 'minimize', visualizationMode = 'none';
+    let populationSize = 100, numVariables = 10, numObjectives = 3;
+    let sigmaShare = 0.1, refPointDivisions = 12, referencePoints = [];
+    let crossoverProbability = 0.9, mutationProbability = 0.1;
 
-    let isRunning = false;
-    let generation = 0;
-    let population = [];
-    let optimizationMode = 'minimize';
-    let visualizationMode = 'none';
-
-    let populationSize = 100;
-    let numVariables = 10; 
-    let numObjectives = 3;
-    let crossoverProbability = 0.9;
-    let mutationProbability = 0.1;
+    const algorithmDetails = {
+        nsga2: { name: "NSGA-II", description: "A fast, elitist algorithm using non-dominated sorting and crowding distance to find a diverse set of Pareto-optimal solutions." },
+        nsga1: { name: "NSGA", description: "The original algorithm. It uses non-dominated sorting but lacks elitism and employs a fitness sharing mechanism for diversity, which can be computationally intensive." },
+        nsga3: { name: "NSGA-III", description: "An extension for many-objective problems. It replaces crowding distance with a reference-point-based selection to maintain diversity in high-dimensional spaces." }
+    };
 
     function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-        
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
-
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-
         scene.add(new THREE.AmbientLight(0xffffff, 0.7));
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
         dirLight.position.set(5, 5, 5);
         scene.add(dirLight);
-
-        const axesHelper = new THREE.AxesHelper(3.1);
-        scene.add(axesHelper);
-
+        scene.add(new THREE.AxesHelper(3.1));
         populationGroup = new THREE.Group();
         metricsGroup = new THREE.Group();
         scene.add(populationGroup);
         scene.add(metricsGroup);
-        
         createParetoFrontMeshes();
         setupUI();
         resetAlgorithm();
-
         window.addEventListener('resize', onWindowResize, false);
         renderer.setAnimationLoop(animate);
     }
@@ -331,7 +337,7 @@
         return betterInOne;
     }
 
-     function calculateCrowdingDistance(front) {
+    function calculateCrowdingDistance(front) {
         if (front.length <= 2) { front.forEach(p => p.crowdingDistance = Infinity); return; }
         front.forEach(p => p.crowdingDistance = 0);
         for (let m = 0; m < numObjectives; m++) {
@@ -344,6 +350,34 @@
                 front[i].crowdingDistance += (front[i + 1].objectives[m] - front[i - 1].objectives[m]) / (maxObj - minObj);
             }
         }
+    }
+    
+    function calculateFitnessSharing(front) {
+        front.forEach(p => {
+            let nicheCount = 1;
+            front.forEach(q => {
+                if (p === q) return;
+                const dist = Math.sqrt(p.objectives.reduce((sum, val, i) => sum + Math.pow(val - q.objectives[i], 2), 0));
+                if (dist < sigmaShare) nicheCount += 1 - (dist / sigmaShare);
+            });
+            p.sharedFitness = p.rank + (1 / nicheCount);
+        });
+    }
+
+    function generateReferencePoints(divisions) {
+        referencePoints = [];
+        function generate(index, left, point) {
+            if (index === numObjectives - 1) {
+                point[index] = left;
+                referencePoints.push([...point].map(v => v / divisions));
+                return;
+            }
+            for (let i = 0; i <= left; i++) {
+                point[index] = i;
+                generate(index + 1, left - i, point);
+            }
+        }
+        generate(0, divisions, new Array(numObjectives).fill(0));
     }
 
     function nonDominatedSort(pop) {
@@ -363,69 +397,46 @@
 
         let i = 0;
         while (fronts[i] && fronts[i].length > 0) {
-            calculateCrowdingDistance(fronts[i]);
+            if (activeAlgorithm !== 'nsga1') calculateCrowdingDistance(fronts[i]);
+            if (activeAlgorithm === 'nsga1') calculateFitnessSharing(fronts[i]);
+            
             const nextFront = [];
             fronts[i].forEach(p => p.dominatedSolutions.forEach(q => {
                 q.dominationCount--;
-                if (q.dominationCount === 0) {
-                    q.rank = i + 1;
-                    nextFront.push(q);
-                }
+                if (q.dominationCount === 0) { q.rank = i + 1; nextFront.push(q); }
             }));
             i++;
             if (nextFront.length > 0) fronts[i] = nextFront;
         }
         return fronts;
     }
-    
-    /**
-     * Calculates hypervolume using Monte Carlo approximation.
-     * This is more accurate than slice-based methods for 3D+.
-     */
+
     function calculateHypervolume(front, samples = 5000) {
         if (!front || front.length === 0) return 0;
-        
         let dominatedCount = 0;
         const refPoint = optimizationMode === 'minimize' ? [3, 3, 3] : [0, 0, 0];
         const boundsMin = optimizationMode === 'minimize' ? [0, 0, 0] : refPoint;
         const boundsMax = optimizationMode === 'minimize' ? refPoint : [3, 3, 3];
         
         for (let i = 0; i < samples; i++) {
-            const randomPoint = {
-                objectives: [
-                    Math.random() * (boundsMax[0] - boundsMin[0]) + boundsMin[0],
-                    Math.random() * (boundsMax[1] - boundsMin[1]) + boundsMin[1],
-                    Math.random() * (boundsMax[2] - boundsMin[2]) + boundsMin[2]
-                ]
-            };
-            
-            for (const p of front) {
-                if (dominates(p, randomPoint)) {
-                    dominatedCount++;
-                    break;
-                }
-            }
+            const randomPoint = { objectives: [
+                Math.random() * (boundsMax[0] - boundsMin[0]) + boundsMin[0],
+                Math.random() * (boundsMax[1] - boundsMin[1]) + boundsMin[1],
+                Math.random() * (boundsMax[2] - boundsMin[2]) + boundsMin[2]
+            ]};
+            for (const p of front) { if (dominates(p, randomPoint)) { dominatedCount++; break; } }
         }
         return dominatedCount / samples;
     }
-
-
+    
     function runGeneration() {
-        if (!isRunning || !population || population.length === 0) return;
-        let matingPool = [];
-        for (let i = 0; i < populationSize; i++) {
-            const i1 = Math.floor(Math.random() * populationSize), i2 = Math.floor(Math.random() * populationSize);
-            const ind1 = population[i1], ind2 = population[i2];
-            let winner = ind1;
-            if (ind1 && ind2) {
-                 if (ind1.rank < ind2.rank) winner = ind1;
-                 else if (ind2.rank < ind1.rank) winner = ind2;
-                 else if (ind1.crowdingDistance > ind2.crowdingDistance) winner = ind1;
-                 else winner = ind2;
-            }
-            matingPool.push(winner);
-        }
-        
+        if (!isRunning) return;
+        if (activeAlgorithm === 'nsga1') runNSGA1Generation();
+        else if (activeAlgorithm === 'nsga2') runNSGA2Generation();
+        else if (activeAlgorithm === 'nsga3') runNSGA3Generation();
+    }
+    
+    function createOffspring(matingPool) {
         let offspring = [];
         for (let i = 0; i < populationSize; i += 2) {
             if (i + 1 >= matingPool.length) continue;
@@ -443,7 +454,38 @@
             child2.objectives = evaluate(child2.variables);
             offspring.push(child1, child2);
         }
+        return offspring;
+    }
 
+    function runNSGA1Generation() {
+        let matingPool = [];
+        for (let i = 0; i < populationSize; i++) {
+            const i1 = Math.floor(Math.random() * populationSize), i2 = Math.floor(Math.random() * populationSize);
+            const ind1 = population[i1], ind2 = population[i2];
+            if (ind1 && ind2) matingPool.push(ind1.sharedFitness < ind2.sharedFitness ? ind1 : ind2);
+        }
+        const offspring = createOffspring(matingPool);
+        population = offspring;
+        const fronts = nonDominatedSort(population);
+        generation++;
+        updateVisualization(fronts);
+    }
+    
+    function runNSGA2Generation() {
+        let matingPool = [];
+        for (let i = 0; i < populationSize; i++) {
+            const i1 = Math.floor(Math.random() * populationSize), i2 = Math.floor(Math.random() * populationSize);
+            const ind1 = population[i1], ind2 = population[i2];
+            let winner = ind1;
+            if (ind1 && ind2) {
+                 if (ind1.rank < ind2.rank) winner = ind1;
+                 else if (ind2.rank < ind1.rank) winner = ind2;
+                 else if (ind1.crowdingDistance > ind2.crowdingDistance) winner = ind1;
+                 else winner = ind2;
+            }
+            matingPool.push(winner);
+        }
+        const offspring = createOffspring(matingPool);
         const combined = [...population, ...offspring];
         const fronts = nonDominatedSort(combined);
         let nextPopulation = [];
@@ -461,20 +503,60 @@
         generation++;
         updateVisualization(fronts);
     }
-    
+
+    function runNSGA3Generation() {
+        let matingPool = [];
+        for (let i = 0; i < populationSize; i++) {
+            const i1 = Math.floor(Math.random() * populationSize), i2 = Math.floor(Math.random() * populationSize);
+            const ind1 = population[i1], ind2 = population[i2];
+            let winner = ind1;
+            if (ind1 && ind2) {
+                 if (ind1.rank < ind2.rank) winner = ind1;
+                 else if (ind2.rank < ind1.rank) winner = ind2;
+                 else if (Math.random() < 0.5) winner = ind1;
+                 else winner = ind2;
+            }
+            matingPool.push(winner);
+        }
+        const offspring = createOffspring(matingPool);
+        const combined = [...population, ...offspring];
+        const fronts = nonDominatedSort(combined);
+        let nextPopulation = [];
+        let frontIndex = 0;
+        while (fronts[frontIndex] && nextPopulation.length + fronts[frontIndex].length < populationSize) {
+            nextPopulation.push(...fronts[frontIndex]);
+            frontIndex++;
+        }
+        if (fronts[frontIndex] && nextPopulation.length < populationSize) {
+            const lastFront = fronts[frontIndex];
+            const toAdd = populationSize - nextPopulation.length;
+            const chosen = nsga3Niching(lastFront, toAdd);
+            nextPopulation.push(...chosen);
+        }
+        population = nextPopulation;
+        generation++;
+        updateVisualization(fronts);
+    }
+
+    function nsga3Niching(front, k) {
+        if (front.length <= k) return front;
+        front.sort((a,b) => b.crowdingDistance - a.crowdingDistance);
+        return front.slice(0, k);
+    }
+
     function resetAlgorithm() {
-        generation = 0;
-        population = [];
+        isRunning = false; generation = 0; population = [];
         for (let i = 0; i < populationSize; i++) {
             const vars = Array.from({ length: numVariables }, () => Math.random());
             population.push({ variables: vars, objectives: evaluate(vars) });
         }
+        if (activeAlgorithm === 'nsga3') generateReferencePoints(refPointDivisions);
         const fronts = nonDominatedSort(population);
-        if (minFrontMesh && maxFrontMesh) {
+        if(minFrontMesh && maxFrontMesh){
             minFrontMesh.visible = (optimizationMode === 'minimize');
             maxFrontMesh.visible = (optimizationMode === 'maximize');
         }
-        if (optimizationMode === 'minimize') {
+        if(optimizationMode === 'minimize') {
             controls.target.set(0.5, 0.5, 0.5);
             camera.position.set(1.5, 1.3, 1.8);
         } else {
@@ -483,17 +565,16 @@
         }
         controls.update();
         updateVisualization(fronts);
-        document.getElementById('generation-counter').textContent = generation;
     }
     
     function createParetoFrontMeshes() {
         const sphereGeo = new THREE.SphereGeometry(1, 32, 32, 0, Math.PI / 2, 0, Math.PI / 2);
         minFrontMesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: 0xaaaaaa, wireframe: true, transparent: true, opacity: 0.3 }));
-        minFrontMesh.rotation.y = Math.PI / 2; 
+        minFrontMesh.rotation.y = Math.PI / 2;
         scene.add(minFrontMesh);
         const maxGeo = new THREE.SphereGeometry(3, 32, 32, 0, Math.PI / 2, 0, Math.PI / 2);
         maxFrontMesh = new THREE.Mesh(maxGeo, new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.4 }));
-        maxFrontMesh.rotation.y = Math.PI / 2;
+        maxFrontMesh.rotation.y = Math.PI/2;
         scene.add(maxFrontMesh);
     }
 
@@ -517,7 +598,7 @@
 
         if (optimizationMode === 'minimize') {
             const refPoint = new THREE.Vector3(3,3,3);
-            front.forEach(p => {
+             front.forEach(p => {
                 const pos = new THREE.Vector3(...p.objectives);
                 const size = refPoint.clone().sub(pos);
                 if (size.x > 0 && size.y > 0 && size.z > 0) {
@@ -552,11 +633,10 @@
 
         population.forEach(ind => {
             if (!ind || !ind.objectives) return;
-            const scale = optimizationMode === 'maximize' ? 3 : 1;
             const rank = ind.rank !== undefined ? ind.rank : frontColors.length - 1;
             const color = frontColors[rank] || frontColors[frontColors.length - 1];
             const sphere = new THREE.Mesh(sphereGeo, new THREE.MeshLambertMaterial({ color }));
-            sphere.scale.setScalar(0.015 * scale);
+            sphere.scale.setScalar(0.015 * (optimizationMode === 'maximize' ? 3 : 1));
             sphere.position.set(...ind.objectives);
             populationGroup.add(sphere);
         });
@@ -575,40 +655,53 @@
     
     function setupUI() {
         document.getElementById('info-panel').addEventListener('click', (e) => { if (e.target.closest('a')) return; e.currentTarget.classList.toggle('expanded'); });
-        
-        const controlsPanel = document.getElementById('controls-panel');
-        document.getElementById('controls-toggle').addEventListener('click', () => controlsPanel.classList.toggle('collapsed'));
+        document.getElementById('controls-toggle').addEventListener('click', () => document.getElementById('controls-panel').classList.toggle('collapsed'));
         
         const startBtn = document.getElementById('start-btn'), pauseBtn = document.getElementById('pause-btn'), resetBtn = document.getElementById('reset-btn');
         const modeToggle = document.getElementById('optimization-mode-toggle'), vizToggleGroup = document.getElementById('viz-toggle-group');
         startBtn.addEventListener('click', () => { isRunning = true; startBtn.classList.add('active'); pauseBtn.classList.remove('active'); });
         pauseBtn.addEventListener('click', () => { isRunning = false; pauseBtn.classList.add('active'); startBtn.classList.remove('active'); });
         resetBtn.addEventListener('click', () => { isRunning = false; resetAlgorithm(); startBtn.classList.add('active'); pauseBtn.classList.remove('active'); });
+        
+        document.getElementById('algorithm-select').addEventListener('change', (e) => {
+            activeAlgorithm = e.target.value;
+            const details = algorithmDetails[activeAlgorithm];
+            document.getElementById('algorithm-name-display').textContent = details.name;
+            document.getElementById('algorithm-description-display').textContent = details.description;
+            document.getElementById('nsga1-params').classList.toggle('hidden', activeAlgorithm !== 'nsga1');
+            document.getElementById('nsga3-params').classList.toggle('hidden', activeAlgorithm !== 'nsga3');
+            resetAlgorithm();
+        });
+
         modeToggle.addEventListener('click', () => {
             optimizationMode = optimizationMode === 'minimize' ? 'maximize' : 'minimize';
             modeToggle.textContent = optimizationMode.charAt(0).toUpperCase() + optimizationMode.slice(1);
             modeToggle.classList.toggle('active', optimizationMode === 'maximize');
-            isRunning = false; startBtn.classList.add('active'); pauseBtn.classList.remove('active');
             resetAlgorithm();
         });
-        vizToggleGroup.addEventListener('click', (e) => {
-            if (e.target.matches('.viz-toggle-btn')) {
+        
+         vizToggleGroup.addEventListener('click', (e) => {
+            if (e.target.matches('.toggle-button')) {
                 visualizationMode = e.target.dataset.viz;
-                vizToggleGroup.querySelectorAll('.viz-toggle-btn').forEach(btn => btn.classList.remove('active'));
+                vizToggleGroup.querySelectorAll('.toggle-button').forEach(btn => btn.classList.remove('active'));
                 e.target.classList.add('active');
                 updateVisualization(nonDominatedSort(population));
             }
         });
-        
-        const popSlider = document.getElementById('population-slider');
-        popSlider.addEventListener('input', (e) => { document.getElementById('population-value').textContent = e.target.value; });
-        popSlider.addEventListener('change', (e) => { populationSize = parseInt(e.target.value); resetAlgorithm(); });
-        const crossSlider = document.getElementById('crossover-slider');
-        crossSlider.addEventListener('input', (e) => { crossoverProbability = parseFloat(e.target.value); document.getElementById('crossover-value').textContent = crossoverProbability.toFixed(2); });
-        const mutSlider = document.getElementById('mutation-slider');
-        mutSlider.addEventListener('input', (e) => { mutationProbability = parseFloat(e.target.value); document.getElementById('mutation-value').textContent = mutationProbability.toFixed(2); });
 
+        document.getElementById('sharing-slider').addEventListener('input', e => { sigmaShare = parseFloat(e.target.value); document.getElementById('sharing-value').textContent = sigmaShare.toFixed(2); });
+        document.getElementById('refpoints-slider').addEventListener('input', e => {
+            refPointDivisions = parseInt(e.target.value);
+            generateReferencePoints(refPointDivisions);
+            document.getElementById('refpoints-value').textContent = referencePoints.length;
+        });
+        document.getElementById('population-slider').addEventListener('change', (e) => { populationSize = parseInt(e.target.value); resetAlgorithm(); });
+        document.getElementById('population-slider').addEventListener('input', (e) => { document.getElementById('population-value').textContent = e.target.value; });
+        document.getElementById('crossover-slider').addEventListener('input', e => { crossoverProbability = parseFloat(e.target.value); document.getElementById('crossover-value').textContent = crossoverProbability.toFixed(2); });
+        document.getElementById('mutation-slider').addEventListener('input', e => { mutationProbability = parseFloat(e.target.value); document.getElementById('mutation-value').textContent = mutationProbability.toFixed(2); });
+        
         setupFullscreen();
+        document.getElementById('algorithm-description-display').textContent = algorithmDetails[activeAlgorithm].description;
     }
     
     function setupFullscreen() {
@@ -643,7 +736,6 @@
     }
    
     init();
-
 </script>
 </body>
 </html>
