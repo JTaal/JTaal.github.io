@@ -44,7 +44,7 @@
             z-index: 15;
         }
         #info-panel.expanded {
-            max-height: 90vh; 
+            max-height: 90vh;
             cursor: default;
             overflow-y: auto;
         }
@@ -86,9 +86,8 @@
             background-color: rgba(3, 7, 18, 0.5);
             backdrop-filter: blur(5px);
             border-bottom: 1px solid rgba(55, 65, 81, 0.7);
-            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
         }
-        .preset-button, .action-button {
+        .preset-button, .action-button, .settings-button {
             background-color: rgba(55, 65, 81, 0.8);
             backdrop-filter: blur(5px);
             border: 1px solid rgba(75, 85, 99, 0.9);
@@ -100,7 +99,7 @@
             font-weight: 500;
             font-size: 0.875rem;
         }
-        .preset-button:hover, .action-button:hover {
+        .preset-button:hover, .action-button:hover, .settings-button:hover {
             background-color: #4338ca;
             transform: translateY(-2px);
         }
@@ -153,7 +152,7 @@
         canvas.grab-cursor { cursor: grab; }
         canvas.grabbing-cursor { cursor: grabbing; }
 
-        #settings-button, #fullscreen-button {
+        #settings-button-main {
             background-color: rgba(55, 65, 81, 0.8);
             backdrop-filter: blur(5px);
             border: 1px solid rgba(75, 85, 99, 0.9);
@@ -163,22 +162,18 @@
             cursor: pointer;
             transition: all 0.3s;
         }
-        #fullscreen-button:hover {
-             background-color: #4338ca;
-            transform: translateY(-2px);
-        }
-        #settings-button:hover {
+        #settings-button-main:hover {
             background-color: #4338ca;
             transform: translateY(-2px) rotate(45deg);
         }
         #settings-panel {
             top: 80px;
             right: 0;
-            width: 90vw;
-            max-width: 300px;
+            width: 300px;
+            max-width: 90vw;
             border-radius: 12px 0 0 12px;
             transform: translateX(100%);
-            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-in-out;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
             max-height: calc(100vh - 180px); /* Adjusted for controls panel */
             overflow-y: auto;
             z-index: 12;
@@ -284,43 +279,11 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Fullscreen UI Auto-Hide Styles */
-        body.fullscreen-active header,
-        body.fullscreen-active .ui-panel {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
-        }
-        body.fullscreen-active header {
-            transform: translateY(-100%);
-        }
-        body.fullscreen-active #info-panel {
-            transform: translateX(-100%);
-        }
-        body.fullscreen-active #settings-panel.open {
-            transform: translateX(100%); /* Keep it hidden off-screen */
-        }
-        body.fullscreen-active #controls-panel {
-            transform: translateY(100%);
-        }
-        /* Class to show the UI elements on hover */
-        body.fullscreen-active header.show,
-        body.fullscreen-active .ui-panel.show {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translate(0, 0);
-        }
-        /* When settings panel is open AND shown, it should translate to 0 */
-        body.fullscreen-active #settings-panel.open.show {
-             transform: translateX(0);
-        }
-
-
         @media (max-width: 768px) {
             header { padding: 0.75rem 1rem; justify-content: space-between; }
             header h1 { font-size: 1.25rem; }
             #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
-            #settings-panel { top: 70px; max-width: 280px; max-height: calc(100vh - 80px);}
+            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
             #controls-panel { padding: 0.75rem; gap: 1rem; flex-direction: column; }
             .control-group { min-width: 220px; }
             .preset-container { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;}
@@ -330,15 +293,9 @@
 <body>
     <header>
         <h1 class="text-2xl font-bold text-gray-200 tracking-wider opacity-90">Reaction-Diffusion 3D</h1>
-        <div class="flex items-center gap-4">
-             <button id="fullscreen-button" title="Toggle Fullscreen">
-                <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
-            </button>
-            <button id="settings-button" title="Settings">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-        </div>
+        <button id="settings-button-main" title="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
     </header>
 
     <div id="info-panel" class="ui-panel">
@@ -389,7 +346,7 @@
         <button id="reset-button" class="action-button reset">Reset</button>
     </div>
 
-    <div id="settings-panel" class="ui-panel">
+    <div id="settings-panel" class="ui-panel hidden">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xl font-bold text-gray-200">Settings</h3>
             <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
@@ -432,6 +389,13 @@
                   </label>
                   <input id="displacement-slider" type="range" min="0" max="1" step="0.01" value="0.3" class="w-full">
               </div>
+               <div id="grid-scale-group" class="control-group text-left w-full">
+                  <label for="grid-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                      <span>2D View Scale</span>
+                      <span id="grid-scale-value">1.00</span>
+                  </label>
+                  <input id="grid-scale-slider" type="range" min="0.1" max="2.0" step="0.01" value="1.0" class="w-full">
+              </div>
               <div class="control-group text-left w-full">
                   <label for="brush-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
                       <span>Brush Size</span>
@@ -446,6 +410,15 @@
                       <span id="grid-size-value">512</span>
                   </label>
                   <input id="grid-size-slider" type="range" min="256" max="1024" step="256" value="512" class="w-full">
+              </div>
+              <hr class="border-gray-600">
+              <div class="control-group text-left w-full">
+                  <label class="text-sm font-medium self-start w-full">Seeding</label>
+                  <div class="flex gap-2 w-full mt-1">
+                      <button id="upload-image-button" class="settings-button flex-1">Upload Seed Image</button>
+                      <button id="clear-seed-button" class="settings-button flex-1">Default Seed</button>
+                  </div>
+                  <input type="file" id="image-upload-input" class="hidden" accept="image/*">
               </div>
               <hr class="border-gray-600">
               <div class="control-group text-left w-full">
@@ -476,6 +449,7 @@
     let isPaused = false;
     let is3DMode = false;
     let currentGridSize = 512;
+    let seedTexture = null; // Holds the texture from the uploaded image
 
     // --- Simulation Parameters ---
     const presets = {
@@ -727,7 +701,8 @@
         const simPlane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), simMaterial);
         simScene.add(simPlane);
 
-        const displayUniforms = { 
+        // Base uniforms for display materials
+        const displayUniforms = {
             uTexture: { value: readTarget.texture },
             uColorA: { value: new THREE.Color('#0d0d1a') },
             uColorB: { value: new THREE.Color('#f0f0f0') },
@@ -737,12 +712,14 @@
             uColorScheme: { value: 0 }
         };
 
+        // 2D Display material
         displayMaterial = new THREE.ShaderMaterial({
             vertexShader: baseVertexShader,
             fragmentShader: displayFragmentShader,
             uniforms: THREE.UniformsUtils.clone(displayUniforms)
         });
 
+        // 3D Display material
         displayMaterial3D = new THREE.ShaderMaterial({
             vertexShader: displayVertexShader3D,
             fragmentShader: displayFragmentShader,
@@ -761,26 +738,26 @@
         resetSimulation();
 
         window.addEventListener('resize', onWindowResize, false);
-        window.addEventListener('mousemove', handleFullscreenMouseMove);
-        renderer.domElement.addEventListener('pointerdown', (e) => { 
+        onWindowResize(); // Call once to set initial size and scale correctly
+
+        renderer.domElement.addEventListener('pointerdown', (e) => {
             if (is3DMode) {
                 renderer.domElement.classList.add('grabbing-cursor');
             } else {
-                isPointerDown = true; 
-                updatePointer(e); 
+                isPointerDown = true;
+                updatePointer(e);
             }
         });
-        renderer.domElement.addEventListener('pointerup', () => { 
+        renderer.domElement.addEventListener('pointerup', () => {
              if (is3DMode) {
                 renderer.domElement.classList.remove('grabbing-cursor');
             } else {
-                isPointerDown = false; 
-                pointer.set(-1, -1); 
+                isPointerDown = false;
+                pointer.set(-1, -1);
             }
         });
         renderer.domElement.addEventListener('pointermove', (e) => { if(!is3DMode && isPointerDown) updatePointer(e); });
-        
-        onWindowResize();
+
         renderer.setAnimationLoop(animate);
     }
 
@@ -800,18 +777,32 @@
         }
 
         renderer.setRenderTarget(writeTarget);
-        renderer.setClearColor(new THREE.Color(1, 0, 0), 1);
-        renderer.clear();
 
-        const seedMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        const seedGeom = new THREE.PlaneGeometry(0.1, 0.1);
-        const seedMesh = new THREE.Mesh(seedGeom, seedMaterial);
-        simScene.add(seedMesh);
-        renderer.render(simScene, simCamera);
-        simScene.remove(seedMesh);
+        if (seedTexture) {
+            // Use the uploaded image texture as the initial state
+            const seedMaterial = new THREE.MeshBasicMaterial({ map: seedTexture });
+            const seedPlane = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), seedMaterial);
+            simScene.add(seedPlane);
+            renderer.render(simScene, simCamera);
+            simScene.remove(seedPlane);
+            seedMaterial.dispose();
+            seedPlane.geometry.dispose();
+        } else {
+            // Default seed: A=1, B=0 everywhere, with a small patch of B
+            renderer.setClearColor(new THREE.Color(1, 0, 0), 1);
+            renderer.clear();
+            const seedMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // B is green channel
+            const seedGeom = new THREE.PlaneGeometry(0.1, 0.1);
+            const seedMesh = new THREE.Mesh(seedGeom, seedMaterial);
+            simScene.add(seedMesh);
+            renderer.render(simScene, simCamera);
+            simScene.remove(seedMesh);
+            seedMaterial.dispose();
+            seedGeom.dispose();
+        }
 
         swapTargets();
-        renderer.setRenderTarget(null);
+        renderer.setRenderTarget(null); // Back to screen
     }
 
     function swapTargets() {
@@ -822,15 +813,26 @@
 
     function updateGridSize(newResolution) {
         currentGridSize = newResolution;
+
         const size = new THREE.Vector2(newResolution, newResolution);
         readTarget.setSize(size.x, size.y);
         writeTarget.setSize(size.x, size.y);
+
         simMaterial.uniforms.uResolution.value.copy(size);
+
         planeMesh.geometry.dispose();
         planeMesh.geometry = new THREE.PlaneGeometry(2, 2, newResolution, newResolution);
+
+        // If a seed texture exists, it needs to be recreated for the new size
+        if (seedTexture) {
+            console.warn("Grid size changed. Please re-upload your seed image for the new resolution.");
+            seedTexture = null; // Clear the old texture
+        }
+
         resetSimulation();
     }
 
+    // --- Formula Rendering ---
     function renderFormulas() {
         const generalContainer = document.getElementById('general-formula');
         const generalFormula = `
@@ -838,7 +840,10 @@
             \\frac{\\partial b}{\\partial t} = D_b \\nabla^2 b + ab^2 - (k+f)b
         `;
         try {
-            katex.render(generalFormula, generalContainer, { throwOnError: false, displayMode: true });
+            katex.render(generalFormula, generalContainer, {
+                throwOnError: false,
+                displayMode: true
+            });
         } catch(e) {
             console.error("KaTeX rendering error:", e);
             generalContainer.textContent = "Error rendering formula.";
@@ -849,94 +854,24 @@
         const presetContainer = document.getElementById('preset-formula');
         const presetFormula = `f = ${f.toFixed(4)}, \\quad k = ${k.toFixed(4)}`;
          try {
-            katex.render(presetFormula, presetContainer, { throwOnError: false, displayMode: true });
+            katex.render(presetFormula, presetContainer, {
+                throwOnError: false,
+                displayMode: true
+            });
         } catch(e) {
             console.error("KaTeX rendering error:", e);
             presetContainer.textContent = "Error rendering formula.";
         }
     }
 
-    function toggleFullScreen() {
-        if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-            const el = document.documentElement;
-            const requestMethod = el.requestFullscreen || el.mozRequestFullScreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-            if (requestMethod) {
-                requestMethod.call(el).catch(err => {
-                    console.error(`Failed to enter fullscreen mode: ${err.message} (${err.name})`);
-                });
-            }
-        } else {
-            const exitMethod = document.exitFullscreen || document.mozCancelFullScreen || document.webkitExitFullscreen || document.msExitFullscreen;
-            if (exitMethod) {
-                exitMethod.call(document);
-            }
-        }
-    }
 
-    function updateFullscreenIcon() {
-        const fullscreenEnterIcon = document.getElementById('fullscreen-enter-icon');
-        const fullscreenExitIcon = document.getElementById('fullscreen-exit-icon');
-        const allUIPanels = document.querySelectorAll('header, .ui-panel');
-
-        if (document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
-            fullscreenEnterIcon.classList.add('hidden');
-            fullscreenExitIcon.classList.remove('hidden');
-            document.body.classList.add('fullscreen-active');
-        } else {
-            fullscreenEnterIcon.classList.remove('hidden');
-            fullscreenExitIcon.classList.add('hidden');
-            document.body.classList.remove('fullscreen-active');
-            allUIPanels.forEach(el => el.classList.remove('show'));
-        }
-    }
-
-    function handleFullscreenMouseMove(e) {
-        if (!document.body.classList.contains('fullscreen-active')) return;
-
-        const header = document.querySelector('header');
-        const infoPanel = document.getElementById('info-panel');
-        const controlsPanel = document.getElementById('controls-panel');
-        const settingsPanel = document.getElementById('settings-panel');
-
-        const y = e.clientY;
-        const x = e.clientX;
-        const windowHeight = window.innerHeight;
-        const windowWidth = window.innerWidth;
-
-        if (y < 100) {
-            header.classList.add('show');
-            infoPanel.classList.add('show');
-        } else {
-            header.classList.remove('show');
-            infoPanel.classList.remove('show');
-        }
-        
-        if (settingsPanel.classList.contains('open') && windowWidth - x < 320) {
-            settingsPanel.classList.add('show');
-        } else if (settingsPanel.classList.contains('open')) {
-            settingsPanel.classList.remove('show');
-        }
-
-        if (windowHeight - y < 160) {
-            controlsPanel.classList.add('show');
-        } else {
-            controlsPanel.classList.remove('show');
-        }
-    }
-    
-    document.addEventListener('fullscreenchange', updateFullscreenIcon);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
-    document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
-    document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
-
+    // --- UI Setup ---
     function setupUI() {
         document.getElementById('info-panel').addEventListener('click', (e) => {
             if(e.target.closest('input, button, a, .param-info')) return;
             e.currentTarget.classList.toggle('expanded');
         });
 
-        document.getElementById('fullscreen-button').addEventListener('click', toggleFullScreen);
-        
         const feedSlider = document.getElementById('feed-slider');
         const killSlider = document.getElementById('kill-slider');
         const feedValue = document.getElementById('feed-value');
@@ -980,8 +915,10 @@
             }
         });
 
+        // Mode Toggle Button
         const modeToggleButton = document.getElementById('mode-toggle-button');
         const displacementGroup = document.getElementById('displacement-group');
+        const gridScaleGroup = document.getElementById('grid-scale-group');
         modeToggleButton.addEventListener('click', () => {
             is3DMode = !is3DMode;
             if (is3DMode) {
@@ -991,6 +928,7 @@
                 modeToggleButton.classList.add('active');
                 renderer.domElement.className = 'grab-cursor';
                 displacementGroup.classList.remove('hidden');
+                gridScaleGroup.classList.add('hidden');
             } else {
                 planeMesh.material = displayMaterial;
                 controls.enabled = false;
@@ -999,12 +937,14 @@
                 modeToggleButton.classList.remove('active');
                 renderer.domElement.className = 'crosshair-cursor';
                 displacementGroup.classList.add('hidden');
+                gridScaleGroup.classList.remove('hidden');
+                onWindowResize(); // Re-apply the scale when switching back to 2D
             }
         });
 
         const presetSelect = document.getElementById('preset-select');
         Object.keys(presets).forEach(name => {
-            if (name === 'Custom') return;
+            if (name === 'Custom') return; // Don't add custom to the list initially
             const option = document.createElement('option');
             option.value = name;
             option.textContent = name;
@@ -1014,8 +954,10 @@
         presetSelect.addEventListener('change', (e) => {
             const name = e.target.value;
             if (!presets[name]) return;
+
             const params = presets[name];
             currentParams = { ...params };
+
             feedSlider.value = params.f;
             killSlider.value = params.k;
             feedValue.textContent = params.f.toFixed(4);
@@ -1023,25 +965,66 @@
             simMaterial.uniforms.uFeed.value = params.f;
             simMaterial.uniforms.uKill.value = params.k;
             updatePresetFormulaDisplay(params.f, params.k);
+
             resetSimulation();
         });
 
+        // Set initial UI state to 'Coral' to match the simulation's starting parameters
         const initialParams = presets['Coral'];
         feedSlider.value = initialParams.f;
         feedValue.textContent = initialParams.f.toFixed(4);
         killSlider.value = initialParams.k;
         killValue.textContent = initialParams.k.toFixed(4);
         presetSelect.value = 'Coral';
+
+        // Update other UI elements accordingly
         updatePresetFormulaDisplay(initialParams.f, initialParams.k);
-        updateActivePreset();
+        updateActivePreset(); // Ensures 'Custom' option is not shown initially
+    }
+
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = currentGridSize;
+                canvas.height = currentGridSize;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, currentGridSize, currentGridSize);
+
+                const imageData = ctx.getImageData(0, 0, currentGridSize, currentGridSize);
+                const floatArray = new Float32Array(currentGridSize * currentGridSize * 4);
+
+                for (let i = 0; i < imageData.data.length / 4; i++) {
+                    const r = imageData.data[i * 4];
+                    const g = imageData.data[i * 4 + 1];
+                    const b = imageData.data[i * 4 + 2];
+                    const brightness = (r + g + b) / 3 / 255.0; // Normalized brightness
+
+                    floatArray[i * 4 + 0] = 1.0; // Chemical A
+                    floatArray[i * 4 + 1] = brightness; // Chemical B
+                    floatArray[i * 4 + 2] = 0.0; // Unused
+                    floatArray[i * 4 + 3] = 1.0; // Alpha
+                }
+
+                if (seedTexture) seedTexture.dispose();
+                seedTexture = new THREE.DataTexture(floatArray, currentGridSize, currentGridSize, THREE.RGBAFormat, THREE.FloatType);
+                seedTexture.needsUpdate = true;
+                
+                resetSimulation();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
     }
 
     function setupSettingsPanel() {
         const settingsPanel = document.getElementById('settings-panel');
-        // Explicitly hide the panel on initialization
-        settingsPanel.classList.add('hidden');
-
-        const settingsButton = document.getElementById('settings-button');
+        const settingsButton = document.getElementById('settings-button-main');
         const closeSettingsButton = document.getElementById('close-settings');
         const bgColorInput = document.getElementById('bg-color-input');
         const patternColorInput = document.getElementById('pattern-color-input');
@@ -1053,6 +1036,23 @@
         const displacementValue = document.getElementById('displacement-value');
         const gridSizeSlider = document.getElementById('grid-size-slider');
         const gridSizeValue = document.getElementById('grid-size-value');
+        const uploadImageButton = document.getElementById('upload-image-button');
+        const imageUploadInput = document.getElementById('image-upload-input');
+        const clearSeedButton = document.getElementById('clear-seed-button');
+        const gridScaleSlider = document.getElementById('grid-scale-slider');
+        const gridScaleValue = document.getElementById('grid-scale-value');
+
+        uploadImageButton.addEventListener('click', () => imageUploadInput.click());
+        imageUploadInput.addEventListener('change', handleImageUpload);
+        clearSeedButton.addEventListener('click', () => {
+            if (seedTexture) {
+                seedTexture.dispose();
+                seedTexture = null;
+            }
+            resetSimulation();
+        });
+
+
         const colorSchemes = [
             { id: 0, name: 'Rainbow', gradient: 'linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff)' },
             { id: 1, name: 'Fire', gradient: 'linear-gradient(90deg, #220000, #ff8800, #ffff99)' },
@@ -1086,18 +1086,23 @@
         const selectedSwatch = document.getElementById('selected-color-swatch');
         const selectedName = document.getElementById('selected-color-name');
 
+        // Populate options
         colorSchemes.forEach(scheme => {
             const option = document.createElement('div');
             option.className = 'option';
             option.dataset.value = scheme.id;
+
             const swatch = document.createElement('span');
             swatch.className = 'color-swatch-preview';
             swatch.style.background = scheme.gradient;
+
             const name = document.createElement('span');
             name.textContent = scheme.name;
+
             option.appendChild(swatch);
             option.appendChild(name);
             colorSchemeOptions.appendChild(option);
+
             option.addEventListener('click', () => {
                 const schemeId = scheme.id;
                 displayMaterial.uniforms.uColorScheme.value = schemeId;
@@ -1108,10 +1113,14 @@
             });
         });
 
+        // Set initial state
         selectedSwatch.style.background = colorSchemes[0].gradient;
         selectedName.textContent = colorSchemes[0].name;
 
-        colorSchemeButton.addEventListener('click', () => colorSchemeOptions.classList.toggle('hidden'));
+        colorSchemeButton.addEventListener('click', () => {
+            colorSchemeOptions.classList.toggle('hidden');
+        });
+
         document.addEventListener('click', (e) => {
             if (!colorSchemeButton.contains(e.target) && !colorSchemeOptions.contains(e.target)) {
                  colorSchemeOptions.classList.add('hidden');
@@ -1163,9 +1172,17 @@
             displayMaterial3D.uniforms.uDisplacementScale.value = val;
             displacementValue.textContent = val.toFixed(2);
         });
+
+        gridScaleSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            gridScaleValue.textContent = val.toFixed(2);
+            onWindowResize(); // Re-calculate camera projection on zoom change
+        });
+
         gridSizeSlider.addEventListener('input', (e) => {
             gridSizeValue.textContent = e.target.value;
         });
+
         gridSizeSlider.addEventListener('change', (e) => {
             const size = parseInt(e.target.value);
             updateGridSize(size);
@@ -1183,8 +1200,11 @@
                 break;
             }
         }
+
         updatePresetFormulaDisplay(currentParams.f, currentParams.k);
+
         if (!matchFound) {
+            // If no preset matches, show "Custom"
             if (!presetSelect.querySelector('option[value="Custom"]')) {
                 const customOption = document.createElement('option');
                 customOption.value = 'Custom';
@@ -1193,6 +1213,7 @@
             }
             presetSelect.value = 'Custom';
         } else {
+            // If a preset matches, remove "Custom" if it exists
             const customOption = presetSelect.querySelector('option[value="Custom"]');
             if (customOption) {
                 customOption.remove();
@@ -1201,29 +1222,41 @@
     }
 
     function onWindowResize() {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const aspect = width / height;
+        const aspect = window.innerWidth / window.innerHeight;
+        renderer.setSize(window.innerWidth, window.innerHeight);
 
-        renderer.setSize(width, height);
-
+        // Update 3D (Perspective) camera's aspect ratio
         mainCamera3D.aspect = aspect;
         mainCamera3D.updateProjectionMatrix();
 
-        mainCamera.left = -1;
-        mainCamera.right = 1;
-        mainCamera.top = 1 / aspect;
-        mainCamera.bottom = -1 / aspect;
+        // Get the current scale value from the slider
+        const gridScaleSlider = document.getElementById('grid-scale-slider');
+        const scale = gridScaleSlider ? parseFloat(gridScaleSlider.value) : 1.0;
+
+        // Update 2D (Orthographic) camera's frustum to fit the square plane
+        // within the viewport without distortion, applying the scale/zoom factor.
+        if (aspect >= 1) { // Landscape or square viewport
+            mainCamera.left = -aspect * scale;
+            mainCamera.right = aspect * scale;
+            mainCamera.top = 1 * scale;
+            mainCamera.bottom = -1 * scale;
+        } else { // Portrait viewport
+            mainCamera.left = -1 * scale;
+            mainCamera.right = 1 * scale;
+            mainCamera.top = (1 / aspect) * scale;
+            mainCamera.bottom = (-1 / aspect) * scale;
+        }
         mainCamera.updateProjectionMatrix();
     }
 
 
     // --- Animation Loop ---
-    function animate() { 
+    function animate() {
         const delta = clock.getDelta();
 
         if (!isPaused) {
-            for (let i = 0; i < 16; i++) {
+            // --- Simulation Step ---
+            for (let i = 0; i < 16; i++) { // Run multiple steps per frame for speed
                 simMaterial.uniforms.uTexture.value = readTarget.texture;
                 simMaterial.uniforms.uTime.value += delta;
                 renderer.setRenderTarget(writeTarget);
@@ -1238,10 +1271,13 @@
             simMaterial.uniforms.uPointer.value.copy(pointer);
         }
 
+
+        // --- Display Step ---
         const activeMaterial = is3DMode ? displayMaterial3D : displayMaterial;
         activeMaterial.uniforms.uTexture.value = readTarget.texture;
         activeMaterial.uniforms.uTime.value = clock.getElapsedTime();
 
+        // Render the main scene to the screen
         renderer.setRenderTarget(null);
 
         if (is3DMode) {
@@ -1252,6 +1288,7 @@
         }
     }
 
+    // Wait for all resources to load, then initialize and perform an initial reset.
     window.onload = () => {
         init();
         document.getElementById('reset-button').click();

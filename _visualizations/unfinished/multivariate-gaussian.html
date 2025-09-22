@@ -134,70 +134,70 @@
     <div id="settings-panel" class="absolute top-16 right-4 z-20 p-4 rounded-lg shadow-2xl w-72 hidden max-h-[calc(100vh-5rem)] overflow-y-auto">
         <h3 class="text-lg font-bold mb-2 text-gray-100">Settings</h3>
         <div class="space-y-4">
-             <div>
-                 <h4 class="settings-section-header text-sm">Visibility</h4>
-                 <div class="space-y-2 pl-1">
-                     <div class="flex items-center justify-between"><label for="showSurface" class="text-sm font-medium text-gray-300">Surface</label><input id="showSurface" type="checkbox" class="h-4 w-4 rounded" checked></div>
-                     <div class="flex items-center justify-between"><label for="showPoints" class="text-sm font-medium text-gray-300">Data Points</label><input id="showPoints" type="checkbox" class="h-4 w-4 rounded" checked></div>
-                     <div class="flex items-center justify-between"><label for="showContour" class="text-sm font-medium text-gray-300">Contour / Ellipsoid</label><input id="showContour" type="checkbox" class="h-4 w-4 rounded" checked></div>
-                     <div class="flex items-center justify-between"><label for="showHistograms" class="text-sm font-medium text-gray-300">Histograms</label><input id="showHistograms" type="checkbox" class="h-4 w-4 rounded" checked></div>
-                 </div>
-             </div>
+              <div>
+                  <h4 class="settings-section-header text-sm">Visibility</h4>
+                  <div class="space-y-2 pl-1">
+                      <div class="flex items-center justify-between"><label for="showSurface" class="text-sm font-medium text-gray-300">Surface</label><input id="showSurface" type="checkbox" class="h-4 w-4 rounded" checked></div>
+                      <div class="flex items-center justify-between"><label for="showPoints" class="text-sm font-medium text-gray-300">Data Points</label><input id="showPoints" type="checkbox" class="h-4 w-4 rounded" checked></div>
+                      <div class="flex items-center justify-between"><label for="showContour" class="text-sm font-medium text-gray-300">Contour / Ellipsoid</label><input id="showContour" type="checkbox" class="h-4 w-4 rounded" checked></div>
+                      <div class="flex items-center justify-between"><label for="showHistograms" class="text-sm font-medium text-gray-300">Histograms</label><input id="showHistograms" type="checkbox" class="h-4 w-4 rounded" checked></div>
+                  </div>
+              </div>
 
-             <div>
-                 <h4 class="settings-section-header text-sm">Data Points</h4>
-                 <div class="space-y-3">
-                      <div>
-                         <label for="numPoints" class="block text-sm font-medium text-gray-300">Number of Points: <span id="numPointsValue">20000</span></label>
-                         <input id="numPoints" type="range" min="100" max="50000" step="100" value="20000" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                     </div>
-                      <div>
-                         <label for="pointSize" class="block text-sm font-medium text-gray-300">Point Size: <span id="pointSizeValue">0.08</span></label>
-                         <input id="pointSize" type="range" min="0.01" max="0.5" step="0.01" value="0.08" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                     </div>
-                      <div>
-                         <label for="pointOpacity" class="block text-sm font-medium text-gray-300">Point Opacity: <span id="pointOpacityValue">1.0</span></label>
-                         <input id="pointOpacity" type="range" min="0.1" max="1.0" step="0.05" value="1.0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                     </div>
-                 </div>
-             </div>
+              <div>
+                   <h4 class="settings-section-header text-sm">Data Points</h4>
+                   <div class="space-y-3">
+                         <div>
+                             <label for="numPoints" class="block text-sm font-medium text-gray-300">Number of Points: <span id="numPointsValue">20000</span></label>
+                             <input id="numPoints" type="range" min="100" max="50000" step="100" value="20000" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                         </div>
+                         <div>
+                             <label for="pointSize" class="block text-sm font-medium text-gray-300">Point Size: <span id="pointSizeValue">0.08</span></label>
+                             <input id="pointSize" type="range" min="0.01" max="0.5" step="0.01" value="0.08" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                         </div>
+                         <div>
+                             <label for="pointOpacity" class="block text-sm font-medium text-gray-300">Point Opacity: <span id="pointOpacityValue">1.0</span></label>
+                             <input id="pointOpacity" type="range" min="0.1" max="1.0" step="0.05" value="1.0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                         </div>
+                   </div>
+              </div>
 
-             <div>
-                 <h4 class="settings-section-header text-sm">Graphics</h4>
-                 <div class="space-y-3">
-                     <div class="grid grid-cols-2 gap-2">
-                         <div class="flex items-center justify-between"><label for="surfaceColor" class="text-sm font-medium text-gray-300">Surface</label><input id="surfaceColor" type="color" value="#8f00ff"></div>
-                         <div class="flex items-center justify-between"><label for="contourColor" class="text-sm font-medium text-gray-300">Contour</label><input id="contourColor" type="color" value="#34d399"></div>
-                         <div class="flex items-center justify-between"><label for="colorX" class="text-sm font-medium text-gray-300">X-Axis</label><input id="colorX" type="color" value="#ef4444"></div>
-                         <div class="flex items-center justify-between"><label for="colorZ" class="text-sm font-medium text-gray-300">Z-Axis</label><input id="colorZ" type="color" value="#3b82f6"></div>
-                         <div class="flex items-center justify-between"><label for="gridColor" class="text-sm font-medium text-gray-300">Grid</label><input id="gridColor" type="color" value="#444444"></div>
-                     </div>
-                      <div>
-                         <label for="surfaceOpacity" class="block text-sm font-medium text-gray-300">Surface Opacity: <span id="surfaceOpacityValue">0.6</span></label>
-                         <input id="surfaceOpacity" type="range" min="0" max="1" step="0.05" value="0.6" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                     </div>
-                      <div>
-                         <label for="traceOpacity" class="block text-sm font-medium text-gray-300">Trace Opacity: <span id="traceOpacityValue">0.5</span></label>
-                         <input id="traceOpacity" type="range" min="0" max="1" step="0.05" value="0.5" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                     </div>
-                      <div>
-                         <label for="contourWidth" class="block text-sm font-medium text-gray-300">Contour Width: <span id="contourWidthValue">2</span></label>
-                         <input id="contourWidth" type="range" min="1" max="10" step="0.5" value="2" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                     </div>
-                      <div>
-                         <label for="gridResolution" class="block text-sm font-medium text-gray-300">Grid Lines: <span id="gridResolutionValue">10</span></label>
-                         <input id="gridResolution" type="range" min="2" max="200" step="1" value="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                     </div>
-                      <div>
-                         <label for="surfaceResolution" class="block text-sm font-medium text-gray-300">Surface Detail: <span id="surfaceResolutionValue">150</span></label>
-                         <input id="surfaceResolution" type="range" min="20" max="500" step="10" value="150" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                     </div>
-                     <div>
-                         <label for="animationSpeed" class="block text-sm font-medium text-gray-300">Animation Speed: <span id="animationSpeedValue">4.0s</span></label>
-                         <input id="animationSpeed" type="range" min="1" max="10" step="0.5" value="4" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                     </div>
-                 </div>
-             </div>
+              <div>
+                   <h4 class="settings-section-header text-sm">Graphics</h4>
+                   <div class="space-y-3">
+                       <div class="grid grid-cols-2 gap-2">
+                           <div class="flex items-center justify-between"><label for="surfaceColor" class="text-sm font-medium text-gray-300">Surface</label><input id="surfaceColor" type="color" value="#8f00ff"></div>
+                           <div class="flex items-center justify-between"><label for="contourColor" class="text-sm font-medium text-gray-300">Contour</label><input id="contourColor" type="color" value="#34d399"></div>
+                           <div class="flex items-center justify-between"><label for="colorX" class="text-sm font-medium text-gray-300">X-Axis</label><input id="colorX" type="color" value="#ef4444"></div>
+                           <div class="flex items-center justify-between"><label for="colorZ" class="text-sm font-medium text-gray-300">Z-Axis</label><input id="colorZ" type="color" value="#3b82f6"></div>
+                           <div class="flex items-center justify-between"><label for="gridColor" class="text-sm font-medium text-gray-300">Grid</label><input id="gridColor" type="color" value="#444444"></div>
+                       </div>
+                         <div>
+                             <label for="surfaceOpacity" class="block text-sm font-medium text-gray-300">Surface Opacity: <span id="surfaceOpacityValue">0.6</span></label>
+                             <input id="surfaceOpacity" type="range" min="0" max="1" step="0.05" value="0.6" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                         </div>
+                         <div>
+                             <label for="traceOpacity" class="block text-sm font-medium text-gray-300">Trace Opacity: <span id="traceOpacityValue">0.5</span></label>
+                             <input id="traceOpacity" type="range" min="0" max="1" step="0.05" value="0.5" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                         </div>
+                         <div>
+                             <label for="contourWidth" class="block text-sm font-medium text-gray-300">Contour Width: <span id="contourWidthValue">2</span></label>
+                             <input id="contourWidth" type="range" min="1" max="10" step="0.5" value="2" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                         </div>
+                         <div>
+                             <label for="gridResolution" class="block text-sm font-medium text-gray-300">Grid Lines: <span id="gridResolutionValue">10</span></label>
+                             <input id="gridResolution" type="range" min="2" max="200" step="1" value="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                         </div>
+                         <div>
+                             <label for="surfaceResolution" class="block text-sm font-medium text-gray-300">Surface Detail: <span id="surfaceResolutionValue">150</span></label>
+                             <input id="surfaceResolution" type="range" min="20" max="500" step="10" value="150" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                         </div>
+                       <div>
+                             <label for="animationSpeed" class="block text-sm font-medium text-gray-300">Animation Speed: <span id="animationSpeedValue">4.0s</span></label>
+                             <input id="animationSpeed" type="range" min="1" max="10" step="0.5" value="4" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                       </div>
+                   </div>
+              </div>
         </div>
     </div>
 
@@ -241,15 +241,15 @@
         <div id="controls-2d" class="hidden">
              <div class="flex items-center justify-between gap-6">
                  <div class="grid grid-cols-3 gap-x-6 gap-y-2 flex-grow">
-                      <div>
+                     <div>
                          <label for="stdDevX2D" class="block text-sm font-medium text-gray-300">&sigma;<sub>x</sub>: <span id="stdDevXValue2D" class="font-bold text-blue-400">1.0</span></label>
                          <input id="stdDevX2D" type="range" min="0.1" max="10" step="0.1" value="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
                      </div>
-                      <div>
+                     <div>
                          <label for="stdDevZ2D" class="block text-sm font-medium text-gray-300">&sigma;<sub>z</sub>: <span id="stdDevZValue2D" class="font-bold text-blue-400">1.0</span></label>
                          <input id="stdDevZ2D" type="range" min="0.1" max="10" step="0.1" value="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
                      </div>
-                      <div>
+                     <div>
                          <label for="correlation2D" class="block text-sm font-medium text-gray-300">&rho;<sub>xz</sub>: <span id="correlationValue2D" class="font-bold text-blue-400">0.0</span></label>
                          <input id="correlation2D" type="range" min="-0.99" max="0.99" step="0.01" value="0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
                      </div>
@@ -274,11 +274,11 @@
         <div id="controls-3d" class="hidden">
              <div class="flex items-start justify-between gap-4">
                  <div class="grid grid-cols-3 gap-x-4 gap-y-2 flex-grow">
-                      <div>
+                     <div>
                          <label for="stdDevX3D" class="block text-sm font-medium text-gray-300">&sigma;<sub>x</sub>: <span id="stdDevXValue3D" class="font-bold text-blue-400">1.0</span></label>
                          <input id="stdDevX3D" type="range" min="0.1" max="10" step="0.1" value="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
                      </div>
-                      <div>
+                     <div>
                          <label for="stdDevY3D" class="block text-sm font-medium text-gray-300">&sigma;<sub>y</sub>: <span id="stdDevYValue3D" class="font-bold text-blue-400">1.0</span></label>
                          <input id="stdDevY3D" type="range" min="0.1" max="10" step="0.1" value="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
                      </div>
@@ -286,15 +286,15 @@
                          <label for="stdDevZ3D" class="block text-sm font-medium text-gray-300">&sigma;<sub>z</sub>: <span id="stdDevZValue3D" class="font-bold text-blue-400">1.0</span></label>
                          <input id="stdDevZ3D" type="range" min="0.1" max="10" step="0.1" value="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
                      </div>
-                      <div>
+                     <div>
                          <label for="rhoXY" class="block text-sm font-medium text-gray-300">&rho;<sub>xy</sub>: <span id="rhoXYValue" class="font-bold text-blue-400">0.0</span></label>
                          <input id="rhoXY" type="range" min="-0.9" max="0.9" step="0.01" value="0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
                      </div>
-                      <div>
+                     <div>
                          <label for="rhoXZ" class="block text-sm font-medium text-gray-300">&rho;<sub>xz</sub>: <span id="rhoXZValue" class="font-bold text-blue-400">0.0</span></label>
                          <input id="rhoXZ" type="range" min="-0.9" max="0.9" step="0.01" value="0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
                      </div>
-                      <div>
+                     <div>
                          <label for="rhoYZ" class="block text-sm font-medium text-gray-300">&rho;<sub>yz</sub>: <span id="rhoYZValue" class="font-bold text-blue-400">0.0</span></label>
                          <input id="rhoYZ" type="range" min="-0.9" max="0.9" step="0.01" value="0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
                      </div>
@@ -304,11 +304,11 @@
                      <div id="cov-btn-3d" class="relative">
                          <button id="toggle-cov-matrix-3d" class="font-mono text-xl p-2 rounded-md transition-colors bg-pink-600 hover:bg-pink-700 text-white">&Sigma;</button>
                          <div id="cov-matrix-popup-3d" class="hidden cov-matrix-popup absolute bottom-full right-0 mb-2 p-2 rounded-md">
-                             <div class="cov-matrix grid grid-cols-3 gap-x-3 text-center text-green-400 text-sm">
-                                 <span id="cov-3d-00">1.00</span><span id="cov-3d-01">0.00</span><span id="cov-3d-02">0.00</span>
-                                 <span id="cov-3d-10">0.00</span><span id="cov-3d-11">1.00</span><span id="cov-3d-12">0.00</span>
-                                 <span id="cov-3d-20">0.00</span><span id="cov-3d-21">0.00</span><span id="cov-3d-22">1.00</span>
-                             </div>
+                              <div class="cov-matrix grid grid-cols-3 gap-x-3 text-center text-green-400 text-sm">
+                                  <span id="cov-3d-00">1.00</span><span id="cov-3d-01">0.00</span><span id="cov-3d-02">0.00</span>
+                                  <span id="cov-3d-10">0.00</span><span id="cov-3d-11">1.00</span><span id="cov-3d-12">0.00</span>
+                                  <span id="cov-3d-20">0.00</span><span id="cov-3d-21">0.00</span><span id="cov-3d-22">1.00</span>
+                              </div>
                          </div>
                      </div>
                      <button id="generateData3D" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-5 rounded-lg transition duration-300 text-base">Generate</button>
@@ -801,19 +801,19 @@
                  const zHist = createHistogramData(data.map(p => p.z));
                  const halfSize = PLANE_SIZE / 2;
                  if(Math.max(...xHist.bins)>0) {
-                      visualizationGroup.add(createHistogramMesh(xHist, maxHistHeight, 'x-2d', settings.colorX));
-                      const xCurve = create1DPdfCurve(0, stdX, maxHistHeight);
-                      xCurve.position.z = -halfSize - 0.01;
-                      xCurve.material.color.set(settings.colorX);
-                      visualizationGroup.add(xCurve);
+                     visualizationGroup.add(createHistogramMesh(xHist, maxHistHeight, 'x-2d', settings.colorX));
+                     const xCurve = create1DPdfCurve(0, stdX, maxHistHeight);
+                     xCurve.position.z = -halfSize - 0.01;
+                     xCurve.material.color.set(settings.colorX);
+                     visualizationGroup.add(xCurve);
                  }
                  if(Math.max(...zHist.bins)>0) {
-                      visualizationGroup.add(createHistogramMesh(zHist, maxHistHeight, 'z-2d', settings.colorZ));
-                      const zCurve = create1DPdfCurve(0, stdZ, maxHistHeight);
-                      zCurve.rotation.y = Math.PI / 2;
-                      zCurve.position.x = -halfSize - 0.01;
-                      zCurve.material.color.set(settings.colorZ);
-                      visualizationGroup.add(zCurve);
+                     visualizationGroup.add(createHistogramMesh(zHist, maxHistHeight, 'z-2d', settings.colorZ));
+                     const zCurve = create1DPdfCurve(0, stdZ, maxHistHeight);
+                     zCurve.rotation.y = Math.PI / 2;
+                     zCurve.position.x = -halfSize - 0.01;
+                     zCurve.material.color.set(settings.colorZ);
+                     visualizationGroup.add(zCurve);
                  }
             }
         }
@@ -837,30 +837,16 @@
             }
             positions.needsUpdate = true;
             geometry.computeVertexNormals();
-
+            
             const material = new THREE.MeshLambertMaterial({ color: settings.surfaceColor, transparent: true, opacity: settings.surfaceOpacity, side: THREE.DoubleSide });
             
             material.onBeforeCompile = (shader) => {
                 shader.uniforms.u_revealPos = { value: -PLANE_SIZE/2 };
-                shader.uniforms.u_revealPos2 = { value: -PLANE_SIZE/2 };
                 shader.uniforms.u_sweepAngle = { value: 0.0 };
                 shader.vertexShader = 'varying vec2 v_WorldPosXZ;\n' + shader.vertexShader;
-                shader.vertexShader = shader.vertexShader.replace(
-                    '#include <begin_vertex>',
-                    '#include <begin_vertex>\nv_WorldPosXZ = (modelMatrix * vec4(transformed, 1.0)).xz;'
-                );
-                shader.fragmentShader = 'uniform float u_revealPos;\nuniform float u_revealPos2;\nuniform float u_sweepAngle;\nvarying vec2 v_WorldPosXZ;\n' + shader.fragmentShader;
-                shader.fragmentShader = shader.fragmentShader.replace(
-                  'void main() {',
-                  `
-                  void main() {
-                      float c = cos(-u_sweepAngle);
-                      float s = sin(-u_sweepAngle);
-                      mat2 rot = mat2(c, -s, s, c);
-                      vec2 rotatedPos = rot * v_WorldPosXZ;
-                      if (rotatedPos.x > u_revealPos || rotatedPos.y > u_revealPos2) discard;
-                  `
-                );
+                shader.vertexShader = shader.vertexShader.replace( '#include <begin_vertex>', '#include <begin_vertex>\nv_WorldPosXZ = position.xz;' );
+                shader.fragmentShader = 'uniform float u_revealPos;\nuniform float u_sweepAngle;\nvarying vec2 v_WorldPosXZ;\n' + shader.fragmentShader;
+                shader.fragmentShader = shader.fragmentShader.replace( 'void main() {', `void main() { float c = cos(-u_sweepAngle); float s = sin(-u_sweepAngle); mat2 rot = mat2(c, -s, s, c); vec2 rotatedPos = rot * v_WorldPosXZ; if (rotatedPos.x > u_revealPos || rotatedPos.y > u_revealPos) { discard; }` );
                 surfaceMaterialToAnimate = shader;
             };
 
@@ -893,21 +879,22 @@
         
         function createTrace(variance, color) {
             const traceLength = Math.max(0.1, variance * TRACE_SCALE_FACTOR);
-            const geometry = new THREE.PlaneGeometry(PLANE_SIZE, traceLength, 1, 1);
+            const geometry = new THREE.PlaneGeometry(PLANE_SIZE, traceLength, 1, 20);
             geometry.rotateX(-Math.PI / 2);
+            geometry.translate(0, 0, -traceLength / 2);
 
-            const material = new THREE.MeshBasicMaterial({ 
-                color: color, 
-                side: THREE.DoubleSide, 
-                transparent: true, 
-                opacity: settings.traceOpacity * 0.8, // Use a simple opacity
-                depthWrite: false 
-            });
-            
-            const mesh = new THREE.Mesh(geometry, material);
-            // Position the trace to appear as a trail
-            mesh.position.z = -traceLength / 2;
-            return mesh;
+            const material = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, transparent: true, depthWrite: false });
+
+            material.onBeforeCompile = (shader) => {
+                shader.uniforms.traceLength = { value: traceLength };
+                shader.uniforms.baseOpacity = { value: settings.traceOpacity };
+                shader.vertexShader = 'varying float vTraceZ;\n' + shader.vertexShader;
+                shader.vertexShader = shader.vertexShader.replace( '#include <begin_vertex>', '#include <begin_vertex>\nvTraceZ = position.z;' );
+                shader.fragmentShader = 'uniform float traceLength;\nuniform float baseOpacity;\nvarying float vTraceZ;\n' + shader.fragmentShader;
+                shader.fragmentShader = shader.fragmentShader.replace( '#include <color_fragment>', `#include <color_fragment>\n float alpha = (vTraceZ + traceLength) / traceLength;\n diffuseColor.a *= alpha * baseOpacity;\n` );
+            };
+
+            return new THREE.Mesh(geometry, material);
         }
         
         function update3DSliderText() {
@@ -1086,21 +1073,6 @@
         }
 
         function startConvolveAnimation() {
-            if (sweepMasterGroup) {
-                scene.remove(sweepMasterGroup);
-                sweepMasterGroup = null;
-            }
-            if (convolveSurface) {
-                scene.remove(convolveSurface);
-                convolveSurface.traverse(child => {
-                    if (child.isMesh) {
-                        if(child.geometry) child.geometry.dispose();
-                        if(child.material) child.material.dispose();
-                    }
-                });
-                convolveSurface = null;
-            }
-            
             if (revealPhase !== 'none') return;
             
             revealPhase = 'sweeping';
@@ -1111,48 +1083,55 @@
             const stdZ = parseFloat(stdDevZSlider2D.value);
             const rho = parseFloat(correlationSlider2D.value);
 
+            // Correctly determine the angle of the major axis
             sweepAngle = 0.5 * Math.atan2(2 * rho * stdX * stdZ, stdX**2 - stdZ**2);
             
+            // As requested, rotate the sweep direction by 180 degrees for positive correlation
+            if (rho > 0) {
+                sweepAngle += Math.PI;
+            }
+
             sweepMasterGroup = new THREE.Group();
             sweepMasterGroup.rotation.y = sweepAngle;
             scene.add(sweepMasterGroup);
             
-            // If X variance is greater or equal, use the first color scheme.
-            // This handles the user request to swap colors for the equal variance case compared to the previous logic.
-            if (stdX**2 >= stdZ**2) {
-                // X-variance is larger or equal. Major profile is X (red), minor is Z (blue).
-                // Minor sweep (along master Z) drags the MAJOR profile (red).
+            // Swap sweeps so the distribution with the larger variance always sweeps along the major axis (master X-axis).
+            if (stdX**2 > stdZ**2) {
+                // Case: X-variance is larger. Red (X) is major, Blue (Z) is minor.
+                
+                // MINOR SWEEP: Blue (Z-dist) travelling on master Z-axis
                 sweepGroupZ = new THREE.Group();
-                const minorSweepCurve = create1DPdfCurve(0, stdX, maxHistHeight);
-                minorSweepCurve.material.color.set(settings.colorX);
-                sweepGroupZ.add(minorSweepCurve);
-                sweepGroupZ.add(createTrace(stdX * stdX, settings.colorX));
-                sweepMasterGroup.add(sweepGroupZ);
-
-                // Major sweep (along master X) drags the MINOR profile (blue).
-                sweepGroupX = new THREE.Group();
-                const majorSweepCurve = create1DPdfCurve(0, stdZ, maxHistHeight);
-                majorSweepCurve.material.color.set(settings.colorZ);
-                sweepGroupX.add(majorSweepCurve);
-                sweepGroupX.add(createTrace(stdZ * stdZ, settings.colorZ));
-                sweepGroupX.rotation.y = Math.PI / 2;
-                sweepMasterGroup.add(sweepGroupX);
-            } else {
-                // Z-variance is strictly larger. Major profile is Z (blue), minor is X (red).
-                // Minor sweep (along master Z) drags the MAJOR profile (blue).
-                sweepGroupZ = new THREE.Group();
-                const minorSweepCurve = create1DPdfCurve(0, stdZ, maxHistHeight);
-                minorSweepCurve.material.color.set(settings.colorZ);
-                sweepGroupZ.add(minorSweepCurve);
+                const minorCurve = create1DPdfCurve(0, stdZ, maxHistHeight);
+                minorCurve.material.color.set(settings.colorZ);
+                sweepGroupZ.add(minorCurve);
                 sweepGroupZ.add(createTrace(stdZ * stdZ, settings.colorZ));
                 sweepMasterGroup.add(sweepGroupZ);
 
-                // Major sweep (along master X) drags the MINOR profile (red).
+                // MAJOR SWEEP: Red (X-dist) travelling on master X-axis
                 sweepGroupX = new THREE.Group();
-                const majorSweepCurve = create1DPdfCurve(0, stdX, maxHistHeight);
-                majorSweepCurve.material.color.set(settings.colorX);
-                sweepGroupX.add(majorSweepCurve);
+                const majorCurve = create1DPdfCurve(0, stdX, maxHistHeight);
+                majorCurve.material.color.set(settings.colorX);
+                sweepGroupX.add(majorCurve);
                 sweepGroupX.add(createTrace(stdX * stdX, settings.colorX));
+                sweepGroupX.rotation.y = Math.PI / 2;
+                sweepMasterGroup.add(sweepGroupX);
+            } else {
+                // Case: Z-variance is larger (or equal). Blue (Z) is major, Red (X) is minor.
+
+                // MINOR SWEEP: Red (X-dist) travelling on master Z-axis
+                sweepGroupZ = new THREE.Group();
+                const minorCurve = create1DPdfCurve(0, stdX, maxHistHeight);
+                minorCurve.material.color.set(settings.colorX);
+                sweepGroupZ.add(minorCurve);
+                sweepGroupZ.add(createTrace(stdX * stdX, settings.colorX));
+                sweepMasterGroup.add(sweepGroupZ);
+
+                // MAJOR SWEEP: Blue (Z-dist) travelling on master X-axis
+                sweepGroupX = new THREE.Group();
+                const majorCurve = create1DPdfCurve(0, stdZ, maxHistHeight);
+                majorCurve.material.color.set(settings.colorZ);
+                sweepGroupX.add(majorCurve);
+                sweepGroupX.add(createTrace(stdZ * stdZ, settings.colorZ));
                 sweepGroupX.rotation.y = Math.PI / 2;
                 sweepMasterGroup.add(sweepGroupX);
             }
@@ -1171,6 +1150,10 @@
             controls.update();
             
             if (revealPhase === 'sweeping') {
+                visualizationGroup.visible = true;
+                pointsToReveal = visualizationGroup.children.find(c => c.type === 'Points');
+                if (pointsToReveal) pointsToReveal.visible = false;
+                
                 const animElapsed = clock.getElapsedTime() - convolveStartTime;
                 const progress = Math.min(animElapsed / settings.animationSpeed, 1.0);
                 const halfSize = PLANE_SIZE / 2;
@@ -1183,17 +1166,16 @@
                 if (sweepGroupZ) sweepGroupZ.position.z = Math.min(currentPos, sweepLimit);
 
                 if (surfaceMaterialToAnimate) {
-                    surfaceMaterialToAnimate.uniforms.u_revealPos.value = sweepGroupX.position.x;
-                    surfaceMaterialToAnimate.uniforms.u_revealPos2.value = sweepGroupZ.position.z;
+                    surfaceMaterialToAnimate.uniforms.u_revealPos.value = Math.min(currentPos, sweepLimit);
                     surfaceMaterialToAnimate.uniforms.u_sweepAngle.value = sweepAngle;
                 }
 
                 if (progress >= 1.0) {
-                    if (sweepMasterGroup) sweepMasterGroup.visible = false;
-                    if (convolveSurface) convolveSurface.visible = false;
-
-                    pointsToReveal = visualizationGroup.children.find(c => c.type === 'Points');
+                    if (sweepMasterGroup) scene.remove(sweepMasterGroup);
+                    if (convolveSurface) scene.remove(convolveSurface);
                     
+                    sweepMasterGroup = null; sweepGroupX = null; sweepGroupZ = null; convolveSurface = null; surfaceMaterialToAnimate = null;
+
                     revealPhase = 'points';
                     revealStartTime = clock.getElapsedTime();
                     if (pointsToReveal) {
@@ -1203,7 +1185,6 @@
                 }
 
             } else if (revealPhase === 'points') {
-                visualizationGroup.visible = true;
                 const animElapsed = clock.getElapsedTime() - revealStartTime;
                 const progress = Math.min(animElapsed / (settings.animationSpeed / 2), 1.0);
 
@@ -1225,4 +1206,5 @@
     </script>
 </body>
 </html>
+
 
