@@ -83,6 +83,11 @@
   thumbnail: /assets/images/kernel-convolution.png
   visualization_url: /visualizations/kernel-convolution.html
 
+- title: Lagrange Multiplier
+  author: Jasper Taal
+  thumbnail: /assets/images/lagrange-multiplier.png
+  visualization_url: /visualizations/lagrange-multiplier.html
+
 - title: Linear Regression
   author: Jasper Taal
   thumbnail: /assets/images/linear-regression.png
