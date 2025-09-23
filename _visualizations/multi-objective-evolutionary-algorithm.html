@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D MOEA Suite</title>
+    <title>Multi-Objective Evolutionary Algorithm Suite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <script type="importmap">
@@ -51,9 +51,7 @@
         #info-header { display: flex; justify-content: space-between; align-items: center; }
         #toggle-icon { transition: transform 0.3s ease-in-out; }
         #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
-        #info-content {
-             transition: opacity 0.3s ease-in-out;
-        }
+        #info-content { transition: opacity 0.3s ease-in-out; }
         #info-panel:not(.expanded) #info-content {
             opacity: 0;
             height: 0;
@@ -138,7 +136,7 @@
         }
         input[type="range"] {
             -webkit-appearance: none;
-            width: 120px;
+            width: 100%;
             height: 4px;
             background: #4b5563;
             border-radius: 2px;
@@ -157,6 +155,7 @@
             flex-direction: column;
             align-items: center;
             gap: 0.5rem;
+            width: 100%;
         }
         .hidden { display: none !important; }
         .metric-display {
@@ -165,25 +164,44 @@
             border-radius: 0.5rem;
             border: 1px solid #374151;
         }
-        #fullscreen-button {
+        #fullscreen-button, #settings-button {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9;
+            z-index: 11;
             width: 44px;
             height: 44px;
             padding: 10px;
             border-radius: 50%;
         }
+        #fullscreen-button { bottom: 20px; right: 20px; }
+        #settings-button { top: 80px; right: 20px; }
+        
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            z-index: 12;
+            padding: 1rem;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+        #settings-panel::-webkit-scrollbar { width: 8px; }
+        #settings-panel::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        #settings-panel::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 4px; }
+        
         @media (max-width: 768px) {
-            #controls-content { flex-direction: column; gap: 1rem; }
             .control-group { width: 100%; }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">3D Multi-Objective Optimization Suite</h1>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Multi-Objective Evolutionary Algorithm Suite</h1>
     </header>
 
     <div id="info-panel" class="ui-panel">
@@ -212,6 +230,56 @@
         </div>
     </div>
 
+     <div id="settings-panel" class="ui-panel">
+         <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Settings</h3>
+            <button id="close-settings" class="text-2xl font-bold">&times;</button>
+        </div>
+        <div class="space-y-6">
+            <div class="control-group text-left">
+                <label for="algorithm-select" class="text-sm font-medium self-start">Algorithm</label>
+                <select id="algorithm-select" class="w-full">
+                    <option value="nsga2">NSGA-II</option>
+                    <option value="nsga1">NSGA</option>
+                    <option value="nsga3">NSGA-III</option>
+                </select>
+            </div>
+            <div class="control-group text-left">
+                <label class="text-sm font-medium self-start">Goal</label>
+                <button id="optimization-mode-toggle" class="toggle-button w-full">Minimize</button>
+            </div>
+            <div class="control-group text-left">
+                <label class="text-sm font-medium self-start">Visualization</label>
+                <div id="viz-toggle-group" class="flex rounded-md bg-gray-700">
+                    <button data-viz="none" class="toggle-button active">None</button>
+                    <button data-viz="crowding" class="toggle-button">Crowding</button>
+                    <button data-viz="hypervolume" class="toggle-button">Hypervolume</button>
+                </div>
+            </div>
+            <hr class="border-gray-600">
+            <div id="nsga1-params" class="control-group text-left hidden">
+                 <label for="sharing-slider" class="text-sm font-medium self-start">Sharing Radius: <span id="sharing-value">0.1</span></label>
+                <input type="range" id="sharing-slider" min="0.01" max="0.5" step="0.01" value="0.1">
+            </div>
+             <div id="nsga3-params" class="control-group text-left hidden">
+                <label for="refpoints-slider" class="text-sm font-medium self-start">Ref. Points: <span id="refpoints-value">91</span></label>
+                <input type="range" id="refpoints-slider" min="4" max="15" step="1" value="12">
+            </div>
+            <div class="control-group text-left">
+                <label for="population-slider" class="text-sm font-medium self-start">Population: <span id="population-value">100</span></label>
+                <input type="range" id="population-slider" min="20" max="300" step="4" value="100">
+            </div>
+             <div class="control-group text-left">
+                <label for="crossover-slider" class="text-sm font-medium self-start">Crossover: <span id="crossover-value">0.90</span></label>
+                <input type="range" id="crossover-slider" min="0.1" max="1.0" step="0.05" value="0.9">
+            </div>
+            <div class="control-group text-left">
+                <label for="mutation-slider" class="text-sm font-medium self-start">Mutation: <span id="mutation-value">0.10</span></label>
+                <input type="range" id="mutation-slider" min="0.01" max="0.5" step="0.01" value="0.1">
+            </div>
+        </div>
+    </div>
+
     <div id="controls-panel" class="ui-panel">
         <div id="controls-toggle">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
@@ -223,49 +291,12 @@
                 <button id="reset-btn" class="control-button">Reset</button>
             </div>
             <div class="text-lg">Generation: <span id="generation-counter">0</span></div>
-             <div class="control-group">
-                <label for="algorithm-select" class="text-sm">Algorithm</label>
-                <select id="algorithm-select">
-                    <option value="nsga2">NSGA-II</option>
-                    <option value="nsga1">NSGA</option>
-                    <option value="nsga3">NSGA-III</option>
-                </select>
-            </div>
-             <div class="control-group">
-                <label class="text-sm">Goal</label>
-                <button id="optimization-mode-toggle" class="toggle-button w-24">Minimize</button>
-            </div>
-             <div class="control-group">
-                <label class="text-sm">Visualization</label>
-                <div id="viz-toggle-group" class="flex rounded-md bg-gray-700">
-                    <button data-viz="none" class="toggle-button active">None</button>
-                    <button data-viz="crowding" class="toggle-button">Crowding</button>
-                    <button data-viz="hypervolume" class="toggle-button">Hypervolume</button>
-                </div>
-            </div>
-            <div id="nsga1-params" class="control-group hidden">
-                 <label for="sharing-slider" class="text-sm">Sharing Radius: <span id="sharing-value">0.1</span></label>
-                <input type="range" id="sharing-slider" min="0.01" max="0.5" step="0.01" value="0.1">
-            </div>
-             <div id="nsga3-params" class="control-group hidden">
-                <label for="refpoints-slider" class="text-sm">Ref. Points: <span id="refpoints-value">91</span></label>
-                <input type="range" id="refpoints-slider" min="4" max="15" step="1" value="12">
-            </div>
-            <div class="control-group">
-                <label for="population-slider" class="text-sm">Population: <span id="population-value">100</span></label>
-                <input type="range" id="population-slider" min="20" max="300" step="4" value="100">
-            </div>
-             <div class="control-group">
-                <label for="crossover-slider" class="text-sm">Crossover: <span id="crossover-value">0.90</span></label>
-                <input type="range" id="crossover-slider" min="0.1" max="1.0" step="0.05" value="0.9">
-            </div>
-            <div class="control-group">
-                <label for="mutation-slider" class="text-sm">Mutation: <span id="mutation-value">0.10</span></label>
-                <input type="range" id="mutation-slider" min="0.01" max="0.5" step="0.01" value="0.1">
-            </div>
         </div>
     </div>
     
+    <button id="settings-button" class="control-button" title="Settings">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
     <button id="fullscreen-button" class="control-button" title="Toggle Fullscreen">
         <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
         <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
@@ -540,7 +571,7 @@
 
     function nsga3Niching(front, k) {
         if (front.length <= k) return front;
-        front.sort((a,b) => b.crowdingDistance - a.crowdingDistance);
+        front.sort((a,b) => b.crowdingDistance - a.crowdingDistance); // Fallback to crowding distance for simplicity
         return front.slice(0, k);
     }
 
@@ -608,7 +639,7 @@
                     metricsGroup.add(box);
                 }
             });
-        } else { // Maximize
+        } else {
             const refPoint = new THREE.Vector3(0,0,0);
              front.forEach(p => {
                 const pos = new THREE.Vector3(...p.objectives);
@@ -657,6 +688,10 @@
         document.getElementById('info-panel').addEventListener('click', (e) => { if (e.target.closest('a')) return; e.currentTarget.classList.toggle('expanded'); });
         document.getElementById('controls-toggle').addEventListener('click', () => document.getElementById('controls-panel').classList.toggle('collapsed'));
         
+        const settingsPanel = document.getElementById('settings-panel');
+        document.getElementById('settings-button').addEventListener('click', () => settingsPanel.classList.toggle('open'));
+        document.getElementById('close-settings').addEventListener('click', () => settingsPanel.classList.remove('open'));
+
         const startBtn = document.getElementById('start-btn'), pauseBtn = document.getElementById('pause-btn'), resetBtn = document.getElementById('reset-btn');
         const modeToggle = document.getElementById('optimization-mode-toggle'), vizToggleGroup = document.getElementById('viz-toggle-group');
         startBtn.addEventListener('click', () => { isRunning = true; startBtn.classList.add('active'); pauseBtn.classList.remove('active'); });
@@ -680,7 +715,7 @@
             resetAlgorithm();
         });
         
-         vizToggleGroup.addEventListener('click', (e) => {
+        vizToggleGroup.addEventListener('click', (e) => {
             if (e.target.matches('.toggle-button')) {
                 visualizationMode = e.target.dataset.viz;
                 vizToggleGroup.querySelectorAll('.toggle-button').forEach(btn => btn.classList.remove('active'));
