@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Double Pendulum Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh;
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        .formula-placeholder {
+            font-family: 'monospace', serif;
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: left;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            color: #d1d5db;
+            border: 1px solid #374151;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        .menu-button, .preset-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .menu-button:hover, .preset-button:hover, .toggle-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .preset-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+            background-color: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            color: white;
+            text-align: right;
+            padding: 0.25rem 0.5rem;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none; margin: 0;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .control-group label {
+            width: 200px;
+            text-align: center;
+        }
+        .hidden { display: none !important; }
+        canvas { display: block; }
+        .button-group { display: flex; gap: 0.5rem; }
+
+        #settings-button, #fullscreen-button {
+            position: absolute;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #settings-button {
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+        }
+        #fullscreen-button {
+            bottom: 120px;
+            right: 20px;
+            z-index: 11;
+        }
+        #settings-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px) rotate(45deg);
+        }
+        #fullscreen-button:hover {
+             background-color: #4338ca;
+            transform: translateY(-2px) scale(1.1);
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding-right: 2rem;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+        #close-settings {
+            font-size: 2.5rem;
+            line-height: 1;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+         body.fullscreen-active header,
+        body.fullscreen-active #info-panel {
+            display: none !important;
+        }
+        body.fullscreen-active #controls-panel,
+        body.fullscreen-active #settings-button,
+        body.fullscreen-active #fullscreen-button {
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        .chart-container {
+            background-color: #111827;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            header h1 { font-size: 1.125rem; }
+            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #fullscreen-button { bottom: 100px; right: 10px; }
+            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
+            #controls-panel { padding: 0.75rem; gap: 0.75rem; flex-direction: column; }
+            .control-group { width: 100%; }
+             .control-group label { width: 100%; }
+            input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">The Double Pendulum Map</h1>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">About This Simulation</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300"></p>
+             <div id="info-placeholder" class="formula-placeholder">θ1 ∈ [0.00, 0.00]
+θ2 ∈ [0.00, 0.00]</div>
+            <div id="pendulum-preview-container" class="hidden mt-4">
+                 <h3 class="font-bold text-lg text-indigo-400">Pendulum Presets</h3>
+                <select id="preset-select" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 mt-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="heart">The Heart</option>
+                    <option value="pretzel">The Pretzel</option>
+                    <option value="shoelace">The Shoelace</option>
+                </select>
+                <h3 class="font-bold text-lg text-indigo-400 mt-4">Live Pendulum Preview</h3>
+                <div class="chart-container p-2 flex justify-center items-center">
+                    <canvas id="pendulum-preview-canvas" width="350" height="350" class="bg-gray-800 rounded-md"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel"></div>
+
+    <button id="fullscreen-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-inherit z-10 py-2">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div class="space-y-6">
+             <div class="control-group text-left w-full">
+                <label for="transparency-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>3D Slice Transparency:</span>
+                    <span id="transparency-value">1.0x</span>
+                </label>
+                <input id="transparency-slider" type="range" min="0.1" max="5" step="0.1" value="1.0" class="w-full">
+            </div>
+            <hr class="border-gray-600">
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Map View Controls</h4>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Center θ1 (rad):</span> <input id="view-center-t1" type="number" value="0.0000" step="0.1" class="w-24">
+                </label>
+            </div>
+             <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Center θ2 (rad):</span> <input id="view-center-t2" type="number" value="0.0000" step="0.1" class="w-24">
+                </label>
+            </div>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Zoom Level:</span> <input id="view-zoom" type="number" value="1.0000" step="0.1" min="1" class="w-24">
+                </label>
+            </div>
+            <button id="apply-view-btn" class="toggle-button w-full">Apply View</button>
+            <hr class="border-gray-600">
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Pendulum Preview Controls</h4>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Trace Length:</span> <input id="preview-trace-length" type="number" value="200" step="10" min="0" class="w-24">
+                </label>
+            </div>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Initial θ1:</span> <input id="preview-theta1" type="number" value="0" step="0.1" class="w-24">
+                </label>
+            </div>
+            <div class="control-group text-left w-full">
+                 <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Initial θ2:</span> <input id="preview-theta2" type="number" value="0" step="0.1" class="w-24">
+                </label>
+            </div>
+            <div class="control-group text-left w-full">
+                 <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Initial ω1:</span> <input id="preview-omega1" type="number" value="0" step="0.1" class="w-24">
+                </label>
+            </div>
+            <div class="control-group text-left w-full">
+                 <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Initial ω2:</span> <input id="preview-omega2" type="number" value="0" step="0.1" class="w-24">
+                </label>
+            </div>
+            <button id="start-preview-btn" class="toggle-button w-full active">Start/Reset Preview</button>
+        </div>
+    </div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    // --- Core Three.js Components ---
+    let scene, camera, renderer, controls, clock;
+    let activeSceneObjects = new THREE.Group();
+    let currentUpdate = () => {};
+    let currentCleanup = () => {};
+
+    // --- Simulation State ---
+    const SIM_RESOLUTION = 512;
+    const NUM_SLICES = 32;
+    let timeStep = 0.016;
+    let initialOmega1 = 0.0;
+    let initialOmega2 = 0.0;
+    let needsRestart = true;
+    let isPaused = false;
+    let zoomState = { x: 0, y: 0, scale: new THREE.Vector2(1.0, 1.0) };
+    let isDragging = false;
+    let dragStart = new THREE.Vector2();
+
+    // --- View State ---
+    let viewMode = '2D_SLICE'; // '2D_SLICE' or '3D_VOLUME'
+    let threeDAxis = 'OMEGA1'; // 'OMEGA1' or 'OMEGA2'
+    let slicePosition = 0.5; // Normalized 0-1
+
+    // --- GPGPU Components ---
+    let state_read_atlas, state_write_atlas; // Atlas render targets
+    let updateMaterial, drawMaterial, instancedDrawMaterial;
+    let mapMesh, instancedMapMesh;
+
+    // --- Interactivity ---
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+    
+    // --- 2D Pendulum Preview ---
+    let previewCanvasCtx;
+    let previewPendulumState = { t1: 0, t2: 0, w1: 0, w2: 0 };
+    let isPreviewRunning = false;
+    let tracePoints = [];
+    let traceLength = 200;
+
+
+    const scenes = {
+        double_pendulum: {
+            title: 'The Double Pendulum Map',
+            description: `This visualization computes and displays the behavior of millions of double pendulums simultaneously. Each pixel represents a pendulum starting with a unique angle for its two arms. The color corresponds to the final angle of the second arm, revealing the system's chaotic nature.`,
+            init: initDoublePendulum,
+        },
+    };
+
+    // --- Main Initialization ---
+    function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 0, 4);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        dirLight.position.set(5, 5, 5);
+        scene.add(dirLight);
+
+        scene.add(activeSceneObjects);
+        
+        setupInfoPanel();
+        setupFullscreen();
+        setupSettingsPanel();
+        
+        switchScene('double_pendulum');
+
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.domElement.addEventListener('mousemove', onMouseMove);
+        renderer.domElement.addEventListener('mousedown', onMouseDown);
+        renderer.domElement.addEventListener('mouseup', onMouseUp);
+        renderer.domElement.addEventListener('dblclick', onDoubleClick);
+        renderer.setAnimationLoop(animate);
+    }
+    
+    function switchScene(key) {
+        if(currentCleanup) currentCleanup();
+        
+        const sceneData = scenes[key];
+        document.getElementById('info-title').textContent = sceneData.title;
+        document.getElementById('info-description').textContent = sceneData.description;
+        
+        const result = sceneData.init();
+        currentUpdate = result.update;
+        currentCleanup = result.cleanup;
+    }
+
+    // --- Scene Setup ---
+    function initDoublePendulum() {
+        // GPGPU setup for atlas texture
+        state_read_atlas = new THREE.WebGLRenderTarget(SIM_RESOLUTION, SIM_RESOLUTION * NUM_SLICES, {
+            type: THREE.FloatType, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter,
+        });
+        state_write_atlas = state_read_atlas.clone();
+
+        const initializeShader = getInitializeShader();
+        const updateShader = getUpdateShader();
+        const drawShader = getDrawShader();
+        const instancedDrawShader = getInstancedDrawShader();
+
+        updateMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                textureState: { value: state_read_atlas.texture },
+                timeStep: { value: timeStep },
+                numSlices: { value: NUM_SLICES },
+            },
+            vertexShader: getPassthroughVertexShader(),
+            fragmentShader: updateShader,
+        });
+
+        // For 2D Slice view
+        drawMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uAtlasTexture: { value: state_read_atlas.texture },
+                uSliceOffset: { value: 0.0 },
+                uNumSlices: { value: NUM_SLICES },
+            },
+            vertexShader: getPassthroughVertexShader(),
+            fragmentShader: drawShader,
+        });
+
+        const mapGeometry = new THREE.PlaneGeometry(5, 5);
+        mapMesh = new THREE.Mesh(mapGeometry, drawMaterial);
+        activeSceneObjects.add(mapMesh);
+
+        // For 3D Volume view
+        instancedDrawMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uAtlasTexture: { value: state_read_atlas.texture },
+                uNumSlices: { value: NUM_SLICES },
+                uTransparency: { value: 1.0 },
+            },
+            vertexShader: getInstancedVertexShader(),
+            fragmentShader: instancedDrawShader,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+        });
+        
+        const instancedGeometry = new THREE.PlaneGeometry(5, 5);
+        instancedMapMesh = new THREE.InstancedMesh(instancedGeometry, instancedDrawMaterial, NUM_SLICES);
+        activeSceneObjects.add(instancedMapMesh);
+        
+        const gpgpuScene = new THREE.Scene();
+        const gpgpuCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const gpgpuQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
+        gpgpuScene.add(gpgpuQuad);
+        
+        const gpgpu = {
+            run: (material) => {
+                gpgpuQuad.material = material;
+                renderer.setRenderTarget(state_write_atlas);
+                renderer.render(gpgpuScene, gpgpuCamera);
+                renderer.setRenderTarget(null);
+                [state_read_atlas, state_write_atlas] = [state_write_atlas, state_read_atlas]; // Swap
+            }
+        };
+
+        const initMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                omega1: { value: initialOmega1 },
+                omega2: { value: initialOmega2 },
+                zoomCenter: { value: new THREE.Vector2(zoomState.x, zoomState.y) },
+                zoomScale: { value: zoomState.scale },
+                uNumSlices: { value: NUM_SLICES },
+                uThreeDAxis: { value: threeDAxis === 'OMEGA1' ? 1.0 : 0.0 }
+            },
+            vertexShader: getPassthroughVertexShader(),
+            fragmentShader: initializeShader,
+        });
+        
+        createControls();
+        toggleViewMode(); // Set initial visibility
+
+        function update(delta) {
+            if (needsRestart) {
+                initMaterial.uniforms.omega1.value = initialOmega1;
+                initMaterial.uniforms.omega2.value = initialOmega2;
+                initMaterial.uniforms.zoomCenter.value.set(zoomState.x, zoomState.y);
+                initMaterial.uniforms.zoomScale.value = zoomState.scale;
+                initMaterial.uniforms.uThreeDAxis.value = threeDAxis === 'OMEGA1' ? 1.0 : 0.0;
+                gpgpu.run(initMaterial);
+                needsRestart = false;
+            }
+
+            if (!isPaused) {
+                updateMaterial.uniforms.textureState.value = state_read_atlas.texture;
+                updateMaterial.uniforms.timeStep.value = timeStep;
+                gpgpu.run(updateMaterial);
+                drawMaterial.uniforms.uAtlasTexture.value = state_read_atlas.texture;
+                instancedDrawMaterial.uniforms.uAtlasTexture.value = state_read_atlas.texture;
+            }
+            updatePreview();
+        }
+
+        function cleanup() {
+            state_read_atlas.dispose(); state_write_atlas.dispose();
+            initMaterial.dispose(); updateMaterial.dispose();
+            drawMaterial.dispose(); instancedDrawMaterial.dispose();
+            mapMesh.geometry.dispose(); instancedMapMesh.geometry.dispose();
+        }
+
+        return { update, cleanup };
+    }
+
+    // --- UI & Controls ---
+    function createControls() {
+        const controlsDiv = document.getElementById('controls-panel');
+        controlsDiv.innerHTML = `
+            <div class="control-group">
+                <label class="text-sm font-medium">View Mode</label>
+                <button id="view-mode-btn" class="toggle-button">2D Slice</button>
+            </div>
+            <div class="control-group">
+                <label class="text-sm font-medium">Variable Axis (Z)</label>
+                <div class="button-group">
+                    <button id="3d-axis-w1" class="toggle-button active">ω1</button>
+                    <button id="3d-axis-w2" class="toggle-button">ω2</button>
+                </div>
+            </div>
+            <div id="2d-slice-controls" class="control-group">
+                <label for="slice-slider" class="text-sm font-medium">Slice Position (<span id="slice-axis-label">ω1</span>): <span id="slice-value">0.00</span></label>
+                <input id="slice-slider" type="range" min="0" max="1" step="0.01" value="0.5">
+            </div>
+            <div class="control-group">
+                <label for="fixed-omega-input" class="text-sm font-medium">Fixed Value (<span id="fixed-axis-label">ω2</span>): <span id="fixed-omega-value">0.00</span></label>
+                <input id="fixed-omega-input" type="range" min="-2.0" max="2.0" step="0.05" value="0.0">
+            </div>
+            <div class="control-group">
+                <label for="dt-slider" class="text-sm font-medium">Time Step: <span id="dt-value">0.016</span></label>
+                <input id="dt-slider" type="range" min="0.001" max="0.05" step="0.001" value="0.016">
+            </div>
+            <button id="restart-btn" class="toggle-button active">Restart</button>
+        `;
+        
+        document.getElementById('view-mode-btn').addEventListener('click', () => {
+             viewMode = viewMode === '2D_SLICE' ? '3D_VOLUME' : '2D_SLICE';
+             toggleViewMode();
+        });
+
+        const axisW1Btn = document.getElementById('3d-axis-w1');
+        const axisW2Btn = document.getElementById('3d-axis-w2');
+        axisW1Btn.addEventListener('click', () => {
+            threeDAxis = 'OMEGA1';
+            axisW1Btn.classList.add('active');
+            axisW2Btn.classList.remove('active');
+            updateLabels();
+            needsRestart = true;
+        });
+        axisW2Btn.addEventListener('click', () => {
+            threeDAxis = 'OMEGA2';
+            axisW1Btn.classList.remove('active');
+            axisW2Btn.classList.add('active');
+            updateLabels();
+            needsRestart = true;
+        });
+        
+        const sliceSlider = document.getElementById('slice-slider');
+        const sliceValue = document.getElementById('slice-value');
+        sliceSlider.addEventListener('input', (e) => {
+            slicePosition = parseFloat(e.target.value);
+            const omegaRange = 4.0;
+            const currentOmega = (slicePosition - 0.5) * omegaRange;
+            sliceValue.textContent = currentOmega.toFixed(2);
+            drawMaterial.uniforms.uSliceOffset.value = Math.floor(slicePosition * (NUM_SLICES - 1)) / NUM_SLICES;
+        });
+
+        const fixedOmegaSlider = document.getElementById('fixed-omega-input');
+        const fixedOmegaValue = document.getElementById('fixed-omega-value');
+        fixedOmegaSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            fixedOmegaValue.textContent = value.toFixed(2);
+            if (threeDAxis === 'OMEGA1') {
+                initialOmega2 = value;
+            } else {
+                initialOmega1 = value;
+            }
+            needsRestart = true;
+        });
+
+        const dtSlider = document.getElementById('dt-slider');
+        const dtValue = document.getElementById('dt-value');
+        dtSlider.addEventListener('input', (e) => {
+            timeStep = parseFloat(e.target.value);
+            dtValue.textContent = timeStep.toFixed(3);
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', () => { needsRestart = true; });
+        
+        function updateLabels() {
+            const variableAxis = threeDAxis === 'OMEGA1' ? 'ω1' : 'ω2';
+            const fixedAxis = threeDAxis === 'OMEGA1' ? 'ω2' : 'ω1';
+            document.getElementById('slice-axis-label').textContent = variableAxis;
+            document.getElementById('fixed-axis-label').textContent = fixedAxis;
+        }
+
+        updateLabels();
+        sliceSlider.dispatchEvent(new Event('input'));
+        fixedOmegaSlider.dispatchEvent(new Event('input'));
+    }
+    
+    function toggleViewMode() {
+        const is2D = viewMode === '2D_SLICE';
+        document.getElementById('view-mode-btn').textContent = is2D ? '2D Slice' : '3D Volume';
+        document.getElementById('2d-slice-controls').classList.toggle('hidden', !is2D);
+        mapMesh.visible = is2D;
+        instancedMapMesh.visible = !is2D;
+        controls.enableRotate = !is2D;
+        if(is2D) {
+            camera.position.set(0,0,4);
+            controls.target.set(0,0,0);
+        }
+    }
+    
+    function setupInfoPanel() {
+        const panel = document.getElementById('info-panel');
+        const previewContainer = document.getElementById('pendulum-preview-container');
+        panel.addEventListener('click', (e) => {
+            if (e.target.closest('canvas') || e.target.closest('a') || e.target.closest('select')) return;
+            panel.classList.toggle('expanded');
+            previewContainer.classList.toggle('hidden', !panel.classList.contains('expanded'));
+        });
+        const canvas = document.getElementById('pendulum-preview-canvas');
+        previewCanvasCtx = canvas.getContext('2d');
+
+        const presets = {
+            heart: { t1: 2.453, t2: -2.7727 },
+            pretzel: { t1: 2.49, t2: 0.25 },
+            shoelace: { t1: 2.658, t2: -2.19 }
+        };
+
+        const presetSelect = document.getElementById('preset-select');
+        presetSelect.addEventListener('change', (e) => {
+            const selectedPreset = presets[e.target.value];
+            if (selectedPreset) {
+                document.getElementById('preview-theta1').value = selectedPreset.t1;
+                document.getElementById('preview-theta2').value = selectedPreset.t2;
+                document.getElementById('preview-omega1').value = 0;
+                document.getElementById('preview-omega2').value = 0;
+                document.getElementById('start-preview-btn').click();
+            }
+        });
+
+        // Initialize with the heart preset
+        presetSelect.value = 'heart';
+        presetSelect.dispatchEvent(new Event('change'));
+    }
+
+    function setupFullscreen() {
+        const fullscreenButton = document.getElementById('fullscreen-button');
+        const enterIcon = document.getElementById('fullscreen-enter-icon');
+        const exitIcon = document.getElementById('fullscreen-exit-icon');
+        if (!document.fullscreenEnabled) { fullscreenButton.style.display = 'none'; return; }
+        fullscreenButton.addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        });
+        document.addEventListener('fullscreenchange', () => {
+            const isFullscreen = !!document.fullscreenElement;
+            enterIcon.classList.toggle('hidden', isFullscreen);
+            exitIcon.classList.toggle('hidden', !isFullscreen);
+            document.body.classList.toggle('fullscreen-active', isFullscreen);
+            setTimeout(onWindowResize, 100);
+        });
+    }
+
+    function updateViewInputs() {
+        if (!document.getElementById('view-center-t1')) return;
+        const PI2 = Math.PI * 2.0;
+        document.getElementById('view-center-t1').value = (zoomState.x * PI2).toFixed(4);
+        document.getElementById('view-center-t2').value = (zoomState.y * PI2).toFixed(4);
+        document.getElementById('view-zoom').value = zoomState.scale.x.toFixed(4);
+    }
+
+    function setupSettingsPanel() {
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsButton = document.getElementById('settings-button');
+        const closeSettingsButton = document.getElementById('close-settings');
+        
+        function toggleSettingsPanel() {
+            if (settingsPanel.classList.contains('open')) settingsPanel.classList.remove('open');
+            else { settingsPanel.classList.remove('hidden'); requestAnimationFrame(() => settingsPanel.classList.add('open')); }
+        }
+        settingsButton.addEventListener('click', toggleSettingsPanel);
+        closeSettingsButton.addEventListener('click', () => settingsPanel.classList.remove('open'));
+        settingsPanel.addEventListener('transitionend', (e) => {
+            if (e.propertyName === 'transform' && !settingsPanel.classList.contains('open')) settingsPanel.classList.add('hidden');
+        });
+
+        const transparencySlider = document.getElementById('transparency-slider');
+        const transparencyValue = document.getElementById('transparency-value');
+        transparencySlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            if(instancedDrawMaterial) instancedDrawMaterial.uniforms.uTransparency.value = value;
+            transparencyValue.textContent = `${value.toFixed(1)}x`;
+        });
+
+        document.getElementById('apply-view-btn').addEventListener('click', () => {
+            const PI2 = Math.PI * 2.0;
+            const t1 = parseFloat(document.getElementById('view-center-t1').value);
+            const t2 = parseFloat(document.getElementById('view-center-t2').value);
+            const scale = parseFloat(document.getElementById('view-zoom').value);
+            
+            zoomState.x = t1 / PI2; 
+            zoomState.y = t2 / PI2;
+            zoomState.scale.set(scale, scale);
+            needsRestart = true;
+            updateViewInputs();
+        });
+
+        document.getElementById('start-preview-btn').addEventListener('click', () => {
+            const t1 = parseFloat(document.getElementById('preview-theta1').value);
+            const t2 = parseFloat(document.getElementById('preview-theta2').value);
+            const w1 = parseFloat(document.getElementById('preview-omega1').value);
+            const w2 = parseFloat(document.getElementById('preview-omega2').value);
+            previewPendulumState = { t1, t2, w1, w2 };
+            isPreviewRunning = true;
+            tracePoints = []; // Clear trace on reset
+        });
+
+        const traceLengthInput = document.getElementById('preview-trace-length');
+        traceLengthInput.addEventListener('input', (e) => {
+            traceLength = parseInt(e.target.value, 10);
+            if (traceLength < 0) traceLength = 0;
+        });
+    }
+
+    // --- Interactivity ---
+    
+    function updatePreview() {
+        const targetMesh = mapMesh.visible ? mapMesh : instancedMapMesh;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(targetMesh);
+
+        if (intersects.length > 0) {
+            const PI2 = Math.PI * 2.0;
+            const fullRangeX = PI2 / zoomState.scale.x;
+            const minTheta1 = (zoomState.x * PI2) - fullRangeX / 2.0;
+            const maxTheta1 = minTheta1 + fullRangeX;
+            const fullRangeY = PI2 / zoomState.scale.y;
+            const minTheta2 = (zoomState.y * PI2) - fullRangeY / 2.0;
+            const maxTheta2 = minTheta2 + fullRangeY;
+
+            const infoDiv = document.getElementById('info-placeholder');
+            infoDiv.textContent = `θ1 ∈ [${minTheta1.toFixed(4)}, ${maxTheta1.toFixed(4)}]
+θ2 ∈ [${minTheta2.toFixed(4)}, ${maxTheta2.toFixed(4)}]`;
+        }
+    }
+
+    function onMouseMove(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    }
+    
+    function onMouseDown(event) {
+         if (event.button === 0) { isDragging = true; dragStart.set(event.clientX, event.clientY); }
+    }
+    
+    function onMouseUp(event) {
+        if (event.button === 0 && isDragging) {
+            isDragging = false;
+            const dragEnd = new THREE.Vector2(event.clientX, event.clientY);
+            const dragDist = dragStart.distanceTo(dragEnd);
+
+            if (dragDist > 5) {
+                const targetMesh = mapMesh.visible ? mapMesh : instancedMapMesh;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(targetMesh);
+                if (intersects.length > 0) {
+                    const uv = intersects[0].uv;
+                    const zoomFactor = dragDist / Math.min(window.innerWidth, window.innerHeight);
+                    zoomState.x += (uv.x - 0.5) / zoomState.scale.x;
+                    zoomState.y += (uv.y - 0.5) / zoomState.scale.y;
+                    const scaleFactor = (1.0 - Math.max(0, Math.min(0.9, zoomFactor * 2.0)));
+                    zoomState.scale.multiplyScalar(1.0 / scaleFactor);
+                    needsRestart = true;
+                    updateViewInputs();
+                }
+            }
+        }
+    }
+    
+    function onDoubleClick() {
+        zoomState = { x: 0, y: 0, scale: new THREE.Vector2(1.0, 1.0) };
+        needsRestart = true;
+        updateViewInputs();
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animatePreviewPendulum() {
+        if (!isPreviewRunning || !previewCanvasCtx) return;
+
+        const G = 9.8, L1 = 1.0, L2 = 1.0, M1 = 1.0, M2 = 1.0;
+        const dt = 1 / 60.0;
+
+        let { t1, t2, w1, w2 } = previewPendulumState;
+        
+        for (let i = 0; i < 2; i++) { // Sub-steps for stability
+            let diff_t = t2 - t1;
+            const den1 = (M1 + M2) * L1 - M2 * L1 * Math.cos(diff_t) * Math.cos(diff_t);
+            const den2 = (L2 / L1) * den1;
+
+            const dw1 = (M2*L1*w1*w1*Math.sin(diff_t)*Math.cos(diff_t) + M2*G*Math.sin(t2)*Math.cos(diff_t) + M2*L2*w2*w2*Math.sin(diff_t) - (M1+M2)*G*Math.sin(t1)) / den1;
+            const dw2 = (-M2*L2*w2*w2*Math.sin(diff_t)*Math.cos(diff_t) + (M1+M2)*G*Math.sin(t1)*Math.cos(diff_t) - (M1+M2)*L1*w1*w1*Math.sin(diff_t) - (M1+M2)*G*Math.sin(t2)) / den2;
+            
+            w1 += dw1 * (dt / 2);
+            w2 += dw2 * (dt / 2);
+            t1 += w1 * (dt / 2);
+            t2 += w2 * (dt / 2);
+        }
+
+        previewPendulumState = { t1, t2, w1, w2 };
+
+        // Drawing
+        const canvas = previewCanvasCtx.canvas;
+        previewCanvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        const scale = 80, originX = canvas.width / 2, originY = canvas.height / 2;
+        const x1 = originX + L1 * scale * Math.sin(t1);
+        const y1 = originY + L1 * scale * Math.cos(t1);
+        const x2 = x1 + L2 * scale * Math.sin(t2);
+        const y2 = y1 + L2 * scale * Math.cos(t2);
+
+        // Add to trace
+        if (traceLength > 0) {
+            tracePoints.push({x: x2, y: y2});
+            if(tracePoints.length > traceLength) {
+                tracePoints.shift();
+            }
+        }
+        
+        // Draw trace
+        previewCanvasCtx.lineWidth = 2;
+        if (tracePoints.length > 1) {
+            for(let i = 1; i < tracePoints.length; i++) {
+                const alpha = (i / tracePoints.length) * 0.7; // Fade out towards the tail
+                previewCanvasCtx.strokeStyle = `rgba(199, 210, 254, ${alpha})`;
+                previewCanvasCtx.beginPath();
+                previewCanvasCtx.moveTo(tracePoints[i-1].x, tracePoints[i-1].y);
+                previewCanvasCtx.lineTo(tracePoints[i].x, tracePoints[i].y);
+                previewCanvasCtx.stroke();
+            }
+        }
+
+        // Draw pendulum arms
+        previewCanvasCtx.strokeStyle = '#9ca3af';
+        previewCanvasCtx.lineWidth = 2;
+        previewCanvasCtx.beginPath();
+        previewCanvasCtx.moveTo(originX, originY);
+        previewCanvasCtx.lineTo(x1, y1);
+        previewCanvasCtx.lineTo(x2, y2);
+        previewCanvasCtx.stroke();
+        
+        // Draw bobs
+        previewCanvasCtx.fillStyle = '#f9fafb';
+        previewCanvasCtx.beginPath();
+        previewCanvasCtx.arc(originX, originY, 4, 0, 2 * Math.PI);
+        previewCanvasCtx.fill();
+        previewCanvasCtx.fillStyle = '#818cf8';
+        previewCanvasCtx.beginPath();
+        previewCanvasCtx.arc(x1, y1, 6, 0, 2 * Math.PI);
+        previewCanvasCtx.fill();
+        previewCanvasCtx.fillStyle = '#c7d2fe';
+        previewCanvasCtx.beginPath();
+        previewCanvasCtx.arc(x2, y2, 6, 0, 2 * Math.PI);
+        previewCanvasCtx.fill();
+    }
+
+    function animate() {
+        const delta = clock.getDelta();
+        controls.update();
+        if(currentUpdate) currentUpdate(delta);
+        animatePreviewPendulum();
+        renderer.render(scene, camera);
+    }
+    
+    // --- GLSL Shaders ---
+    function getPassthroughVertexShader() { return `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`; }
+    function getInitializeShader() {
+        return `
+            varying vec2 vUv;
+            uniform float omega1, omega2;
+            uniform vec2 zoomCenter, zoomScale;
+            uniform float uNumSlices, uThreeDAxis;
+
+            const float PI = 3.1415926535; const float TWO_PI = 6.283185307;
+            const float OMEGA_RANGE = 4.0;
+
+            void main() {
+                float sliceIndex = floor(vUv.y * uNumSlices);
+                float sliceV = fract(vUv.y * uNumSlices);
+                
+                float rangeX = TWO_PI / zoomScale.x;
+                float minTheta1 = (zoomCenter.x * TWO_PI) - rangeX / 2.0;
+
+                float rangeY = TWO_PI / zoomScale.y;
+                float minTheta2 = (zoomCenter.y * TWO_PI) - rangeY / 2.0;
+
+                float theta1 = minTheta1 + vUv.x * rangeX;
+                float theta2 = minTheta2 + sliceV * rangeY;
+                
+                float w1 = omega1;
+                float w2 = omega2;
+
+                float dynamicOmega = (sliceIndex / (uNumSlices - 1.0) - 0.5) * OMEGA_RANGE;
+
+                if (uThreeDAxis > 0.5) w1 = dynamicOmega; else w2 = dynamicOmega;
+
+                gl_FragColor = vec4(theta1, theta2, w1, w2);
+            }
+        `;
+    }
+    function getUpdateShader() { return `
+        varying vec2 vUv;
+        uniform sampler2D textureState; uniform float timeStep;
+        const float G = 9.8, L1 = 1.0, L2 = 1.0, M1 = 1.0, M2 = 1.0;
+        const float PI = 3.1415926535, TWO_PI = 6.283185307;
+        float wrap(float a) { return a - TWO_PI * floor((a + PI) / TWO_PI); }
+        void main() {
+            vec4 s = texture2D(textureState, vUv);
+            float t1=s.x, t2=s.y, w1=s.z, w2=s.w, dt=t2-t1;
+            float den1=(M1+M2)*L1 - M2*L1*cos(dt)*cos(dt);
+            float den2=(L2/L1)*den1;
+            float dw1=(M2*L1*w1*w1*sin(dt)*cos(dt) + M2*G*sin(t2)*cos(dt) + M2*L2*w2*w2*sin(dt) - (M1+M2)*G*sin(t1))/den1;
+            float dw2=(-M2*L2*w2*w2*sin(dt)*cos(dt) + (M1+M2)*G*sin(t1)*cos(dt) - (M1+M2)*L1*w1*w1*sin(dt) - (M1+M2)*G*sin(t2))/den2;
+            w1+=dw1*timeStep; w2+=dw2*timeStep; t1+=w1*timeStep; t2+=w2*timeStep;
+            gl_FragColor=vec4(wrap(t1),wrap(t2),w1,w2);
+        }
+    `;}
+    function getDrawShader() { return `
+        varying vec2 vUv;
+        uniform sampler2D uAtlasTexture; uniform float uSliceOffset, uNumSlices;
+        const float PI=3.1415926535;
+        vec3 hsv2rgb(vec3 c){vec4 K=vec4(1.0,2.0/3.0,1.0/3.0,3.0);vec3 p=abs(fract(c.xxx+K.xyz)*6.0-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.0,1.0),c.y);}
+        void main() {
+            vec2 sliceUv = vec2(vUv.x, vUv.y / uNumSlices + uSliceOffset);
+            vec4 state = texture2D(uAtlasTexture, sliceUv);
+            float hue=(state.y+PI)/(2.0*PI);
+            float sat=clamp(length(state.zw)*0.2,0.7,1.0);
+            float val=clamp(1.0-length(state.zw)*0.1,0.8,1.0);
+            gl_FragColor = vec4(hsv2rgb(vec3(hue, sat, val)), 1.0);
+        }`;
+    }
+    function getInstancedVertexShader() { return `
+        varying vec2 vUv;
+        varying float vInstanceID;
+        void main() {
+            vUv = uv;
+            vInstanceID = float(gl_InstanceID);
+            vec3 pos = position;
+            pos.z += (float(gl_InstanceID) / 32.0 - 0.5) * 2.0; // Distribute planes
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+    `;}
+    function getInstancedDrawShader() { return `
+        varying vec2 vUv;
+        varying float vInstanceID;
+        uniform sampler2D uAtlasTexture; uniform float uNumSlices, uTransparency;
+        const float PI=3.1415926535;
+        vec3 hsv2rgb(vec3 c){vec4 K=vec4(1.0,2.0/3.0,1.0/3.0,3.0);vec3 p=abs(fract(c.xxx+K.xyz)*6.0-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.0,1.0),c.y);}
+        void main() {
+            vec2 sliceUv = vec2(vUv.x, (vUv.y + vInstanceID) / uNumSlices);
+            vec4 state=texture2D(uAtlasTexture,sliceUv);
+            float hue=(state.y+PI)/(2.0*PI);
+            float sat=clamp(length(state.zw)*0.2,0.7,1.0);
+            float val=clamp(1.0-length(state.zw)*0.1,0.8,1.0);
+            gl_FragColor=vec4(hsv2rgb(vec3(hue,sat,val)), uTransparency / uNumSlices);
+        }`;
+    }
+
+    init();
+
+</script>
+</body>
+</html>
+
