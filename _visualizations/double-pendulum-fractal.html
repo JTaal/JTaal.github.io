@@ -254,9 +254,6 @@
             </div>
         </div>
         <div id="info-content" class="pt-4 space-y-3">
-             <p id="info-description" class="text-gray-300"></p>
-             <div id="info-placeholder" class="formula-placeholder">θ1 ∈ [0.00, 0.00]
-θ2 ∈ [0.00, 0.00]</div>
             <div id="pendulum-preview-container" class="hidden mt-4">
                  <h3 class="font-bold text-lg text-indigo-400">Pendulum Presets</h3>
                 <select id="preset-select" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 mt-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -269,6 +266,10 @@
                     <canvas id="pendulum-preview-canvas" width="350" height="350" class="bg-gray-800 rounded-md"></canvas>
                 </div>
             </div>
+             <p id="info-description" class="text-gray-300"></p>
+             <div id="info-placeholder" class="formula-placeholder">θ1 ∈ [0.00, 0.00]
+θ2 ∈ [0.00, 0.00]</div>
+
         </div>
     </div>
 
@@ -361,6 +362,7 @@
     let timeStep = 0.016;
     let initialOmega1 = 0.0;
     let initialOmega2 = 0.0;
+    let gravity = 9.8;
     let needsRestart = true;
     let isPaused = false;
     let zoomState = { x: 0, y: 0, scale: new THREE.Vector2(1.0, 1.0) };
@@ -464,6 +466,7 @@
                 textureState: { value: state_read_atlas.texture },
                 timeStep: { value: timeStep },
                 numSlices: { value: NUM_SLICES },
+                uGravity: { value: gravity },
             },
             vertexShader: getPassthroughVertexShader(),
             fragmentShader: updateShader,
@@ -552,7 +555,6 @@
                 drawMaterial.uniforms.uAtlasTexture.value = state_read_atlas.texture;
                 instancedDrawMaterial.uniforms.uAtlasTexture.value = state_read_atlas.texture;
             }
-            updatePreview();
         }
 
         function cleanup() {
@@ -592,6 +594,7 @@
                 <label for="dt-slider" class="text-sm font-medium">Time Step: <span id="dt-value">0.016</span></label>
                 <input id="dt-slider" type="range" min="0.001" max="0.35" step="0.001" value="0.016">
             </div>
+            <button id="gravity-btn" class="toggle-button active">Gravity ON</button>
             <button id="restart-btn" class="toggle-button active">Restart</button>
         `;
         
@@ -645,6 +648,14 @@
         dtSlider.addEventListener('input', (e) => {
             timeStep = parseFloat(e.target.value);
             dtValue.textContent = timeStep.toFixed(3);
+        });
+
+        const gravityBtn = document.getElementById('gravity-btn');
+        gravityBtn.addEventListener('click', () => {
+            gravity = gravity === 9.8 ? 0.0 : 9.8;
+            updateMaterial.uniforms.uGravity.value = gravity;
+            gravityBtn.textContent = gravity === 9.8 ? 'Gravity ON' : 'Gravity OFF';
+            gravityBtn.classList.toggle('active');
         });
 
         document.getElementById('restart-btn').addEventListener('click', () => { needsRestart = true; });
@@ -789,12 +800,37 @@
 
     // --- Interactivity ---
     
-    function updatePreview() {
-        const targetMesh = mapMesh.visible ? mapMesh : instancedMapMesh;
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObject(targetMesh);
+    function getCoordsFromUV(uv) {
+        const PI2 = Math.PI * 2.0;
+        const fullRangeX = PI2 / zoomState.scale.x;
+        const minTheta1 = (zoomState.x * PI2) - fullRangeX / 2.0;
+        const theta1 = minTheta1 + uv.x * fullRangeX;
 
+        const fullRangeY = PI2 / zoomState.scale.y;
+        const minTheta2 = (zoomState.y * PI2) - fullRangeY / 2.0;
+        const theta2 = minTheta2 + uv.y * fullRangeY;
+
+        return { theta1, theta2 };
+    }
+
+    function onMouseMove(event) {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        if (viewMode !== '2D_SLICE') {
+             document.getElementById('info-placeholder').textContent = 'Hover disabled in 3D mode.';
+             return;
+        }
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(mapMesh);
+
+        const infoDiv = document.getElementById('info-placeholder');
         if (intersects.length > 0) {
+            const uv = intersects[0].uv;
+            const { theta1, theta2 } = getCoordsFromUV(uv);
+            infoDiv.textContent = `θ1: ${theta1.toFixed(4)}, θ2: ${theta2.toFixed(4)}`;
+        } else {
             const PI2 = Math.PI * 2.0;
             const fullRangeX = PI2 / zoomState.scale.x;
             const minTheta1 = (zoomState.x * PI2) - fullRangeX / 2.0;
@@ -802,16 +838,9 @@
             const fullRangeY = PI2 / zoomState.scale.y;
             const minTheta2 = (zoomState.y * PI2) - fullRangeY / 2.0;
             const maxTheta2 = minTheta2 + fullRangeY;
-
-            const infoDiv = document.getElementById('info-placeholder');
             infoDiv.textContent = `θ1 ∈ [${minTheta1.toFixed(4)}, ${maxTheta1.toFixed(4)}]
 θ2 ∈ [${minTheta2.toFixed(4)}, ${maxTheta2.toFixed(4)}]`;
         }
-    }
-
-    function onMouseMove(event) {
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     }
     
     function onMouseDown(event) {
@@ -824,20 +853,39 @@
             const dragEnd = new THREE.Vector2(event.clientX, event.clientY);
             const dragDist = dragStart.distanceTo(dragEnd);
 
-            if (dragDist > 5) {
-                const targetMesh = mapMesh.visible ? mapMesh : instancedMapMesh;
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(targetMesh);
-                if (intersects.length > 0) {
-                    const uv = intersects[0].uv;
-                    const zoomFactor = dragDist / Math.min(window.innerWidth, window.innerHeight);
-                    zoomState.x += (uv.x - 0.5) / zoomState.scale.x;
-                    zoomState.y += (uv.y - 0.5) / zoomState.scale.y;
-                    const scaleFactor = (1.0 - Math.max(0, Math.min(0.9, zoomFactor * 2.0)));
-                    zoomState.scale.multiplyScalar(1.0 / scaleFactor);
-                    needsRestart = true;
-                    updateViewInputs();
-                }
+            raycaster.setFromCamera(mouse, camera);
+            const targetMesh = mapMesh.visible ? mapMesh : instancedMapMesh;
+            const intersects = raycaster.intersectObject(targetMesh);
+
+            if (intersects.length === 0) return;
+
+            if (dragDist > 5) { // DRAG (ZOOM)
+                const uv = intersects[0].uv;
+                const zoomFactor = dragDist / Math.min(window.innerWidth, window.innerHeight);
+                zoomState.x += (uv.x - 0.5) / zoomState.scale.x;
+                zoomState.y += (uv.y - 0.5) / zoomState.scale.y;
+                const scaleFactor = (1.0 - Math.max(0, Math.min(0.9, zoomFactor * 2.0)));
+                zoomState.scale.multiplyScalar(1.0 / scaleFactor);
+                needsRestart = true;
+                updateViewInputs();
+            } else if (viewMode === '2D_SLICE') { // CLICK (SET PREVIEW)
+                 const uv = intersects[0].uv;
+                 const { theta1, theta2 } = getCoordsFromUV(uv);
+
+                 document.getElementById('preview-theta1').value = theta1.toFixed(4);
+                 document.getElementById('preview-theta2').value = theta2.toFixed(4);
+                 document.getElementById('preview-omega1').value = 0;
+                 document.getElementById('preview-omega2').value = 0;
+                 
+                 document.getElementById('info-placeholder').textContent = `📌 θ1: ${theta1.toFixed(4)}, θ2: ${theta2.toFixed(4)}`;
+
+                 document.getElementById('start-preview-btn').click();
+
+                 const panel = document.getElementById('info-panel');
+                 if (!panel.classList.contains('expanded')) {
+                     panel.classList.add('expanded');
+                     document.getElementById('pendulum-preview-container').classList.remove('hidden');
+                 }
             }
         }
     }
@@ -857,7 +905,7 @@
     function animatePreviewPendulum() {
         if (!isPreviewRunning || !previewCanvasCtx) return;
 
-        const G = 9.8, L1 = 1.0, L2 = 1.0, M1 = 1.0, M2 = 1.0;
+        const L1 = 1.0, L2 = 1.0, M1 = 1.0, M2 = 1.0;
         const dt = 1 / 60.0;
 
         let { t1, t2, w1, w2 } = previewPendulumState;
@@ -867,8 +915,8 @@
             const den1 = (M1 + M2) * L1 - M2 * L1 * Math.cos(diff_t) * Math.cos(diff_t);
             const den2 = (L2 / L1) * den1;
 
-            const dw1 = (M2*L1*w1*w1*Math.sin(diff_t)*Math.cos(diff_t) + M2*G*Math.sin(t2)*Math.cos(diff_t) + M2*L2*w2*w2*Math.sin(diff_t) - (M1+M2)*G*Math.sin(t1)) / den1;
-            const dw2 = (-M2*L2*w2*w2*Math.sin(diff_t)*Math.cos(diff_t) + (M1+M2)*G*Math.sin(t1)*Math.cos(diff_t) - (M1+M2)*L1*w1*w1*Math.sin(diff_t) - (M1+M2)*G*Math.sin(t2)) / den2;
+            const dw1 = (M2*L1*w1*w1*Math.sin(diff_t)*Math.cos(diff_t) + M2*gravity*Math.sin(t2)*Math.cos(diff_t) + M2*L2*w2*w2*Math.sin(diff_t) - (M1+M2)*gravity*Math.sin(t1)) / den1;
+            const dw2 = (-M2*L2*w2*w2*Math.sin(diff_t)*Math.cos(diff_t) + (M1+M2)*gravity*Math.sin(t1)*Math.cos(diff_t) - (M1+M2)*L1*w1*w1*Math.sin(diff_t) - (M1+M2)*gravity*Math.sin(t2)) / den2;
             
             w1 += dw1 * (dt / 2);
             w2 += dw2 * (dt / 2);
@@ -978,8 +1026,10 @@
     }
     function getUpdateShader() { return `
         varying vec2 vUv;
-        uniform sampler2D textureState; uniform float timeStep;
-        const float G = 9.8, L1 = 1.0, L2 = 1.0, M1 = 1.0, M2 = 1.0;
+        uniform sampler2D textureState; 
+        uniform float timeStep;
+        uniform float uGravity;
+        const float L1 = 1.0, L2 = 1.0, M1 = 1.0, M2 = 1.0;
         const float PI = 3.1415926535, TWO_PI = 6.283185307;
         float wrap(float a) { return a - TWO_PI * floor((a + PI) / TWO_PI); }
         void main() {
@@ -987,8 +1037,8 @@
             float t1=s.x, t2=s.y, w1=s.z, w2=s.w, dt=t2-t1;
             float den1=(M1+M2)*L1 - M2*L1*cos(dt)*cos(dt);
             float den2=(L2/L1)*den1;
-            float dw1=(M2*L1*w1*w1*sin(dt)*cos(dt) + M2*G*sin(t2)*cos(dt) + M2*L2*w2*w2*sin(dt) - (M1+M2)*G*sin(t1))/den1;
-            float dw2=(-M2*L2*w2*w2*sin(dt)*cos(dt) + (M1+M2)*G*sin(t1)*cos(dt) - (M1+M2)*L1*w1*w1*sin(dt) - (M1+M2)*G*sin(t2))/den2;
+            float dw1=(M2*L1*w1*w1*sin(dt)*cos(dt) + M2*uGravity*sin(t2)*cos(dt) + M2*L2*w2*w2*sin(dt) - (M1+M2)*uGravity*sin(t1))/den1;
+            float dw2=(-M2*L2*w2*w2*sin(dt)*cos(dt) + (M1+M2)*uGravity*sin(t1)*cos(dt) - (M1+M2)*L1*w1*w1*sin(dt) - (M1+M2)*uGravity*sin(t2))/den2;
             w1+=dw1*timeStep; w2+=dw2*timeStep; t1+=w1*timeStep; t2+=w2*timeStep;
             gl_FragColor=vec4(wrap(t1),wrap(t2),w1,w2);
         }
