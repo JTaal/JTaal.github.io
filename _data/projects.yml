@@ -63,10 +63,10 @@
   thumbnail: /assets/images/DNA-helix.png
   visualization_url: /visualizations/DNA-helix.html
 
-- title: Double Pendulum Fractal
+- title: Double Pendulum Map
   author: Jasper Taal
-  thumbnail: /assets/images/double-pendulum-fractal.png
-  visualization_url: /visualizations/double-pendulum-fractal.html
+  thumbnail: /assets/images/double-pendulum-map.png
+  visualization_url: /visualizations/double-pendulum-map.html
 
 - title: Entropy
   author: Jasper Taal
