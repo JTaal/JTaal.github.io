@@ -436,7 +436,7 @@
                         <button data-coherence="coherent" class="toggle-button w-1/2">Coherent</button>
                     </div>
                 </div>
-                  <div class="control-group text-left w-full">
+                 <div class="control-group text-left w-full">
                     <label for="voxel-resolution-slider" class="text-sm font-medium self-start w-full flex justify-between">
                         <span>Voxelization Quality:</span>
                         <span id="voxel-resolution-value">Medium</span>
@@ -668,11 +668,11 @@
         `;
         if (window.renderMathInElement) {
              setTimeout(() => {
-                try {
-                    renderMathInElement(document.body);
-                } catch (e) {
-                    console.error("KaTeX rendering failed:", e);
-                }
+                 try {
+                     renderMathInElement(document.body);
+                 } catch (e) {
+                     console.error("KaTeX rendering failed:", e);
+                 }
              }, 100);
         }
 
@@ -754,13 +754,18 @@
             
             const side = Math.ceil(Math.sqrt(lineCount));
             for (let i = 0; i < lineCount; i++) {
-                 const yIndex = i % side;
-                 const zIndex = Math.floor(i / side);
-                 const yPos = (side > 1) ? (yIndex / (side - 1)) * (NY - 2) + 1 : NY / 2;
-                 const zPos = (side > 1) ? (zIndex / (side - 1)) * (NZ - 2) + 1 : NZ / 2;
-                 gridCoherentInitialPositions[i * 3]     = 0.1;
-                 gridCoherentInitialPositions[i * 3 + 1] = yPos;
-                 gridCoherentInitialPositions[i * 3 + 2] = zPos;
+                const yIndex = i % side;
+                const zIndex = Math.floor(i / side);
+                const yPos = (side > 1) ? (yIndex / (side - 1)) * (NY - 2) + 1 : NY / 2;
+                const zPos = (side > 1) ? (zIndex / (side - 1)) * (NZ - 2) + 1 : NZ / 2;
+
+                if (flowSpeed >= 0) {
+                    gridCoherentInitialPositions[i * 3]     = 0.1;
+                } else {
+                    gridCoherentInitialPositions[i * 3]     = NX - 1.1;
+                }
+                gridCoherentInitialPositions[i * 3 + 1] = yPos;
+                gridCoherentInitialPositions[i * 3 + 2] = zPos;
             }
 
             if (gridLines) {
@@ -779,9 +784,9 @@
                         rho[i] = 1.0; ux[i] = flowSpeed; uy[i] = 0; uz[i] = 0;
                         const u_sq = ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i];
                         for (let k = 0; k < Q; k++) {
-                           const cu = c[k][0]*ux[i] + c[k][1]*uy[i] + c[k][2]*uz[i];
-                           const feq = w[k] * rho[i] * (1 + 3*cu + 4.5*cu*cu - 1.5*u_sq);
-                           f[i * Q + k] = feq; f_new[i * Q + k] = feq;
+                            const cu = c[k][0]*ux[i] + c[k][1]*uy[i] + c[k][2]*uz[i];
+                            const feq = w[k] * rho[i] * (1 + 3*cu + 4.5*cu*cu - 1.5*u_sq);
+                            f[i * Q + k] = feq; f_new[i * Q + k] = feq;
                         }
                     }
                 }
@@ -840,8 +845,8 @@
         const color = new THREE.Color();
         const controlsDiv = document.getElementById('controls-panel');
         controlsDiv.innerHTML = `
-            <div class="control-group"><label class="text-sm font-medium">Viscosity</label><input id="viscosity-slider" type="range" min="0.51" max="1.5" step="0.01" value="${tau}"><span id="viscosity-value" class="text-xs">${tau.toFixed(2)}</span></div>
-            <div class="control-group"><label class="text-sm font-medium">Flow Speed</label><input id="flow-speed-slider" type="range" min="0.01" max="0.1" step="0.005" value="${flowSpeed}"><span id="flow-speed-value" class="text-xs">${flowSpeed.toFixed(3)}</span></div>
+            <div class="control-group"><label class="text-sm font-medium">Viscosity</label><input id="viscosity-slider" type="range" min="0.5" max="3" step="0.01" value="${tau}"><span id="viscosity-value" class="text-xs">${tau.toFixed(2)}</span></div>
+            <div class="control-group"><label class="text-sm font-medium">Flow Speed</label><input id="flow-speed-slider" type="range" min="-0.3" max="0.3" step="0.005" value="${flowSpeed}"><span id="flow-speed-value" class="text-xs">${flowSpeed.toFixed(3)}</span></div>
             <div class="control-group"><label class="text-sm font-medium">View Mode</label><button id="viz-toggle-btn" class="toggle-button">Grid Lines</button></div>
             <div class="control-group" id="flow-mode-control"><label class="text-sm font-medium">Flow Mode</label><div class="flex gap-1"><button data-mode="dynamic" class="toggle-button active">Dynamic</button><button data-mode="static" class="toggle-button">Static</button></div></div>
             <div class="control-group"><label class="text-sm font-medium">Color By</label><button id="color-mode-btn" class="toggle-button">Density</button></div>
@@ -850,7 +855,19 @@
             <div class="control-group"><label class="text-sm font-medium">Obstacle</label><button id="reset-obstacle-btn" class="toggle-button">Reset to Sphere</button></div>`;
 
         document.getElementById('viscosity-slider').addEventListener('input', e => { tau = parseFloat(e.target.value); document.getElementById('viscosity-value').textContent = tau.toFixed(2); });
-        document.getElementById('flow-speed-slider').addEventListener('input', e => { flowSpeed = parseFloat(e.target.value); document.getElementById('flow-speed-value').textContent = flowSpeed.toFixed(3); });
+        
+        let lastFlowSpeedSign = Math.sign(flowSpeed);
+        document.getElementById('flow-speed-slider').addEventListener('input', e => {
+            flowSpeed = parseFloat(e.target.value);
+            document.getElementById('flow-speed-value').textContent = flowSpeed.toFixed(3);
+            const newSign = Math.sign(flowSpeed);
+            if (newSign !== lastFlowSpeedSign && newSign !== 0) {
+                if (flowMode === 'dynamic') {
+                    resetGridTracers();
+                }
+                lastFlowSpeedSign = newSign;
+            }
+        });
         
         const coherenceControl = document.getElementById('coherence-control-container');
         document.getElementById('viz-toggle-btn').addEventListener('click', e => {
@@ -974,12 +991,160 @@
             if(obstacleMesh)obstacleMesh.visible=false;loadingOverlay.classList.add('hidden');initializeLattice();}
 
         function update(delta) {
-            if(isPaused)return;for(let i=0;i<2;++i)step();
-            if(visualizationMode==='particles'){const posAttr=particles.geometry.attributes.position;const colAttr=particles.geometry.attributes.color;for(let i=0;i<PARTICLE_COUNT;++i){let x=posAttr.getX(i);let y=posAttr.getY(i);let z=posAttr.getZ(i);if(x<0||x>=NX-1||y<0||y>=NY-1||z<0||z>=NZ-1){x=Math.random()*2;y=Math.random()*NY;z=Math.random()*NZ;}const gridIdx=idx(Math.floor(x),Math.floor(y),Math.floor(z));if(barrier[gridIdx]){x=Math.random()*2;y=Math.random()*NY;z=Math.random()*NZ;}else{const velX=ux[gridIdx];const velY=uy[gridIdx];const velZ=uz[gridIdx];x+=velX*50*delta;y+=velY*50*delta;z+=velZ*50*delta;const speed=Math.sqrt(velX*velX+velY*velY+velZ*velZ)/0.1;color.setHSL(0.6-speed*0.5,1.0,0.5);colAttr.setXYZ(i,color.r,color.g,color.b);}posAttr.setXYZ(i,x,y,z);}posAttr.needsUpdate=true;colAttr.needsUpdate=true;}
-            else{const gridPosAttr=gridLines.geometry.attributes.position;const gridColAttr=gridLines.geometry.attributes.color;
-                if(flowMode==='dynamic'){for(let i=0;i<lineCount;i++){let tracerX=gridTracerPositions[i*3];let tracerY=gridTracerPositions[i*3+1];let tracerZ=gridTracerPositions[i*3+2];const preMoveGridX=Math.floor(tracerX);const preMoveGridY=Math.floor(tracerY);const preMoveGridZ=Math.floor(tracerZ);if(preMoveGridX>=0&&preMoveGridX<NX&&preMoveGridY>=0&&preMoveGridY<NY&&preMoveGridZ>=0&&preMoveGridZ<NZ){const preMoveGridIdx=idx(preMoveGridX,preMoveGridY,preMoveGridZ);if(!barrier[preMoveGridIdx]){tracerX+=ux[preMoveGridIdx]*30*delta;tracerY+=uy[preMoveGridIdx]*30*delta;tracerZ+=uz[preMoveGridIdx]*30*delta;}}const gridX=Math.floor(tracerX);const gridY=Math.floor(tracerY);const gridZ=Math.floor(tracerZ);let needsReset=false;if(gridX<0||gridX>=NX||gridY<0||gridY>=NY||gridZ<0||gridZ>=NZ){needsReset=true;}else{const currentGridIdx=idx(gridX,gridY,gridZ);if(barrier[currentGridIdx]){needsReset=true;}}if(needsReset){if(coherenceMode==='coherent'){tracerX=gridCoherentInitialPositions[i*3];tracerY=gridCoherentInitialPositions[i*3+1];tracerZ=gridCoherentInitialPositions[i*3+2];}else{tracerX=Math.random()*1;tracerY=Math.random()*NY;tracerZ=Math.random()*NZ;}}gridTracerPositions[i*3]=tracerX;gridTracerPositions[i*3+1]=tracerY;gridTracerPositions[i*3+2]=tracerZ;const currentGridIdx=idx(Math.min(NX-1,Math.max(0,gridX)),Math.min(NY-1,Math.max(0,gridY)),Math.min(NZ-1,Math.max(0,gridZ)));let shouldDraw=sliceAxis==='none'||(sliceAxis==='x'&&gridX===slicePosition)||(sliceAxis==='y'&&gridY===slicePosition)||(sliceAxis==='z'&&gridZ===slicePosition);if(needsReset||!shouldDraw||barrier[currentGridIdx]){gridPosAttr.setXYZ(i*2,tracerX,tracerY,-1000);gridPosAttr.setXYZ(i*2+1,tracerX,tracerY,-1000);}else{const velX=ux[currentGridIdx];const velY=uy[currentGridIdx];const velZ=uz[currentGridIdx];const speed=Math.sqrt(velX*velX+velY*velY+velZ*velZ);if(colorMode==='velocity'){color.setHSL(0.7-(speed/(flowSpeed*2))*0.7,1.0,0.5);}else{color.setHSL(0.6,1.0,Math.max(0,Math.min(1,(rho[currentGridIdx]-0.98)/0.04))*0.8+0.1);}const v_len=speed>1e-6?speed:1e-6;const nvx=velX/v_len,nvy=velY/v_len,nvz=velZ/v_len;const startX=tracerX-nvx*lineLength/2,startY=tracerY-nvy*lineLength/2,startZ=tracerZ-nvz*lineLength/2;const endX=tracerX+nvx*lineLength/2,endY=tracerY+nvy*lineLength/2,endZ=tracerZ+nvz*lineLength/2;gridPosAttr.setXYZ(i*2,startX,startY,startZ);gridPosAttr.setXYZ(i*2+1,endX,endY,endZ);gridColAttr.setXYZ(i*2,color.r,color.g,color.b);gridColAttr.setXYZ(i*2+1,color.r,color.g,color.b);}}}
-                else{for(let i=0;i<staticGridIndices.length;i++){const gridIdx=staticGridIndices[i];const x=Math.floor(gridIdx/(NY*NZ));const y=Math.floor((gridIdx/NZ)%NY);const z=gridIdx%NZ;let shouldDraw=sliceAxis==='none'||(sliceAxis==='x'&&x===slicePosition)||(sliceAxis==='y'&&y===slicePosition)||(sliceAxis==='z'&&z===slicePosition);if(barrier[gridIdx]||!shouldDraw){gridPosAttr.setXYZ(i*2,x,y,-1000);gridPosAttr.setXYZ(i*2+1,x,y,-1000);}else{const velX=ux[gridIdx];const velY=uy[gridIdx];const velZ=uz[gridIdx];const speed=Math.sqrt(velX*velX+velY*velY+velZ*velZ);if(colorMode==='velocity'){color.setHSL(0.7-(speed/(flowSpeed*2))*0.7,1.0,0.5);}else{color.setHSL(0.6,1.0,Math.max(0,Math.min(1,(rho[gridIdx]-0.98)/0.04))*0.8+0.1);}const v_len=speed>1e-6?speed:1e-6;const nvx=velX/v_len,nvy=velY/v_len,nvz=velZ/v_len;const startX=x-nvx*lineLength/2,startY=y-nvy*lineLength/2,startZ=z-nvz*lineLength/2;const endX=x+nvx*lineLength/2,endY=y+nvy*lineLength/2,endZ=z+nvz*lineLength/2;gridPosAttr.setXYZ(i*2,startX,startY,startZ);gridPosAttr.setXYZ(i*2+1,endX,endY,endZ);gridColAttr.setXYZ(i*2,color.r,color.g,color.b);gridColAttr.setXYZ(i*2+1,color.r,color.g,color.b);}}}
-                gridPosAttr.needsUpdate=true;gridColAttr.needsUpdate=true;}}
+            if (isPaused) return;
+            for (let i = 0; i < 2; ++i) step();
+
+            if (visualizationMode === 'particles') {
+                const posAttr = particles.geometry.attributes.position;
+                const colAttr = particles.geometry.attributes.color;
+                for (let i = 0; i < PARTICLE_COUNT; ++i) {
+                    let x = posAttr.getX(i);
+                    let y = posAttr.getY(i);
+                    let z = posAttr.getZ(i);
+                    let needsReset = false;
+
+                    if (x < 0 || x >= NX || y < 0 || y >= NY || z < 0 || z >= NZ) {
+                        needsReset = true;
+                    } else {
+                        const gridIdx = idx(Math.floor(x), Math.floor(y), Math.floor(z));
+                        if (barrier[gridIdx]) {
+                            needsReset = true;
+                        }
+                    }
+
+                    if (needsReset) {
+                        if (flowSpeed >= 0) {
+                            x = Math.random() * 2; // Spawn at left inlet
+                        } else {
+                            x = NX - 1 - (Math.random() * 2); // Spawn at right inlet
+                        }
+                        y = Math.random() * NY;
+                        z = Math.random() * NZ;
+                    } else {
+                        const gridIdx = idx(Math.floor(x), Math.floor(y), Math.floor(z));
+                        const velX = ux[gridIdx];
+                        const velY = uy[gridIdx];
+                        const velZ = uz[gridIdx];
+                        x += velX * 50 * delta;
+                        y += velY * 50 * delta;
+                        z += velZ * 50 * delta;
+                        const speed = Math.sqrt(velX * velX + velY * velY + velZ * velZ) / 0.1;
+                        color.setHSL(0.6 - speed * 0.5, 1.0, 0.5);
+                        colAttr.setXYZ(i, color.r, color.g, color.b);
+                    }
+                    posAttr.setXYZ(i, x, y, z);
+                }
+                posAttr.needsUpdate = true;
+                colAttr.needsUpdate = true;
+            } else { // 'grid' mode
+                const gridPosAttr = gridLines.geometry.attributes.position;
+                const gridColAttr = gridLines.geometry.attributes.color;
+                if (flowMode === 'dynamic') {
+                    for (let i = 0; i < lineCount; i++) {
+                        let tracerX = gridTracerPositions[i * 3];
+                        let tracerY = gridTracerPositions[i * 3 + 1];
+                        let tracerZ = gridTracerPositions[i * 3 + 2];
+                        const preMoveGridX = Math.floor(tracerX);
+                        const preMoveGridY = Math.floor(tracerY);
+                        const preMoveGridZ = Math.floor(tracerZ);
+                        if (preMoveGridX >= 0 && preMoveGridX < NX && preMoveGridY >= 0 && preMoveGridY < NY && preMoveGridZ >= 0 && preMoveGridZ < NZ) {
+                            const preMoveGridIdx = idx(preMoveGridX, preMoveGridY, preMoveGridZ);
+                            if (!barrier[preMoveGridIdx]) {
+                                tracerX += ux[preMoveGridIdx] * 30 * delta;
+                                tracerY += uy[preMoveGridIdx] * 30 * delta;
+                                tracerZ += uz[preMoveGridIdx] * 30 * delta;
+                            }
+                        }
+                        const gridX = Math.floor(tracerX);
+                        const gridY = Math.floor(tracerY);
+                        const gridZ = Math.floor(tracerZ);
+                        let needsReset = false;
+                        if (gridX < 0 || gridX >= NX || gridY < 0 || gridY >= NY || gridZ < 0 || gridZ >= NZ) {
+                            needsReset = true;
+                        } else {
+                            const currentGridIdx = idx(gridX, gridY, gridZ);
+                            if (barrier[currentGridIdx]) {
+                                needsReset = true;
+                            }
+                        }
+                        if (needsReset) {
+                            if (coherenceMode === 'coherent') {
+                                tracerX = gridCoherentInitialPositions[i * 3];
+                                tracerY = gridCoherentInitialPositions[i * 3 + 1];
+                                tracerZ = gridCoherentInitialPositions[i * 3 + 2];
+                            } else {
+                                if (flowSpeed >= 0) {
+                                    tracerX = Math.random() * 1;
+                                } else {
+                                    tracerX = NX - 1 - Math.random() * 1;
+                                }
+                                tracerY = Math.random() * NY;
+                                tracerZ = Math.random() * NZ;
+                            }
+                        }
+                        gridTracerPositions[i * 3] = tracerX;
+                        gridTracerPositions[i * 3 + 1] = tracerY;
+                        gridTracerPositions[i * 3 + 2] = tracerZ;
+                        const currentGridIdx = idx(Math.min(NX - 1, Math.max(0, gridX)), Math.min(NY - 1, Math.max(0, gridY)), Math.min(NZ - 1, Math.max(0, gridZ)));
+                        let shouldDraw = sliceAxis === 'none' || (sliceAxis === 'x' && gridX === slicePosition) || (sliceAxis === 'y' && gridY === slicePosition) || (sliceAxis === 'z' && gridZ === slicePosition);
+                        if (needsReset || !shouldDraw || barrier[currentGridIdx]) {
+                            gridPosAttr.setXYZ(i * 2, tracerX, tracerY, -1000);
+                            gridPosAttr.setXYZ(i * 2 + 1, tracerX, tracerY, -1000);
+                        } else {
+                            const velX = ux[currentGridIdx];
+                            const velY = uy[currentGridIdx];
+                            const velZ = uz[currentGridIdx];
+                            const speed = Math.sqrt(velX * velX + velY * velY + velZ * velZ);
+                            if (colorMode === 'velocity') {
+                                color.setHSL(0.7 - (speed / (Math.abs(flowSpeed) * 2)) * 0.7, 1.0, 0.5);
+                            } else {
+                                color.setHSL(0.6, 1.0, Math.max(0, Math.min(1, (rho[currentGridIdx] - 0.98) / 0.04)) * 0.8 + 0.1);
+                            }
+                            const v_len = speed > 1e-6 ? speed : 1e-6;
+                            const nvx = velX / v_len, nvy = velY / v_len, nvz = velZ / v_len;
+                            const startX = tracerX - nvx * lineLength / 2, startY = tracerY - nvy * lineLength / 2, startZ = tracerZ - nvz * lineLength / 2;
+                            const endX = tracerX + nvx * lineLength / 2, endY = tracerY + nvy * lineLength / 2, endZ = tracerZ + nvz * lineLength / 2;
+                            gridPosAttr.setXYZ(i * 2, startX, startY, startZ);
+                            gridPosAttr.setXYZ(i * 2 + 1, endX, endY, endZ);
+                            gridColAttr.setXYZ(i * 2, color.r, color.g, color.b);
+                            gridColAttr.setXYZ(i * 2 + 1, color.r, color.g, color.b);
+                        }
+                    }
+                } else { // static mode
+                    for (let i = 0; i < staticGridIndices.length; i++) {
+                        const gridIdx = staticGridIndices[i];
+                        const x = Math.floor(gridIdx / (NY * NZ));
+                        const y = Math.floor((gridIdx / NZ) % NY);
+                        const z = gridIdx % NZ;
+                        let shouldDraw = sliceAxis === 'none' || (sliceAxis === 'x' && x === slicePosition) || (sliceAxis === 'y' && y === slicePosition) || (sliceAxis === 'z' && z === slicePosition);
+                        if (barrier[gridIdx] || !shouldDraw) {
+                            gridPosAttr.setXYZ(i * 2, x, y, -1000);
+                            gridPosAttr.setXYZ(i * 2 + 1, x, y, -1000);
+                        } else {
+                            const velX = ux[gridIdx];
+                            const velY = uy[gridIdx];
+                            const velZ = uz[gridIdx];
+                            const speed = Math.sqrt(velX * velX + velY * velY + velZ * velZ);
+                            if (colorMode === 'velocity') {
+                                color.setHSL(0.7 - (speed / (Math.abs(flowSpeed) * 2)) * 0.7, 1.0, 0.5);
+                            } else {
+                                color.setHSL(0.6, 1.0, Math.max(0, Math.min(1, (rho[gridIdx] - 0.98) / 0.04)) * 0.8 + 0.1);
+                            }
+                            const v_len = speed > 1e-6 ? speed : 1e-6;
+                            const nvx = velX / v_len, nvy = velY / v_len, nvz = velZ / v_len;
+                            const startX = x - nvx * lineLength / 2, startY = y - nvy * lineLength / 2, startZ = z - nvz * lineLength / 2;
+                            const endX = x + nvx * lineLength / 2, endY = y + nvy * lineLength / 2, endZ = z + nvz * lineLength / 2;
+                            gridPosAttr.setXYZ(i * 2, startX, startY, startZ);
+                            gridPosAttr.setXYZ(i * 2 + 1, endX, endY, endZ);
+                            gridColAttr.setXYZ(i * 2, color.r, color.g, color.b);
+                            gridColAttr.setXYZ(i * 2 + 1, color.r, color.g, color.b);
+                        }
+                    }
+                }
+                gridPosAttr.needsUpdate = true;
+                gridColAttr.needsUpdate = true;
+            }
+        }
 
         function cleanup() { }
         return { update, cleanup };
@@ -1285,4 +1450,3 @@
 </script>
 </body>
 </html>
-

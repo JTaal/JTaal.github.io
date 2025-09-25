@@ -3,19 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reaction-Diffusion (Turing Patterns) Simulator</title>
+    <title>AI Pong: DQN vs SAC</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" xintegrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" xintegrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
-                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
-            }
-        }
-    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -23,6 +14,15 @@
             overflow: hidden;
             background-color: #030712; /* bg-gray-950 */
             color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            background-color: #111827;
+            border-radius: 8px;
+            border: 1px solid #374151;
         }
         .ui-panel {
             position: absolute;
@@ -43,29 +43,21 @@
             max-height: 58px; /* Collapsed */
         }
         #info-panel.expanded {
-            max-height: 90vh; 
+            max-height: calc(100vh - 100px); 
             cursor: default;
             overflow-y: auto;
+            z-index: 11;
         }
         #info-header { display: flex; justify-content: space-between; align-items: center; }
         #toggle-icon { transition: transform 0.3s ease-in-out; }
         #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
-        .param-info {
-            font-family: 'Georgia', serif;
-            background-color: #1f2937;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-            color: #d1d5db;
-            border: 1px solid #374151;
-        }
         #controls-panel {
             bottom: 0;
             left: 0;
             right: 0;
             width: 100%;
             border-radius: 12px 12px 0 0;
-            padding: 1rem 1.5rem;
+            padding: 1rem 2rem;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
@@ -86,7 +78,11 @@
             backdrop-filter: blur(5px);
             border-bottom: 1px solid rgba(55, 65, 81, 0.7);
         }
-        .preset-button, .action-button {
+        #menu {
+            display: flex;
+            gap: 10px;
+        }
+        .menu-button, .toggle-button {
             background-color: rgba(55, 65, 81, 0.8);
             backdrop-filter: blur(5px);
             border: 1px solid rgba(75, 85, 99, 0.9);
@@ -98,17 +94,14 @@
             font-weight: 500;
             font-size: 0.875rem;
         }
-        .preset-button:hover, .action-button:hover {
+        .menu-button:hover, .toggle-button:hover {
             background-color: #4338ca;
             transform: translateY(-2px);
         }
-        .preset-button.active, .action-button.active {
+        .menu-button.active, .toggle-button.active {
             background-color: #4f46e5;
             box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
         }
-        .action-button.reset { background-color: #be123c; }
-        .action-button.reset:hover { background-color: #e11d48; }
-
         input[type="range"] {
             -webkit-appearance: none;
             width: 100%;
@@ -128,27 +121,11 @@
             cursor: pointer;
             border-radius: 50%;
         }
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-            min-width: 150px;
-        }
-        .control-group.toggle-style {
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .control-group label {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-        }
-        .hidden { display: none !important; }
-        canvas { display: block; cursor: crosshair; }
-        
         #settings-button {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            z-index: 11;
             background-color: rgba(55, 65, 81, 0.8);
             backdrop-filter: blur(5px);
             border: 1px solid rgba(75, 85, 99, 0.9);
@@ -158,10 +135,6 @@
             cursor: pointer;
             transition: all 0.3s;
         }
-        #settings-button:hover {
-            background-color: #4338ca;
-            transform: translateY(-2px) rotate(45deg);
-        }
         #settings-panel {
             top: 80px;
             right: 0;
@@ -169,7 +142,6 @@
             max-width: 90vw;
             border-radius: 12px 0 0 12px;
             transform: translateX(100%);
-            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
             max-height: calc(100vh - 100px);
             overflow-y: auto;
             z-index: 12;
@@ -177,867 +149,714 @@
         #settings-panel.open {
             transform: translateX(0);
         }
-        #close-settings {
-            font-size: 2.5rem;
-            line-height: 1;
-            padding: 0;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-        input[type="color"] {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            width: 100%;
-            height: 40px;
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-        }
-        input[type="color"]::-webkit-color-swatch {
-            border-radius: 8px;
-            border: 1px solid #4b5563;
-        }
-        input[type="color"]::-moz-color-swatch {
-            border-radius: 8px;
-            border: 1px solid #4b5563;
-        }
-        /* Toggle Switch styles */
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 28px;
-        }
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider {
+        .score {
             position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #4b5563; /* gray-600 */
-            transition: .4s;
-            border-radius: 28px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 4rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.1);
+            z-index: -1;
         }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        input:checked + .slider {
-            background-color: #4f46e5; /* indigo-600 */
-        }
-        input:checked + .slider:before {
-            transform: translateX(22px);
-        }
-        
-        /* Custom color scheme dropdown */
-        #color-scheme-options {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
-        #color-scheme-options::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Opera */
-        }
-        #color-scheme-options .option {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 0.75rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            font-size: 0.875rem;
-        }
-        #color-scheme-options .option:hover {
-            background-color: #4338ca;
-        }
-        .color-swatch-preview {
-            width: 1rem;
-            height: 1rem;
-            border-radius: 50%;
-            margin-right: 0.75rem;
-            flex-shrink: 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        #selected-color-swatch {
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        @media (max-width: 768px) {
-            header { padding: 0.75rem 1rem; justify-content: space-between; }
-            header h1 { font-size: 1.25rem; }
-            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
-            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
-            #controls-panel { padding: 0.75rem; gap: 1rem; flex-direction: column; }
-            .control-group { min-width: 220px; }
-            .preset-container { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;}
-        }
+        #player-score { left: 25%; }
+        #ai-score { right: 25%; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <header>
-        <h1 class="text-2xl font-bold text-gray-200 tracking-wider opacity-90">Reaction-Diffusion Simulator</h1>
-        <button id="settings-button" title="Settings">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">AI Pong</h1>
     </header>
 
-    <div id="info-panel" class="ui-panel">
-        <div id="info-header">
-            <h2 id="info-title" class="text-xl font-bold text-indigo-400">Turing Patterns</h2>
-            <div id="toggle-icon" class="text-indigo-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
-        </div>
-        <div id="info-content" class="pt-4 space-y-3">
-             <p id="info-description" class="text-gray-300">
-                 This simulates the Gray-Scott model, a mathematical model of reaction-diffusion systems. Two virtual chemicals interact and diffuse, creating complex patterns reminiscent of those found in nature, like animal coats or coral growth. These are often called "Turing Patterns," named after Alan Turing who first described them.
-             </p>
-             <div class="param-info space-y-2">
-                 <p><strong class="text-indigo-300">Feed Rate (f):</strong> The rate at which chemical 'A' is added to the system.</p>
-                 <p><strong class="text-indigo-300">Kill Rate (k):</strong> The rate at which chemical 'B' is removed.</p>
-                 <p class="text-sm text-gray-400">The diffusion rates and interaction terms are fixed in this simulation. Small changes to 'f' and 'k' can dramatically alter the resulting patterns. Click and drag your mouse on the canvas to add more of chemical 'B'.</p>
-             </div>
-             <div id="formula-container" class="mt-4 space-y-3">
-                 <h3 class="text-lg font-bold text-indigo-400">Governing Equations (Gray-Scott Model)</h3>
-                 <div id="general-formula" class="param-info text-center text-base p-2"></div>
-    
-                 <h3 class="text-lg font-bold text-indigo-400">Current Preset Parameters</h3>
-                 <div id="preset-formula" class="param-info text-center text-lg"></div>
-             </div>
-        </div>
+    <div id="game-container" class="mt-12">
+        <div id="player-score" class="score">0</div>
+        <canvas id="pong-canvas" width="800" height="500"></canvas>
+        <div id="ai-score" class="score">0</div>
     </div>
 
     <div id="controls-panel" class="ui-panel">
-        <div class="control-group">
-            <label for="feed-slider" class="text-sm"><span>Feed (f)</span> <span id="feed-value">0.055</span></label>
-            <input id="feed-slider" type="range" min="0.01" max="0.1" step="0.001" value="0.0545">
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-medium">Agent:</span>
+            <button id="btn-dqn" class="menu-button active">DQN</button>
+            <button id="btn-sac" class="menu-button">SAC</button>
         </div>
-        <div class="control-group">
-            <label for="kill-slider" class="text-sm"><span>Kill (k)</span> <span id="kill-value">0.062</span></label>
-            <input id="kill-slider" type="range" min="0.045" max="0.07" step="0.001" value="0.062">
-        </div>
-        <div class="control-group">
-            <label for="preset-select" class="text-sm">Preset Patterns</label>
-            <select id="preset-select" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2.5"></select>
-        </div>
-        <button id="pause-button" class="action-button active">
-            <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-            <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden inline-block mr-1"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            <span id="pause-text">Pause</span>
-        </button>
-        <button id="reset-button" class="action-button reset">Reset</button>
+        <button id="start-btn" class="toggle-button">Start Game</button>
+        <button id="reset-btn" class="toggle-button">Reset Game</button>
+        <button id="load-sac-btn" class="toggle-button" disabled>Load Pre-trained SAC</button>
     </div>
     
-    <div id="settings-panel" class="ui-panel hidden">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
-            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
-        </div>
-        <div class="space-y-6">
-             <div class="control-group toggle-style text-left w-full">
-                 <label for="brush-toggle-input" class="text-sm font-medium">Enable Brush</label>
-                 <label class="toggle-switch">
-                     <input type="checkbox" id="brush-toggle-input" checked>
-                     <span class="slider"></span>
-                 </label>
-             </div>
-             <div class="control-group toggle-style text-left w-full">
-                 <label for="color-mode-toggle-input" class="text-sm font-medium">Distance Coloring</label>
-                 <label class="toggle-switch">
-                     <input type="checkbox" id="color-mode-toggle-input" checked>
-                     <span class="slider"></span>
-                 </label>
-             </div>
-             <div id="color-scheme-group" class="control-group text-left w-full">
-                <label class="text-sm font-medium self-start w-full mb-1">Color Scheme</label>
-                <div id="custom-color-select" class="relative w-full">
-                    <button id="color-scheme-button" type="button" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2.5 flex items-center justify-between text-left">
-                        <span class="flex items-center">
-                            <span id="selected-color-swatch" class="w-4 h-4 rounded-full mr-2 inline-block flex-shrink-0"></span>
-                            <span id="selected-color-name" class="truncate">Rainbow</span>
-                        </span>
-                        <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-                    <div id="color-scheme-options" class="absolute bottom-full mb-2 w-full bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-20 hidden max-h-48 overflow-y-auto">
-                        <!-- Options populated by JS -->
-                    </div>
-                </div>
-            </div>
-             <hr class="border-gray-600">
-             <div class="control-group text-left w-full">
-                 <label for="brush-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
-                     <span>Brush Size</span>
-                     <span id="brush-size-value">0.05</span>
-                 </label>
-                 <input id="brush-size-slider" type="range" min="0.01" max="0.2" step="0.005" value="0.05" class="w-full">
-             </div>
-             <hr class="border-gray-600">
-             <div class="control-group text-left w-full">
-                 <label for="bg-color-input" class="text-sm font-medium self-start w-full">Background Color (A)</label>
-                 <input id="bg-color-input" type="color" value="#0d0d1a">
-             </div>
-             <div class="control-group text-left w-full">
-                 <label for="pattern-color-input" class="text-sm font-medium self-start w-full">Pattern Color (B)</label>
-                 <input id="pattern-color-input" type="color" value="#f0f0f0">
-             </div>
-        </div>
-    </div>
-
 <script type="module">
-    import * as THREE from 'three';
+    // --- Basic Neural Network & Matrix Library ---
+    // (A very simplified implementation for this demo)
 
-    // --- Core Three.js Components ---
-    let scene, camera, renderer, clock;
-    let mainScene, mainCamera, planeMesh;
-    let simScene, simCamera;
-
-    // --- Simulation State ---
-    let readTarget, writeTarget;
-    let simMaterial;
-    const pointer = new THREE.Vector2(-1, -1); // Offscreen initially
-    let isPointerDown = false;
-    let isPaused = false;
-    
-    // --- Simulation Parameters ---
-    const presets = {
-        'Custom': { f: 0.0, k: 0.0 }, // Placeholder for custom values
-        'Coral': { f: 0.0545, k: 0.062 },
-        'Mitosis': { f: 0.0367, k: 0.0649 },
-        'Worms': { f: 0.078, k: 0.061 },
-        'Mazes': { f: 0.029, k: 0.057 },
-        'Fingerprints': { f: 0.02, k: 0.05 },
-        'Chaos': { f: 0.026, k: 0.051 },
-        'Solitons': { f: 0.025, k: 0.06 },
-    };
-    let currentParams = { ...presets['Coral'] };
-
-    // --- Shaders ---
-    const vertexShader = `
-        varying vec2 vUv;
-        void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `;
-
-    const simFragmentShader = `
-        varying vec2 vUv;
-        uniform sampler2D uTexture; // Previous state
-        uniform vec2 uResolution;
-        uniform vec2 uPointer; // Mouse position in UV space
-        uniform float uFeed;
-        uniform float uKill;
-        uniform float uTime;
-        uniform float uBrushSize;
-        uniform bool uBrushEnabled;
-
-        const float dA = 1.0;
-        const float dB = 0.5;
-        const float dt = 1.0;
-
-        vec2 laplacian(vec2 uv) {
-            vec2 sum = vec2(0.0);
-            sum += texture2D(uTexture, uv + vec2(1.0, 0.0) / uResolution).rg * 0.20;
-            sum += texture2D(uTexture, uv + vec2(-1.0, 0.0) / uResolution).rg * 0.20;
-            sum += texture2D(uTexture, uv + vec2(0.0, 1.0) / uResolution).rg * 0.20;
-            sum += texture2D(uTexture, uv + vec2(0.0, -1.0) / uResolution).rg * 0.20;
-            sum += texture2D(uTexture, uv + vec2(1.0, 1.0) / uResolution).rg * 0.05;
-            sum += texture2D(uTexture, uv + vec2(-1.0, 1.0) / uResolution).rg * 0.05;
-            sum += texture2D(uTexture, uv + vec2(1.0, -1.0) / uResolution).rg * 0.05;
-            sum += texture2D(uTexture, uv + vec2(-1.0, -1.0) / uResolution).rg * 0.05;
-            sum -= texture2D(uTexture, uv).rg; // * 1.0
-            return sum;
+    class Matrix {
+        constructor(rows, cols) {
+            this.rows = rows;
+            this.cols = cols;
+            this.data = Array(rows).fill(0).map(() => Array(cols).fill(0));
         }
 
-        void main() {
-            vec2 chemical = texture2D(uTexture, vUv).rg;
-            float a = chemical.r;
-            float b = chemical.g;
-
-            vec2 lap = laplacian(vUv);
-            
-            float reaction = a * b * b;
-            float newA = a + (dA * lap.r - reaction + uFeed * (1.0 - a)) * dt;
-            float newB = b + (dB * lap.g + reaction - (uKill + uFeed) * b) * dt;
-            
-            vec2 newChemical = vec2(newA, newB);
-
-            // Add chemical B with mouse
-            if (uBrushEnabled && uPointer.x > 0.0) {
-                 float dist = distance(vUv, uPointer);
-                 if (dist < uBrushSize) {
-                     newChemical.g = 1.0;
-                 }
+        static fromArray(arr) {
+            let m = new Matrix(arr.length, 1);
+            for (let i = 0; i < arr.length; i++) {
+                m.data[i][0] = arr[i];
             }
-
-            gl_FragColor = vec4(clamp(newChemical, 0.0, 1.0), 0.0, 1.0);
-        }
-    `;
-    
-    const displayFragmentShader = `
-        varying vec2 vUv;
-        uniform sampler2D uTexture;
-        uniform vec3 uColorA; // Background color
-        uniform vec3 uColorB; // Pattern base color
-        uniform vec2 uSeedPos; // Position of the initial seed (0.5, 0.5)
-        uniform float uTime;
-        uniform bool uUseDistanceColoring;
-        uniform int uColorScheme;
-
-        vec3 hsv2rgb(vec3 c) {
-            vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-            vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-            return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            return m;
         }
 
-        vec3 gradient3(vec3 c1, vec3 c2, vec3 c3, float t) {
-            return mix(mix(c1, c2, smoothstep(0.0, 0.5, t)), c3, smoothstep(0.5, 1.0, t));
-        }
-
-        vec3 gradient5(vec3 c1, vec3 c2, vec3 c3, vec3 c4, vec3 c5, float t) {
-            vec3 res = mix(c1, c2, smoothstep(0.0, 0.25, t));
-            res = mix(res, c3, smoothstep(0.25, 0.5, t));
-            res = mix(res, c4, smoothstep(0.5, 0.75, t));
-            res = mix(res, c5, smoothstep(0.75, 1.0, t));
-            return res;
-        }
-
-
-        void main() {
-            vec2 chemical = texture2D(uTexture, vUv).rg;
-            float b = chemical.g;
-            vec3 finalColor = uColorA;
-
-            if (b > 0.05) {
-                vec3 patternedColor;
-                if (uUseDistanceColoring) {
-                    float dist = distance(vUv, uSeedPos) * 2.5;
-                    float cycle = fract(dist);
-                    vec3 distanceColor = vec3(1.0);
-
-                    if (uColorScheme == 0) { // Rainbow
-                        distanceColor = hsv2rgb(vec3(cycle, 0.7, 1.0));
-                    } else if (uColorScheme == 1) { // Fire
-                        distanceColor = gradient3(vec3(0.1, 0.0, 0.0), vec3(1.0, 0.4, 0.0), vec3(1.0, 1.0, 0.6), cycle);
-                    } else if (uColorScheme == 2) { // Ice
-                        distanceColor = gradient3(vec3(0.0, 0.1, 0.2), vec3(0.1, 0.7, 1.0), vec3(0.9, 0.9, 1.0), cycle);
-                    } else if (uColorScheme == 3) { // Monochrome
-                        distanceColor = vec3(cycle * 0.5 + 0.5);
-                    } else if (uColorScheme == 4) { // Viridis
-                        distanceColor = gradient5(vec3(0.267, 0.005, 0.329), vec3(0.221, 0.498, 0.556), vec3(0.127, 0.694, 0.513), vec3(0.368, 0.862, 0.383), vec3(0.993, 0.906, 0.144), cycle);
-                    } else if (uColorScheme == 5) { // Plasma
-                        vec3 c1 = vec3(0.05, 0.03, 0.53); vec3 c2 = vec3(0.41, 0.0, 0.66); vec3 c3 = vec3(0.69, 0.16, 0.56); vec3 c4 = vec3(0.94, 0.64, 0.22); vec3 c5 = vec3(0.94, 0.97, 0.13);
-                        distanceColor = gradient5(c1, c2, c3, c4, c5, cycle);
-                    } else if (uColorScheme == 6) { // Magma
-                        vec3 c1 = vec3(0.0, 0.0, 0.02); vec3 c2 = vec3(0.23, 0.06, 0.44); vec3 c3 = vec3(0.55, 0.16, 0.51); vec3 c4 = vec3(0.98, 0.59, 0.43); vec3 c5 = vec3(0.98, 0.99, 0.75);
-                        distanceColor = gradient5(c1, c2, c3, c4, c5, cycle);
-                    } else if (uColorScheme == 7) { // Ocean
-                        distanceColor = gradient5(vec3(0.0, 0.0, 0.25), vec3(0.0, 0.30, 0.48), vec3(0.0, 0.59, 0.78), vec3(0.28, 0.79, 0.90), vec3(0.68, 0.91, 0.96), cycle);
-                    } else if (uColorScheme == 8) { // Forest
-                        distanceColor = gradient5(vec3(0.03, 0.11, 0.08), vec3(0.11, 0.26, 0.20), vec3(0.18, 0.42, 0.31), vec3(0.32, 0.72, 0.53), vec3(0.58, 0.84, 0.70), cycle);
-                    } else if (uColorScheme == 9) { // Sunset
-                        distanceColor = gradient5(vec3(0.19, 0.0, 0.44), vec3(0.45, 0.0, 0.48), vec3(0.70, 0.0, 0.41), vec3(0.92, 0.26, 0.21), vec3(0.98, 0.74, 0.02), cycle);
-                    } else if (uColorScheme == 10) { // Nebula
-                        distanceColor = gradient5(vec3(0.0, 0.0, 0.0), vec3(0.29, 0.08, 0.55), vec3(0.53, 0.05, 0.31), vec3(0.85, 0.11, 0.38), vec3(1.0, 0.5, 0.67), cycle);
-                    } else if (uColorScheme == 11) { // Earth
-                        distanceColor = gradient5(vec3(0.35, 0.18, 0.05), vec3(0.5, 0.31, 0.14), vec3(0.58, 0.4, 0.22), vec3(0.65, 0.54, 0.4), vec3(0.71, 0.68, 0.56), cycle);
-                    } else if (uColorScheme == 12) { // Synthwave
-                        distanceColor = gradient5(vec3(0.14, 0.1, 0.26), vec3(0.37, 0.33, 0.56), vec3(0.62, 0.53, 0.75), vec3(0.74, 0.58, 0.77), vec3(0.88, 0.69, 0.8), cycle);
-                    } else if (uColorScheme == 13) { // Tropic
-                        distanceColor = gradient5(vec3(0.01, 0.02, 0.37), vec3(0.0, 0.47, 0.71), vec3(0.0, 0.71, 0.85), vec3(0.56, 0.88, 0.94), vec3(0.79, 0.94, 0.98), cycle);
-                    } else if (uColorScheme == 14) { // Cherry
-                        distanceColor = gradient5(vec3(0.18, 0.0, 0.0), vec3(0.37, 0.0, 0.0), vec3(0.62, 0.01, 0.03), vec3(0.82, 0.0, 0.0), vec3(1.0, 0.0, 0.0), cycle);
-                    } else if (uColorScheme == 15) { // Mint
-                        distanceColor = gradient5(vec3(0.0, 0.29, 0.14), vec3(0.0, 0.4, 0.0), vec3(0.22, 0.69, 0.0), vec3(0.44, 0.88, 0.0), vec3(0.62, 0.94, 0.1), cycle);
-                    } else if (uColorScheme == 16) { // Royal
-                        distanceColor = gradient5(vec3(0.97, 0.94, 0.78), vec3(0.89, 0.76, 0.4), vec3(0.82, 0.6, 0.15), vec3(0.62, 0.39, 0.15), vec3(0.43, 0.2, 0.14), cycle);
-                    } else if (uColorScheme == 17) { // Electric
-                        vec3 c1=vec3(0.98,1.0,0.07); vec3 c2=vec3(0.45,0.99,0.77); vec3 c3=vec3(0.13,0.13,1.0); vec3 c4=vec3(1.0,0.08,0.58); vec3 c5=vec3(1.0,0.42,0.0);
-                        distanceColor = gradient5(c1, c2, c3, c4, c5, cycle);
-                    } else if (uColorScheme == 18) { // Pastel
-                        distanceColor = gradient5(vec3(0.98, 0.97, 0.8), vec3(0.99, 0.89, 0.81), vec3(1.0, 0.81, 0.82), vec3(0.95, 0.75, 0.91), vec3(0.81, 0.73, 0.94), cycle);
-                    } else if (uColorScheme == 19) { // Noir
-                        distanceColor = gradient5(vec3(0.0), vec3(0.13), vec3(0.33), vec3(0.6), vec3(0.8), cycle);
-                    } else if (uColorScheme == 20) { // Gold
-                        distanceColor = gradient5(vec3(0.64, 0.49, 0.15), vec3(0.75, 0.58, 0.25), vec3(0.99, 0.96, 0.73), vec3(0.83, 0.68, 0.22), vec3(0.71, 0.53, 0.16), cycle);
-                    } else if (uColorScheme == 21) { // Rose
-                        distanceColor = gradient5(vec3(0.97, 0.82, 0.8), vec3(0.91, 0.76, 0.79), vec3(0.82, 0.7, 0.77), vec3(0.7, 0.57, 0.67), vec3(0.45, 0.36, 0.47), cycle);
-                    } else if (uColorScheme == 22) { // Spring
-                        distanceColor = gradient5(vec3(0.65, 0.79, 0.34), vec3(0.95, 0.91, 0.81), vec3(0.84, 0.8, 0.76), vec3(0.89, 0.84, 0.79), vec3(0.93, 0.93, 0.91), cycle);
-                    } else if (uColorScheme == 23) { // Twilight
-                        distanceColor = gradient5(vec3(0.01, 0.03, 0.12), vec3(0.22, 0.02, 0.09), vec3(0.42, 0.02, 0.06), vec3(0.62, 0.01, 0.03), vec3(0.86, 0.18, 0.01), cycle);
-                    }
-
-                    patternedColor = uColorB * distanceColor;
-                } else {
-                    patternedColor = uColorB;
+        toArray() {
+            let arr = [];
+            for (let i = 0; i < this.rows; i++) {
+                for (let j = 0; j < this.cols; j++) {
+                    arr.push(this.data[i][j]);
                 }
-                finalColor = mix(uColorA, patternedColor, b * 2.0);
             }
-            gl_FragColor = vec4(finalColor, 1.0);
+            return arr;
         }
-    `;
-
-    // --- Main Initialization ---
-    function init() {
-        clock = new THREE.Clock();
         
-        // Renderer setup
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        // Main scene (for displaying the final plane)
-        mainScene = new THREE.Scene();
-        mainCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-        
-        // Simulation scene (for offscreen rendering)
-        simScene = new THREE.Scene();
-        simCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-        
-        // Render targets
-        const rtOptions = {
-            minFilter: THREE.LinearFilter,
-            magFilter: THREE.LinearFilter,
-            format: THREE.RGBAFormat,
-            type: THREE.FloatType,
-        };
-        const size = new THREE.Vector2(window.innerWidth, window.innerHeight);
-        readTarget = new THREE.WebGLRenderTarget(size.x, size.y, rtOptions);
-        writeTarget = new THREE.WebGLRenderTarget(size.x, size.y, rtOptions);
-
-        // Simulation material
-        simMaterial = new THREE.ShaderMaterial({
-            vertexShader,
-            fragmentShader: simFragmentShader,
-            uniforms: {
-                uTexture: { value: readTarget.texture },
-                uResolution: { value: size },
-                uPointer: { value: pointer },
-                uFeed: { value: currentParams.f },
-                uKill: { value: currentParams.k },
-                uTime: { value: 0 },
-                uBrushSize: { value: 0.05 },
-                uBrushEnabled: { value: true }
+        randomize() {
+            for (let i = 0; i < this.rows; i++) {
+                for (let j = 0; j < this.cols; j++) {
+                    this.data[i][j] = Math.random() * 2 - 1; // Xavier initialization might be better
+                }
             }
-        });
+        }
 
-        const planeGeom = new THREE.PlaneGeometry(2, 2);
-        const simPlane = new THREE.Mesh(planeGeom, simMaterial);
-        simScene.add(simPlane);
-        
-        // Display material
-        const displayMaterial = new THREE.ShaderMaterial({
-            vertexShader,
-            fragmentShader: displayFragmentShader,
-            uniforms: { 
-                uTexture: { value: readTarget.texture },
-                uColorA: { value: new THREE.Color('#0d0d1a') },
-                uColorB: { value: new THREE.Color('#f0f0f0') },
-                uSeedPos: { value: new THREE.Vector2(0.5, 0.5) },
-                uTime: { value: 0 },
-                uUseDistanceColoring: { value: true },
-                uColorScheme: { value: 0 }
+        static multiply(a, b) {
+            if (a.cols !== b.rows) {
+                console.error("Matrix dimensions are not compatible for multiplication.");
+                return undefined;
             }
-        });
-        planeMesh = new THREE.Mesh(planeGeom, displayMaterial);
-        mainScene.add(planeMesh);
-
-        setupUI();
-        setupSettingsPanel();
-        renderFormulas();
-        resetSimulation();
-        
-        window.addEventListener('resize', onWindowResize, false);
-        renderer.domElement.addEventListener('pointerdown', (e) => { isPointerDown = true; updatePointer(e); });
-        renderer.domElement.addEventListener('pointerup', () => { isPointerDown = false; pointer.set(-1, -1); });
-        renderer.domElement.addEventListener('pointermove', (e) => { if(isPointerDown) updatePointer(e); });
-
-        renderer.setAnimationLoop(animate);
-    }
-    
-    function updatePointer(event) {
-        pointer.x = (event.clientX / window.innerWidth);
-        pointer.y = 1 - (event.clientY / window.innerHeight);
-    }
-
-    function resetSimulation() {
-        isPaused = false;
-        const pauseButton = document.getElementById('pause-button');
-        if (pauseButton) {
-            document.getElementById('pause-icon').classList.remove('hidden');
-            document.getElementById('play-icon').classList.add('hidden');
-            document.getElementById('pause-text').textContent = 'Pause';
-            pauseButton.classList.add('active');
+            let result = new Matrix(a.rows, b.cols);
+            for (let i = 0; i < result.rows; i++) {
+                for (let j = 0; j < result.cols; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < a.cols; k++) {
+                        sum += a.data[i][k] * b.data[k][j];
+                    }
+                    result.data[i][j] = sum;
+                }
+            }
+            return result;
         }
 
-        // We render a single frame to the write target to set the initial state
-        renderer.setRenderTarget(writeTarget);
-        // Set the initial state: A=1, B=0 everywhere
-        renderer.setClearColor(new THREE.Color(1, 0, 0), 1);
-        renderer.clear();
-        
-        // Then, draw a small seed of B in the middle
-        const seedMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // B is green channel
-        const seedGeom = new THREE.PlaneGeometry(0.1, 0.1);
-        const seedMesh = new THREE.Mesh(seedGeom, seedMaterial);
-        simScene.add(seedMesh); // Temporarily add to sim scene
-        renderer.render(simScene, simCamera);
-        simScene.remove(seedMesh); // Remove it
-        
-        // Swap targets so the new state is in the read buffer
-        swapTargets();
-        renderer.setRenderTarget(null); // Back to screen
-    }
-    
-    function swapTargets() {
-        const temp = readTarget;
-        readTarget = writeTarget;
-        writeTarget = temp;
-    }
-
-    // --- Formula Rendering ---
-    function renderFormulas() {
-        const generalContainer = document.getElementById('general-formula');
-        const generalFormula = `
-            \\frac{\\partial a}{\\partial t} = D_a \\nabla^2 a - ab^2 + f(1-a) \\\\
-            \\frac{\\partial b}{\\partial t} = D_b \\nabla^2 b + ab^2 - (k+f)b
-        `;
-        try {
-            katex.render(generalFormula, generalContainer, {
-                throwOnError: false,
-                displayMode: true
-            });
-        } catch(e) {
-            console.error("KaTeX rendering error:", e);
-            generalContainer.textContent = "Error rendering formula.";
-        }
-    }
-
-    function updatePresetFormulaDisplay(f, k) {
-        const presetContainer = document.getElementById('preset-formula');
-        const presetFormula = `f = ${f.toFixed(4)}, \\quad k = ${k.toFixed(4)}`;
-         try {
-            katex.render(presetFormula, presetContainer, {
-                throwOnError: false,
-                displayMode: true
-            });
-        } catch(e) {
-            console.error("KaTeX rendering error:", e);
-            presetContainer.textContent = "Error rendering formula.";
-        }
-    }
-
-
-    // --- UI Setup ---
-    function setupUI() {
-        document.getElementById('info-panel').addEventListener('click', (e) => {
-            if(e.target.closest('input, button, a')) return;
-            e.currentTarget.classList.toggle('expanded');
-        });
-        
-        const feedSlider = document.getElementById('feed-slider');
-        const killSlider = document.getElementById('kill-slider');
-        const feedValue = document.getElementById('feed-value');
-        const killValue = document.getElementById('kill-value');
-        
-        feedSlider.addEventListener('input', (e) => {
-            const val = parseFloat(e.target.value);
-            simMaterial.uniforms.uFeed.value = val;
-            feedValue.textContent = val.toFixed(4);
-            currentParams.f = val;
-            updateActivePreset();
-        });
-        
-        killSlider.addEventListener('input', (e) => {
-            const val = parseFloat(e.target.value);
-            simMaterial.uniforms.uKill.value = val;
-            killValue.textContent = val.toFixed(4);
-            currentParams.k = val;
-            updateActivePreset();
-        });
-        
-        document.getElementById('reset-button').addEventListener('click', resetSimulation);
-
-        const pauseButton = document.getElementById('pause-button');
-        const pauseIcon = document.getElementById('pause-icon');
-        const playIcon = document.getElementById('play-icon');
-        const pauseText = document.getElementById('pause-text');
-
-        pauseButton.addEventListener('click', () => {
-            isPaused = !isPaused;
-            if (isPaused) {
-                pauseIcon.classList.add('hidden');
-                playIcon.classList.remove('hidden');
-                pauseText.textContent = 'Resume';
-                pauseButton.classList.remove('active');
+        multiply(n) {
+            if (n instanceof Matrix) {
+                 for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        this.data[i][j] *= n.data[i][j];
+                    }
+                }
             } else {
-                pauseIcon.classList.remove('hidden');
-                playIcon.classList.add('hidden');
-                pauseText.textContent = 'Pause';
-                pauseButton.classList.add('active');
+                 for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        this.data[i][j] *= n;
+                    }
+                }
             }
-        });
+        }
         
-        const presetSelect = document.getElementById('preset-select');
-        Object.keys(presets).forEach(name => {
-            if (name === 'Custom') return; // Don't add custom to the list initially
-            const option = document.createElement('option');
-            option.value = name;
-            option.textContent = name;
-            presetSelect.appendChild(option);
-        });
-
-        presetSelect.addEventListener('change', (e) => {
-            const name = e.target.value;
-            if (!presets[name]) return;
-
-            const params = presets[name];
-            currentParams = { ...params };
-            
-            feedSlider.value = params.f;
-            killSlider.value = params.k;
-            feedValue.textContent = params.f.toFixed(4);
-            killValue.textContent = params.k.toFixed(4);
-            simMaterial.uniforms.uFeed.value = params.f;
-            simMaterial.uniforms.uKill.value = params.k;
-            updatePresetFormulaDisplay(params.f, params.k);
-            
-            resetSimulation();
-        });
-
-        // Set initial UI state to 'Coral' to match the simulation's starting parameters
-        const initialParams = presets['Coral'];
-        feedSlider.value = initialParams.f;
-        feedValue.textContent = initialParams.f.toFixed(4);
-        killSlider.value = initialParams.k;
-        killValue.textContent = initialParams.k.toFixed(4);
-        presetSelect.value = 'Coral';
-        
-        // Update other UI elements accordingly
-        updatePresetFormulaDisplay(initialParams.f, initialParams.k);
-        updateActivePreset(); // Ensures 'Custom' option is not shown initially
-    }
-
-    function setupSettingsPanel() {
-        const settingsPanel = document.getElementById('settings-panel');
-        const settingsButton = document.getElementById('settings-button');
-        const closeSettingsButton = document.getElementById('close-settings');
-        const bgColorInput = document.getElementById('bg-color-input');
-        const patternColorInput = document.getElementById('pattern-color-input');
-        const brushSizeSlider = document.getElementById('brush-size-slider');
-        const brushSizeValue = document.getElementById('brush-size-value');
-        const brushToggle = document.getElementById('brush-toggle-input');
-        const colorModeToggle = document.getElementById('color-mode-toggle-input');
-        
-        const colorSchemes = [
-            { id: 0, name: 'Rainbow', gradient: 'linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff)' },
-            { id: 1, name: 'Fire', gradient: 'linear-gradient(90deg, #220000, #ff8800, #ffff99)' },
-            { id: 2, name: 'Ice', gradient: 'linear-gradient(90deg, #001122, #1177ff, #99ffff)' },
-            { id: 3, name: 'Monochrome', gradient: 'linear-gradient(90deg, #555555, #ffffff)' },
-            { id: 4, name: 'Viridis', gradient: 'linear-gradient(90deg, #440154, #3b528b, #21918c, #5ec962, #fde725)' },
-            { id: 5, name: 'Plasma', gradient: 'linear-gradient(90deg, #0d0887, #6a00a8, #b12a90, #e16462, #fca636, #f0f921)' },
-            { id: 6, name: 'Magma', gradient: 'linear-gradient(90deg, #000004, #3b0f70, #8c2981, #de4968, #fe9f6d, #fcfdbf)' },
-            { id: 7, name: 'Ocean', gradient: 'linear-gradient(90deg, #000040, #004d7a, #0096c7, #48cae4, #ade8f4)' },
-            { id: 8, name: 'Forest', gradient: 'linear-gradient(90deg, #081c15, #1b4332, #2d6a4f, #52b788, #95d5b2)' },
-            { id: 9, name: 'Sunset', gradient: 'linear-gradient(90deg, #300171, #72007b, #b30068, #ea4335, #fbbc05)' },
-            { id: 10, name: 'Nebula', gradient: 'linear-gradient(90deg, #000000, #4a148c, #880e4f, #d81b60, #ff80ab)' },
-            { id: 11, name: 'Earth', gradient: 'linear-gradient(90deg, #582f0e, #7f4f24, #936639, #a68a64, #b6ad90)' },
-            { id: 12, name: 'Synthwave', gradient: 'linear-gradient(90deg, #231942, #5e548e, #9f86c0, #be95c4, #e0b1cb)' },
-            { id: 13, name: 'Tropic', gradient: 'linear-gradient(90deg, #03045e, #0077b6, #00b4d8, #90e0ef, #caf0f8)' },
-            { id: 14, name: 'Cherry', gradient: 'linear-gradient(90deg, #2d0000, #5e0000, #9d0208, #d00000, #ff0000)' },
-            { id: 15, name: 'Mint', gradient: 'linear-gradient(90deg, #004b23, #006400, #38b000, #70e000, #9ef01a)' },
-            { id: 16, name: 'Royal', gradient: 'linear-gradient(90deg, #f8f0c6, #e4c365, #d09825, #9f6425, #6e3424)' },
-            { id: 17, name: 'Electric', gradient: 'linear-gradient(90deg, #fbff12, #74fec4, #2121ff, #ff1493, #ff6b00)' },
-            { id: 18, name: 'Pastel', gradient: 'linear-gradient(90deg, #fbf8cc, #fde4cf, #ffcfd2, #f1c0e8, #cfbaf0)' },
-            { id: 19, name: 'Noir', gradient: 'linear-gradient(90deg, #000000, #222222, #555555, #999999, #cccccc)' },
-            { id: 20, name: 'Gold', gradient: 'linear-gradient(90deg, #a37c27, #bf953f, #fcf6ba, #d4af37, #b48628)' },
-            { id: 21, name: 'Rose', gradient: 'linear-gradient(90deg, #f7d1cd, #e8c2ca, #d1b3c4, #b392ac, #735d78)' },
-            { id: 22, name: 'Spring', gradient: 'linear-gradient(90deg, #a7c957, #f2e8cf, #d6ccc2, #e3d5ca, #edede9)' },
-            { id: 23, name: 'Twilight', gradient: 'linear-gradient(90deg, #03071e, #370617, #6a040f, #9d0208, #dc2f02)' }
-        ];
-
-        const colorSchemeGroup = document.getElementById('color-scheme-group');
-        const colorSchemeButton = document.getElementById('color-scheme-button');
-        const colorSchemeOptions = document.getElementById('color-scheme-options');
-        const selectedSwatch = document.getElementById('selected-color-swatch');
-        const selectedName = document.getElementById('selected-color-name');
-
-        // Populate options
-        colorSchemes.forEach(scheme => {
-            const option = document.createElement('div');
-            option.className = 'option';
-            option.dataset.value = scheme.id;
-            
-            const swatch = document.createElement('span');
-            swatch.className = 'color-swatch-preview';
-            swatch.style.background = scheme.gradient;
-
-            const name = document.createElement('span');
-            name.textContent = scheme.name;
-
-            option.appendChild(swatch);
-            option.appendChild(name);
-            colorSchemeOptions.appendChild(option);
-
-            option.addEventListener('click', () => {
-                planeMesh.material.uniforms.uColorScheme.value = scheme.id;
-                selectedSwatch.style.background = scheme.gradient;
-                selectedName.textContent = scheme.name;
-                colorSchemeOptions.classList.add('hidden');
-            });
-        });
-        
-        // Set initial state
-        selectedSwatch.style.background = colorSchemes[0].gradient;
-        selectedName.textContent = colorSchemes[0].name;
-
-        colorSchemeButton.addEventListener('click', () => {
-            colorSchemeOptions.classList.toggle('hidden');
-        });
-        
-        document.addEventListener('click', (e) => {
-            if (!colorSchemeButton.contains(e.target) && !colorSchemeOptions.contains(e.target)) {
-                 colorSchemeOptions.classList.add('hidden');
-            }
-        });
-
-        function toggleSettingsPanel() {
-            if (settingsPanel.classList.contains('open')) {
-                settingsPanel.classList.remove('open');
+        add(n) {
+            if (n instanceof Matrix) {
+                for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        this.data[i][j] += n.data[i][j];
+                    }
+                }
             } else {
-                settingsPanel.classList.remove('hidden');
-                requestAnimationFrame(() => settingsPanel.classList.add('open'));
+                for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        this.data[i][j] += n;
+                    }
+                }
             }
         }
-        settingsButton.addEventListener('click', toggleSettingsPanel);
-        closeSettingsButton.addEventListener('click', () => settingsPanel.classList.remove('open'));
-        settingsPanel.addEventListener('transitionend', (e) => {
-            if (e.propertyName === 'transform' && !settingsPanel.classList.contains('open')) {
-                settingsPanel.classList.add('hidden');
-            }
-        });
 
-        bgColorInput.addEventListener('input', (e) => {
-            planeMesh.material.uniforms.uColorA.value.set(e.target.value);
-        });
-        patternColorInput.addEventListener('input', (e) => {
-            planeMesh.material.uniforms.uColorB.value.set(e.target.value);
-        });
-        brushSizeSlider.addEventListener('input', (e) => {
-            const size = parseFloat(e.target.value);
-            simMaterial.uniforms.uBrushSize.value = size;
-            brushSizeValue.textContent = size.toFixed(3);
-        });
-        brushToggle.addEventListener('change', (e) => {
-            simMaterial.uniforms.uBrushEnabled.value = e.target.checked;
-        });
-        colorModeToggle.addEventListener('change', (e) => {
-            const isEnabled = e.target.checked;
-            planeMesh.material.uniforms.uUseDistanceColoring.value = isEnabled;
-            colorSchemeGroup.style.display = isEnabled ? 'flex' : 'none';
-        });
-    }
-
-    function updateActivePreset() {
-        const presetSelect = document.getElementById('preset-select');
-        let matchFound = false;
-        for (const name in presets) {
-            const params = presets[name];
-            if (Math.abs(params.f - currentParams.f) < 0.0001 && Math.abs(params.k - currentParams.k) < 0.0001) {
-                presetSelect.value = name;
-                matchFound = true;
-                break;
+        static subtract(a, b) {
+            let result = new Matrix(a.rows, a.cols);
+            for (let i = 0; i < result.rows; i++) {
+                for (let j = 0; j < result.cols; j++) {
+                    result.data[i][j] = a.data[i][j] - b.data[i][j];
+                }
             }
+            return result;
+        }
+
+        map(fn) {
+             for (let i = 0; i < this.rows; i++) {
+                for (let j = 0; j < this.cols; j++) {
+                    let val = this.data[i][j];
+                    this.data[i][j] = fn(val);
+                }
+            }
+        }
+
+        static map(matrix, fn) {
+            let result = new Matrix(matrix.rows, matrix.cols);
+             for (let i = 0; i < matrix.rows; i++) {
+                for (let j = 0; j < matrix.cols; j++) {
+                    let val = matrix.data[i][j];
+                    result.data[i][j] = fn(val);
+                }
+            }
+            return result;
         }
         
-        updatePresetFormulaDisplay(currentParams.f, currentParams.k);
-
-        if (!matchFound) {
-            // If no preset matches, show "Custom"
-            if (!presetSelect.querySelector('option[value="Custom"]')) {
-                const customOption = document.createElement('option');
-                customOption.value = 'Custom';
-                customOption.textContent = 'Custom';
-                presetSelect.prepend(customOption);
+        static transpose(matrix) {
+            let result = new Matrix(matrix.cols, matrix.rows);
+            for (let i = 0; i < matrix.rows; i++) {
+                for (let j = 0; j < matrix.cols; j++) {
+                    result.data[j][i] = matrix.data[i][j];
+                }
             }
-            presetSelect.value = 'Custom';
-        } else {
-            // If a preset matches, remove "Custom" if it exists
-            const customOption = presetSelect.querySelector('option[value="Custom"]');
-            if (customOption) {
-                customOption.remove();
-            }
+            return result;
         }
-    }
-
-    function onWindowResize() { 
-        const newSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
-        renderer.setSize(newSize.x, newSize.y); 
-        
-        readTarget.setSize(newSize.x, newSize.y);
-        writeTarget.setSize(newSize.x, newSize.y);
-        simMaterial.uniforms.uResolution.value = newSize;
-    }
-
-    // --- Animation Loop ---
-    function animate() { 
-        const delta = clock.getDelta();
-        
-        if (!isPaused) {
-            // --- Simulation Step ---
-            for (let i = 0; i < 16; i++) { // Run multiple steps per frame for speed
-                // Set input texture
-                simMaterial.uniforms.uTexture.value = readTarget.texture;
-                simMaterial.uniforms.uTime.value += delta;
-                
-                // Render simulation to the write buffer
-                renderer.setRenderTarget(writeTarget);
-                renderer.render(simScene, simCamera);
-                
-                // Ping-pong
-                swapTargets();
-            }
-        }
-
-        if(!isPointerDown) {
-            simMaterial.uniforms.uPointer.value.set(-1,-1);
-        } else {
-            simMaterial.uniforms.uPointer.value.copy(pointer);
-        }
-
-
-        // --- Display Step ---
-        // Set the final simulation result as the texture for the display material
-        planeMesh.material.uniforms.uTexture.value = readTarget.texture;
-        planeMesh.material.uniforms.uTime.value = clock.getElapsedTime();
-        
-        // Render the main scene to the screen
-        renderer.setRenderTarget(null);
-        renderer.render(mainScene, mainCamera);
     }
     
-    // Wait for all resources to load, then initialize and perform an initial reset.
-    window.onload = () => {
-        init();
-        // A final reset is triggered to ensure the simulation starts cleanly
-        // after all page elements and scripts have been fully loaded.
-        document.getElementById('reset-button').click();
+    const activation = {
+        relu: (x) => Math.max(0, x),
+        relu_derivative: (y) => y > 0 ? 1 : 0,
+        tanh: (x) => Math.tanh(x),
+        tanh_derivative: (y) => 1 - y * y,
     };
+
+    class NeuralNetwork {
+        constructor(inputNodes, hiddenNodes, outputNodes) {
+            this.inputNodes = inputNodes;
+            this.hiddenNodes = hiddenNodes;
+            this.outputNodes = outputNodes;
+
+            this.weights_ih = new Matrix(this.hiddenNodes, this.inputNodes);
+            this.weights_ho = new Matrix(this.outputNodes, this.hiddenNodes);
+            this.weights_ih.randomize();
+            this.weights_ho.randomize();
+
+            this.bias_h = new Matrix(this.hiddenNodes, 1);
+            this.bias_o = new Matrix(this.outputNodes, 1);
+            this.bias_h.randomize();
+            this.bias_o.randomize();
+            
+            this.learningRate = 0.01;
+        }
+
+        predict(input_array) {
+            let inputs = Matrix.fromArray(input_array);
+            let hidden = Matrix.multiply(this.weights_ih, inputs);
+            hidden.add(this.bias_h);
+            hidden.map(activation.relu);
+
+            let output = Matrix.multiply(this.weights_ho, hidden);
+            output.add(this.bias_o);
+            // No activation on final layer for Q-values
+            return output.toArray();
+        }
+        
+        train(input_array, target_array) {
+            // Feedforward pass
+            let inputs = Matrix.fromArray(input_array);
+            let hidden = Matrix.multiply(this.weights_ih, inputs);
+            hidden.add(this.bias_h);
+            hidden.map(activation.relu);
+
+            let outputs = Matrix.multiply(this.weights_ho, hidden);
+            outputs.add(this.bias_o);
+            
+            // Backpropagation
+            let targets = Matrix.fromArray(target_array);
+            let output_errors = Matrix.subtract(targets, outputs);
+
+            // Calculate gradients for weights_ho
+            let gradients = Matrix.map(outputs, x => 1); // derivative of linear activation is 1
+            gradients.multiply(output_errors);
+            gradients.multiply(this.learningRate);
+
+            let hidden_T = Matrix.transpose(hidden);
+            let weights_ho_deltas = Matrix.multiply(gradients, hidden_T);
+
+            this.weights_ho.add(weights_ho_deltas);
+            this.bias_o.add(gradients);
+            
+            // Calculate hidden layer errors
+            let who_T = Matrix.transpose(this.weights_ho);
+            let hidden_errors = Matrix.multiply(who_T, output_errors);
+
+            // Calculate gradients for weights_ih
+            let hidden_gradient = Matrix.map(hidden, activation.relu_derivative);
+            hidden_gradient.multiply(hidden_errors);
+            hidden_gradient.multiply(this.learningRate);
+
+            let inputs_T = Matrix.transpose(inputs);
+            let weights_ih_deltas = Matrix.multiply(hidden_gradient, inputs_T);
+            
+            this.weights_ih.add(weights_ih_deltas);
+            this.bias_h.add(hidden_gradient);
+
+            // Return MSE loss
+            let loss = 0;
+            const errors = output_errors.toArray();
+            for(const e of errors) loss += e*e;
+            return loss / errors.length;
+        }
+
+        copy() {
+            const newNN = new NeuralNetwork(this.inputNodes, this.hiddenNodes, this.outputNodes);
+            newNN.weights_ih.data = JSON.parse(JSON.stringify(this.weights_ih.data));
+            newNN.weights_ho.data = JSON.parse(JSON.stringify(this.weights_ho.data));
+            newNN.bias_h.data = JSON.parse(JSON.stringify(this.bias_h.data));
+            newNN.bias_o.data = JSON.parse(JSON.stringify(this.bias_o.data));
+            return newNN;
+        }
+    }
+
+
+    // --- Pong Game Logic ---
+    class PongGame {
+        constructor(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.width = canvas.width;
+            this.height = canvas.height;
+            this.reset();
+        }
+
+        reset() {
+            this.player = { x: 20, y: this.height / 2 - 40, width: 10, height: 80, score: 0 };
+            this.ai = { x: this.width - 30, y: this.height / 2 - 40, width: 10, height: 80, score: 0 };
+            this.ball = { x: this.width / 2, y: this.height / 2, radius: 8, speed: 6, vx: 5, vy: 5 };
+            document.getElementById('player-score').textContent = this.player.score;
+            document.getElementById('ai-score').textContent = this.ai.score;
+            this.ball.vx = Math.random() > 0.5 ? 5 : -5;
+        }
+
+        update(playerMove, aiMove) {
+            // Move player paddle
+            this.player.y = playerMove - this.player.height / 2;
+            this.player.y = Math.max(0, Math.min(this.height - this.player.height, this.player.y));
+
+            // Move AI paddle
+            if (aiMove === 'UP') this.ai.y -= 5;
+            if (aiMove === 'DOWN') this.ai.y += 5;
+            this.ai.y = Math.max(0, Math.min(this.height - this.ai.height, this.ai.y));
+
+            // Move ball
+            this.ball.x += this.ball.vx;
+            this.ball.y += this.ball.vy;
+            
+            let reward = 0;
+
+            // Wall collisions
+            if (this.ball.y + this.ball.radius > this.height || this.ball.y - this.ball.radius < 0) {
+                this.ball.vy *= -1;
+            }
+
+            // Paddle collisions
+            if (this.collides(this.player, this.ball) || this.collides(this.ai, this.ball)) {
+                this.ball.vx *= -1;
+                 // Add slight angle change on paddle hit
+                let paddle = (this.ball.x < this.width / 2) ? this.player : this.ai;
+                let deltaY = this.ball.y - (paddle.y + paddle.height / 2);
+                this.ball.vy = deltaY * 0.25;
+            }
+
+            // Score
+            if (this.ball.x + this.ball.radius < 0) {
+                this.ai.score++;
+                reward = -10; // AI gets reward
+                this.resetBall();
+            } else if (this.ball.x - this.ball.radius > this.width) {
+                this.player.score++;
+                reward = 10; // AI gets penalty
+                this.resetBall();
+            }
+            
+            document.getElementById('player-score').textContent = this.player.score;
+            document.getElementById('ai-score').textContent = this.ai.score;
+
+            return reward;
+        }
+        
+        collides(paddle, ball) {
+            return ball.x - ball.radius < paddle.x + paddle.width &&
+                   ball.x + ball.radius > paddle.x &&
+                   ball.y - ball.radius < paddle.y + paddle.height &&
+                   ball.y + ball.radius > paddle.y;
+        }
+        
+        resetBall() {
+            this.ball.x = this.width / 2;
+            this.ball.y = this.height / 2;
+            this.ball.vx = -this.ball.vx;
+            this.ball.speed = 6;
+        }
+
+        draw() {
+            this.ctx.clearRect(0, 0, this.width, this.height);
+            this.ctx.fillStyle = '#e5e7eb';
+            // Draw paddles
+            this.ctx.fillRect(this.player.x, this.player.y, this.player.width, this.player.height);
+            this.ctx.fillRect(this.ai.x, this.ai.y, this.ai.width, this.ai.height);
+            // Draw ball
+            this.ctx.beginPath();
+            this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
+            this.ctx.fill();
+            // Draw center line
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.width / 2, 0);
+            this.ctx.lineTo(this.width / 2, this.height);
+            this.ctx.stroke();
+        }
+
+        getState() {
+            return [
+                this.ai.y / this.height,
+                this.ball.x / this.width,
+                this.ball.y / this.height,
+                this.ball.vx / this.ball.speed,
+                this.ball.vy / this.ball.speed,
+                this.player.y / this.height
+            ];
+        }
+    }
+
+    // --- Reinforcement Learning Agents ---
+    
+    class ReplayBuffer {
+        constructor(capacity) {
+            this.capacity = capacity;
+            this.buffer = [];
+            this.position = 0;
+        }
+
+        push(state, action, reward, nextState, done) {
+            if (this.buffer.length < this.capacity) {
+                this.buffer.push(null);
+            }
+            this.buffer[this.position] = { state, action, reward, nextState, done };
+            this.position = (this.position + 1) % this.capacity;
+        }
+
+        sample(batchSize) {
+            const batch = [];
+            for (let i = 0; i < batchSize; i++) {
+                const index = Math.floor(Math.random() * this.buffer.length);
+                batch.push(this.buffer[index]);
+            }
+            return batch;
+        }
+        
+        canSample(batchSize) {
+            return this.buffer.length >= batchSize;
+        }
+    }
+
+    class DQNAgent {
+        constructor(stateSize, actionSize) {
+            this.stateSize = stateSize;
+            this.actionSize = actionSize; // For Pong: 0=UP, 1=DOWN
+            this.replayBuffer = new ReplayBuffer(10000);
+            
+            this.gamma = 0.95; // Discount factor
+            this.epsilon = 1.0; // Exploration rate
+            this.epsilonMin = 0.01;
+            this.epsilonDecay = 0.995;
+            this.learningRate = 0.001;
+
+            this.model = new NeuralNetwork(stateSize, 24, actionSize);
+            this.targetModel = this.model.copy();
+            this.model.learningRate = this.learningRate;
+        }
+
+        updateTargetModel() {
+            this.targetModel = this.model.copy();
+        }
+        
+        act(state) {
+            if (Math.random() <= this.epsilon) {
+                return Math.floor(Math.random() * this.actionSize);
+            }
+            const qValues = this.model.predict(state);
+            return qValues.indexOf(Math.max(...qValues));
+        }
+
+        remember(state, action, reward, nextState, done) {
+            this.replayBuffer.push(state, action, reward, nextState, done);
+        }
+
+        replay(batchSize) {
+            if (!this.replayBuffer.canSample(batchSize)) return 0;
+            const minibatch = this.replayBuffer.sample(batchSize);
+            let totalLoss = 0;
+
+            for (const { state, action, reward, nextState, done } of minibatch) {
+                let target = reward;
+                if (!done) {
+                    const nextQ = this.targetModel.predict(nextState);
+                    target = reward + this.gamma * Math.max(...nextQ);
+                }
+                let target_f = this.model.predict(state);
+                target_f[action] = target;
+                
+                const loss = this.model.train(state, target_f);
+                totalLoss += loss;
+            }
+            
+            if (this.epsilon > this.epsilonMin) {
+                this.epsilon *= this.epsilonDecay;
+            }
+            return totalLoss / batchSize;
+        }
+    }
+    
+    // NOTE: This is a simplified SAC for a discrete action space.
+    // A proper SAC is more complex and typically used for continuous spaces.
+    class SACAgent {
+        constructor(stateSize, actionSize) {
+            this.stateSize = stateSize;
+            this.actionSize = actionSize;
+            this.replayBuffer = new ReplayBuffer(10000);
+            
+            this.gamma = 0.99;
+            this.tau = 0.005; // Target network update rate
+            this.alpha = 0.2; // Entropy temperature
+            this.learningRate = 0.0003;
+
+            // Actor (Policy) Network
+            this.actor = new NeuralNetwork(stateSize, 32, actionSize);
+            this.actor.learningRate = this.learningRate;
+
+            // Critic (Q-Value) Networks
+            this.critic1 = new NeuralNetwork(stateSize, 32, actionSize);
+            this.critic2 = new NeuralNetwork(stateSize, 32, actionSize);
+            this.critic1.learningRate = this.learningRate;
+            this.critic2.learningRate = this.learningRate;
+
+            // Target Critic Networks
+            this.critic1_target = this.critic1.copy();
+            this.critic2_target = this.critic2.copy();
+        }
+        
+        // Soft update for target networks
+        softUpdate(target, source) {
+            for(let i=0; i<target.weights_ih.data.length; i++) for(let j=0; j<target.weights_ih.data[0].length; j++)
+                target.weights_ih.data[i][j] = this.tau * source.weights_ih.data[i][j] + (1 - this.tau) * target.weights_ih.data[i][j];
+            for(let i=0; i<target.weights_ho.data.length; i++) for(let j=0; j<target.weights_ho.data[0].length; j++)
+                target.weights_ho.data[i][j] = this.tau * source.weights_ho.data[i][j] + (1 - this.tau) * target.weights_ho.data[i][j];
+        }
+
+        act(state) {
+            const logits = this.actor.predict(state);
+            const probs = this.softmax(logits);
+            // Sample from the probability distribution
+            const rand = Math.random();
+            let cumulativeProb = 0;
+            for(let i = 0; i < probs.length; i++) {
+                cumulativeProb += probs[i];
+                if(rand < cumulativeProb) return i;
+            }
+            return this.actionSize - 1;
+        }
+        
+        softmax(logits) {
+            const maxLogit = Math.max(...logits);
+            const exps = logits.map(l => Math.exp(l - maxLogit));
+            const sumExps = exps.reduce((a, b) => a + b);
+            return exps.map(e => e / sumExps);
+        }
+
+        remember(state, action, reward, nextState, done) {
+            this.replayBuffer.push(state, action, reward, nextState, done);
+        }
+
+        replay(batchSize) {
+            if (!this.replayBuffer.canSample(batchSize)) return 0;
+            const minibatch = this.replayBuffer.sample(batchSize);
+            let totalLoss = 0;
+
+            for (const { state, action, reward, nextState, done } of minibatch) {
+                 // --- Update Critic ---
+                const next_logits = this.actor.predict(nextState);
+                const next_probs = this.softmax(next_logits);
+                const next_log_probs = next_probs.map(p => Math.log(p + 1e-6));
+                
+                const q1_next = this.critic1_target.predict(nextState);
+                const q2_next = this.critic2_target.predict(nextState);
+                const min_q_next = q1_next.map((q, i) => Math.min(q, q2_next[i]));
+                
+                let next_value = 0;
+                for(let i=0; i<this.actionSize; i++) {
+                    next_value += next_probs[i] * (min_q_next[i] - this.alpha * next_log_probs[i]);
+                }
+
+                const target_q = reward + (1 - done) * this.gamma * next_value;
+
+                let q1_target_f = this.critic1.predict(state);
+                q1_target_f[action] = target_q;
+                const critic1_loss = this.critic1.train(state, q1_target_f);
+                
+                let q2_target_f = this.critic2.predict(state);
+                q2_target_f[action] = target_q;
+                const critic2_loss = this.critic2.train(state, q2_target_f);
+
+                // --- Update Actor ---
+                const logits = this.actor.predict(state);
+                const probs = this.softmax(logits);
+                const log_probs = probs.map(p => Math.log(p + 1e-6));
+
+                const q1_pred = this.critic1.predict(state);
+                const q2_pred = this.critic2.predict(state);
+                const min_q_pred = q1_pred.map((q,i) => Math.min(q, q2_pred[i]));
+
+                let actor_target_value = 0;
+                for(let i=0; i<this.actionSize; i++) {
+                    actor_target_value += probs[i] * (this.alpha * log_probs[i] - min_q_pred[i]);
+                }
+                
+                // This is a simplified gradient step. A real implementation would backprop through Q-network.
+                // We fake it by creating a target for the actor.
+                let actor_targets = logits.slice();
+                actor_targets[action] -= this.learningRate * (this.alpha * log_probs[action] - min_q_pred[action]);
+                const actor_loss = this.actor.train(state, actor_targets);
+
+                totalLoss += (critic1_loss + critic2_loss + actor_loss);
+            }
+
+            this.softUpdate(this.critic1_target, this.critic1);
+            this.softUpdate(this.critic2_target, this.critic2);
+            
+            return totalLoss / batchSize;
+        }
+    }
+
+
+    // --- Main Application ---
+    const canvas = document.getElementById('pong-canvas');
+    const game = new PongGame(canvas);
+    const stateSize = game.getState().length;
+    const actionSize = 2; // UP, DOWN
+
+    let dqnAgent = new DQNAgent(stateSize, actionSize);
+    let sacAgent = new SACAgent(stateSize, actionSize);
+    let activeAgent = dqnAgent;
+
+    let playerY = canvas.height / 2;
+    let isGameRunning = false;
+    let lastAITrainTime = 0;
+    const trainInterval = 100; // ms
+    let updateCounter = 0;
+    const targetUpdateFreq = 10; // updates
+    
+    // --- Pre-trained model placeholder ---
+    // In a real application, you would fetch this JSON from a server or file.
+    const preTrainedSACWeights = {
+        "actor": { "weights_ih": [[0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2]], "weights_ho": [[0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3]], "bias_h": [[0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2]], "bias_o": [[0.1], [-0.2]] },
+        "critic1": { "weights_ih": [[0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3]], "weights_ho": [[0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4]], "bias_h": [[0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3]], "bias_o": [[0.2], [-0.3]] },
+        "critic2": { "weights_ih": [[0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4]], "weights_ho": [[0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5]], "bias_h": [[0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4]], "bias_o": [[0.3], [-0.4]] }
+    };
+
+
+    function gameLoop(timestamp) {
+        if (isGameRunning) {
+            const state = game.getState();
+            const actionIndex = activeAgent.act(state);
+            const aiAction = actionIndex === 0 ? 'UP' : 'DOWN';
+            
+            const reward = game.update(playerY, aiAction);
+            const nextState = game.getState();
+            const done = reward !== 0;
+
+            if (reward !== 0) { // Only remember terminal states for now to simplify learning
+                activeAgent.remember(state, actionIndex, reward, nextState, done);
+            }
+
+            if (timestamp - lastAITrainTime > trainInterval) {
+                 const loss = activeAgent.replay(16);
+                 lastAITrainTime = timestamp;
+                 updateCounter++;
+            }
+            
+            if (updateCounter >= targetUpdateFreq && activeAgent === dqnAgent) {
+                dqnAgent.updateTargetModel();
+                updateCounter = 0;
+            }
+        }
+        
+        game.draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // --- UI Event Handlers ---
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        playerY = e.clientY - rect.top;
+    });
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+        isGameRunning = !isGameRunning;
+        document.getElementById('start-btn').textContent = isGameRunning ? 'Pause Game' : 'Start Game';
+        document.getElementById('start-btn').classList.toggle('active', isGameRunning);
+    });
+    
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        game.reset();
+        isGameRunning = false;
+        document.getElementById('start-btn').textContent = 'Start Game';
+        document.getElementById('start-btn').classList.remove('active');
+    });
+
+    document.getElementById('btn-dqn').addEventListener('click', () => {
+        activeAgent = dqnAgent;
+        document.getElementById('btn-dqn').classList.add('active');
+        document.getElementById('btn-sac').classList.remove('active');
+        document.getElementById('load-sac-btn').disabled = true;
+        game.reset();
+    });
+
+    document.getElementById('btn-sac').addEventListener('click', () => {
+        activeAgent = sacAgent;
+        document.getElementById('btn-sac').classList.add('active');
+        document.getElementById('btn-dqn').classList.remove('active');
+        document.getElementById('load-sac-btn').disabled = false;
+        game.reset();
+    });
+
+    document.getElementById('load-sac-btn').addEventListener('click', () => {
+        if (activeAgent !== sacAgent) return;
+        
+        // Load actor weights
+        sacAgent.actor.weights_ih.data = preTrainedSACWeights.actor.weights_ih;
+        sacAgent.actor.weights_ho.data = preTrainedSACWeights.actor.weights_ho;
+        sacAgent.actor.bias_h.data = preTrainedSACWeights.actor.bias_h;
+        sacAgent.actor.bias_o.data = preTrainedSACWeights.actor.bias_o;
+
+        // Load critic 1 weights
+        sacAgent.critic1.weights_ih.data = preTrainedSACWeights.critic1.weights_ih;
+        sacAgent.critic1.weights_ho.data = preTrainedSACWeights.critic1.weights_ho;
+        sacAgent.critic1.bias_h.data = preTrainedSACWeights.critic1.bias_h;
+        sacAgent.critic1.bias_o.data = preTrainedSACWeights.critic1.bias_o;
+
+        // Load critic 2 weights
+        sacAgent.critic2.weights_ih.data = preTrainedSACWeights.critic2.weights_ih;
+        sacAgent.critic2.weights_ho.data = preTrainedSACWeights.critic2.weights_ho;
+        sacAgent.critic2.bias_h.data = preTrainedSACWeights.critic2.bias_h;
+        sacAgent.critic2.bias_o.data = preTrainedSACWeights.critic2.bias_o;
+        
+        // Copy to target networks
+        sacAgent.critic1_target = sacAgent.critic1.copy();
+        sacAgent.critic2_target = sacAgent.critic2.copy();
+
+        console.log("Pre-trained SAC model loaded!");
+        const loadBtn = document.getElementById('load-sac-btn');
+        loadBtn.textContent = "Model Loaded";
+        loadBtn.classList.add('active');
+        setTimeout(() => {
+            loadBtn.textContent = "Load Pre-trained SAC";
+            loadBtn.classList.remove('active');
+        }, 2000);
+    });
+    
+    // Start the loop
+    requestAnimationFrame(gameLoop);
 
 </script>
 </body>
