@@ -108,6 +108,11 @@
   thumbnail: /assets/images/machine-learning-optimizers.png
   visualization_url: /visualizations/machine-learning-optimizers.html
 
+- title: Mandelbulb
+  author: Jasper Taal
+  thumbnail: /assets/images/mandelbulb.png
+  visualization_url: /visualizations/mandelbulb.html
+
 - title: Mandlebrot Julia Analysis
   author: Jasper Taal
   thumbnail: /assets/images/mandlebrot-julia-analysis.png
