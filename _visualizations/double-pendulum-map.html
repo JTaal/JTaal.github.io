@@ -254,6 +254,7 @@
             </div>
         </div>
         <div id="info-content" class="pt-4 space-y-3">
+            <p id="info-description" class="text-gray-300"></p>
             <div id="pendulum-preview-container" class="hidden mt-4">
                  <h3 class="font-bold text-lg text-indigo-400">Pendulum Presets</h3>
                 <select id="preset-select" class="w-full bg-gray-700 border border-gray-600 rounded-md p-2 mt-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -262,12 +263,14 @@
                     <option value="pretzel">The Pretzel</option>
                     <option value="shoelace">The Shoelace</option>
                 </select>
-                <h3 class="font-bold text-lg text-indigo-400 mt-4">Live Pendulum Preview</h3>
+                <div class="flex justify-between items-center mt-4">
+                    <h3 class="font-bold text-lg text-indigo-400">Live Pendulum Preview</h3>
+                    <button id="live-preview-btn" class="toggle-button text-sm py-1 px-3">Live</button>
+                </div>
                 <div class="chart-container p-2 flex justify-center items-center">
                     <canvas id="pendulum-preview-canvas" width="350" height="350" class="bg-gray-800 rounded-md"></canvas>
                 </div>
             </div>
-             <p id="info-description" class="text-gray-300"></p>
              <div id="info-placeholder" class="formula-placeholder">θ1 ∈ [0.00, 0.00]
 θ2 ∈ [0.00, 0.00]</div>
 
@@ -402,14 +405,14 @@
     let previewCanvasCtx;
     let previewPendulumState = { t1: 0, t2: 0, w1: 0, w2: 0 };
     let isPreviewRunning = false;
+    let isLivePreviewActive = false;
     let tracePoints = [];
     let traceLength = 200;
-
 
     const scenes = {
         double_pendulum: {
             title: 'The Double Pendulum Map',
-            description: `This visualization computes and displays the behavior of millions of double pendulums simultaneously. Each pixel represents a pendulum starting with a unique angle for its two arms. The color corresponds to the final angle of the second arm, revealing the system's chaotic nature.`,
+            description: `This visualization computes and visualizes the angle of the first (x-axis) and second (y-axis) arms of all compound double pendulums starting with the specified velocities. This amounts to a two-dimensional slice of the four-dimensional phase space. Adjust the initial velocities and zoom in on regions below and observe the pretty colors! 🌈`,
             init: initDoublePendulum,
         },
     };
@@ -617,11 +620,11 @@
             </div>
             <div class="control-group">
                 <label for="fixed-omega-input" class="text-sm font-medium">Fixed Value (<span id="fixed-axis-label">ω2</span>): <span id="fixed-omega-value">0.00</span></label>
-                <input id="fixed-omega-input" type="range" min="-200.0" max="200.0" step="0.05" value="0.0">
+                <input id="fixed-omega-input" type="range" min="-20.0" max="20.0" step="0.05" value="0.0">
             </div>
             <div class="control-group">
                 <label for="dt-slider" class="text-sm font-medium">Time Step: <span id="dt-value">0.016</span></label>
-                <input id="dt-slider" type="range" min="0.001" max="0.35" step="0.001" value="0.016">
+                <input id="dt-slider" type="range" min="0.001" max="0.035" step="0.001" value="0.016">
             </div>
             <button id="restart-btn" class="toggle-button active">Restart</button>
         `;
@@ -709,7 +712,7 @@
         const panel = document.getElementById('info-panel');
         const previewContainer = document.getElementById('pendulum-preview-container');
         panel.addEventListener('click', (e) => {
-            if (e.target.closest('canvas') || e.target.closest('a') || e.target.closest('select')) return;
+            if (e.target.closest('canvas') || e.target.closest('a') || e.target.closest('select') || e.target.closest('button')) return;
             panel.classList.toggle('expanded');
             previewContainer.classList.toggle('hidden', !panel.classList.contains('expanded'));
         });
@@ -724,6 +727,9 @@
 
         const presetSelect = document.getElementById('preset-select');
         presetSelect.addEventListener('change', (e) => {
+            isLivePreviewActive = false; // Turn off live preview when selecting a preset
+            document.getElementById('live-preview-btn').classList.remove('active');
+
             if (e.target.value === 'custom') {
                 const infoDiv = document.getElementById('info-placeholder');
                 if (infoDiv.textContent.startsWith('📌')) {
@@ -749,6 +755,18 @@
                 document.getElementById('start-preview-btn').click();
             }
         });
+
+        // Live Preview Button
+        const livePreviewBtn = document.getElementById('live-preview-btn');
+        livePreviewBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent info panel from toggling
+            isLivePreviewActive = !isLivePreviewActive;
+            livePreviewBtn.classList.toggle('active', isLivePreviewActive);
+            if (!isLivePreviewActive) {
+                isPreviewRunning = false;
+            }
+        });
+
 
         // Initialize with the heart preset
         presetSelect.value = 'heart';
@@ -878,9 +896,10 @@
              infoDiv.textContent = 'Hover disabled in 3D mode.';
              return;
         }
-
-        if (infoDiv.textContent.startsWith('📌')) {
-            infoDiv.textContent = ''; // Un-pin on move
+        
+        // Un-pin if not in live mode and mouse moves
+        if (infoDiv.textContent.startsWith('📌') && !isLivePreviewActive) {
+            infoDiv.textContent = ''; 
         }
 
         raycaster.setFromCamera(mouse, camera);
@@ -889,17 +908,34 @@
         if (intersects.length > 0) {
             const uv = intersects[0].uv;
             const { theta1, theta2 } = getCoordsFromUV(uv);
-            infoDiv.textContent = `θ1: ${theta1.toFixed(4)}, θ2: ${theta2.toFixed(4)}`;
+            
+            if (!infoDiv.textContent.startsWith('📌')) {
+                 infoDiv.textContent = `θ1: ${theta1.toFixed(4)}, θ2: ${theta2.toFixed(4)}`;
+            }
+
+            if (isLivePreviewActive) {
+                document.getElementById('preview-theta1').value = theta1.toFixed(4);
+                document.getElementById('preview-theta2').value = theta2.toFixed(4);
+                document.getElementById('preview-omega1').value = 0;
+                document.getElementById('preview-omega2').value = 0;
+                
+                previewPendulumState = { t1: theta1, t2: theta2, w1: 0, w2: 0 };
+                isPreviewRunning = true;
+                tracePoints = [];
+            }
         } else {
-            const PI2 = Math.PI * 2.0;
-            const fullRangeX = PI2 / zoomState.scale.x;
-            const minTheta1 = (zoomState.x * PI2) - fullRangeX / 2.0;
-            const maxTheta1 = minTheta1 + fullRangeX;
-            const fullRangeY = PI2 / zoomState.scale.y;
-            const minTheta2 = (zoomState.y * PI2) - fullRangeY / 2.0;
-            const maxTheta2 = minTheta2 + fullRangeY;
-            infoDiv.textContent = `θ1 ∈ [${minTheta1.toFixed(4)}, ${maxTheta1.toFixed(4)}]
+            // If mouse is off the map, show range unless pinned
+            if (!infoDiv.textContent.startsWith('📌')) {
+                const PI2 = Math.PI * 2.0;
+                const fullRangeX = PI2 / zoomState.scale.x;
+                const minTheta1 = (zoomState.x * PI2) - fullRangeX / 2.0;
+                const maxTheta1 = minTheta1 + fullRangeX;
+                const fullRangeY = PI2 / zoomState.scale.y;
+                const minTheta2 = (zoomState.y * PI2) - fullRangeY / 2.0;
+                const maxTheta2 = minTheta2 + fullRangeY;
+                infoDiv.textContent = `θ1 ∈ [${minTheta1.toFixed(4)}, ${maxTheta1.toFixed(4)}]
 θ2 ∈ [${minTheta2.toFixed(4)}, ${maxTheta2.toFixed(4)}]`;
+            }
         }
     }
     
@@ -928,7 +964,10 @@
                 zoomState.scale.multiplyScalar(1.0 / scaleFactor);
                 needsRestart = true;
                 updateViewInputs();
-            } else if (viewMode === '2D_SLICE') { // CLICK (SET PREVIEW)
+            } else if (viewMode === '2D_SLICE') { // CLICK (SET PREVIEW & PIN)
+                 isLivePreviewActive = false;
+                 document.getElementById('live-preview-btn').classList.remove('active');
+
                  const uv = intersects[0].uv;
                  const { theta1, theta2 } = getCoordsFromUV(uv);
 
@@ -1169,5 +1208,4 @@
 </script>
 </body>
 </html>
-
 

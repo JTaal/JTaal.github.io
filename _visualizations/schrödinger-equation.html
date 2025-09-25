@@ -435,27 +435,27 @@
             init: initHeisenbergLimit,
         },
         wavepacket_superposition_3d_phase: {
-            title: 'Wavepacket Superposition (3D Phase)',
+            title: '3D Wavepacket Superposition',
             description: 'This simulation shows the superposition of two 3D combined wave packets. The total wavefunction is the sum of the individual wavefunctions ($$\\Psi_{total} = \\Psi_1 + \\Psi_2$$), creating complex interference patterns in three dimensions.',
             init: initCombinedInterference,
         },
         single_wavepacket_3d_phase: {
-            title: 'Single Wavepacket (3D Phase)',
+            title: '3D Single Wavepacket',
             description: 'This visualization combines the real and imaginary components of the wavefunction into a single 3D spiral. The path of the spiral shows the evolution of the complex phase, giving an intuitive look at the particle\'s quantum state.',
             init: initCombined3DWave,
         },
         interference_2d_probability: {
-            title: 'Interference (2D Probability)',
+            title: '2D Interference',
             description: 'This simulation shows the superposition of two Gaussian wave packets. According to quantum mechanics, the total wavefunction is the sum of individual wavefunctions: $$\\Psi_{total} = \\Psi_1 + \\Psi_2$$. The resulting probability density $$|\\Psi_{total}|^2$$ reveals interference patterns where the waves combine.',
             init: initWavePacketInterference,
         },
         single_wavepacket_2d_components: {
-            title: 'Single Wavepacket (2D Components)',
+            title: '2D Single Wavepacket',
             description: '', // Handled in switchScene
             init: initGaussianWavePacket,
         },
         harmonic_oscillator_probability_cloud: {
-            title: 'Harmonic Oscillator (Probability Cloud)',
+            title: 'Harmonic Oscillator',
             description: 'A visualization of the probability density for a particle in a 3D quantum harmonic oscillator potential. This represents a superposition of quantum states evolving over time.',
             init: initSchrodinger,
         },
@@ -810,12 +810,12 @@
              <button id="play-pause-btn" class="toggle-button">Play</button>
              <div class="p-2 border border-gray-600 rounded-lg flex flex-col gap-2 items-center">
                 <span class="font-bold text-indigo-400">Packet 1</span>
-                 <div class="control-group w-32"><label for="k1" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k1-val">2.0</span></label><input type="range" id="k1" min="-4" max="4" step="0.1" value="2" class="w-full"></div>
+                 <div class="control-group w-32"><label for="k1" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k1-val">2.0</span></label><input type="range" id="k1" min="-400" max="400" step="0.1" value="2" class="w-full"></div>
                 <div class="control-group w-32"><label class="text-xs">Position (x₀)</label><input type="range" id="x1" min="-10" max="10" step="0.5" value="-6" class="w-full"></div>
              </div>
               <div class="p-2 border border-gray-600 rounded-lg flex flex-col gap-2 items-center">
                 <span class="font-bold text-purple-400">Packet 2</span>
-                 <div class="control-group w-32"><label for="k2" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k2-val">-1.5</span></label><input type="range" id="k2" min="-4" max="4" step="0.1" value="-1.5" class="w-full"></div>
+                 <div class="control-group w-32"><label for="k2" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k2-val">-1.5</span></label><input type="range" id="k2" min="-400" max="400" step="0.1" value="-1.5" class="w-full"></div>
                 <div class="control-group w-32"><label class="text-xs">Position (x₀)</label><input type="range" id="x2" min="-10" max="10" step="0.5" value="6" class="w-full"></div>
              </div>
         `;
@@ -1088,12 +1088,12 @@
              <button id="play-pause-btn" class="toggle-button">Play</button>
              <div class="p-2 border border-gray-600 rounded-lg flex flex-col gap-2 items-center">
                 <span class="font-bold text-indigo-400">Packet 1</span>
-                <div class="control-group w-32"><label for="k1" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k1-val">2.0</span></label><input type="range" id="k1" min="-4" max="4" step="0.1" value="2" class="w-full"></div>
+                <div class="control-group w-32"><label for="k1" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k1-val">2.0</span></label><input type="range" id="k1" min="-400" max="400" step="0.1" value="2" class="w-full"></div>
                 <div class="control-group w-32"><label class="text-xs">Position (x₀)</label><input type="range" id="x1" min="-10" max="10" step="0.5" value="-6" class="w-full"></div>
              </div>
               <div class="p-2 border border-gray-600 rounded-lg flex flex-col gap-2 items-center">
                 <span class="font-bold text-purple-400">Packet 2</span>
-                 <div class="control-group w-32"><label for="k2" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k2-val">-1.5</span></label><input type="range" id="k2" min="-4" max="4" step="0.1" value="-1.5" class="w-full"></div>
+                 <div class="control-group w-32"><label for="k2" class="text-xs w-full flex justify-between"><span>Momentum (k₀)</span><span id="k2-val">-1.5</span></label><input type="range" id="k2" min="-400" max="400" step="0.1" value="-1.5" class="w-full"></div>
                 <div class="control-group w-32"><label class="text-xs">Position (x₀)</label><input type="range" id="x2" min="-10" max="10" step="0.5" value="6" class="w-full"></div>
              </div>
         `;
