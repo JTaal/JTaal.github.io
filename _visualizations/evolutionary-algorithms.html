@@ -326,7 +326,7 @@
 
         const populationView = new THREE.Group();
         const ioSpaceView = new THREE.Group();
-        let populationPoints, cmaEsEllipsoid, landscapeMesh, optimumMarker, graphObject;
+        let populationPoints, cmaEsEllipsoid, landscapeMesh, optimumMinimizeMarker, optimumMaximizeMarkersGroup, graphObject;
         let inputSpacePoints, outputSpacePoints, ioConnectors, ioLegend;
         let populationGrowthState = { isAnimating: false, currentCount: 0, startTime: 0, duration: 1.0 };
         let lastGenerationTime = 0;
@@ -344,7 +344,7 @@
             landscapeColorHigh: '#22d3ee', landscapeColorLow: '#4f46e5', landscapeColorContour: '#9ca3af',
             vectorColorHigh: '#22c55e', vectorColorLow: '#ef4444',
             landscapeParams: { ackley_a: 20, ackley_b: 0.2, rastrigin_a: 10 },
-            graphLogScale: false, graphMetric: 'fitness'
+            graphLogScale: true, graphMetric: 'fitness'
         };
 
         const ui = {
@@ -433,21 +433,21 @@
         };
 
         const landscapes = {
-            sphere: { fn: (x, z, p) => (x*x + z*z) / 50, optimum: new THREE.Vector3(0, 0, 0), domain: 30 },
-            ackley: { fn: (x, z, p) => (-p.ackley_a * Math.exp(-p.ackley_b * Math.sqrt(0.5 * (x*x + z*z))) - Math.exp(0.5 * (Math.cos(2 * Math.PI * x) + Math.cos(2 * Math.PI * z))) + p.ackley_a + Math.E) / 2, optimum: new THREE.Vector3(0, 0, 0), domain: 32.768 },
-            rastrigin: { fn: (x, z, p) => (p.rastrigin_a * 2 + (x*x - p.rastrigin_a * Math.cos(2 * Math.PI * x)) + (z*z - p.rastrigin_a * Math.cos(2 * Math.PI * z))) / 10, optimum: new THREE.Vector3(0, 0, 0), domain: 5.12 },
-            himmelblau: { fn: (x, z, p) => ((x*x + z - 11)**2 + (x + z*z - 7)**2) / 100, optimum: new THREE.Vector3(3, 2, 0), domain: 6 },
-            rosenbrock: { fn: (x, z, p) => ((1-x)**2 + 100 * (z - x*x)**2) / 100, optimum: new THREE.Vector3(1, 1, 0), domain: 2.048},
-            beale: { fn: (x, z, p) => ((1.5 - x + x*z)**2 + (2.25 - x + x*z*z)**2 + (2.625 - x + x*z**3)**2) / 100, optimum: new THREE.Vector3(3, 0.5, 0), domain: 4.5},
-            goldstein: { fn: (x, z, p) => ( (1 + (x+z+1)**2 * (19 - 14*x + 3*x**2 - 14*z + 6*x*z + 3*z**2)) * (30 + (2*x-3*z)**2 * (18 - 32*x + 12*x**2 + 48*z - 36*x*z + 27*z**2)) ) / 100000, optimum: new THREE.Vector3(0, -1, 0), domain: 2},
-            booth: { fn: (x, z, p) => ((x + 2*z - 7)**2 + (2*x + z - 5)**2) / 100, optimum: new THREE.Vector3(1, 3, 0), domain: 10},
-            bukin: { fn: (x, z, p) => 100 * Math.sqrt(Math.abs(z - 0.01*x**2)) + 0.01 * Math.abs(x + 10), optimum: new THREE.Vector3(-10, 1, 0), domain: 15},
-            matyas: { fn: (x, z, p) => 0.26 * (x**2 + z**2) - 0.48 * x * z, optimum: new THREE.Vector3(0,0,0), domain: 10},
-            levi: { fn: (x, z, p) => Math.sin(3*Math.PI*x)**2 + (x-1)**2 * (1+Math.sin(3*Math.PI*z)**2) + (z-1)**2 * (1+Math.sin(2*Math.PI*z)**2), optimum: new THREE.Vector3(1,1,0), domain: 10},
-            three_hump: { fn: (x, z, p) => 2*x**2 - 1.05*x**4 + x**6/6 + x*z + z**2, optimum: new THREE.Vector3(0,0,0), domain: 5},
-            easom: { fn: (x, z, p) => -Math.cos(x)*Math.cos(z)*Math.exp(-((x-Math.PI)**2 + (z-Math.PI)**2)) + 2, optimum: new THREE.Vector3(Math.PI, Math.PI, 0), domain: 10},
-            cross_in_tray: { fn: (x, z, p) => -0.0001 * (Math.abs(Math.sin(x)*Math.sin(z)*Math.exp(Math.abs(100 - Math.sqrt(x**2+z**2)/Math.PI))) + 1)**0.1 + 2, optimum: new THREE.Vector3(1.34941, 1.34941, 0), domain: 10},
-            eggholder: { fn: (x, z, p) => -(z+47)*Math.sin(Math.sqrt(Math.abs(x/2 + (z+47)))) - x*Math.sin(Math.sqrt(Math.abs(x-(z+47)))) / 100 + 5, optimum: new THREE.Vector3(512, 404.2319, 0), domain: 512}
+            sphere:      { fn: (x, z, p) => (x*x + z*z) / 50, domain: 30, minOptimum: new THREE.Vector3(0,0,0) },
+            booth:       { fn: (x, z, p) => ((x + 2*z - 7)**2 + (2*x + z - 5)**2) / 100, domain: 10, minOptimum: new THREE.Vector3(1,0,3) },
+            matyas:      { fn: (x, z, p) => 0.26 * (x**2 + z**2) - 0.48 * x * z, domain: 10, minOptimum: new THREE.Vector3(0,0,0) },
+            himmelblau:  { fn: (x, z, p) => ((x*x + z - 11)**2 + (x + z*z - 7)**2) / 100, domain: 6, minOptimum: new THREE.Vector3(3,0,2) },
+            beale:       { fn: (x, z, p) => ((1.5 - x + x*z)**2 + (2.25 - x + x*z*z)**2 + (2.625 - x + x*z**3)**2) / 100, domain: 4.5, minOptimum: new THREE.Vector3(3,0,0.5) },
+            goldstein:   { fn: (x, z, p) => ( (1 + (x+z+1)**2 * (19 - 14*x + 3*x**2 - 14*z + 6*x*z + 3*z**2)) * (30 + (2*x-3*z)**2 * (18 - 32*x + 12*x**2 + 48*z - 36*x*z + 27*z**2)) ) / 100000, domain: 2, minOptimum: new THREE.Vector3(0,0,-1) },
+            levi:        { fn: (x, z, p) => Math.sin(3*Math.PI*x)**2 + (x-1)**2 * (1+Math.sin(3*Math.PI*z)**2) + (z-1)**2 * (1+Math.sin(2*Math.PI*z)**2), domain: 10, minOptimum: new THREE.Vector3(1,0,1) },
+            three_hump:  { fn: (x, z, p) => 2*x**2 - 1.05*x**4 + x**6/6 + x*z + z**2, domain: 5, minOptimum: new THREE.Vector3(0,0,0) },
+            easom:       { fn: (x, z, p) => -Math.cos(x)*Math.cos(z)*Math.exp(-((x-Math.PI)**2 + (z-Math.PI)**2)) + 2, domain: 10, minOptimum: new THREE.Vector3(Math.PI, 0, Math.PI) },
+            cross_in_tray: { fn: (x, z, p) => -0.0001 * (Math.abs(Math.sin(x)*Math.sin(z)*Math.exp(Math.abs(100 - Math.sqrt(x**2+z**2)/Math.PI))) + 1)**0.1 + 2, domain: 10, minOptimum: new THREE.Vector3(1.34941, 0, 1.34941) },
+            bukin:       { fn: (x, z, p) => 100 * Math.sqrt(Math.abs(z - 0.01*x**2)) + 0.01 * Math.abs(x + 10), domain: 15, minOptimum: new THREE.Vector3(-10, 0, 1) },
+            ackley:      { fn: (x, z, p) => (-p.ackley_a * Math.exp(-p.ackley_b * Math.sqrt(0.5 * (x*x + z*z))) - Math.exp(0.5 * (Math.cos(2 * Math.PI * x) + Math.cos(2 * Math.PI * z))) + p.ackley_a + Math.E) / 2, domain: 32.768, minOptimum: new THREE.Vector3(0,0,0) },
+            rastrigin:   { fn: (x, z, p) => (p.rastrigin_a * 2 + (x*x - p.rastrigin_a * Math.cos(2 * Math.PI * x)) + (z*z - p.rastrigin_a * Math.cos(2 * Math.PI * z))) / 10, domain: 5.12, minOptimum: new THREE.Vector3(0,0,0) },
+            rosenbrock:  { fn: (x, z, p) => ((1-x)**2 + 100 * (z - x*x)**2) / 100, domain: 2.048, minOptimum: new THREE.Vector3(1,0,1) },
+            eggholder:   { fn: (x, z, p) => -(z+47)*Math.sin(Math.sqrt(Math.abs(x/2 + (z+47)))) - x*Math.sin(Math.sqrt(Math.abs(x-(z+47)))) / 100 + 5, domain: 512, minOptimum: new THREE.Vector3(512, 0, 404.2319) },
         };
 
         init();
@@ -478,6 +478,7 @@
             scene.add(populationView, ioSpaceView);
 
             setupEventListeners();
+            ui.graphLogBtn.classList.toggle('active', state.graphLogScale);
             resetSimulation();
             setupCameraForView(state.view);
         }
@@ -588,7 +589,7 @@
         // --- CONTROL & UI FUNCTIONS ---
         function startSimulation() { state.isRunning = true; ui.startBtn.classList.add('hidden'); ui.pauseBtn.classList.remove('hidden'); updateSummaryBar(); }
         function pauseSimulation() { state.isRunning = false; ui.startBtn.classList.remove('hidden'); ui.pauseBtn.classList.add('hidden'); updateSummaryBar(); }
-        function resetSimulation() { pauseSimulation(); state.generation = 0; state.fitnessHistory = []; ui.generationCounter.textContent = '0'; setupViews(); initializePopulation(); updateVisualization(); startPopulationGrowthAnimation(); }
+        function resetSimulation() { pauseSimulation(); state.generation = 0; state.fitnessHistory = []; ui.generationCounter.textContent = '0'; ui.graphLogBtn.classList.toggle('active', state.graphLogScale); generateFitnessPlot(); setupViews(); initializePopulation(); updateVisualization(); startPopulationGrowthAnimation(); }
         function switchAlgoCategory(category) { if (state.algoCategory === category) return; state.algoCategory = category; document.querySelectorAll('#algo-category-selector button').forEach(btn => btn.classList.toggle('active', btn.dataset.category === category)); if (category === 'GA') { ui.gaAlgoSelector.classList.remove('hidden'); ui.esAlgoSelector.classList.add('hidden'); switchAlgorithm(ui.gaAlgoSelector.value); } else { ui.gaAlgoSelector.classList.add('hidden'); ui.esAlgoSelector.classList.remove('hidden'); switchAlgorithm(ui.esAlgoSelector.value); } }
         function switchAlgorithm(algo) {
             state.algorithm = algo;
@@ -819,9 +820,14 @@
                 pointsGeom.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(state.populationSize * 3), 3));
                 populationPoints = new THREE.Points(pointsGeom, new THREE.PointsMaterial({ size: state.pointSize, vertexColors: true, transparent: true, opacity: 0.9 }));
                 populationView.add(populationPoints);
-                const optimumGeom = new THREE.SphereGeometry(state.landscapeScale * 0.005, 16, 16);
-                optimumMarker = new THREE.Mesh(optimumGeom, new THREE.MeshBasicMaterial({ color: 0xffff00 }));
-                populationView.add(optimumMarker);
+                
+                const optimumSphereGeom = new THREE.SphereGeometry(state.landscapeScale * 0.005, 16, 16);
+                optimumMinimizeMarker = new THREE.Mesh(optimumSphereGeom, new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.7 }));
+                populationView.add(optimumMinimizeMarker);
+
+                optimumMaximizeMarkersGroup = new THREE.Group();
+                populationView.add(optimumMaximizeMarkersGroup);
+
                 const ellipsoidGeom = new THREE.SphereGeometry(1, 32, 16);
                 cmaEsEllipsoid = new THREE.Mesh(ellipsoidGeom, new THREE.MeshBasicMaterial({color: 0xfde047, wireframe: true, transparent: true, opacity: 0.5}));
                 populationView.add(cmaEsEllipsoid);
@@ -960,12 +966,39 @@
         }
 
         function updateVisualization() {
-            if (!state.population || state.population.length === 0) return;
+            if (!state.population || state.population.length === 0 || !landscapeMesh) return;
             
             const landscape = landscapes[state.landscape];
-            optimumMarker.position.copy(landscape.optimum);
-            optimumMarker.position.y = landscape.fn(landscape.optimum.x, landscape.optimum.z, state.landscapeParams) + 0.5;
-            optimumMarker.material.color.set(state.optimizationGoal === 'minimize' ? 0xffff00 : 0xf472b6);
+
+            // Position minimize marker
+            const minOptimumPos = landscape.minOptimum;
+            const minOptimumY = landscape.fn(minOptimumPos.x, minOptimumPos.z, state.landscapeParams);
+            optimumMinimizeMarker.position.copy(minOptimumPos);
+            optimumMinimizeMarker.position.y = minOptimumY + 0.2;
+            
+            // Find and position maximize markers dynamically
+            optimumMaximizeMarkersGroup.clear();
+            const vertices = landscapeMesh.geometry.attributes.position.array;
+            let maxY = -Infinity;
+            for (let i = 1; i < vertices.length; i += 3) {
+                if (vertices[i] > maxY) {
+                    maxY = vertices[i];
+                }
+            }
+
+            const tolerance = 0.01;
+            for (let i = 0; i < vertices.length; i += 3) {
+                if (Math.abs(vertices[i+1] - maxY) < tolerance) {
+                    const coneGeom = new THREE.ConeGeometry(state.landscapeScale * 0.006, state.landscapeScale * 0.02, 16);
+                    const coneMat = new THREE.MeshBasicMaterial({ color: 0xf472b6, transparent: true, opacity: 0.7 });
+                    const marker = new THREE.Mesh(coneGeom, coneMat);
+                    marker.position.set(vertices[i], vertices[i+1] + (state.landscapeScale * 0.01) + 0.2, vertices[i+2]);
+                    optimumMaximizeMarkersGroup.add(marker);
+                }
+            }
+            
+            optimumMinimizeMarker.visible = state.optimizationGoal === 'minimize';
+            optimumMaximizeMarkersGroup.visible = state.optimizationGoal === 'maximize';
 
 
             cmaEsEllipsoid.visible = state.algorithm === 'cma-es';
@@ -1226,5 +1259,4 @@
     </script>
 </body>
 </html>
-
 
