@@ -61,6 +61,22 @@
                 flex-direction: column;
             }
         }
+        
+        /* Scrollbar Styles */
+        #settings-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        #settings-panel::-webkit-scrollbar-track {
+            background: rgba(31, 41, 55, 0.5);
+            border-radius: 10px;
+        }
+        #settings-panel::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 10px;
+        }
+        #settings-panel::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
 
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -168,7 +184,12 @@
     
     <!-- Settings Panel -->
     <div id="settings-panel" class="panel absolute top-16 right-4 p-4 rounded-lg shadow-2xl w-80 max-h-[calc(100vh-5rem)] overflow-y-auto hidden z-20">
-        <h3 class="text-lg font-bold mb-4 text-gray-100">Settings</h3>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-100">Settings</h3>
+            <button id="close-settings-btn" class="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
         <div class="space-y-6">
             <div>
                 <h4 class="settings-section-header text-sm">Graphics & Performance</h4>
@@ -542,6 +563,7 @@
 
             document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
             ui.settingsBtn.addEventListener('click', () => ui.settingsPanel.classList.toggle('hidden'));
+            document.getElementById('close-settings-btn').addEventListener('click', () => ui.settingsPanel.classList.add('hidden'));
             ui.graphBtn.addEventListener('click', () => { 
                 ui.graphContainer.classList.toggle('hidden');
                 if(!ui.graphContainer.classList.contains('hidden')) {
