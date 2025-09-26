@@ -77,21 +77,31 @@
 
     <footer class="bg-gray-900/50 p-4 shadow-lg z-10 backdrop-blur-sm">
         <div class="max-w-4xl mx-auto">
-             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                <div class="flex items-center space-x-3">
-                    <label class="font-bold slider-label-x w-12 text-center">î (x)</label>
+             <!-- Mobile-friendly UI: stacks label/value above slider on small screens -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-6">
+                <!-- X Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="font-bold slider-label-x">î (x)</label>
+                        <span id="x-value" class="px-2 py-1 text-sm rounded-md bg-red-500/20 w-16 text-center">1.00</span>
+                    </div>
                     <input id="x-slider" type="range" min="-5" max="5" value="1" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-x">
-                    <span id="x-value" class="px-2 py-1 text-sm rounded-md bg-red-500/20 w-16 text-center">1.00</span>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <label class="font-bold slider-label-y w-12 text-center">ĵ (y)</label>
+                <!-- Y Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="font-bold slider-label-y">ĵ (y)</label>
+                        <span id="y-value" class="px-2 py-1 text-sm rounded-md bg-green-500/20 w-16 text-center">1.00</span>
+                    </div>
                     <input id="y-slider" type="range" min="-5" max="5" value="1" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-y">
-                    <span id="y-value" class="px-2 py-1 text-sm rounded-md bg-green-500/20 w-16 text-center">1.00</span>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <label class="font-bold slider-label-z w-12 text-center">k̂ (z)</label>
+                <!-- Z Slider -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="font-bold slider-label-z">k̂ (z)</label>
+                        <span id="z-value" class="px-2 py-1 text-sm rounded-md bg-blue-500/20 w-16 text-center">1.00</span>
+                    </div>
                     <input id="z-slider" type="range" min="-5" max="5" value="1" step="0.01" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-z">
-                    <span id="z-value" class="px-2 py-1 text-sm rounded-md bg-blue-500/20 w-16 text-center">1.00</span>
                 </div>
             </div>
         </div>
@@ -185,7 +195,7 @@
             labelK.position.set(0, 0, 5.8);
 
             const scale = 0.5;
-  
+ 
 
             // scale down to make smaller
             labelI.scale.set(0.45*scale, 1*scale, 0);
@@ -196,9 +206,6 @@
 
 
             
-
-
-
             const resultantVector = new THREE.Vector3(1, 1, 1);
             const arrowResultant = new THREE.ArrowHelper(resultantVector.clone().normalize(), new THREE.Vector3(0,0,0), resultantVector.length(), 0xffffff, 0.25, 0.15);
             arrowResultant.name = 'resultant';
@@ -323,4 +330,3 @@
     </script>
 </body>
 </html>
-
