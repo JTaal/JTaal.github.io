@@ -10,7 +10,7 @@
         #container, #labels { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
         #container { pointer-events: auto; }
         #labels { pointer-events: none; z-index: 2; }
-        .panel { background-color: rgba(17, 24, 39, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(55, 65, 81, 0.5); z-index: 10; }
+        .panel { background-color: rgba(17, 24, 39, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(55, 65, 81, 0.5); z-index: 10; transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; }
         .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; background: #3b82f6; cursor: pointer; border-radius: 50%; }
         .toggle-btn { background-color: rgba(31, 41, 55, 0.8); border: 1px solid rgba(55, 65, 81, 0.5); }
         .toggle-btn.active { background-color: #2563eb; border-color: rgba(59, 130, 246, 0.7); color: #ffffff; }
@@ -37,6 +37,25 @@
         .axis-line, .tick-line { stroke: #4b5563; stroke-width: 1; }
         .axis-text, .axis-title { font-size: 11px; fill: #9ca3af; padding: 2px;}
         .axis-title { font-weight: bold; }
+
+        /* Fullscreen Styles */
+        .fs-hidden {
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        .fullscreen-mode #ui-panel.fs-hidden {
+            transform: translateY(20px);
+        }
+        .fullscreen-mode #top-bar.fs-hidden {
+            transform: translateY(-20px);
+        }
+        .fullscreen-mode #top-right-controls.fs-hidden, .fullscreen-mode #settings-panel.fs-hidden {
+             transform: translateX(20px);
+        }
+        .fullscreen-mode #graph-container-wrapper.fs-hidden {
+             transform: translateX(-20px);
+        }
+
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -128,7 +147,11 @@
     </div>
     
     <!-- Right side icon buttons -->
-    <div class="absolute top-4 right-4 flex gap-2 z-20">
+    <div id="top-right-controls" class="absolute top-4 right-4 flex gap-2 z-20">
+        <button id="fullscreen-btn" class="panel p-2 rounded-md">
+            <svg id="icon-fullscreen-enter" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            <svg id="icon-fullscreen-exit" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+        </button>
         <button id="graph-btn" class="panel p-2 rounded-md">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
         </button>
@@ -330,6 +353,7 @@
         let inputSpacePoints, outputSpacePoints, ioConnectors, ioLegend;
         let populationGrowthState = { isAnimating: false, currentCount: 0, startTime: 0, duration: 1.0 };
         let lastGenerationTime = 0;
+        let isFullscreen = false;
 
         const state = {
             algorithm: 'ga', algoCategory: 'GA', view: 'population', isRunning: false, landscape: 'sphere', optimizationGoal: 'minimize',
@@ -450,6 +474,20 @@
             eggholder:   { fn: (x, z, p) => -(z+47)*Math.sin(Math.sqrt(Math.abs(x/2 + (z+47)))) - x*Math.sin(Math.sqrt(Math.abs(x-(z+47)))) / 100 + 5, domain: 512, minOptimum: new THREE.Vector3(512, 0, 404.2319) },
         };
 
+        const uiHoverRegions = {
+            top: { el: document.getElementById('top-bar'), y: 60 },
+            bottom: { el: document.getElementById('ui-panel'), y: window.innerHeight - 40 },
+            topRight: { 
+                group: [
+                    document.getElementById('top-right-controls'), 
+                    document.getElementById('settings-panel')
+                ],
+                x: window.innerWidth - 220, 
+                y: 120 
+            },
+            topLeft: { el: document.getElementById('graph-container-wrapper'), x: 480, y: 120 }
+        };
+
         init();
         animate();
 
@@ -496,6 +534,7 @@
                 resetSimulation();
             }));
 
+            document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
             ui.settingsBtn.addEventListener('click', () => ui.settingsPanel.classList.toggle('hidden'));
             ui.graphBtn.addEventListener('click', () => { 
                 ui.graphContainer.classList.toggle('hidden');
@@ -633,6 +672,72 @@
             if (activeParams) { activeParams.classList.remove('hidden'); }
             else { ui.landscapeParams.no_params.classList.remove('hidden'); }
         }
+
+        function fullscreenHoverHandler(e) {
+            const { clientX, clientY } = e;
+
+            function isMouseOver(el) {
+                if (!el || el.classList.contains('hidden') || el.classList.contains('fs-hidden')) return false;
+                const rect = el.getBoundingClientRect();
+                return (
+                    clientX >= rect.left && clientX <= rect.right &&
+                    clientY >= rect.top && clientY <= rect.bottom
+                );
+            }
+
+            // Top Bar
+            const isOverTopBar = isMouseOver(uiHoverRegions.top.el);
+            uiHoverRegions.top.el.classList.toggle('fs-hidden', clientY >= uiHoverRegions.top.y && !isOverTopBar);
+
+            // Bottom Panel
+            const isOverBottomPanel = isMouseOver(uiHoverRegions.bottom.el);
+            uiHoverRegions.bottom.el.classList.toggle('fs-hidden', clientY <= uiHoverRegions.bottom.y && !isOverBottomPanel);
+
+            // Top Right
+            const topRightRegionActive = clientY < uiHoverRegions.topRight.y && clientX > uiHoverRegions.topRight.x;
+            const isOverTopRightGroup = uiHoverRegions.topRight.group.some(isMouseOver);
+            uiHoverRegions.topRight.group.forEach(el => {
+                if (el.wasHiddenBeforeFullscreen) return;
+                el.classList.toggle('fs-hidden', !topRightRegionActive && !isOverTopRightGroup);
+            });
+
+            // Top Left
+            const topLeftRegionActive = clientY < uiHoverRegions.topLeft.y && clientX < uiHoverRegions.topLeft.x;
+            const isOverTopLeft = isMouseOver(uiHoverRegions.topLeft.el);
+            if (uiHoverRegions.topLeft.el.wasHiddenBeforeFullscreen) return;
+            uiHoverRegions.topLeft.el.classList.toggle('fs-hidden', !topLeftRegionActive && !isOverTopLeft);
+        }
+
+        function toggleFullscreen() {
+            isFullscreen = !isFullscreen;
+            document.body.classList.toggle('fullscreen-mode', isFullscreen);
+            document.getElementById('icon-fullscreen-enter').classList.toggle('hidden', isFullscreen);
+            document.getElementById('icon-fullscreen-exit').classList.toggle('hidden', !isFullscreen);
+            
+            const allElements = [
+                uiHoverRegions.top.el, 
+                uiHoverRegions.bottom.el, 
+                ...uiHoverRegions.topRight.group, 
+                uiHoverRegions.topLeft.el
+            ];
+
+            if (isFullscreen) {
+                allElements.forEach(el => {
+                    el.wasHiddenBeforeFullscreen = el.classList.contains('hidden');
+                    if (!el.wasHiddenBeforeFullscreen) {
+                        el.classList.add('fs-hidden');
+                    }
+                });
+                window.addEventListener('mousemove', fullscreenHoverHandler);
+            } else {
+                allElements.forEach(el => {
+                    el.classList.remove('fs-hidden');
+                    delete el.wasHiddenBeforeFullscreen;
+                });
+                window.removeEventListener('mousemove', fullscreenHoverHandler);
+            }
+        }
+
 
         // --- ALGORITHMS ---
         function runNextGeneration(){
@@ -1255,7 +1360,17 @@
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         }
-        function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); renderer.setPixelRatio(window.devicePixelRatio); labelRenderer.setSize(window.innerWidth, window.innerHeight); }
+        function onWindowResize() { 
+            camera.aspect = window.innerWidth / window.innerHeight; 
+            camera.updateProjectionMatrix(); 
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+            renderer.setPixelRatio(window.devicePixelRatio); 
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Update fullscreen hover regions on resize
+            uiHoverRegions.bottom.y = window.innerHeight - 40;
+            uiHoverRegions.topRight.x = window.innerWidth - 220;
+        }
     </script>
 </body>
 </html>
