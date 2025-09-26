@@ -97,6 +97,24 @@
             text-align: center;
             padding: 1rem;
         }
+        .collapsible-content {
+            transition: max-height 0.3s ease-in-out;
+            max-height: 0; /* Start closed on mobile */
+        }
+
+        @media (min-width: 1024px) {
+            .collapsible-content {
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            .collapsible-trigger .chevron-icon {
+                display: none;
+            }
+            .collapsible-trigger {
+                cursor: default;
+                pointer-events: none;
+            }
+        }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
@@ -105,16 +123,16 @@
         <h1 class="text-xl font-bold text-gray-200 text-center tracking-wider">Image Deconvolution Playground</h1>
     </header>
 
-    <div class="flex flex-1 overflow-hidden p-4 gap-4">
+    <div class="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden p-4 gap-4">
         <!-- Main Content -->
-        <main class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-auto">
+        <main class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-2">
                 <h2 id="blurred-canvas-title" class="text-lg font-semibold text-center text-indigo-400">Blurred & Noisy Image</h2>
                 <div id="blurred-container" class="canvas-container flex-1 rounded-lg">
                     <canvas id="blurred-canvas"></canvas>
                     <div id="blurred-placeholder" class="upload-placeholder">
                         <svg class="w-12 h-12 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
-                        <span>Upload an image using the controls below</span>
+                        <span>Upload an image using the controls</span>
                     </div>
                     <div id="blurred-loader" class="loader hidden"></div>
                 </div>
@@ -133,7 +151,8 @@
         </main>
 
         <!-- Controls Sidebar -->
-        <aside id="controls-panel" class="ui-panel rounded-lg w-full max-w-sm overflow-y-auto p-6 space-y-6">
+        <aside id="controls-panel" class="ui-panel rounded-lg w-full lg:w-96 lg:max-w-sm overflow-y-auto p-6 space-y-4">
+            <!-- Section 1: Upload -->
             <div>
                 <label for="image-upload" class="block mb-2 text-sm font-medium">1. Upload Image</label>
                 <input type="file" id="image-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-indigo-50 hover:file:bg-indigo-700 cursor-pointer"/>
@@ -141,60 +160,78 @@
 
             <hr class="border-gray-600">
             
-            <div>
-                <h3 class="text-md font-medium mb-3">2. Degradation Model</h3>
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-gray-300">Deconvolve existing blur</span>
-                        <label for="deconvolve-only-switch" class="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" value="" id="deconvolve-only-switch" class="sr-only peer">
-                          <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
-                    </div>
-                     <div>
-                        <label for="blur-type" class="block mb-2 text-sm font-medium">Blur Type (PSF)</label>
-                        <select id="blur-type" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
-                            <option value="gaussian">Gaussian Blur</option>
-                            <option value="motion">Motion Blur</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="blur-amount" class="block mb-1 text-sm font-medium">Blur Amount: <span id="blur-amount-value">5</span></label>
-                        <input id="blur-amount" type="range" min="1" max="25" step="2" value="5">
-                    </div>
-                    <div id="motion-angle-container">
-                        <label for="motion-angle" class="block mb-1 text-sm font-medium">Motion Angle: <span id="motion-angle-value">45</span>°</label>
-                        <input id="motion-angle" type="range" min="0" max="180" step="1" value="45">
-                    </div>
-                     <div id="noise-amount-container">
-                        <label for="noise-amount" class="block mb-1 text-sm font-medium">Noise Level: <span id="noise-amount-value">0.02</span></label>
-                        <input id="noise-amount" type="range" min="0" max="0.2" step="0.01" value="0.02">
+            <!-- Section 2: Degradation Model (Collapsible) -->
+            <div class="collapsible-section">
+                <button class="collapsible-trigger w-full flex justify-between items-center text-left py-2 font-medium text-gray-200 hover:text-white transition-colors">
+                    <h3 class="text-md">2. Degradation Model</h3>
+                    <svg class="chevron-icon w-5 h-5 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    </svg>
+                </button>
+                <div class="collapsible-content overflow-hidden">
+                    <div class="pt-4 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-300">Deconvolve existing blur</span>
+                            <label for="deconvolve-only-switch" class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" value="" id="deconvolve-only-switch" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div>
+                            <label for="blur-type" class="block mb-2 text-sm font-medium">Blur Type (PSF)</label>
+                            <select id="blur-type" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                                <option value="gaussian">Gaussian Blur</option>
+                                <option value="motion">Motion Blur</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="blur-amount" class="block mb-1 text-sm font-medium">Blur Amount: <span id="blur-amount-value">5</span></label>
+                            <input id="blur-amount" type="range" min="1" max="25" step="2" value="5">
+                        </div>
+                        <div id="motion-angle-container">
+                            <label for="motion-angle" class="block mb-1 text-sm font-medium">Motion Angle: <span id="motion-angle-value">45</span>°</label>
+                            <input id="motion-angle" type="range" min="0" max="180" step="1" value="45">
+                        </div>
+                        <div id="noise-amount-container">
+                            <label for="noise-amount" class="block mb-1 text-sm font-medium">Noise Level: <span id="noise-amount-value">0.02</span></label>
+                            <input id="noise-amount" type="range" min="0" max="0.2" step="0.01" value="0.02">
+                        </div>
                     </div>
                 </div>
             </div>
 
             <hr class="border-gray-600">
 
-            <div>
-                 <h3 class="text-md font-medium mb-3">3. Deconvolution</h3>
-                <div>
-                    <label for="iterations" class="block mb-1 text-sm font-medium">Iterations: <span id="iterations-value">10</span></label>
-                    <input id="iterations" type="range" min="1" max="50" step="1" value="10">
+            <!-- Section 3: Deconvolution (Collapsible) -->
+            <div class="collapsible-section">
+                <button class="collapsible-trigger w-full flex justify-between items-center text-left py-2 font-medium text-gray-200 hover:text-white transition-colors">
+                    <h3 class="text-md">3. Deconvolution</h3>
+                    <svg class="chevron-icon w-5 h-5 transition-transform" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    </svg>
+                </button>
+                <div class="collapsible-content overflow-hidden">
+                    <div class="pt-4 space-y-4">
+                        <div>
+                            <label for="iterations" class="block mb-1 text-sm font-medium">Iterations: <span id="iterations-value">10</span></label>
+                            <input id="iterations" type="range" min="1" max="50" step="1" value="10">
+                        </div>
+                    </div>
                 </div>
             </div>
-              
-               <hr class="border-gray-600">
+            
+            <hr class="border-gray-600">
 
+            <!-- Section 4: Actions -->
             <div class="flex flex-col gap-3 pt-2">
                 <button id="run-button" class="action-button text-base font-bold w-full py-3 bg-indigo-600 hover:bg-indigo-700 border-indigo-500" disabled>Run Deconvolution</button>
                 <button id="download-button" class="action-button text-base w-full py-2 bg-emerald-600 hover:bg-emerald-700 border-emerald-500" disabled>Download Result</button>
                 <button id="reset-button" class="bg-gray-600 hover:bg-gray-700 text-base w-full py-2 rounded-lg transition-colors">Reset</button>
             </div>
-
         </aside>
     </div>
 
-<script>
+    <script>
     // --- DOM Elements ---
     const imageUpload = document.getElementById('image-upload');
     const blurredCanvas = document.getElementById('blurred-canvas');
@@ -237,6 +274,7 @@
         setupEventListeners();
         updateUI();
         setupWorker();
+        setupCollapsibles();
     }
 
     function setupWorker() {
@@ -305,7 +343,7 @@
 
                     for (let j = 0; j < latent_est.length; j+=4) {
                          for (let c = 0; c < 3; c++) { // R, G, B channels
-                             latent_est[j+c] = latent_est[j+c] * error_est[j+c];
+                              latent_est[j+c] = latent_est[j+c] * error_est[j+c];
                          }
                     }
                     self.postMessage({ type: 'progress', iteration: i + 1, total: iterations });
@@ -550,11 +588,35 @@
         
         blurredPlaceholder.classList.remove('hidden');
         deconvolvedPlaceholder.classList.remove('hidden');
-        blurredPlaceholder.querySelector('span').textContent = 'Upload an image using the controls below';
+        blurredPlaceholder.querySelector('span').textContent = 'Upload an image using the controls';
         deconvolvedPlaceholder.querySelector('span').textContent = 'Result will appear here';
     }
 
     // --- UI Update Functions ---
+    function setupCollapsibles() {
+        const sections = document.querySelectorAll('.collapsible-section');
+
+        sections.forEach(section => {
+            const trigger = section.querySelector('.collapsible-trigger');
+            const content = section.querySelector('.collapsible-content');
+            const icon = trigger.querySelector('.chevron-icon');
+
+            // The media query in CSS handles the desktop state (always open).
+            // This event listener will handle the toggle functionality on mobile.
+            trigger.addEventListener('click', () => {
+                const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
+
+                if (isOpen) {
+                    content.style.maxHeight = '0px'; // Close it
+                    icon.classList.remove('rotate-180');
+                } else {
+                    content.style.maxHeight = content.scrollHeight + 'px'; // Open it
+                    icon.classList.add('rotate-180');
+                }
+            });
+        });
+    }
+
     function updateUI() {
         motionAngleContainer.style.display = blurTypeSelect.value === 'motion' ? 'block' : 'none';
         
@@ -607,3 +669,4 @@
 </script>
 </body>
 </html>
+
