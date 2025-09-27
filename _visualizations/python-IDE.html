@@ -540,7 +540,7 @@ print("\\n--- Listing complete ---")` },
         require(["vs/editor/editor.main"], () => {
             monacoEditor = monaco.editor.create(document.getElementById('script-editor'), { theme: 'vs-dark', automaticLayout: true, minimap: { enabled: false } });
             openFile(activeFile);
-            monacoEditor.onDidChangeModelContent(saveCurrentFile);
+            // monacoEditor.onDidChangeModelContent(saveCurrentFile);
         });
 
         // --- UI RENDERING ---
@@ -1021,4 +1021,5 @@ print("\\n--- Listing complete ---")` },
     </script>
 </body>
 </html>
+
 
