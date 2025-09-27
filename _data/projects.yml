@@ -78,6 +78,11 @@
   thumbnail: /assets/images/evolutionary-algorithms.png
   visualization_url: /visualizations/evolutionary-algorithms.html
 
+- title: Fourier Series
+  author: Jasper Taal
+  thumbnail: /assets/images/fourier-series.png
+  visualization_url: /visualizations/fourier-series.html
+
 - title: Image Fourier Transform
   author: Jasper Taal
   thumbnail: /assets/images/image-fourier-transform.png
