@@ -153,6 +153,14 @@
                 <label for="animationSpeed" class="block text-sm font-medium text-gray-300">Animation Speed: <span id="animationSpeedValue">1000</span>ms</label>
                 <input id="animationSpeed" type="range" min="100" max="3000" step="100" value="1000" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
             </div>
+             <div>
+                <label for="labelColor" class="block text-sm font-medium text-gray-300">Label Color</label>
+                <input id="labelColor" type="color" value="#9ca3af" class="w-full h-8 mt-1 p-1 bg-gray-700 border border-gray-600 rounded-md cursor-pointer">
+            </div>
+             <div>
+                <label for="labelScale" class="block text-sm font-medium text-gray-300">Label Scale: <span id="labelScaleValue">1.0</span></label>
+                <input id="labelScale" type="range" min="0.5" max="2.5" step="0.1" value="1.0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+            </div>
         </div>
     </div>
     
@@ -226,7 +234,12 @@
             animationSpeed: 1000,
             tsne: { perplexity: 30, epsilon: 10 },
             umap: { nNeighbors: 15, minDist: 0.1 },
-            viz: { showTsneNeighbors: false, displayMode: 'points' }
+            viz: { 
+                showTsneNeighbors: false, 
+                displayMode: 'points',
+                labelColor: '#9ca3af',
+                labelScale: 1.0
+            }
         };
 
         // --- UI Element Refs ---
@@ -296,7 +309,6 @@
 
             if (state.dataset === 'mnist-digits') {
                 updateProgressUI(0, 1, "Fetching MNIST data...");
-                // Using a smaller, pre-parsed JSON file for simplicity and speed.
                 try {
                     const data = await fetch('https://raw.githubusercontent.com/hsu-ai-course/hsu-ai-course.github.io/master/static/data/mnist_1000.json').then(res => res.json());
                     const samples = data.slice(0, 1000); // Limit samples for performance
@@ -311,7 +323,6 @@
                     console.error("Could not load MNIST data. Please check network connection and file availability.", e);
                     loaderMessage.textContent = 'Error: MNIST data failed to load.';
                     await new Promise(r => setTimeout(r, 3000));
-                    // fallback to blobs
                     state.dataset = 'blobs';
                     document.getElementById('dataset').value = 'blobs';
                     await generateData();
@@ -384,7 +395,7 @@
                         const radius = 8, tubeRadius = 2;
                         let x,y,z, color;
                         if (i < nPoints / 2) {
-                            x = (radius + tubeRadius * Math.cos(angle2)) * Math.cos(angle1); y = (radius + tubeRadius * Math.cos(angle2)) * Math.sin(angle1); z = tubeRadius * Math.sin(angle2); color = colors[0];
+                            x = (radius + tubeRadius * Math.cos(angle2)) * Math.cos(angle1); y = (radius + tubeRadius * Math.sin(angle2)) * Math.sin(angle1); z = tubeRadius * Math.sin(angle2); color = colors[0];
                         } else {
                             x = (radius + tubeRadius * Math.cos(angle2)) * Math.cos(angle1) + radius; y = tubeRadius * Math.sin(angle2); z = (radius + tubeRadius * Math.cos(angle2)) * Math.sin(angle1); color = colors[1];
                         }
@@ -612,7 +623,6 @@
                      }
                     pointsObject.geometry.attributes.position.array.set(tempArray);
                     pointsObject.geometry.attributes.position.needsUpdate = true;
-                    // also update sprites
                     if (spritesGroup && spritesGroup.children.length > 0) {
                         for (let i = 0; i < highDimData.length; i++) {
                             const originalPoint = new THREE.Vector3().fromArray(originalData3D[i]);
@@ -634,7 +644,6 @@
             
             TWEEN.removeAll();
             
-            // Animate points
             if (pointsObject) {
                 const initialPos = pointsObject.geometry.attributes.position.array.slice();
                 const targetPos = new Float32Array(initialPos.length);
@@ -651,7 +660,6 @@
                     }).start();
             }
 
-            // Animate Sprites
             if (spritesGroup && spritesGroup.children.length > 0) {
                 spritesGroup.children.forEach((sprite, i) => {
                     const targetPos = { 
@@ -723,62 +731,70 @@
             while(axesLabelsGroup.children.length > 0){
                 const child = axesLabelsGroup.children[0];
                 axesLabelsGroup.remove(child);
+                if(child.material && child.material.map) child.material.map.dispose();
                 if (child.geometry) child.geometry.dispose();
                 if (child.material) child.material.dispose();
             }
 
-            let labels = [];
-            let colors = {};
-            const axisLength = 30;
-            const labelOffset = 4;
-            const defaultLabelColor = '#9ca3af'; // gray-400
-            const axisColors = { x: 0xdc2626, y: 0x16a34a, z: 0x2563eb }; // red-600, green-600, blue-600
-            
-            switch(state.algorithm) {
-                case 'pca': 
-                    labels = ['Principal Component 1', 'Principal Component 2', 'Principal Component 3']; 
-                    break;
-                case 'tsne': 
-                    labels = ['t-SNE Dimension 1', 't-SNE Dimension 2', 't-SNE Dimension 3']; 
-                    break;
-                case 'umap': 
-                    labels = ['UMAP Dimension 1', 'UMAP Dimension 2', 'UMAP Dimension 3']; 
-                    break;
-                case 'original': 
-                    labels = ['X', 'Y', 'Z']; 
-                    colors = { 
-                        x: `#${new THREE.Color(axisColors.x).getHexString()}`, 
-                        y: `#${new THREE.Color(axisColors.y).getHexString()}`, 
-                        z: `#${new THREE.Color(axisColors.z).getHexString()}`
-                    };
-                    break;
-            }
+            const fontSize = 24 * state.viz.labelScale;
 
+            if (state.algorithm === 'pca' && pcaModel) {
+                const components = pcaModel.getEigenvectors().to2DArray().slice(0,3);
+                const scale = 30;
+                const labelOffset = 5;
 
-            // X Axis
-            const xMat = new THREE.LineBasicMaterial({ color: axisColors.x });
-            const xGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(axisLength, 0, 0)]);
-            const xAxis = new THREE.Line(xGeom, xMat);
-            axesLabelsGroup.add(xAxis);
-            const xLabel = createLabel(labels[0], new THREE.Vector3(axisLength + labelOffset, 0, 0), colors.x || defaultLabelColor, 24);
-            axesLabelsGroup.add(xLabel);
+                components.forEach((vec, i) => {
+                    if (state.targetDim === 2 && i === 2) return;
+                     const endPoint = new THREE.Vector3(vec[0] || 0, vec[1] || 0, vec[2] || 0).multiplyScalar(scale);
+                    const labelPosition = endPoint.clone().normalize().multiplyScalar(scale + labelOffset);
+                    const labelText = `PC ${i + 1}`;
+                    const label = createLabel(labelText, labelPosition, state.viz.labelColor, fontSize);
+                    axesLabelsGroup.add(label);
+                });
 
-            // Y Axis
-            const yMat = new THREE.LineBasicMaterial({ color: axisColors.y });
-            const yGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0, axisLength, 0)]);
-            const yAxis = new THREE.Line(yGeom, yMat);
-            axesLabelsGroup.add(yAxis);
-            const yLabel = createLabel(labels[1], new THREE.Vector3(0, axisLength + labelOffset - 2, 0), colors.y || defaultLabelColor, 24);
-            axesLabelsGroup.add(yLabel);
+            } else {
+                let labels = [];
+                let colors = {};
+                const axisLength = 30;
+                const labelOffset = 4;
+                const axisColors = { x: 0xdc2626, y: 0x16a34a, z: 0x2563eb };
+                
+                switch(state.algorithm) {
+                    case 'tsne': 
+                        labels = ['t-SNE 1', 't-SNE 2', 't-SNE 3']; 
+                        break;
+                    case 'umap': 
+                        labels = ['UMAP 1', 'UMAP 2', 'UMAP 3']; 
+                        break;
+                    case 'original': 
+                        labels = ['X', 'Y', 'Z']; 
+                        colors = { 
+                            x: `#${new THREE.Color(axisColors.x).getHexString()}`, 
+                            y: `#${new THREE.Color(axisColors.y).getHexString()}`, 
+                            z: `#${new THREE.Color(axisColors.z).getHexString()}`
+                        };
+                        break;
+                }
 
-            // Z Axis
-            if (state.targetDim === 3) {
-                const zMat = new THREE.LineBasicMaterial({ color: axisColors.z });
-                const zGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0, 0, axisLength)]);
-                const zAxis = new THREE.Line(zGeom, zMat);
-                axesLabelsGroup.add(zAxis);
-                const zLabel = createLabel(labels[2], new THREE.Vector3(0, 0, axisLength + labelOffset), colors.z || defaultLabelColor, 24);
-                axesLabelsGroup.add(zLabel);
+                // X Axis
+                const xMat = new THREE.LineBasicMaterial({ color: axisColors.x });
+                const xGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(axisLength, 0, 0)]);
+                axesLabelsGroup.add(new THREE.Line(xGeom, xMat));
+                axesLabelsGroup.add(createLabel(labels[0], new THREE.Vector3(axisLength + labelOffset, 0, 0), colors.x || state.viz.labelColor, fontSize));
+
+                // Y Axis
+                const yMat = new THREE.LineBasicMaterial({ color: axisColors.y });
+                const yGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0, axisLength, 0)]);
+                axesLabelsGroup.add(new THREE.Line(yGeom, yMat));
+                axesLabelsGroup.add(createLabel(labels[1], new THREE.Vector3(0, axisLength + labelOffset - 2, 0), colors.y || state.viz.labelColor, fontSize));
+
+                // Z Axis
+                if (state.targetDim === 3) {
+                    const zMat = new THREE.LineBasicMaterial({ color: axisColors.z });
+                    const zGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0, 0, axisLength)]);
+                    axesLabelsGroup.add(new THREE.Line(zGeom, zMat));
+                    axesLabelsGroup.add(createLabel(labels[2], new THREE.Vector3(0, 0, axisLength + labelOffset), colors.z || state.viz.labelColor, fontSize));
+                }
             }
         }
 
@@ -795,7 +811,7 @@
             document.getElementById('dataset').addEventListener('change', (e) => {
                 state.dataset = e.target.value;
                 updateAlgorithmUI();
-                runReduction(); // Load new dataset immediately
+                runReduction();
             });
             
             document.getElementById('settings-btn').addEventListener('click', () => document.getElementById('settings-panel').classList.toggle('hidden'));
@@ -810,7 +826,6 @@
                     if(state.algorithm !== 'tsne' && state.algorithm !== 'umap') {
                         animateToTargetDimension();
                     } else {
-                        // For iterative algorithms, require a re-run
                         runBtn.click();
                     }
                 });
@@ -833,11 +848,17 @@
 
             document.getElementById('show-pca-projection-btn').addEventListener('click', animatePcaProjection);
             
+            document.getElementById('labelColor').addEventListener('input', (e) => {
+                state.viz.labelColor = e.target.value;
+                updateAxesLabels();
+            });
+
             const sliders = {
                 'perplexity': { valueEl: 'perplexityValue', obj: 'tsne', key: 'perplexity' },
                 'epsilon': { valueEl: 'epsilonValue', obj: 'tsne', key: 'epsilon' },
                 'pointSize': { valueEl: 'pointSizeValue', key: 'pointSize', fixed: 1 },
-                'animationSpeed': { valueEl: 'animationSpeedValue', key: 'animationSpeed' }
+                'animationSpeed': { valueEl: 'animationSpeedValue', key: 'animationSpeed' },
+                'labelScale': { valueEl: 'labelScaleValue', obj: 'viz', key: 'labelScale', fixed: 1 }
             };
 
             Object.entries(sliders).forEach(([id, config]) => {
@@ -855,6 +876,9 @@
                             spritesGroup.children.forEach(sprite => sprite.scale.set(scale, scale, scale));
                         }
                     }
+                    if (id === 'labelScale') {
+                        updateAxesLabels();
+                    }
                 });
             });
         }
@@ -871,7 +895,7 @@
                 displayModeContainer.classList.remove('hidden');
             } else {
                 displayModeContainer.classList.add('hidden');
-                state.viz.displayMode = 'points'; // Reset to points if not an image dataset
+                state.viz.displayMode = 'points';
                 document.getElementById('displayMode').value = 'points';
             }
             toggleDisplayMode();
@@ -879,7 +903,6 @@
             pcaEigenvectorsGroup.visible = state.algorithm === 'pca';
         }
         
-        // Start the application after the whole page has loaded
         window.addEventListener('load', init);
     </script>
 </body>
