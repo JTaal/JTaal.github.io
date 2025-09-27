@@ -311,6 +311,165 @@
                 <input id="resolution-slider" type="range" min="128" max="2048" step="128" value="512" class="w-full">
                 <span id="resolution-note" class="text-xs text-gray-500 self-start w-full">High values may be unstable.</span>
             </div>
+            <div id="pixel-view-settings-group" class="control-group text-left w-full space-y-4">
+                 <div class="flex justify-between items-center w-full">
+                     <label for="pixel-view-toggle" class="text-sm font-medium">Enable Pixel View</label>
+                     <label class="switch">
+                       <input type="checkbox" id="pixel-view-toggle">
+                       <span class="slider"></span>
+                     </label>
+                 </div>
+                <div class="control-group text-left w-full">
+                    <label for="pendulum-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                        <span>Pixel Pendulum Scale:</span>
+                        <span id="pendulum-scale-value">0.70</span>
+                    </label>
+                    <input id="pendulum-scale-slider" type="range" min="0.1" max="1.5" step="0.05" value="0.7" class="w-full">
+                </div>
+            </div>
+            <hr class="border-gray-600">
+             <div class="control-group text-left w-full">
+                <label for="transparency-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>3D Slice Transparency:</span>
+                    <span id="transparency-value">1.0x</span>
+                </label>
+                <input id="transparency-slider" type="range" min="0.1" max="5" step="0.1" value="1.0" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="marker-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Marker Size:</span>
+                     <span id="marker-size-value">0.10</span>
+                </label>
+                <input id="marker-size-slider" type="range" min="0.05" max="0.5" step="0.01" value="0.1" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                 <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Gravity Strength:</span> <input id="gravity-input" type="number" value="9.8" step="0.1" class="w-24">
+                </label>
+             </div>
+            <hr class="border-gray-600">
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Map View Controls</h4>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Center θ1 (rad):</span> <input id="view-center-t1" type="number" value="0.0000" step="0.1" class="w-24">
+                </label>
+            </div>
+             <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Center θ2 (rad):</span> <input id="view-center-t2" type="number" value="0.0000" step="0.1" class="w-24">
+                </label>
+            </div>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Zoom Level:</span> <input id="view-zoom" type="number" value="1.0000" step="0.1" min="1" class="w-24">
+                </label>
+            </div>
+            <button id="apply-view-btn" class="toggle-button w-full">Apply View</button>
+            <hr class="border-gray-600">
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Pendulum Preview Controls</h4>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Trace Length:</span> <input id="preview-trace-length" type="number" value="200" step="10" min="0" class="w-24">
+                </label>
+            </div>
+            <div class="control-group text-left w-full">
+                <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Initial θ1:</span> <input id="preview-theta1" type="number" value="0" step="0.1" class="w-24">
+                </label>
+            </div>
+            <div class="control-group text-left w-full">
+                 <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Initial θ2:</span> <input id="preview-theta2" type="number" value="0" step="0.1" class="w-24">
+                </label>
+            </div>
+            <div class="control-group text-left w-full">
+                 <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Initial ω1:</span> <input id="preview-omega1" type="number" value="0" step="0.1" class="w-24">
+                </label>
+            </div>
+            <div class="control-group text-left w-full">
+                 <label class="text-sm font-medium self-start w-full flex justify-between items-center">
+                    <span>Initial ω2:</span> <input id="preview-omega2" type="number" value="0" step="0.1" class="w-24">
+                </label>
+            </div>
+            <button id="start-preview-btn" class="toggle-button w-full active">Start/Reset Preview</button>
+        </div>
+    </div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    // --- Core Three.js Components ---
+    let scene, camera, renderer, controls, clock;
+    let activeSceneObjects = new THREE.Group();
+    let currentUpdate = () => {};
+    let currentCleanup = () => {};
+
+    // --- Simulation State ---
+    let SIM_RESOLUTION = 512;
+    const NUM_SLICES = 32;
+    const atlasGrid = new THREE.Vector2(8, 4); // 8x4 grid for 32 slices
+    let timeStep = 0.016;
+    let initialOmega1 = 0.0;
+    let initialOmega2 = 0.0;
+    let gravity = 9.8;
+    let needsRestart = true;
+    let isPaused = false;
+    let zoomState = { x: 0, y: 0, scale: new THREE.Vector2(1.0, 1.0) };
+    let isDragging = false;
+    let dragStart = new THREE.Vector2();
+    let isPixelViewPaused = false;
+    let pixelViewPendulumScale = 0.7;
+
+    // --- View State ---
+    let viewMode = '2D_SLICE'; // '2D_SLICE', '3D_VOLUME', or 'PIXEL_VIEW'
+    let threeDAxis = 'OMEGA1'; // 'OMEGA1' or 'OMEGA2'
+    let slicePosition = 0.5; // Normalized 0-1
+
+    // --- GPGPU Components ---
+    let state_read_atlas, state_write            <option value="pretzel">The Pretzel</option>
+                    <option value="shoelace">The Shoelace</option>
+                </select>
+                <div class="flex justify-between items-center mt-4">
+                    <h3 class="font-bold text-lg text-indigo-400">Live Pendulum Preview</h3>
+                    <button id="live-preview-btn" class="toggle-button text-sm py-1 px-3">Live</button>
+                </div>
+                <div class="chart-container p-2 flex justify-center items-center">
+                    <canvas id="pendulum-preview-canvas" width="350" height="350" class="bg-gray-800 rounded-md"></canvas>
+                </div>
+            </div>
+             <div id="info-placeholder" class="formula-placeholder">θ1 ∈ [0.00, 0.00]
+θ2 ∈ [0.00, 0.00]</div>
+
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel"></div>
+
+    <button id="fullscreen-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-inherit z-10 py-2">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div class="space-y-6">
+             <div class="control-group text-left w-full">
+                <label for="resolution-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Resolution:</span>
+                    <span id="resolution-value">512x512</span>
+                </label>
+                <input id="resolution-slider" type="range" min="128" max="2048" step="128" value="512" class="w-full">
+                <span id="resolution-note" class="text-xs text-gray-500 self-start w-full">High values may be unstable.</span>
+            </div>
             <div id="pixel-view-settings-group" class="hidden control-group text-left w-full space-y-4">
                  <div class="flex justify-between items-center w-full">
                      <label for="pixel-view-toggle" class="text-sm font-medium">Enable Pixel View</label>
