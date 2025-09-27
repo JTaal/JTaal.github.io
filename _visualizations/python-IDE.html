@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pyodide IDE</title>
+    <title>Pyodide Web IDE</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -24,7 +24,7 @@
 
     <style>
         :root {
-            --vscode-bg: #1e1e1e;
+            --ide-bg: #1e1e1e;
             --sidebar-bg: #252526;
             --activity-bar-bg: #333333;
             --statusbar-bg: #007acc;
@@ -34,13 +34,13 @@
             --tab-inactive-bg: #2d2d2d;
             --tab-active-bg: #1e1e1e;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: var(--foreground); background-color: var(--vscode-bg); overflow: hidden; }
-        .vscode-layout { display: grid; grid-template-columns: 50px auto; grid-template-rows: 1fr 25px; height: 100vh; width: 100vw; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: var(--foreground); background-color: var(--ide-bg); overflow: hidden; }
+        .ide-layout { display: grid; grid-template-columns: 50px auto; grid-template-rows: 1fr 25px; height: 100vh; width: 100vw; }
         .activity-bar { grid-column: 1; grid-row: 1 / 3; background-color: var(--activity-bar-bg); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 0; z-index: 50; }
         .activity-bar-top { display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .activity-bar svg { width: 28px; height: 28px; cursor: pointer; padding: 4px; border-radius: 4px; }
         .activity-bar svg.active { background-color: var(--blue-accent); }
-        .main-content { grid-column: 2; grid-row: 1; display: flex; background-color: var(--vscode-bg); overflow: hidden; }
+        .main-content { grid-column: 2; grid-row: 1; display: flex; background-color: var(--ide-bg); overflow: hidden; }
         .side-panel { width: 300px; min-width: 200px; max-width: 80%; height: 100%; background-color: var(--sidebar-bg); display: flex; flex-direction: column; transition: min-width 0.2s, width 0.2s; overflow: auto; flex-shrink: 0; }
         .side-panel.hidden { width: 0; min-width: 0; padding: 0; border-right: none; overflow: hidden; }
         #sidebar-resizer { width: 5px; cursor: col-resize; background: var(--border-color); flex-shrink: 0; }
@@ -79,7 +79,7 @@
         <span>Drop files anywhere to upload</span>
     </div>
 
-    <div class="vscode-layout">
+    <div class="ide-layout">
         <!-- ACTIVITY BAR -->
         <div class="activity-bar">
             <div class="activity-bar-top">
@@ -1021,5 +1021,4 @@ print("\\n--- Listing complete ---")` },
     </script>
 </body>
 </html>
-
 
