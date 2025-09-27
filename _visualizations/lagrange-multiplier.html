@@ -169,7 +169,7 @@
             z-index: 30;
             margin-top: 8px;
             overflow: hidden;
-            max-height: 60vh; /* Scrollbar appears if content exceeds this height */
+            max-height: 60vh;
             overflow-y: auto;
             transition: opacity 0.2s ease, transform 0.2s ease;
             opacity: 0;
@@ -181,7 +181,6 @@
             transform: translateY(0);
             pointer-events: auto;
         }
-        /* Custom scrollbar for dropdown */
         .dropdown-content::-webkit-scrollbar { width: 8px; }
         .dropdown-content::-webkit-scrollbar-track { background: #1f2937; }
         .dropdown-content::-webkit-scrollbar-thumb { background-color: #4f46e5; border-radius: 4px; }
@@ -206,7 +205,7 @@
         }
         .dropdown-content button:hover { background-color: #4338ca; }
         
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             header { padding: 0.75rem 1rem; }
             header h1 { font-size: 1.1rem; }
             #info-panel { top: 70px; left: 10px; right: 10px; width: auto; }
@@ -225,9 +224,7 @@
                 <span id="preset-label">Presets</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block ml-1"><path d="m6 9 6 6 6-6"/></svg>
             </button>
-            <div id="preset-dropdown" class="dropdown-content">
-                <!-- Dropdown items will be injected by JS -->
-            </div>
+            <div id="preset-dropdown" class="dropdown-content"></div>
         </div>
     </header>
 
@@ -251,6 +248,199 @@
    
     <button id="settings-button" title="Settings">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+   
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors text-3xl leading-none">&times;</button>
+        </div>
+        <div class="space-y-6">
+            <div>
+                <h3 class="text-xl font-bold text-gray-200">Problem Definition</h3>
+                <div class="space-y-4 mt-4">
+                    <div>
+                        <label for="f-input" class="block mb-1 text-sm font-medium"><span class="function">f(x, y)</span> = Objective</label>
+                        <input type="text" id="f-input" class="w-full text-sm">
+                    </div>
+                    <div>
+                        <label for="g-input" class="block mb-1 text-sm font-medium"><span class="function">g(x, y)</span> = Constraint</label>
+                        <input type="text" id="g-input" class="w-full text-sm">
+                    </div>
+                    <!-- FIX: Removed the c-slider from the settings panel -->
+                    <button id="update-functions-btn" class="control-button w-full active">Update Visualization</button>
+                </div>
+            </div>
+             <hr class="border-gray-600">
+             <div>
+                <h3 class="text-xl font-bold text-gray-200">Scene Settings</h3>
+                <div class="space-y-4 mt-4">
+                    <div class="control-group text-left w-full">
+                        <label for="v-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                            <span>Vertical Scale:</span> <span id="v-scale-value">1.0x</span>
+                        </label>
+                        <input id="v-scale-slider" type="range" min="0.1" max="3" step="0.1" value="1.0">
+                    </div>
+                    <div class="control-group text-left w-full">
+                        <label for="h-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                            <span>Horizontal Scale:</span> <span id="h-scale-value">1.0x</span>
+                        </label>
+                        <input id="h-scale-slider" type="range" min="0.2" max="2" step="0.1" value="1.0">
+                    </div>
+                     <hr class="border-gray-500 border-dashed">
+                    <div class="control-group text-left w-full">
+                        <label for="combined-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                            <span>Combined Scale (Zoom):</span> <span id="combined-scale-value">1.0x</span>
+                        </label>
+                        <input id="combined-scale-slider" type="range" min="0.2" max="2" step="0.1" value="1.0">
+                    </div>
+                </div>
+            </div>
+            <hr class="border-gray-600">
+            <div>
+                <h3 class="text-xl font-bold text-gray-200">View Controls</h3>
+                 <div class="grid grid-cols-3 gap-2 mt-4">
+                    <button id="view-reset-btn" class="control-button text-sm active">Default</button>
+                    <button id="view-top-btn" class="control-button text-sm">Top</button>
+                    <button id="view-side-btn" class="control-button text-sm">Side</button>
+                </div>
+            </div>
+             <hr class="border-gray-600">
+             <div>
+                <h3 class="text-xl font-bold text-gray-200">Display Settings</h3>
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button id="toggle-surface-btn" class="control-button text-sm active col-span-1">Surface</button>
+                    <button id="toggle-wireframe-btn" class="control-button text-sm col-span-1">Wireframe</button>
+                    <button id="toggle-grid-btn" class="control-button text-sm active col-span-1">Grid</button>
+                    <button id="toggle-scaled-grad-btn" class="control-button text-sm col-span-1">Show λ∇g</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    let scene, camera, renderer, controls;
+    let surfaceMesh, constraintCurve, movablePoint, gradFArrow, gradGArrow, scaledGradGArrow, gridHelper;
+
+    const state = {
+        f_text: '4 - x^2 - y^2/2',
+        g_text: 'x^2 + y^2',
+        c: 1.0,
+        theta: 0,
+        verticalScale: 1.0,
+        horizontalScale: 1.0,
+        showScaledGrad: false,
+        f_func: null,
+        g_func: null,
+        grad_f: null,
+        grad_g: null
+    };
+    
+    const presets = {
+        'Simple Shapes': {
+            'Paraboloid': { f: '4 - x^2 - y^2/2', g: 'x^2 + y^2', c: 2.0 },
+            'Bowl': { f: 'x^2/2 + y^2/2', g: 'x^2 + y^2', c: 3.0 },
+            'Saddle': { f: 'x^2 - y^2', g: 'x^2 + y^2', c: 1.5 },
+        },
+        'Trigonometric': {
+            'Wave': { f: 'sin(x*2) + cos(y*2)', g: 'x^2 + y^2', c: 2.0 },
+            'Ripple': { f: 'sin(sqrt(x^2+y^2)*5)', g: 'x^2+y^2', c: 2.5 },
+            'Interference': {f: 'sin(x*3)*cos(y*3)', g: 'x^2+y^2', c: 4.0 },
+            'Tilted Wave': { f: 'sin(x+y)', g: 'x^2+y^2', c: 4 }
+        },
+        'Polynomial Landscapes': {
+            'Monkey Saddle': { f: 'x^3 - 3*x*y^2', g: 'x^2+y^2', c: 1.0 },
+            'Three-Hump': { f: '(2*x^2 - 1.05*x^4 + x^6/6 + x*y + y^2)/2', g: 'x^2+y^2', c: 1.5 },
+            'Styblinski-Tang': { f: '((x^4 - 16*x^2 + 5*x)/2 + (y^4 - 16*y^2 + 5*y)/2)/20', g:'x^2+y^2', c: 4.0},
+        },
+        'Complex Landscapes': {
+            'Rastrigin': { f: '10 - (x^2 - 5*cos(2*pi*x)) - (y^2 - 5*cos(2*pi*y))', g: 'x^2+y^2', c: 3.0 },
+            'Himmelblau': { f: '2 - ( (x^2+y-11)^2 + (x+y^2-7)^2 ) / 100', g: 'x^2+y^2', c: 4.0 },
+            'Easom': { f: '2 + 3*cos(x)*cos(y)*exp(-((x-pi)^2 + (y-pi)^2))', g: 'x^2+y^2', c: 2.0 },
+            'Peaks': { f: '3*(1-x)^2*exp(-x^2-(y+1)^2) - 10*(x/5-x^3-y^5)*exp(-x^2-y^2) - 1/3*exp(-(x+1)^2-y^2)', g: 'x^2+y^2', c: 2.5 },
+            'Ackley': { f: '10 - (20*exp(-0.2*sqrt(0.5*(x^2+y^2))) + exp(0.5*(cos(2*pi*x)+cos(2*pi*y))))', g: 'x^2+y^2', c: 4.0 },
+        },
+        'Other Constraints': {
+            'Elliptical': {f: '4 - x^2 - y^2', g: 'x^2/4 + y^2', c: 1.0},
+            'Linear': { f: 'x*y', g: 'x+y', c: 2 },
+            'Hyperbolic': { f: 'x+y', g: 'x*y', c: 2 },
+            'Parabolic': { f: '4 - x^2 - y^2', g: 'y-x^2', c: 1.0 }
+        }
+    };
+
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(4, 4, 6);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 1, 0);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 8, 7);
+        scene.add(dirLight);
+        
+        gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x444444);
+        scene.add(gridHelper);
+
+        setupUI();
+        loadPreset('Simple Shapes', 'Paraboloid');
+
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.setAnimationLoop(animate);
+    }
+    
+    function parseFunctions() {
+        try {
+            state.f_node = math.parse(state.f_text);
+            state.g_node = math.parse(state.g_text);
+            state.f_func = state.f_node.compile();
+            state.g_func = state.g_node.compile();
+            state.grad_f = {
+                x: math.derivative(state.f_node, 'x').compile(),
+                y: math.derivative(state.f_node, 'y').compile()
+            };
+            state.grad_g = {
+                x: math.derivative(state.g_node, 'x').compile(),
+                y: math.derivative(state.g_node, 'y').compile()
+            };
+            return true;
+        } catch (e) {
+            alert("Error parsing functions: " + e.message);
+            return false;
+        }
+    }
+
+    function createVisualization() {
+        [surfaceMesh, constraintCurve, movablePoint, gradFArrow, gradGArrow, scaledGradGArrow].forEach(obj => {
+            if (obj) {
+                if(obj.geometry) obj.geometry.dispose();
+                if(obj.material) obj.material.dispose();
+                scene.remove(obj);
+            }
+        });
+        
+        const range = 5 / state.horizontalScale;
+        const segments = 60;
+        const geometry = new THREE.PlaneGeometry(range * 2, range * 2, segments, segments);
+        geometry.rotateX(-Math.PI / 2);
+
+        const positions = geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+            const x = positions.getX(i);
+            const z = positions.getZ(i);
+            const y = state.f_func.evaluate({ x: x * state.horizontalScale, y: z * state.horizontalScale }) * state.verticalScale;
+            positions.setYww.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
    
     <div id="settings-panel" class="ui-panel hidden">
