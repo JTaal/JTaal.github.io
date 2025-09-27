@@ -173,10 +173,10 @@
   thumbnail: /assets/images/pipe-harmonics.png
   visualization_url: /visualizations/pipe-harmonics.html
 
-- title: Python
+- title: Python Ide
   author: Jasper Taal
-  thumbnail: /assets/images/python.png
-  visualization_url: /visualizations/python.html
+  thumbnail: /assets/images/python-IDE.png
+  visualization_url: /visualizations/python-IDE.html
 
 - title: Q Learning
   author: Jasper Taal
