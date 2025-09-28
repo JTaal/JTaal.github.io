@@ -440,206 +440,6 @@
             const x = positions.getX(i);
             const z = positions.getZ(i);
             const y = state.f_func.evaluate({ x: x * state.horizontalScale, y: z * state.horizontalScale }) * state.verticalScale;
-            positions.setYww.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
-   
-    <div id="settings-panel" class="ui-panel hidden">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
-            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors text-3xl leading-none">&times;</button>
-        </div>
-        <div class="space-y-6">
-            <div>
-                <h3 class="text-xl font-bold text-gray-200">Problem Definition</h3>
-                <div class="space-y-4 mt-4">
-                    <div>
-                        <label for="f-input" class="block mb-1 text-sm font-medium"><span class="function">f(x, y)</span> = Objective Function</label>
-                        <input type="text" id="f-input" class="w-full text-sm">
-                    </div>
-                    <div>
-                        <label for="g-input" class="block mb-1 text-sm font-medium"><span class="function">g(x, y)</span> = Constraint Function</label>
-                        <input type="text" id="g-input" class="w-full text-sm">
-                    </div>
-                    <div class="control-group text-left w-full">
-                        <label for="c-slider" class="text-sm font-medium self-start w-full flex justify-between">
-                            <span>Constraint Value <span class="variable">c</span>:</span> <span id="c-value">1.0</span>
-                        </label>
-                        <input id="c-slider" type="range" min="0.1" max="5" step="0.1" value="1.0">
-                    </div>
-                    <button id="update-functions-btn" class="control-button w-full active">Update Visualization</button>
-                </div>
-            </div>
-             <hr class="border-gray-600">
-             <div>
-                <h3 class="text-xl font-bold text-gray-200">Scene Settings</h3>
-                <div class="space-y-4 mt-4">
-                     <!-- FIX: Added H-Scale and Combined-Scale sliders -->
-                    <div class="control-group text-left w-full">
-                        <label for="v-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
-                            <span>Vertical Scale:</span> <span id="v-scale-value">1.0x</span>
-                        </label>
-                        <input id="v-scale-slider" type="range" min="0.1" max="3" step="0.1" value="1.0">
-                    </div>
-                    <div class="control-group text-left w-full">
-                        <label for="h-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
-                            <span>Horizontal Scale:</span> <span id="h-scale-value">1.0x</span>
-                        </label>
-                        <input id="h-scale-slider" type="range" min="0.2" max="2" step="0.1" value="1.0">
-                    </div>
-                     <hr class="border-gray-500 border-dashed">
-                    <div class="control-group text-left w-full">
-                        <label for="combined-scale-slider" class="text-sm font-medium self-start w-full flex justify-between">
-                            <span>Combined Scale (Zoom):</span> <span id="combined-scale-value">1.0x</span>
-                        </label>
-                        <input id="combined-scale-slider" type="range" min="0.2" max="2" step="0.1" value="1.0">
-                    </div>
-                </div>
-            </div>
-            <hr class="border-gray-600">
-            <div>
-                <h3 class="text-xl font-bold text-gray-200">View Controls</h3>
-                 <div class="grid grid-cols-3 gap-2 mt-4">
-                    <button id="view-reset-btn" class="control-button text-sm active">Default</button>
-                    <button id="view-top-btn" class="control-button text-sm">Top</button>
-                    <button id="view-side-btn" class="control-button text-sm">Side</button>
-                </div>
-            </div>
-             <hr class="border-gray-600">
-             <div>
-                <h3 class="text-xl font-bold text-gray-200">Display Settings</h3>
-                <div class="grid grid-cols-3 gap-2 mt-4">
-                    <button id="toggle-surface-btn" class="control-button text-sm active">Surface</button>
-                    <button id="toggle-wireframe-btn" class="control-button text-sm">Wireframe</button>
-                    <button id="toggle-grid-btn" class="control-button text-sm active">Grid</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-<script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
-    let scene, camera, renderer, controls;
-    let surfaceMesh, constraintCurve, movablePoint, gradFArrow, gradGArrow, gridHelper;
-
-    const state = {
-        f_text: '4 - x^2 - y^2/2',
-        g_text: 'x^2 + y^2',
-        c: 1.0,
-        theta: 0,
-        verticalScale: 1.0,
-        horizontalScale: 1.0, // FIX: Added horizontal scale
-        f_func: null,
-        g_func: null,
-        grad_f: null,
-        grad_g: null
-    };
-    
-    const presets = {
-        'Simple Shapes': {
-            'Paraboloid': { f: '4 - x^2 - y^2/2', g: 'x^2 + y^2', c: 2.0 },
-            'Bowl': { f: 'x^2/2 + y^2/2', g: 'x^2 + y^2', c: 3.0 },
-            'Saddle': { f: 'x^2 - y^2', g: 'x^2 + y^2', c: 1.5 },
-        },
-        'Trigonometric': {
-            'Wave': { f: 'sin(x*2) + cos(y*2)', g: 'x^2 + y^2', c: 2.0 },
-            'Ripple': { f: 'sin(sqrt(x^2+y^2)*5)', g: 'x^2+y^2', c: 2.5 },
-            'Interference': {f: 'sin(x*3)*cos(y*3)', g: 'x^2+y^2', c: 4.0 },
-            'Tilted Wave': { f: 'sin(x+y)', g: 'x^2+y^2', c: 4 }
-        },
-        'Advanced': {
-            'Monkey Saddle': { f: 'x^3 - 3*x*y^2', g: 'x^2+y^2', c: 1.0 },
-            'Gaussian Peak': {f: '4*exp(-(x^2+y^2))', g: 'x^2 + y^2', c: 1.5},
-            'Sloped Plane': { f: '2 - x/2 - y', g: 'x^2+y^2', c: 3.0 }
-        },
-        'Complex Landscapes': {
-            'Rastrigin': { f: '10 - (x^2 - 5*cos(2*pi*x)) - (y^2 - 5*cos(2*pi*y))', g: 'x^2+y^2', c: 3.0 },
-            'Himmelblau': { f: '2 - ( (x^2+y-11)^2 + (x+y^2-7)^2 ) / 100', g: 'x^2+y^2', c: 4.0 },
-            'Easom': { f: '2 + 3*cos(x)*cos(y)*exp(-((x-pi)^2 + (y-pi)^2))', g: 'x^2+y^2', c: 2.0 },
-            'Peaks': { f: '3*(1-x)^2*exp(-x^2-(y+1)^2) - 10*(x/5-x^3-y^5)*exp(-x^2-y^2) - 1/3*exp(-(x+1)^2-y^2)', g: 'x^2+y^2', c: 2.5 },
-            'Ackley': { f: '10 - (20*exp(-0.2*sqrt(0.5*(x^2+y^2))) + exp(0.5*(cos(2*pi*x)+cos(2*pi*y))))', g: 'x^2+y^2', c: 4.0 },
-            'Three-Hump': { f: '2*x^2 - 1.05*x^4 + x^6/6 + x*y + y^2', g: 'x^2+y^2', c: 1.5 }
-        },
-        'Other Constraints': {
-            'Elliptical': {f: '4 - x^2 - y^2', g: 'x^2/4 + y^2', c: 1.0},
-            'Linear': { f: 'x*y', g: 'x+y', c: 2 },
-            'Hyperbolic': { f: 'x+y', g: 'x*y', c: 2 },
-            'Parabolic': { f: '4 - x^2 - y^2', g: 'y-x^2', c: 1.0 }
-        }
-    };
-
-    function init() {
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(4, 4, 6);
-
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.target.set(0, 1, 0);
-
-        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(5, 8, 7);
-        scene.add(dirLight);
-        
-        gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x444444);
-        scene.add(gridHelper);
-
-        setupUI();
-        loadPreset('Simple Shapes', 'Paraboloid');
-
-        window.addEventListener('resize', onWindowResize, false);
-        renderer.setAnimationLoop(animate);
-    }
-    
-    function parseFunctions() {
-        try {
-            state.f_node = math.parse(state.f_text);
-            state.g_node = math.parse(state.g_text);
-            state.f_func = state.f_node.compile();
-            state.g_func = state.g_node.compile();
-            state.grad_f = {
-                x: math.derivative(state.f_node, 'x').compile(),
-                y: math.derivative(state.f_node, 'y').compile()
-            };
-            state.grad_g = {
-                x: math.derivative(state.g_node, 'x').compile(),
-                y: math.derivative(state.g_node, 'y').compile()
-            };
-            return true;
-        } catch (e) {
-            alert("Error parsing functions: " + e.message);
-            return false;
-        }
-    }
-
-    function createVisualization() {
-        [surfaceMesh, constraintCurve, movablePoint, gradFArrow, gradGArrow].forEach(obj => {
-            if (obj) {
-                if(obj.geometry) obj.geometry.dispose();
-                if(obj.material) obj.material.dispose();
-                scene.remove(obj);
-            }
-        });
-        
-        // --- FIX: Use horizontal scale to determine the visual range ---
-        const range = 5 / state.horizontalScale;
-        const segments = 60;
-        const geometry = new THREE.PlaneGeometry(range * 2, range * 2, segments, segments);
-        geometry.rotateX(-Math.PI / 2);
-
-        const positions = geometry.attributes.position;
-        for (let i = 0; i < positions.count; i++) {
-            const x = positions.getX(i);
-            const z = positions.getZ(i);
-            // --- FIX: Evaluate function at scaled coordinates ---
-            const y = state.f_func.evaluate({ x: x * state.horizontalScale, y: z * state.horizontalScale }) * state.verticalScale;
             positions.setY(i, isNaN(y) ? 0 : y);
         }
         geometry.computeVertexNormals();
@@ -660,7 +460,7 @@
                 const y_3d = (state.f_func.evaluate({ x: x_func, y: y_func }) * state.verticalScale) + 0.02;
                 if (!isNaN(y_3d)) curvePoints.push(new THREE.Vector3(x_func / state.horizontalScale, y_3d, y_func / state.horizontalScale));
             }
-        } else { // Generic case
+        } else {
             const evalRange = 5;
             const step = 0.1;
              for (let x = -evalRange; x <= evalRange; x += step) {
@@ -688,8 +488,10 @@
         scene.add(movablePoint);
         gradFArrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0x3b82f6, 0.2, 0.1);
         gradGArrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0xf87171, 0.2, 0.1);
+        scaledGradGArrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0xec4899, 0.2, 0.1); // Magenta
         scene.add(gradFArrow);
         scene.add(gradGArrow);
+        scene.add(scaledGradGArrow);
         updateMovablePoint();
     }
     
@@ -710,23 +512,45 @@
         const dgdx = state.grad_g.x.evaluate(scope);
         const dgdy = state.grad_g.y.evaluate(scope);
         
-        const gradF = new THREE.Vector3(dfdx, 0, dfdy).normalize();
-        const gradG = new THREE.Vector3(dgdx, 0, dgdy).normalize();
+        const vec_grad_f = new THREE.Vector3(dfdx, 0, dfdy);
+        const vec_grad_g = new THREE.Vector3(dgdx, 0, dgdy);
+        
+        let lambda = 0;
+        if (vec_grad_g.lengthSq() > 0.0001) {
+            lambda = vec_grad_f.dot(vec_grad_g) / vec_grad_g.lengthSq();
+        }
+
+        const vec_scaled_grad_g = vec_grad_g.clone().multiplyScalar(lambda);
+
+        const arrow_len_f = Math.min(3, vec_grad_f.length() * state.verticalScale / state.horizontalScale);
+        const arrow_len_g_scaled = Math.min(3, vec_scaled_grad_g.length() * state.verticalScale / state.horizontalScale);
 
         gradFArrow.position.copy(movablePoint.position);
         gradGArrow.position.copy(movablePoint.position);
-        gradFArrow.setDirection(gradF);
-        gradGArrow.setDirection(gradG);
+        scaledGradGArrow.position.copy(movablePoint.position);
+
+        gradFArrow.setDirection(vec_grad_f.clone().normalize());
+        gradFArrow.setLength(arrow_len_f);
+
+        if (state.showScaledGrad) {
+            gradGArrow.visible = false;
+            scaledGradGArrow.visible = true;
+            scaledGradGArrow.setDirection(vec_scaled_grad_g.clone().normalize());
+            scaledGradGArrow.setLength(arrow_len_g_scaled);
+        } else {
+            gradGArrow.visible = true;
+            scaledGradGArrow.visible = false;
+            gradGArrow.setDirection(vec_grad_g.clone().normalize());
+            gradGArrow.setLength(1.5);
+        }
         
         const functionValue = (y_3d - 0.02) / state.verticalScale;
         document.getElementById('function-value').textContent = `f(x,y) = ${functionValue.toFixed(2)}`;
-        updateInfoPanel(scope.x, scope.y, functionValue, gradF, gradG);
+        updateInfoPanel(scope.x, scope.y, functionValue, vec_grad_f.normalize(), vec_grad_g.normalize(), lambda);
     }
     
-    function updateInfoPanel(x_func, y_func, z_val, gradF, gradG) {
+    function updateInfoPanel(x_func, y_func, z_val, gradF, gradG, lambda) {
         const dotProduct = gradF.dot(gradG);
-        const dgdx_val = state.grad_g.x.evaluate({x: x_func, y: y_func});
-        const lambda = dgdx_val !== 0 ? (state.verticalScale * state.grad_f.x.evaluate({x: x_func, y: y_func}) / dgdx_val).toFixed(2) : 'N/A';
         const infoDiv = document.getElementById('dynamic-info');
         infoDiv.innerHTML = `
             <div class="math-display">
@@ -736,7 +560,7 @@
             <div class="math-display text-sm">
                 <b>Position:</b> <span class="variable">x</span>:${x_func.toFixed(2)}, <span class="variable">y</span>:${y_func.toFixed(2)}, <span class="variable">f(x,y)</span>:${z_val.toFixed(2)}<br>
                 <b>Alignment (Dot Product):</b> ${dotProduct.toFixed(2)} (parallel at ±1)<br>
-                <b>Lagrange Multiplier <span class="symbol">λ</span>:</b> ${isNaN(lambda) ? 'N/A' : lambda}
+                <b>Lagrange Multiplier <span class="symbol">λ</span>:</b> ${isNaN(lambda) ? 'N/A' : lambda.toFixed(2)}
             </div>
         `;
     }
@@ -754,6 +578,12 @@
                     <span>0</span> <input id="theta-slider" type="range" min="0" max="${2 * Math.PI}" step="0.01" value="0" class="w-48"> <span>2π</span>
                 </div>
             </div>
+            <div class="control-group">
+                <label for="c-slider-main" class="text-sm font-medium">Constraint Value (c): <span id="c-value-display-current">1.0</span></label>
+                <div class="flex items-center gap-2">
+                     <span>0.1</span> <input id="c-slider-main" type="range" min="0.1" max="5" step="0.1" value="1.0" class="w-48"> <span>5.0</span>
+                </div>
+            </div>
              <div class="text-center">
                 <div class="text-2xl font-bold" id="function-value">f(x,y) = 0.00</div>
                 <div class="text-xs text-gray-400">Objective Value</div>
@@ -761,6 +591,14 @@
         document.getElementById('theta-slider').addEventListener('input', e => {
             state.theta = parseFloat(e.target.value);
             updateMovablePoint();
+        });
+
+        const cSliderMain = document.getElementById('c-slider-main');
+        const cValueDisplayCurrent = document.getElementById('c-value-display-current');
+        cSliderMain.addEventListener('input', e => {
+            state.c = parseFloat(e.target.value);
+            cValueDisplayCurrent.textContent = state.c.toFixed(1);
+            createVisualization();
         });
 
         const settingsPanel = document.getElementById('settings-panel');
@@ -775,10 +613,7 @@
 
         document.getElementById('f-input').addEventListener('change', e => state.f_text = e.target.value);
         document.getElementById('g-input').addEventListener('change', e => state.g_text = e.target.value);
-        document.getElementById('c-slider').addEventListener('input', e => {
-            state.c = parseFloat(e.target.value);
-            document.getElementById('c-value').textContent = state.c.toFixed(1);
-        });
+        
         document.getElementById('update-functions-btn').addEventListener('click', () => {
              if (parseFunctions()) createVisualization();
         });
@@ -790,16 +625,10 @@
         const combinedScaleSlider = document.getElementById('combined-scale-slider');
         const combinedScaleValue = document.getElementById('combined-scale-value');
 
-        vScaleSlider.addEventListener('input', e => {
-            state.verticalScale = parseFloat(e.target.value);
-            vScaleValue.textContent = `${state.verticalScale.toFixed(1)}x`;
-        });
+        vScaleSlider.addEventListener('input', e => { state.verticalScale = parseFloat(e.target.value); vScaleValue.textContent = `${state.verticalScale.toFixed(1)}x`; });
         vScaleSlider.addEventListener('change', () => { if (parseFunctions()) createVisualization(); });
 
-        hScaleSlider.addEventListener('input', e => {
-            state.horizontalScale = parseFloat(e.target.value);
-            hScaleValue.textContent = `${state.horizontalScale.toFixed(1)}x`;
-        });
+        hScaleSlider.addEventListener('input', e => { state.horizontalScale = parseFloat(e.target.value); hScaleValue.textContent = `${state.horizontalScale.toFixed(1)}x`; });
         hScaleSlider.addEventListener('change', () => { if (parseFunctions()) createVisualization(); });
         
         combinedScaleSlider.addEventListener('input', e => {
@@ -823,51 +652,27 @@
             for (const name in presets[category]) {
                 const button = document.createElement('button');
                 button.textContent = name;
-                button.onclick = () => {
-                    loadPreset(category, name);
-                    presetDropdown.classList.remove('visible');
-                };
+                button.onclick = () => { loadPreset(category, name); presetDropdown.classList.remove('visible'); };
                 presetDropdown.appendChild(button);
             }
         }
         
         const presetButton = document.getElementById('preset-button');
-        presetButton.addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            presetDropdown.classList.toggle('visible');
-        });
+        presetButton.addEventListener('click', (e) => { e.stopPropagation(); presetDropdown.classList.toggle('visible'); });
 
         window.addEventListener('click', (e) => {
-            if (!presetDropdown.contains(e.target) && !presetButton.contains(e.target)) {
-                presetDropdown.classList.remove('visible');
-            }
-            if (!settingsPanel.contains(e.target) && !document.getElementById('settings-button').contains(e.target)) {
-                 settingsPanel.classList.remove('open');
-             }
+            if (!presetDropdown.contains(e.target) && !presetButton.contains(e.target)) { presetDropdown.classList.remove('visible'); }
+            if (!settingsPanel.contains(e.target) && !document.getElementById('settings-button').contains(e.target)) { settingsPanel.classList.remove('open'); }
         });
 
         document.getElementById('view-reset-btn').addEventListener('click', () => setCameraView('reset'));
         document.getElementById('view-top-btn').addEventListener('click', () => setCameraView('top'));
         document.getElementById('view-side-btn').addEventListener('click', () => setCameraView('side'));
         
-        document.getElementById('toggle-surface-btn').addEventListener('click', (e) => {
-            if(surfaceMesh) {
-                surfaceMesh.visible = !surfaceMesh.visible;
-                e.target.classList.toggle('active', surfaceMesh.visible);
-            }
-        });
-        document.getElementById('toggle-wireframe-btn').addEventListener('click', (e) => {
-            if(surfaceMesh) {
-                surfaceMesh.material.wireframe = !surfaceMesh.material.wireframe;
-                e.target.classList.toggle('active', surfaceMesh.material.wireframe);
-            }
-        });
-        document.getElementById('toggle-grid-btn').addEventListener('click', (e) => {
-            if(gridHelper) {
-                gridHelper.visible = !gridHelper.visible;
-                e.target.classList.toggle('active', gridHelper.visible);
-            }
-        });
+        document.getElementById('toggle-surface-btn').addEventListener('click', (e) => { if(surfaceMesh) { surfaceMesh.visible = !surfaceMesh.visible; e.target.classList.toggle('active', surfaceMesh.visible); } });
+        document.getElementById('toggle-wireframe-btn').addEventListener('click', (e) => { if(surfaceMesh) { surfaceMesh.material.wireframe = !surfaceMesh.material.wireframe; e.target.classList.toggle('active', surfaceMesh.material.wireframe); } });
+        document.getElementById('toggle-grid-btn').addEventListener('click', (e) => { if(gridHelper) { gridHelper.visible = !gridHelper.visible; e.target.classList.toggle('active', gridHelper.visible); } });
+        document.getElementById('toggle-scaled-grad-btn').addEventListener('click', (e) => { state.showScaledGrad = !state.showScaledGrad; e.target.classList.toggle('active', state.showScaledGrad); updateMovablePoint(); });
     }
 
     function setCameraView(view) {
@@ -878,9 +683,10 @@
             case 'reset': 
             default: camera.position.set(4, 4, 6); controls.target.set(0, 1, 0); break;
         }
-        document.getElementById('view-reset-btn').classList.toggle('active', view === 'reset');
-        document.getElementById('view-top-btn').classList.toggle('active', view === 'top');
-        document.getElementById('view-side-btn').classList.toggle('active', view === 'side');
+        ['view-reset-btn', 'view-top-btn', 'view-side-btn'].forEach(id => document.getElementById(id).classList.remove('active'));
+        if (view === 'reset') document.getElementById('view-reset-btn').classList.add('active');
+        if (view === 'top') document.getElementById('view-top-btn').classList.add('active');
+        if (view === 'side') document.getElementById('view-side-btn').classList.add('active');
     }
     
     function loadPreset(category, name) {
@@ -890,8 +696,8 @@
         state.c = preset.c;
         document.getElementById('f-input').value = state.f_text;
         document.getElementById('g-input').value = state.g_text;
-        document.getElementById('c-slider').value = state.c;
-        document.getElementById('c-value').textContent = state.c.toFixed(1);
+        document.getElementById('c-slider-main').value = state.c;
+        document.getElementById('c-value-display-current').textContent = state.c.toFixed(1);
         if (parseFunctions()) createVisualization();
     }
 
