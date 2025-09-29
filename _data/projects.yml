@@ -38,6 +38,11 @@
   thumbnail: /assets/images/convolutional-filter.png
   visualization_url: /visualizations/convolutional-filter.html
 
+- title: Convolutional Neural Network
+  author: Jasper Taal
+  thumbnail: /assets/images/convolutional-neural-network.png
+  visualization_url: /visualizations/convolutional-neural-network.html
+
 - title: Deconvolution
   author: Jasper Taal
   thumbnail: /assets/images/deconvolution.png
