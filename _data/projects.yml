@@ -53,6 +53,11 @@
   thumbnail: /assets/images/diffusion-modeling.png
   visualization_url: /visualizations/diffusion-modeling.html
 
+- title: Dilution Calculator
+  author: Jasper Taal
+  thumbnail: /assets/images/dilution-calculator.png
+  visualization_url: /visualizations/dilution-calculator.html
+
 - title: Dimensionality Reduction
   author: Jasper Taal
   thumbnail: /assets/images/dimensionality-reduction.png
