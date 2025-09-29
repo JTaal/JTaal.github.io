@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D CNN Visualization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh; 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        .formula-placeholder {
+            font-family: 'Courier New', monospace;
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            margin-top: 1rem;
+            color: #d1d5db;
+            border: 1px solid #374151;
+            white-space: pre;
+            line-height: 1.6;
+        }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        .menu-button, .control-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .menu-button:hover, .control-button:hover, .toggle-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .control-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hidden { display: none !important; }
+        canvas { display: block; }
+
+        #settings-button, #fullscreen-button {
+            position: fixed;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #settings-button {
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+        }
+        #fullscreen-button {
+            bottom: 120px;
+            right: 20px;
+            z-index: 11;
+        }
+        #settings-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px) rotate(45deg);
+        }
+        #fullscreen-button:hover {
+             background-color: #4338ca;
+            transform: translateY(-2px) scale(1.1);
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 320px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding-right: 2rem; 
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+        #close-settings {
+            font-size: 2.5rem;
+            line-height: 1;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .label-value-pair {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            header h1 { font-size: 1.125rem; }
+            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #fullscreen-button { bottom: 100px; right: 10px; }
+            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
+            #controls-panel { padding: 0.75rem; gap: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">3D CNN Visualization</h1>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">CNN Layer Pipeline</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300">
+                This visualization shows a full CNN layer: Convolution, ReLU activation, and Max Pooling. Use the settings to adjust parameters and see how each stage is affected.
+             </p>
+             <div id="calculation-placeholder" class="formula-placeholder text-left text-sm overflow-x-auto">
+                Kernel Calculation: Idle
+             </div>
+             <div class="formula-placeholder">Conv Output = floor((I-K+2P)/S)+1
+Pool Output = floor((I-F)/S)+1</div>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel">
+        <button id="play-pause-btn" class="control-button">
+            <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <svg id="pause-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            <span>Play</span>
+        </button>
+        <button id="step-btn" class="control-button">
+             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            <span>Step</span>
+        </button>
+        <button id="reset-btn" class="control-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            <span>Reset</span>
+        </button>
+    </div>
+
+    <button id="fullscreen-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+   
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+   
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-inherit z-10 py-2">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div class="space-y-6">
+            <h4 class="text-lg font-bold text-gray-300">Display</h4>
+            <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>View Mode:</span></label>
+                <button id="view-mode-toggle" class="toggle-button w-full">Blocks</button>
+            </div>
+             <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Label Size:</span><span id="label-size-value">3.0</span></label>
+                <input id="label-size-slider" type="range" min="1" max="5" step="0.1" value="3" class="w-full">
+            </div>
+            <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Label Height:</span><span id="label-height-value">4.0</span></label>
+                <input id="label-height-slider" type="range" min="1" max="8" step="0.1" value="4" class="w-full">
+            </div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300">Convolution</h4>
+            <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Input Width:</span><span id="input-w-value">8</span></label>
+                <input id="input-w-slider" type="range" min="4" max="16" step="1" value="8" class="w-full">
+            </div>
+            <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Input Height:</span><span id="input-h-value">8</span></label>
+                <input id="input-h-slider" type="range" min="4" max="16" step="1" value="8" class="w-full">
+            </div>
+            <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Input Depth:</span><span id="input-d-value">3</span></label>
+                <input id="input-d-slider" type="range" min="1" max="5" step="1" value="3" class="w-full">
+            </div>
+            <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Kernel Size:</span><span id="kernel-size-value">3</span></label>
+                <input id="kernel-size-slider" type="range" min="2" max="7" step="1" value="3" class="w-full">
+            </div>
+            <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Stride:</span><span id="stride-value">1</span></label>
+                <input id="stride-slider" type="range" min="1" max="4" step="1" value="1" class="w-full">
+            </div>
+            <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Padding:</span><span id="padding-value">0</span></label>
+                <input id="padding-slider" type="range" min="0" max="3" step="1" value="0" class="w-full">
+            </div>
+             <hr class="border-gray-600">
+             <h4 class="text-lg font-bold text-gray-300">Max Pooling</h4>
+             <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Pool Size:</span><span id="pool-size-value">2</span></label>
+                <input id="pool-size-slider" type="range" min="2" max="4" step="1" value="2" class="w-full">
+            </div>
+            <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Pool Stride:</span><span id="pool-stride-value">2</span></label>
+                <input id="pool-stride-slider" type="range" min="1" max="4" step="1" value="2" class="w-full">
+            </div>
+            <hr class="border-gray-600">
+             <div class="control-group text-left w-full space-y-2">
+                <label class="label-value-pair"><span>Anim. Speed:</span><span id="speed-value">0.5s</span></label>
+                <input id="speed-slider" type="range" min="0.05" max="1" step="0.05" value="0.5" class="w-full">
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    let scene, camera, renderer, controls, clock;
+    let mainGroup = new THREE.Group();
+    let isPaused = true, animationTimer = 0, currentViewMode = 'blocks', flyingNumbers = [];
+
+    let cnnParams = {
+        inputWidth: 8, inputHeight: 8, inputDepth: 3,
+        kernelSize: 3, stride: 1, padding: 0,
+        poolSize: 2, poolStride: 2, animSpeed: 0.5,
+        labelSize: 3.0, labelHeight: 4.0
+    };
+    let outputParams = { convW: 0, convH: 0, poolW: 0, poolH: 0 };
+    let currentStep = { convX: 0, convY: 0 };
+    let totalSteps = { convX: 0, convY: 0 };
+    
+    let inputCells = [], convOutputCells = {}, reluOutputCells = {}, poolOutputCells = {};
+    let kernelGroup, poolKernelGroup, stageTitles = {}, lastHighlights = {};
+    
+    const MAT_KERNEL = new THREE.MeshStandardMaterial({ color: 0x9013FE, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+    const MAT_POOL_KERNEL = new THREE.MeshStandardMaterial({ color: 0xF5A623, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+    const MAT_HIGHLIGHT_CONV = new THREE.LineBasicMaterial({ color: 0x7ED321, linewidth: 2 });
+    
+    const INPUT_CHANNEL_COLORS = [0xff6b6b, 0x4dff4d, 0x4da6ff, 0xf9d423, 0x9c88ff];
+    const WIREFRAME_MATERIALS = INPUT_CHANNEL_COLORS.map(c => new THREE.LineBasicMaterial({ color: c }));
+
+    function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 5000);
+        camera.position.set(0, 15, 40);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7), new THREE.DirectionalLight(0xffffff, 0.8));
+        scene.add(mainGroup);
+
+        setupUI();
+        createVisualization();
+        
+        window.addEventListener('resize', onWindowResize);
+        renderer.setAnimationLoop(animate);
+    }
+
+    function createTextSprite(text, color, fontSize = 64) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        const font = `bold ${fontSize}px Inter, sans-serif`;
+        context.font = font;
+        const metrics = context.measureText(text);
+        canvas.width = metrics.width;
+        canvas.height = fontSize * 1.2;
+        context.font = font;
+        context.fillStyle = color;
+        context.fillText(text, 0, fontSize * 0.9);
+        const texture = new THREE.CanvasTexture(canvas);
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true }));
+        sprite.scale.set(canvas.width/canvas.height * 0.8, 0.8, 1);
+        sprite.userData.baseScale = sprite.scale.clone();
+        return sprite;
+    }
+
+    function addTitleToGroup(group, text) {
+        const CUBE_SIZE = 1, CUBE_GAP = 0.15;
+        const { height, p } = group.userData;
+        const yPos = ((height + 2 * p - 1) * (CUBE_SIZE + CUBE_GAP)) / 2 + cnnParams.labelHeight;
+        const title = createTextSprite(text, '#a5b4fc', 128);
+        title.position.set(0, yPos, 0);
+        group.add(title);
+        stageTitles[text.toLowerCase().split(' ')[0]] = title;
+    }
+
+
+    function createVisualization() {
+        mainGroup.clear();
+        inputCells = [], convOutputCells = {}, reluOutputCells = {}, poolOutputCells = {}, flyingNumbers = [], lastHighlights = {};
+
+        const {inputWidth:W, kernelSize:K, padding:P, stride:S, poolSize:F, poolStride:PS} = cnnParams;
+        outputParams.convW = Math.floor((W - K + 2 * P) / S) + 1;
+        outputParams.convH = Math.floor((cnnParams.inputHeight - K + 2 * P) / S) + 1;
+        outputParams.poolW = Math.floor((outputParams.convW - F) / PS) + 1;
+        outputParams.poolH = Math.floor((outputParams.convH - F) / PS) + 1;
+
+        totalSteps = { convX: outputParams.convW, convY: outputParams.convH };
+        resetAnimationState();
+
+        const CUBE_SIZE = 1, CUBE_GAP = 0.15;
+        const zSeparation = Math.max(cnnParams.inputDepth, K) * (CUBE_SIZE + CUBE_GAP) + 8;
+
+        const inputGroup = createVolume('input');
+        const convGroup = createVolume('conv');
+        const reluGroup = createVolume('relu');
+        const poolGroup = createVolume('pool');
+
+        convGroup.position.z = zSeparation;
+        reluGroup.position.z = zSeparation * 2;
+        poolGroup.position.z = zSeparation * 3;
+        
+        mainGroup.add(inputGroup, convGroup, reluGroup, poolGroup);
+
+        addTitleToGroup(inputGroup, "Input");
+        addTitleToGroup(convGroup, "Convolution");
+        addTitleToGroup(reluGroup, "ReLU Activation");
+        addTitleToGroup(poolGroup, "Max Pooling");
+        updateLabelSizes();
+
+        const totalSceneWidth = (inputGroup.userData.width * (CUBE_SIZE+CUBE_GAP)) + zSeparation * 3 + (poolGroup.userData.width * (CUBE_SIZE+CUBE_GAP));
+        mainGroup.position.x = -totalSceneWidth/2 + (inputGroup.userData.width*(CUBE_SIZE+CUBE_GAP))/2;
+
+        controls.target.set(0, 0, zSeparation*1.5);
+        
+        kernelGroup = createKernel(K, cnnParams.inputDepth, MAT_KERNEL);
+        inputGroup.add(kernelGroup);
+        
+        poolKernelGroup = createKernel(F, 1, MAT_POOL_KERNEL);
+        reluGroup.add(poolKernelGroup);
+        
+        updateHighlights();
+    }
+    
+    function createVolume(name) {
+        const group = new THREE.Group();
+        let width, height, depth = 1, P = 0, cellRef;
+
+        switch(name) {
+            case 'input': [width, height, depth, P, cellRef] = [cnnParams.inputWidth, cnnParams.inputHeight, cnnParams.inputDepth, cnnParams.padding, inputCells]; break;
+            case 'conv': [width, height, cellRef] = [outputParams.convW, outputParams.convH, convOutputCells]; break;
+            case 'relu': [width, height, cellRef] = [outputParams.convW, outputParams.convH, reluOutputCells]; break;
+            case 'pool': [width, height, cellRef] = [outputParams.poolW, outputParams.poolH, poolOutputCells]; break;
+        }
+        group.userData = { width, height, depth, p: P };
+
+        const CUBE_SIZE = 1, CUBE_GAP = 0.15;
+
+        if (name === 'relu' && currentViewMode === 'blocks') {
+            const totalWidth = width * (CUBE_SIZE + CUBE_GAP) - CUBE_GAP;
+            const totalHeight = height * (CUBE_SIZE + CUBE_GAP) - CUBE_GAP;
+            const geo = new THREE.BoxGeometry(totalWidth, totalHeight, CUBE_SIZE);
+            const mat = new THREE.MeshStandardMaterial({color: 0x7ED321, transparent: true, opacity: 0.6});
+            const block = new THREE.Mesh(geo, mat);
+            block.position.set(((width-1)/2)*(CUBE_SIZE+CUBE_GAP), ((height-1)/2)*(CUBE_SIZE+CUBE_GAP), 0);
+            group.add(block);
+        } else {
+             for (let d = 0; d < depth; d++) {
+                const wireMat = WIREFRAME_MATERIALS[d % WIREFRAME_MATERIALS.length];
+                for (let y = -P; y < height + P; y++) {
+                    for (let x = -P; x < width + P; x++) {
+                        const isPadding = x < 0 || x >= width || y < 0 || y >= height;
+                        if (name === 'input' && isPadding && currentViewMode === 'blocks') continue;
+                        
+                        const cell = new THREE.Group();
+                        cell.position.set(x*(CUBE_SIZE+CUBE_GAP), y*(CUBE_SIZE+CUBE_GAP), d*(CUBE_SIZE+CUBE_GAP));
+                        
+                        const geo = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), edges = new THREE.EdgesGeometry(geo);
+                        const mat = (name === 'input' && isPadding) ? wireMat.clone({opacity: 0.3}) : new THREE.LineBasicMaterial({color: 0x555555});
+                        const line = new THREE.LineSegments(edges, mat);
+                        cell.add(line);
+                        cell.originalMaterial = mat;
+                        
+                        if (!isPadding) {
+                            if (name === 'input') {
+                               line.material.color.set(wireMat.color);
+                               const value = Math.floor(Math.random() * 19) - 9; // -9 to 9
+                               cell.userData = { value, color: `#${wireMat.color.getHexString()}` };
+                               if (currentViewMode === 'numbers') {
+                                   const textSprite = createTextSprite(value.toString(), cell.userData.color);
+                                   cell.add(textSprite);
+                               }
+                               cellRef.push(cell);
+                            } else {
+                               cellRef[`${x}_${y}`] = cell;
+                            }
+                        }
+                        group.add(cell);
+                    }
+                }
+            }
+        }
+       
+        group.position.x = -((width + 2*P - 1) * (CUBE_SIZE + CUBE_GAP)) / 2;
+        group.position.y = -((height + 2*P - 1) * (CUBE_SIZE + CUBE_GAP)) / 2;
+        return group;
+    }
+
+    function createKernel(size, depth, material) {
+        const CUBE_SIZE = 1, CUBE_GAP = 0.15;
+        const kernel = new THREE.Group();
+        const geo = new THREE.BoxGeometry(size*(CUBE_SIZE+CUBE_GAP)-CUBE_GAP, size*(CUBE_SIZE+CUBE_GAP)-CUBE_GAP, depth*(CUBE_SIZE+CUBE_GAP)-CUBE_GAP);
+        const mesh = new THREE.Mesh(geo, material);
+        mesh.position.set((size-1)/2*(CUBE_SIZE+CUBE_GAP), (size-1)/2*(CUBE_SIZE+CUBE_GAP), (depth-1)/2*(CUBE_SIZE+CUBE_GAP));
+        const line = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 }));
+        line.position.copy(mesh.position);
+        kernel.add(mesh, line);
+        return kernel;
+    }
+    
+    function updateHighlights() {
+        if(lastHighlights.conv && lastHighlights.conv.children[0]) {
+            lastHighlights.conv.children[0].material = lastHighlights.conv.originalMaterial;
+        }
+
+        const CUBE_SIZE=1, CUBE_GAP=0.15, {padding:P, stride:S, poolStride:PS} = cnnParams, {convX, convY} = currentStep;
+        
+        kernelGroup.position.set((-P + convX*S)*(CUBE_SIZE+CUBE_GAP), (-P + convY*S)*(CUBE_SIZE+CUBE_GAP), 0);
+        
+        const convCell = convOutputCells[`${convX}_${convY}`];
+        if(convCell && convCell.children[0]) {
+            convCell.children[0].material = MAT_HIGHLIGHT_CONV;
+            lastHighlights.conv = convCell;
+        }
+
+        const poolX = Math.floor(convX / PS), poolY = Math.floor(convY / PS);
+        poolKernelGroup.position.set((poolX*PS)*(CUBE_SIZE+CUBE_GAP), (poolY*PS)*(CUBE_SIZE+CUBE_GAP), 0);
+    }
+
+    function updateInfoPanelCalculation(convX, convY) {
+        const {padding:P, stride:S, kernelSize:K, inputWidth:W, inputHeight:H, inputDepth:D} = cnnParams;
+        let calculationParts = [];
+        let sum = 0;
+        const startX = convX * S, startY = convY * S;
+
+        for (let d = 0; d < D; d++) {
+            for (let y = 0; y < K; y++) {
+                for (let x = 0; x < K; x++) {
+                    const iX = startX + x, iY = startY + y;
+                    if (iX >= 0 && iX < W && iY >= 0 && iY < H) {
+                        const cell = inputCells[d*W*H + iY*W + iX];
+                        if (cell) {
+                            const value = cell.userData.value;
+                            sum += value;
+                            calculationParts.push(`<span style="color:${cell.userData.color};">${value}</span>`);
+                        }
+                    } else {
+                        calculationParts.push(`<span>0</span>`);
+                    }
+                }
+            }
+        }
+        const calcDiv = document.getElementById('calculation-placeholder');
+        calcDiv.innerHTML = `<strong>Kernel Sum:</strong> ${calculationParts.join(' + ')} = <strong style="color:#7ED321;">${sum}</strong>`;
+    }
+
+    function processConvStep(convX, convY) {
+        const {padding:P, stride:S, kernelSize:K, inputWidth:W, inputHeight:H, inputDepth:D} = cnnParams;
+        let sum = 0;
+        const startX = convX * S, startY = convY * S;
+        const convCell = convOutputCells[`${convX}_${convY}`];
+        if (!convCell) return 0;
+        const targetPos = convCell.getWorldPosition(new THREE.Vector3());
+
+        for (let d = 0; d < D; d++) {
+            for (let y = 0; y < K; y++) {
+                for (let x = 0; x < K; x++) {
+                    const iX = startX + x, iY = startY + y;
+                     if (iX >= 0 && iX < W && iY >= 0 && iY < H) {
+                        const cell = inputCells[d*W*H + iY*W + iX];
+                        if (cell) {
+                            sum += cell.userData.value;
+                            if (currentViewMode === 'numbers') {
+                                const flyingSprite = createTextSprite(cell.userData.value.toString(), cell.userData.color);
+                                const startPos = cell.getWorldPosition(new THREE.Vector3());
+                                flyingNumbers.push({ sprite: flyingSprite, start: startPos, target: targetPos, progress: 0, type: 'conv', convX, convY });
+                                scene.add(flyingSprite);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        convCell.userData.value = sum;
+        updateInfoPanelCalculation(convX, convY);
+        return sum;
+    }
+
+    function processReluStep(convX, convY, value) {
+        const key = `${convX}_${convY}`;
+        const reluCell = reluOutputCells[key];
+        const convCell = convOutputCells[key];
+        if (reluCell && convCell) {
+            const reluValue = Math.max(0, value);
+            reluCell.userData.value = reluValue;
+            if (currentViewMode === 'numbers' && convCell.children[1]) {
+                 const startPos = convCell.children[1].getWorldPosition(new THREE.Vector3());
+                 const targetPos = reluCell.getWorldPosition(new THREE.Vector3());
+                 const flyingSprite = convCell.children[1].clone();
+                 flyingNumbers.push({ sprite: flyingSprite, start: startPos, target: targetPos, progress: 0, type: 'relu', finalValue: reluValue, isNegative: value < 0, key: key });
+                 scene.add(flyingSprite);
+            }
+        }
+    }
+    
+    function processPoolStep(convX, convY) {
+        const {poolSize:F, poolStride:PS} = cnnParams;
+        const readyForPoolX = (convX + 1 >= F) && ((convX + 1 - F) % PS === 0);
+        const readyForPoolY = (convY + 1 >= F) && ((convY + 1 - F) % PS === 0);
+
+        if (readyForPoolX && readyForPoolY) {
+            const poolX = (convX + 1 - F) / PS;
+            const poolY = (convY + 1 - F) / PS;
+            const startX = poolX * PS, startY = poolY * PS;
+            let maxVal = -Infinity;
+
+            for (let y = 0; y < F; y++) {
+                for (let x = 0; x < F; x++) {
+                     const cell = reluOutputCells[`${startX + x}_${startY + y}`];
+                     if (cell && cell.userData.value > maxVal) maxVal = cell.userData.value;
+                }
+            }
+            const poolCell = poolOutputCells[`${poolX}_${poolY}`];
+            if (poolCell) {
+                poolCell.userData.value = maxVal;
+                if (currentViewMode === 'numbers') {
+                    const sprite = createTextSprite(maxVal.toString(), "#F5A623");
+                    poolCell.add(sprite);
+                }
+            }
+        }
+    }
+
+    function advanceStep() {
+        const { convX, convY } = currentStep;
+        const convValue = processConvStep(convX, convY);
+        processReluStep(convX, convY, convValue);
+        processPoolStep(convX, convY);
+
+        currentStep.convX++;
+        if (currentStep.convX >= totalSteps.convX) {
+            currentStep.convX = 0;
+            currentStep.convY++;
+            if (currentStep.convY >= totalSteps.convY) {
+                currentStep.convY = 0;
+            }
+        }
+        updateHighlights();
+    }
+    
+    function resetAnimationState() {
+        currentStep = { convX: 0, convY: 0 };
+        animationTimer = 0;
+        document.getElementById('calculation-placeholder').innerHTML = 'Kernel Calculation: Idle';
+    }
+    
+    function updateLabelSizes() {
+        Object.values(stageTitles).forEach(title => {
+            if (title && title.userData.baseScale) {
+                title.position.y = title.parent.userData.height/2 * 1.15 + cnnParams.labelHeight;
+                title.scale.copy(title.userData.baseScale).multiplyScalar(cnnParams.labelSize);
+            }
+        });
+    }
+
+    function setupUI() {
+        document.getElementById('info-panel').addEventListener('click', (e) => e.currentTarget.classList.toggle('expanded'));
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        playPauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            document.getElementById('play-icon').classList.toggle('hidden', !isPaused);
+            document.getElementById('pause-icon').classList.toggle('hidden', isPaused);
+            playPauseBtn.querySelector('span').textContent = isPaused ? 'Play' : 'Pause';
+        });
+        document.getElementById('step-btn').addEventListener('click', () => { if (isPaused) advanceStep(); });
+        document.getElementById('reset-btn').addEventListener('click', createVisualization);
+        document.getElementById('settings-button').addEventListener('click', () => {
+            const panel = document.getElementById('settings-panel');
+            panel.classList.remove('hidden');
+            requestAnimationFrame(() => panel.classList.add('open'));
+        });
+        document.getElementById('close-settings').addEventListener('click', () => document.getElementById('settings-panel').classList.remove('open'));
+        
+        document.getElementById('view-mode-toggle').addEventListener('click', (e) => {
+            currentViewMode = currentViewMode === 'blocks' ? 'numbers' : 'blocks';
+            e.target.textContent = currentViewMode.charAt(0).toUpperCase() + currentViewMode.slice(1);
+            createVisualization();
+        });
+
+        const sliders = { 'input-w':{p:'inputWidth',k:true},'input-h':{p:'inputHeight',k:true},'input-d':{p:'inputDepth'}, 'kernel-size':{p:'kernelSize'}, 'stride':{p:'stride'}, 'padding':{p:'padding'}, 'pool-size':{p:'poolSize'}, 'pool-stride':{p:'poolStride'}, 'speed':{p:'animSpeed'}, 'label-size':{p:'labelSize'}, 'label-height':{p:'labelHeight'}};
+        for(const id in sliders){
+            const s=document.getElementById(`${id}-slider`),v=document.getElementById(`${id}-value`),{p,k}=sliders[id];
+            const u=()=>{let val=parseFloat(s.value); if(k&&val<cnnParams.kernelSize)val=cnnParams.kernelSize; if(p==='kernelSize'&&(val>cnnParams.inputWidth||val>cnnParams.inputHeight))val=Math.min(cnnParams.inputWidth,cnnParams.inputHeight); cnnParams[p]=val; s.value=val; v.textContent=(id==='speed')?`${val.toFixed(2)}s`: (p.includes('label') ? val.toFixed(1) : Math.round(val)); if(p.includes('label')) updateLabelSizes(); else if(p!=='animSpeed')createVisualization();};
+            s.addEventListener('input',()=>v.textContent=(id==='speed')?`${parseFloat(s.value).toFixed(2)}s`: (p.includes('label') ? parseFloat(s.value).toFixed(1) : Math.round(s.value)));
+            s.addEventListener('change',u);
+        }
+    }
+
+    function onWindowResize() { 
+        camera.aspect = window.innerWidth / window.innerHeight; 
+        camera.updateProjectionMatrix(); 
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+    }
+
+    function animate(time) { 
+        const delta = clock.getDelta();
+        controls.update(); 
+        
+        for (let i = flyingNumbers.length - 1; i >= 0; i--) {
+            const obj = flyingNumbers[i];
+            obj.progress += delta / (cnnParams.animSpeed * 0.8);
+            if (obj.progress >= 1) {
+                scene.remove(obj.sprite);
+                if(obj.type === 'conv') {
+                    const convCell = convOutputCells[`${obj.convX}_${obj.convY}`];
+                     if (convCell && convCell.userData.value !== undefined && convCell.children.length === 1 && flyingNumbers.every(f => f.target !== obj.target || f.progress >= 1)) {
+                        const sumSprite = createTextSprite(convCell.userData.value.toString(), `#${WIREFRAME_MATERIALS[1].color.getHexString()}`);
+                        convCell.add(sumSprite);
+                     }
+                } else if (obj.type === 'relu') {
+                    const reluCell = reluOutputCells[obj.key];
+                    if(reluCell && reluCell.children.length === 1) {
+                         const sprite = createTextSprite(obj.finalValue.toString(), obj.finalValue > 0 ? "#7ED321" : "#888888");
+                         reluCell.add(sprite);
+                    }
+                }
+                flyingNumbers.splice(i, 1);
+            } else {
+                 if(obj.type === 'relu' && obj.isNegative) {
+                    obj.sprite.position.lerpVectors(obj.start, obj.target, obj.progress);
+                    obj.sprite.position.y += Math.sin(obj.progress * Math.PI) * 2; // Arc motion
+                    obj.sprite.material.opacity = 1.0 - obj.progress;
+                } else {
+                    obj.sprite.position.lerpVectors(obj.start, obj.target, obj.progress);
+                }
+            }
+        }
+        
+        if (!isPaused) {
+            animationTimer += delta;
+            if (animationTimer > cnnParams.animSpeed) {
+                animationTimer = 0;
+                advanceStep();
+            }
+        }
+        
+        renderer.render(scene, camera); 
+    }
+   
+    init();
+
+</script>
+</body>
+</html>
+
