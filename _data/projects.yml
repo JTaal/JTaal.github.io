@@ -93,6 +93,11 @@
   thumbnail: /assets/images/fourier-series.png
   visualization_url: /visualizations/fourier-series.html
 
+- title: Gymnasium
+  author: Jasper Taal
+  thumbnail: /assets/images/gymnasium.png
+  visualization_url: /visualizations/gymnasium.html
+
 - title: Image Fourier Transform
   author: Jasper Taal
   thumbnail: /assets/images/image-fourier-transform.png
