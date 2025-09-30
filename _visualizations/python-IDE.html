@@ -204,6 +204,7 @@ print("\\n--- Listing complete ---")` },
         let monacoEditor;
         let expandedFolders = new Set(['data']);
         let creationContext = { path: '', type: 'folder' };
+        let initialLoadComplete = false;
 
         // --- ICONS ---
         const icons = {
@@ -615,7 +616,7 @@ print("\\n--- Listing complete ---")` },
         }
 
         function saveCurrentFile() {
-            if (!activeFile || !monacoEditor) return;
+            if (!activeFile || !monacoEditor || !initialLoadComplete) return;
             const newContent = monacoEditor.getValue();
             if (fsManager.saveFile(activeFile, newContent)) {
                worker.postMessage({ type: 'syncFS', payload: fsManager.getFileSystemAsObject() });
@@ -856,7 +857,6 @@ print("\\n--- Listing complete ---")` },
                     isWorkerReady = true; 
                     setInputsDisabled(false); 
                     statusBar.textContent = "Pyodide: Ready"; 
-                    term.write(prompt);
                     worker.onmessage = workerMessageHandler;
                 }
             };
@@ -884,6 +884,10 @@ print("\\n--- Listing complete ---")` },
                     }
                     setInputsDisabled(false);
                     statusBar.textContent = "Pyodide: Ready";
+                    if (!initialLoadComplete && commandType === 'syncFS') {
+                        initialLoadComplete = true;
+                        term.reset();
+                    }
                     term.write(prompt);
                     break;
             }
@@ -1021,5 +1025,7 @@ print("\\n--- Listing complete ---")` },
     </script>
 </body>
 </html>
+
+
 
 
