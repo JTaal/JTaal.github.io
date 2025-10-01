@@ -9,12 +9,34 @@ import uuid
 
 # Initialize the Flask application
 app = Flask(__name__)
+# Enable CORS for your entire app
 CORS(app)
 
 # This dictionary holds all active environment instances.
 active_envs = {}
 
 # --- Helper Functions ---
+
+def convert_numpy_types(obj):
+    """
+    Recursively converts NumPy and non-standard float types in an object
+    to their standard Python equivalents, making them JSON serializable.
+    Replaces infinity and NaN with None (which becomes null in JSON).
+    """
+    if isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    # np.ndarray needs to be treated like a list for recursion
+    if isinstance(obj, (list, np.ndarray)):
+        return [convert_numpy_types(i) for i in obj]
+    if isinstance(obj, np.integer):
+        return int(obj)
+    # This check handles both standard floats and numpy floats
+    if isinstance(obj, (np.floating, float)):
+        # Check for infinity or NaN, which are not valid JSON
+        if np.isinf(obj) or np.isnan(obj):
+            return None  # JSON standard does not support Infinity or NaN, convert to null
+        return float(obj)
+    return obj
 
 def frame_to_base64(frame: np.ndarray):
     """Converts a numpy array frame from gym to a Base64 encoded PNG."""
@@ -27,14 +49,15 @@ def frame_to_base64(frame: np.ndarray):
 def serialize_space(space):
     """Converts a gym space object into a simple, JSON-friendly dictionary."""
     if isinstance(space, gym.spaces.Discrete):
-        return {'type': 'Discrete', 'n': space.n}
+        return convert_numpy_types({'type': 'Discrete', 'n': space.n})
     if isinstance(space, gym.spaces.Box):
-        return {
+        # The conversion function will handle any infinity values in low/high
+        return convert_numpy_types({
             'type': 'Box',
             'shape': list(space.shape),
-            'low': space.low.tolist(),
-            'high': space.high.tolist()
-        }
+            'low': space.low,
+            'high': space.high
+        })
     return {'type': 'Unknown'}
 
 # --- Flask Routes ---
@@ -54,8 +77,7 @@ def home():
 @app.route('/gym', methods=['POST'])
 def environment_manager():
     """
-    A single endpoint to manage and interact with a Gymnasium environment.
-    Handles 'reset', 'step', 'get_info', and 'close' actions.
+    Manages and interacts with a Gymnasium environment.
     """
     try:
         data = request.get_json()
@@ -76,11 +98,12 @@ def environment_manager():
             observation, info = env.reset()
             active_envs[session_id] = env
 
-            return jsonify({
+            response_data = {
                 'session_id': session_id,
-                'observation': observation.tolist(),
+                'observation': observation,
                 'info': info
-            })
+            }
+            return jsonify(convert_numpy_types(response_data))
 
         session_id = data.get('session_id')
         if not session_id or session_id not in active_envs:
@@ -96,20 +119,22 @@ def environment_manager():
             obs, reward, terminated, truncated, info = env.step(step_action)
             frame = env.render()
 
-            return jsonify({
-                'observation': obs.tolist(),
+            response_data = {
+                'observation': obs,
                 'reward': reward,
                 'terminated': terminated,
                 'truncated': truncated,
                 'info': info,
                 'frame': frame_to_base64(frame)
-            })
+            }
+            return jsonify(convert_numpy_types(response_data))
 
         if action == 'get_info':
-            return jsonify({
+            response_data = {
                 'action_space': serialize_space(env.action_space),
                 'observation_space': serialize_space(env.observation_space)
-            })
+            }
+            return jsonify(convert_numpy_types(response_data))
 
         if action == 'close':
             env.close()
