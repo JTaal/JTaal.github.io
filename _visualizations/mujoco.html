@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MuJoCo Fullscreen Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #f3f4f6; /* text-gray-100 */
+            overflow: hidden; /* Prevent scrollbars */
+        }
+        /* Style for the floating panel */
+        .settings-panel {
+            background-color: rgba(31, 41, 55, 0.7); /* bg-gray-800 with opacity */
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        /* Custom loader animation */
+        .loader {
+            border: 5px solid #4b5563; /* border-gray-600 */
+            border-top: 5px solid #3b82f6; /* border-blue-500 */
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="h-full w-full relative antialiased">
+
+    <!-- The 3D renderer container will fill the entire screen -->
+    <div id="renderer-container" class="absolute inset-0 z-0"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loader-overlay" class="absolute inset-0 bg-gray-900 bg-opacity-90 flex flex-col items-center justify-center z-50 transition-opacity duration-500">
+        <div class="loader"></div>
+        <p id="loader-text" class="mt-4 text-lg text-gray-300">Loading MuJoCo Engine...</p>
+    </div>
+    
+    <!-- Header Title -->
+    <header class="absolute top-4 left-5 z-10">
+      <h1 class="text-2xl font-bold text-white" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">MuJoCo Viewer</h1>
+    </header>
+
+    <!-- Floating Settings Panel -->
+    <div class="absolute top-4 right-5 z-10">
+        <!-- Toggle Button -->
+        <button id="settings-toggle-btn" class="p-2 rounded-full settings-panel hover:bg-gray-700/80 transition-all duration-300">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </button>
+
+        <!-- The Panel Content -->
+        <div id="settings-panel" class="settings-panel w-64 rounded-lg shadow-xl p-4 mt-2 hidden">
+            <h2 class="text-lg font-bold mb-3 border-b border-gray-600 pb-2">Controls</h2>
+            <div class="space-y-3">
+                <!-- Model Selection -->
+                <div>
+                    <label for="model-select" class="block text-sm font-medium text-gray-300 mb-1">Select Model</label>
+                    <select id="model-select" class="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+                        <option value="https://erikgdev.github.io/mujoco_wasm/examples/scenes/humanoid.xml" selected>Humanoid</option>
+                        <option value="https://erikgdev.github.io/mujoco_wasm/examples/scenes/particle.xml">Particle</option>
+                        <option value="https://erikgdev.github.io/mujoco_wasm/examples/scenes/pendulum.xml">Pendulum</option>
+                        <option value="https://erikgdev.github.io/mujoco_wasm/examples/scenes/rope.xml">Rope</option>
+                        <option value="https://erikgdev.github.io/mujoco_wasm/examples/scenes/biped.xml">Biped</option>
+                    </select>
+                </div>
+                <!-- Custom File Upload -->
+                <label for="file-upload" class="w-full text-center cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors block">
+                    Upload Custom XML
+                </label>
+                <input id="file-upload" type="file" class="hidden" accept=".xml,text/xml">
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button id="play-pause-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Play</button>
+                    <button id="reset-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Reset</button>
+                </div>
+            </div>
+
+            <!-- Simulation Info -->
+            <div class="mt-4 pt-3 border-t border-gray-600">
+                 <h2 class="text-lg font-bold mb-2">Info</h2>
+                 <div class="space-y-1 text-sm">
+                    <div class="flex justify-between">
+                        <span class="font-semibold text-gray-400">Time:</span>
+                        <span id="sim-time" class="font-mono text-gray-200">0.000 s</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-semibold text-gray-400">Geometries:</span>
+                        <span id="sim-geoms" class="font-mono text-gray-200">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import load_mujoco from "https://erikgdev.github.io/mujoco_wasm/mujoco_wasm.js";
+
+        // --- Global variables ---
+        let scene, camera, renderer, controls;
+        let mujoco, model, state, simulation;
+        let threeObjects = [];
+        let isPaused = true;
+        let lastLoadedXmlContent = '';
+        const VFS_PATH = "/working/";
+        const VFS_FILENAME = "model.xml";
+
+        // --- DOM Elements ---
+        const rendererContainer = document.getElementById('renderer-container');
+        const loaderOverlay = document.getElementById('loader-overlay');
+        const loaderText = document.getElementById('loader-text');
+        const modelSelect = document.getElementById('model-select');
+        const fileUpload = document.getElementById('file-upload');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const simTimeEl = document.getElementById('sim-time');
+        const simGeomsEl = document.getElementById('sim-geoms');
+        const settingsToggleBtn = document.getElementById('settings-toggle-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+
+        // --- Main Initialization ---
+        async function main() {
+            try {
+                initThree();
+                mujoco = await load_mujoco();
+                setupVFS();
+                await loadModelFromUrl(modelSelect.value);
+                setupEventListeners();
+                
+                loaderOverlay.style.opacity = '0';
+                setTimeout(() => { loaderOverlay.style.display = 'none'; }, 500);
+
+                animate();
+            } catch (error) {
+                console.error("Initialization failed:", error);
+                loaderText.textContent = 'Error: Failed to load resources.';
+                loaderText.style.color = '#ef4444'; // text-red-500
+            }
+        }
+
+        // --- Setup Functions ---
+        
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111827); // bg-gray-900
+            scene.fog = new THREE.Fog(0x111827, 10, 35);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(2.5, 3, 4.5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.setPixelRatio(window.devicePixelRatio);
+            rendererContainer.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            directionalLight.position.set(5, 10, 7.5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            const ground = new THREE.Mesh(
+                new THREE.PlaneGeometry(100, 100),
+                new THREE.MeshStandardMaterial({ color: 0x1f2937 }) // bg-gray-800
+            );
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+        }
+
+        function setupVFS() {
+            mujoco.FS.mkdir(VFS_PATH);
+            mujoco.FS.mount(mujoco.MEMFS, { root: '.' }, VFS_PATH);
+        }
+
+        function setupEventListeners() {
+            window.addEventListener('resize', onWindowResize);
+            playPauseBtn.addEventListener('click', togglePause);
+            resetBtn.addEventListener('click', resetSimulation);
+            modelSelect.addEventListener('change', (e) => loadModelFromUrl(e.target.value));
+            fileUpload.addEventListener('change', handleFileUpload);
+            settingsToggleBtn.addEventListener('click', () => {
+                settingsPanel.classList.toggle('hidden');
+                settingsToggleBtn.classList.toggle('rotate-90');
+            });
+        }
+        
+        // --- Model Loading ---
+
+        async function loadModelFromUrl(url) {
+            loaderOverlay.style.display = 'flex';
+            loaderOverlay.style.opacity = '1';
+            loaderText.textContent = 'Fetching model...';
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const xmlContent = await response.text();
+                lastLoadedXmlContent = xmlContent;
+                await loadModel(xmlContent);
+            } catch (error) {
+                console.error("Failed to load model from URL:", error);
+                alert(`Error loading model. Check console for details.`);
+            } finally {
+                loaderOverlay.style.opacity = '0';
+                setTimeout(() => { loaderOverlay.style.display = 'none'; }, 500);
+            }
+        }
+        
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                loaderOverlay.style.display = 'flex';
+                loaderOverlay.style.opacity = '1';
+                loaderText.textContent = 'Loading custom model...';
+                try {
+                    const xmlContent = e.target.result;
+                    lastLoadedXmlContent = xmlContent;
+                    await loadModel(xmlContent);
+                    modelSelect.value = '';
+                } catch (error) {
+                    console.error("Failed to load uploaded file:", error);
+                    alert("Error loading XML file. Make sure it's a valid MuJoCo model.");
+                } finally {
+                    loaderOverlay.style.opacity = '0';
+                    setTimeout(() => { loaderOverlay.style.display = 'none'; }, 500);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        async function loadModel(xmlContent) {
+            isPaused = true;
+            updatePlayPauseButton();
+
+            threeObjects.forEach(obj => scene.remove(obj));
+            threeObjects = [];
+
+            mujoco.FS.writeFile(VFS_PATH + VFS_FILENAME, xmlContent);
+
+            model = new mujoco.Model(VFS_PATH + VFS_FILENAME);
+            state = new mujoco.State(model);
+            simulation = new mujoco.Simulation(model, state);
+            
+            const mat = new THREE.Matrix4();
+            for (let i = 0; i < model.ngeom; i++) {
+                const geomType = model.geom_type[i];
+                const size = model.geom_size.slice(i * 3, i * 3 + 3);
+                const rgba = model.geom_rgba.slice(i * 4, i * 4 + 4);
+
+                let geometry;
+                switch (geomType) {
+                    case 0: geometry = new THREE.BoxGeometry(size[0] * 2 || 10, size[1] * 2 || 10, 0.01); break;
+                    case 2: geometry = new THREE.SphereGeometry(size[0], 32, 24); break;
+                    case 3: geometry = new THREE.CapsuleGeometry(size[0], size[1] * 2, 20, 16); break;
+                    case 4: // Cylinder
+                        geometry = new THREE.CylinderGeometry(size[0], size[0], size[1]*2, 32); 
+                        break;
+                    case 5: geometry = new THREE.BoxGeometry(size[0] * 2, size[1] * 2, size[2] * 2); break;
+                    default: geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1); break;
+                }
+                
+                const material = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(rgba[0], rgba[1], rgba[2]),
+                    transparent: rgba[3] < 1.0,
+                    opacity: rgba[3],
+                    metalness: 0.2,
+                    roughness: 0.6,
+                });
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                
+                scene.add(mesh);
+                threeObjects.push(mesh);
+            }
+            
+            updateScene();
+            updateInfoPanel();
+        }
+
+        // --- Simulation and Rendering ---
+        
+        function resetSimulation() {
+            if (!lastLoadedXmlContent) return;
+            isPaused = true;
+            updatePlayPauseButton();
+            loadModel(lastLoadedXmlContent);
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            updatePlayPauseButton();
+        }
+
+        function updatePlayPauseButton() {
+            if (isPaused) {
+                playPauseBtn.textContent = 'Play';
+                playPauseBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                playPauseBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+            } else {
+                playPauseBtn.textContent = 'Pause';
+                playPauseBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                playPauseBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+            }
+        }
+        
+        function updateScene() {
+            if (!model || !state || !threeObjects.length) return;
+            
+            const mat = new THREE.Matrix4();
+            for (let i = 0; i < model.ngeom; i++) {
+                const threeObj = threeObjects[i];
+                if (!threeObj) continue;
+
+                const pos = state.geom_xpos.slice(i * 3, i * 3 + 3);
+                const rot = state.geom_xmat.slice(i * 9, i * 9 + 9);
+
+                threeObj.position.set(pos[0], pos[1], pos[2]);
+                mat.set(rot[0], rot[3], rot[6], 0, rot[1], rot[4], rot[7], 0, rot[2], rot[5], rot[8], 0, 0, 0, 0, 1);
+                threeObj.quaternion.setFromRotationMatrix(mat);
+            }
+            
+            updateInfoPanel();
+        }
+
+        function updateInfoPanel() {
+            if (!state || !model) return;
+            simTimeEl.textContent = `${state.time.toFixed(3)} s`;
+            simGeomsEl.textContent = model.ngeom;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isPaused && simulation) {
+                // Stepping multiple times can improve stability for complex models
+                const steps = Math.max(1, Math.floor(model.opt.timestep / 0.002));
+                for(let i=0; i < steps; i++) {
+                    simulation.step();
+                }
+                updateScene();
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        main();
+    </script>
+</body>
+</html>
+
