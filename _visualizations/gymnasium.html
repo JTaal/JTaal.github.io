@@ -8,38 +8,17 @@
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .btn-disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        #trainingLog::-webkit-scrollbar {
-            width: 8px;
-        }
-        #trainingLog::-webkit-scrollbar-track {
-            background: #1f2937;
-        }
-        #trainingLog::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 4px;
-        }
-        #trainingLog::-webkit-scrollbar-thumb:hover {
-            background: #6b7280;
-        }
-        /* Style the file input button */
+        body { font-family: 'Inter', sans-serif; }
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+        #trainingLog::-webkit-scrollbar, #agentOutputLog::-webkit-scrollbar { width: 8px; }
+        #trainingLog::-webkit-scrollbar-track, #agentOutputLog::-webkit-scrollbar-track { background: #1f2937; }
+        #trainingLog::-webkit-scrollbar-thumb, #agentOutputLog::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        #trainingLog::-webkit-scrollbar-thumb:hover, #agentOutputLog::-webkit-scrollbar-thumb:hover { background: #6b7280; }
         input[type="file"]::file-selector-button {
-            margin-right: 1rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 0.375rem;
-            border-width: 0;
-            background-color: #7c3aed; /* bg-purple-600 */
-            color: white;
+            margin-right: 1rem; padding: 0.25rem 0.75rem; border-radius: 0.375rem; border-width: 0;
+            background-color: #7c3aed; color: white; cursor: pointer;
         }
-        input[type="file"]::file-selector-button:hover {
-            background-color: #6d28d9; /* hover:bg-purple-700 */
-        }
+        input[type="file"]::file-selector-button:hover { background-color: #6d28d9; }
     </style>
 </head>
 <body class="bg-gray-900 flex items-center justify-center min-h-screen py-8">
@@ -58,23 +37,23 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="md:col-span-2 w-full">
                 <select id="envIdSelect" class="w-full px-4 py-2 text-gray-200 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <optgroup label="Toy Text">
+                        <option value="Blackjack-v1">Blackjack-v1 (Discrete)</option>
+                        <option value="CliffWalking-v1">CliffWalking-v1 (Discrete)</option>
+                        <option value="FrozenLake-v1">FrozenLake-v1 (Discrete)</option>
+                        <option value="Taxi-v3">Taxi-v3 (Discrete)</option>
+                    </optgroup>
                     <optgroup label="Classic Control">
                         <option value="CartPole-v1">CartPole-v1 (Discrete)</option>
                         <option value="MountainCar-v0">MountainCar-v0 (Discrete)</option>
                         <option value="Acrobot-v1">Acrobot-v1 (Discrete)</option>
                         <option value="Pendulum-v1">Pendulum-v1 (Continuous)</option>
                     </optgroup>
-                    <optgroup label="MuJoCo">
-                        <option value="Hopper-v4">Hopper-v4 (Continuous)</option>
-                        <option value="Walker2d-v4">Walker2d-v4 (Continuous)</option>
-                        <option value="HalfCheetah-v4">HalfCheetah-v4 (Continuous)</option>
-                        <option value="Ant-v4">Ant-v4 (Continuous)</option>
-                    </optgroup>
                     <optgroup label="Box2D">
                         <option value="LunarLander-v3">LunarLander-v3 (Discrete)</option>
                         <option value="LunarLanderContinuous-v3">LunarLanderContinuous-v3 (Continuous)</option>
                         <option value="BipedalWalker-v3">BipedalWalker-v3 (Continuous)</option>
-                        <option value="CarRacing-v2">CarRacing-v2 (Continuous)</option>
+                        <option value="CarRacing-v3">CarRacing-v3 (Continuous)</option>
                     </optgroup>
                     <optgroup label="Custom">
                         <option value="custom">-- Enter Custom Name --</option>
@@ -86,20 +65,15 @@
                 Start Environment
             </button>
         </div>
-        <div id="mujocoWarning" class="hidden text-center text-yellow-400 bg-yellow-900/50 border border-yellow-700 rounded-lg p-3 text-sm mb-6">
-            <strong>Warning:</strong> MuJoCo environments require special server-side graphics libraries for rendering and may not work on this backend.
-        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Left Column: Manual Control -->
             <div class="flex flex-col">
                 <main class="text-center">
-                    <div class="bg-gray-900 rounded-lg p-2 mb-4 inline-block shadow-inner">
+                    <div id="rendererContainer" class="bg-gray-900 rounded-lg p-2 mb-4 inline-block shadow-inner w-full">
                          <img id="frameDisplay" src="https://placehold.co/600x400/1f2937/d1d5db?text=Environment+View" alt="Gymnasium Environment Frame" class="rounded-md w-full max-w-xl mx-auto">
                     </div>
-                    <div id="actionButtons" class="flex justify-center items-center flex-wrap gap-4 mb-6">
-                        <!-- Action buttons/sliders will be dynamically inserted here -->
-                    </div>
+                    <div id="actionButtons" class="flex justify-center items-center flex-wrap gap-4 mb-6"></div>
                 </main>
                 <footer class="bg-gray-900/50 p-4 rounded-lg shadow-inner text-sm text-gray-400 mt-auto">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
@@ -111,49 +85,203 @@
                 </footer>
             </div>
 
-            <!-- Right Column: Live Training -->
+            <!-- Right Column: Live Agent Control -->
             <div class="flex flex-col bg-gray-900/50 p-4 rounded-lg shadow-inner">
                 <h2 class="text-xl font-bold text-gray-100 text-center mb-4">Live Agent Control</h2>
                 
-                <div class="mb-4 p-3 border border-gray-700 rounded-lg">
+                 <div class="mb-4 p-3 border border-gray-700 rounded-lg">
                     <label class="text-sm font-medium text-gray-300">ONNX Inference Agent</label>
                      <div class="flex gap-2 mt-2">
-                        <input id="modelFileInput" type="file" accept=".onnx" class="flex-grow px-3 py-1.5 text-sm text-gray-400 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        <button id="loadModelBtn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors btn-disabled" disabled>Load File</button>
+                        <select id="modelSelect" class="w-full px-3 py-2 text-gray-200 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></select>
                     </div>
-                     <button id="inferenceBtn" class="w-full mt-2 px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors btn-disabled" disabled>
-                        Run Inference Agent
-                    </button>
+                    <div id="modelFileInputContainer" class="hidden flex gap-2 mt-2">
+                        <input id="modelFileInput" type="file" accept=".onnx" class="flex-grow px-3 py-1.5 text-sm text-gray-400 bg-gray-700 border border-gray-600 rounded-lg">
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        <button id="loadModelBtn" class="w-full px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 btn-disabled" disabled>Load Model</button>
+                    </div>
+                     <button id="inferenceBtn" class="w-full mt-2 px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 btn-disabled" disabled>Run Agent</button>
                 </div>
                 
                 <div class="mb-4 p-3 border border-gray-700 rounded-lg">
                     <label class="text-sm font-medium text-gray-300">Random Agent</label>
-                    <button id="randomBtn" class="w-full mt-2 px-6 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors btn-disabled" disabled>
-                        Run Random Agent
-                    </button>
+                    <button id="randomBtn" class="w-full mt-2 px-6 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 btn-disabled" disabled>Run Random Agent</button>
                 </div>
 
-                <div class="bg-gray-900 rounded-lg p-3 text-left flex-grow h-64 min-h-[200px]">
-                    <div id="trainingLog" class="h-full overflow-y-auto text-sm font-mono text-gray-300">
-                        <p class="text-gray-500">Log will appear here...</p>
-                    </div>
+                <div class="p-3 border border-gray-700 rounded-lg text-sm mb-4">
+                     <h3 class="font-semibold text-gray-300 mb-2 text-center">Agent Output</h3>
+                     <div class="space-y-2">
+                         <div><label class="text-xs text-gray-400">Last Action:</label><div id="lastActionDisplay" class="font-mono text-fuchsia-400 bg-gray-900 p-2 rounded">N/A</div></div>
+                         <div><label class="text-xs text-gray-400">Output Vector:</label><div id="outputVectorDisplay" class="font-mono text-fuchsia-400 bg-gray-900 p-2 rounded break-all">N/A</div></div>
+                     </div>
                 </div>
-                 <div class="text-center mt-4 text-gray-400 text-sm">
-                    <strong>Score:</strong> <span id="totalRewardDisplay" class="font-mono bg-gray-700 text-gray-300 px-2 py-1 rounded">0</span>
+
+                <div class="bg-gray-900 rounded-lg p-3 text-left flex-grow h-48 min-h-[150px]">
+                    <div id="trainingLog" class="h-full overflow-y-auto text-sm font-mono text-gray-300"><p class="text-gray-500">Log will appear here...</p></div>
                 </div>
+                 <div class="text-center mt-4 text-gray-400 text-sm"><strong>Score:</strong> <span id="totalRewardDisplay" class="font-mono bg-gray-700 text-gray-300 px-2 py-1 rounded">0</span></div>
                 <div class="mt-4 grid grid-cols-2 gap-4">
                     <div>
-                        <label for="speedSlider" class="text-sm text-gray-400">Step Delay (<span id="speedValue">50</span>ms)</label>
-                        <input id="speedSlider" type="range" min="0" max="500" value="50" step="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <label for="speedSlider" class="text-sm text-gray-400">Step Delay (<span id="speedValue">0</span>ms)</label>
+                        <input id="speedSlider" type="range" min="0" max="500" value="0" step="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
                     </div>
                     <div>
-                        <label for="frameSkipSlider" class="text-sm text-gray-400">Frame Skip (<span id="frameSkipValue">0</span>) <small class="text-gray-500">(Max = No Render)</small></label>
+                        <label for="frameSkipSlider" class="text-sm text-gray-400">Frame Skip (<span id="frameSkipValue">0</span>)</label>
                         <input id="frameSkipSlider" type="range" min="0" max="50" value="0" step="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
                     </div>
                 </div>
             </div>
         </div>
         <div id="errorMessage" class="text-center text-red-400 mt-6 font-semibold"></div>
+    </div>
+
+    <script>
+        // --- STATE & CONFIG ---
+        let sessionId = null, isRunningInference = false, isRunningRandom = false, actionSpaceInfo = null;
+        let totalReward = 0, stepsTaken = 0, highScores = {}, onnxSession = null, lastObservation = null;
+        const apiUrl = 'https://jtaal.pythonanywhere.com/gym';
+        const PREDEFINED_MODELS = [
+            { name: "CartPole DQN", url: "models/rl/cartpole_dqn.onnx" }, { name: "CartPole SAC Actor", url: "models/rl/sac_cartpole_actor.onnx" },
+            { name: "LunarLander DQN", url: "models/rl/lunarlander_dqn.onnx" },
+        ];
+        // --- UPDATED ACTION MAP ---
+        const ACTION_MAP = {
+            'CartPole-v1': { 0: 'Push cart to the left', 1: 'Push cart to the right' },
+            'Acrobot-v1': { 0: 'Torque -1', 1: 'Torque 0', 2: 'Torque +1' },
+            'MountainCar-v0': { 0: 'Push left', 1: 'No push', 2: 'Push right' },
+            'LunarLander-v3': { 0: 'Do nothing', 1: 'Fire left engine', 2: 'Fire main engine', 3: 'Fire right engine' },
+            'CliffWalking-v1': { 0: 'Move up', 1: 'Move right', 2: 'Move down', 3: 'Move left' },
+            'FrozenLake-v1': { 0: 'LEFT', 1: 'DOWN', 2: 'RIGHT', 3: 'UP' },
+            'Taxi-v3': { 0: 'Move south (S)', 1: 'Move north (N)', 2: 'Move east (E)', 3: 'Move west (W)', 4: 'Pickup', 5: 'Dropoff' },
+            'Blackjack-v1': { 0: 'Stick', 1: 'Hit' }
+        };
+
+        // --- DOM ELEMENTS ---
+        const resetBtn = document.getElementById('resetBtn'), inferenceBtn = document.getElementById('inferenceBtn'), randomBtn = document.getElementById('randomBtn'), envIdSelect = document.getElementById('envIdSelect'), customEnvIdInput = document.getElementById('customEnvIdInput'), sessionIdDisplay = document.getElementById('sessionIdDisplay'), rewardDisplay = document.getElementById('rewardDisplay'), statusDisplay = document.getElementById('statusDisplay'), totalRewardDisplay = document.getElementById('totalRewardDisplay'), timeDisplay = document.getElementById('timeDisplay'), highScoreDisplay = document.getElementById('highScoreDisplay'), highScoreFlag = document.getElementById('highScoreFlag'), errorMessage = document.getElementById('errorMessage'), trainingLog = document.getElementById('trainingLog'), actionButtons = document.getElementById('actionButtons'), speedSlider = document.getElementById('speedSlider'), speedValue = document.getElementById('speedValue'), frameSkipSlider = document.getElementById('frameSkipSlider'), frameSkipValue = document.getElementById('frameSkipValue'), modelSelect = document.getElementById('modelSelect'), modelFileInputContainer = document.getElementById('modelFileInputContainer'), modelFileInput = document.getElementById('modelFileInput'), loadModelBtn = document.getElementById('loadModelBtn'), lastActionDisplay = document.getElementById('lastActionDisplay'), outputVectorDisplay = document.getElementById('outputVectorDisplay'), rendererContainer = document.getElementById('rendererContainer');
+
+        // --- EVENT LISTENERS ---
+        resetBtn.addEventListener('click', () => resetEnv(true)); inferenceBtn.addEventListener('click', toggleInference); randomBtn.addEventListener('click', toggleRandom); loadModelBtn.addEventListener('click', loadOnnxModel);
+        envIdSelect.addEventListener('change', () => {
+            const isCustom = envIdSelect.value === 'custom'; customEnvIdInput.classList.toggle('hidden', !isCustom); if (isCustom) customEnvIdInput.focus(); updateHighScoreDisplay();
+        });
+        speedSlider.addEventListener('input', () => { speedValue.textContent = speedSlider.value; }); frameSkipSlider.addEventListener('input', () => { frameSkipValue.textContent = frameSkipSlider.value; });
+        modelSelect.addEventListener('change', () => { modelFileInputContainer.classList.toggle('hidden', modelSelect.value !== 'upload'); });
+
+        // --- HIGH SCORE & UI FUNCTIONS ---
+        function loadHighScores() {
+            const scores = localStorage.getItem('gymHighScores');
+            highScores = scores ? JSON.parse(scores) : {};
+        }
+
+        function saveHighScore(envId, score) {
+            highScores[envId] = score;
+            localStorage.setItem('gymHighScores', JSON.stringify(highScores));
+        }
+        
+        function getCurrentEnvId() {
+            return (envIdSelect.value === 'custom') ? customEnvIdInput.value.trim() : envIdSelect.value;
+        }
+
+        function updateHighScoreDisplay() {
+            const envId = getCurrentEnvId();
+            const score = highScores[envId] || 0;
+            highScoreDisplay.textContent = parseFloat(score).toFixed(4);
+            highScoreFlag.classList.add('hidden');
+        }
+        
+        function checkAndSetHighScore() {
+            const envId = getCurrentEnvId();
+            const currentHighScore = highScores[envId] || -Infinity;
+            if (totalReward > currentHighScore) {
+                logMessage(`New high score for ${envId}: ${totalReward.toFixed(4)}!`, 'text-yellow-400');
+                saveHighScore(envId, totalReward);
+                updateHighScoreDisplay();
+                highScoreFlag.classList.remove('hidden');
+            }
+        }
+
+        function setLoadingState(isLoading) {
+            resetBtn.disabled = isLoading;
+            resetBtn.textContent = isLoading ? 'Loading...' : 'Start Environment';
+            resetBtn.classList.toggle('btn-disabled', isLoading);
+            if(isLoading) errorMessage.textContent = '';
+        }
+
+        function setActionButtonsState(spaceInfo) {
+            actionButtons.innerHTML = '';
+            const modelLoaded = !!onnxSession;
+            const envId = getCurrentEnvId();
+            
+            if (!spaceInfo) {
+                inferenceBtn.disabled = true; inferenceBtn.classList.add('btn-disabled');
+                randomBtn.disabled = true; randomBtn.classList.add('btn-disabled');
+                loadModelBtn.disabled = true; loadModelBtn.classList.add('btn-disabled');
+                return;
+            }
+
+            inferenceBtn.disabled = !modelLoaded; inferenceBtn.classList.toggle('btn-disabled', !modelLoaded);
+            randomBtn.disabled = false; randomBtn.classList.remove('btn-disabled');
+            loadModelBtn.disabled = false; loadModelBtn.classList.remove('btn-disabled');
+
+            if (spaceInfo.type === 'Discrete') {
+                for (let i = 0; i < spaceInfo.n; i++) {
+                    const btn = document.createElement('button');
+                    const actionMap = ACTION_MAP[envId];
+                    btn.textContent = (actionMap && actionMap[i]) ? actionMap[i] : `Action ${i}`;
+                    btn.onclick = () => stepEnv(i);
+                    btn.className = 'action-btn px-6 py-2 bg-gray-600 text-white font-bold rounded-lg shadow-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors';
+                    actionButtons.appendChild(btn);
+                }
+            } else if (spaceInfo.type === 'Box') {
+                const container = document.createElement('div');
+                container.className = 'w-full space-y-4';
+                for (let i = 0; i < spaceInfo.shape[0]; i++) {
+                    const sliderContainer = document.createElement('div');
+                    sliderContainer.className = 'w-full text-left';
+                    const low = spaceInfo.low[i].toFixed(2);
+                    const high = spaceInfo.high[i].toFixed(2);
+                    const label = document.createElement('label');
+                    label.className = 'text-sm text-gray-400';
+                    label.textContent = `Action Dim ${i} (Min: ${low}, Max: ${high}): `;
+                    const valueSpan = document.createElement('span');
+                    valueSpan.className = 'font-mono text-gray-200';
+                    valueSpan.id = `slider-value-${i}`;
+                    label.appendChild(valueSpan);
+                    const slider = document.createElement('input');
+                    slider.type = 'range'; slider.id = `action-slider-${i}`; slider.min = low; slider.max = high; slider.step = '0.01'; slider.value = '0';
+                    slider.className = 'w-full h-2 mt-1 bg-gray-700 rounded-lg appearance-none cursor-pointer';
+                    slider.oninput = () => { valueSpan.textContent = parseFloat(slider.value).toFixed(2); };
+                    valueSpan.textContent = parseFloat(slider.value).toFixed(2);
+                    sliderContainer.appendChild(label); sliderContainer.appendChild(slider);
+                    container.appendChild(sliderContainer);
+                }
+                const submitBtn = document.createElement('button');
+                submitBtn.textContent = 'Submit Action';
+                submitBtn.className = 'mt-4 px-6 py-2 bg-gray-600 text-white font-bold rounded-lg shadow-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors';
+                submitBtn.onclick = () => {
+                    const actions = [];
+                    for (let i = 0; i < spaceInfo.shape[0]; i++) {
+                        actions.push(parseFloat(document.getElementById(`action-slider-${i}`).value));
+                    }
+                    stepEnv(actions);
+                };
+                container.appendChild(submitBtn);
+                actionButtons.appendChild(container);
+            }
+        }
+
+        function logMessage(message, color = 'text-gray-300') {
+            const p = document.createElement('p');
+            p.textContent = `> ${message}`;
+            p.className = color;
+            trainingLog.appendChild(p);
+            trainingLog.scrollTop = trainingLog.scrollHeight;
+        }
+        
+        function populateModelSelector() {
+            modelSelect.innerHTML = ''; // Clear existing
+            PREDEFINED_MODELS.forEach(model => {
+                const option = document.createElem</div>
     </div>
 
     <script>
