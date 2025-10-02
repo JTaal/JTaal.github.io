@@ -8,38 +8,17 @@
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .btn-disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        #trainingLog::-webkit-scrollbar {
-            width: 8px;
-        }
-        #trainingLog::-webkit-scrollbar-track {
-            background: #1f2937;
-        }
-        #trainingLog::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 4px;
-        }
-        #trainingLog::-webkit-scrollbar-thumb:hover {
-            background: #6b7280;
-        }
-        /* Style the file input button */
+        body { font-family: 'Inter', sans-serif; }
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+        #trainingLog::-webkit-scrollbar, #agentOutputLog::-webkit-scrollbar { width: 8px; }
+        #trainingLog::-webkit-scrollbar-track, #agentOutputLog::-webkit-scrollbar-track { background: #1f2937; }
+        #trainingLog::-webkit-scrollbar-thumb, #agentOutputLog::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        #trainingLog::-webkit-scrollbar-thumb:hover, #agentOutputLog::-webkit-scrollbar-thumb:hover { background: #6b7280; }
         input[type="file"]::file-selector-button {
-            margin-right: 1rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 0.375rem;
-            border-width: 0;
-            background-color: #7c3aed; /* bg-purple-600 */
-            color: white;
+            margin-right: 1rem; padding: 0.25rem 0.75rem; border-radius: 0.375rem; border-width: 0;
+            background-color: #7c3aed; color: white; cursor: pointer;
         }
-        input[type="file"]::file-selector-button:hover {
-            background-color: #6d28d9; /* hover:bg-purple-700 */
-        }
+        input[type="file"]::file-selector-button:hover { background-color: #6d28d9; }
     </style>
 </head>
 <body class="bg-gray-900 flex items-center justify-center min-h-screen py-8">
@@ -58,23 +37,23 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="md:col-span-2 w-full">
                 <select id="envIdSelect" class="w-full px-4 py-2 text-gray-200 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <optgroup label="Toy Text">
+                        <option value="Blackjack-v1">Blackjack-v1 (Discrete)</option>
+                        <option value="CliffWalking-v1">CliffWalking-v1 (Discrete)</option>
+                        <option value="FrozenLake-v1">FrozenLake-v1 (Discrete)</option>
+                        <option value="Taxi-v3">Taxi-v3 (Discrete)</option>
+                    </optgroup>
                     <optgroup label="Classic Control">
                         <option value="CartPole-v1">CartPole-v1 (Discrete)</option>
                         <option value="MountainCar-v0">MountainCar-v0 (Discrete)</option>
                         <option value="Acrobot-v1">Acrobot-v1 (Discrete)</option>
                         <option value="Pendulum-v1">Pendulum-v1 (Continuous)</option>
                     </optgroup>
-                    <optgroup label="MuJoCo">
-                        <option value="Hopper-v4">Hopper-v4 (Continuous)</option>
-                        <option value="Walker2d-v4">Walker2d-v4 (Continuous)</option>
-                        <option value="HalfCheetah-v4">HalfCheetah-v4 (Continuous)</option>
-                        <option value="Ant-v4">Ant-v4 (Continuous)</option>
-                    </optgroup>
                     <optgroup label="Box2D">
                         <option value="LunarLander-v3">LunarLander-v3 (Discrete)</option>
                         <option value="LunarLanderContinuous-v3">LunarLanderContinuous-v3 (Continuous)</option>
                         <option value="BipedalWalker-v3">BipedalWalker-v3 (Continuous)</option>
-                        <option value="CarRacing-v2">CarRacing-v2 (Continuous)</option>
+                        <option value="CarRacing-v3">CarRacing-v3 (Continuous)</option>
                     </optgroup>
                     <optgroup label="Custom">
                         <option value="custom">-- Enter Custom Name --</option>
@@ -86,20 +65,15 @@
                 Start Environment
             </button>
         </div>
-        <div id="mujocoWarning" class="hidden text-center text-yellow-400 bg-yellow-900/50 border border-yellow-700 rounded-lg p-3 text-sm mb-6">
-            <strong>Warning:</strong> MuJoCo environments require special server-side graphics libraries for rendering and may not work on this backend.
-        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Left Column: Manual Control -->
             <div class="flex flex-col">
                 <main class="text-center">
-                    <div class="bg-gray-900 rounded-lg p-2 mb-4 inline-block shadow-inner">
+                    <div id="rendererContainer" class="bg-gray-900 rounded-lg p-2 mb-4 inline-block shadow-inner w-full">
                          <img id="frameDisplay" src="https://placehold.co/600x400/1f2937/d1d5db?text=Environment+View" alt="Gymnasium Environment Frame" class="rounded-md w-full max-w-xl mx-auto">
                     </div>
-                    <div id="actionButtons" class="flex justify-center items-center flex-wrap gap-4 mb-6">
-                        <!-- Action buttons/sliders will be dynamically inserted here -->
-                    </div>
+                    <div id="actionButtons" class="flex justify-center items-center flex-wrap gap-4 mb-6"></div>
                 </main>
                 <footer class="bg-gray-900/50 p-4 rounded-lg shadow-inner text-sm text-gray-400 mt-auto">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
@@ -111,43 +85,48 @@
                 </footer>
             </div>
 
-            <!-- Right Column: Live Training -->
+            <!-- Right Column: Live Agent Control -->
             <div class="flex flex-col bg-gray-900/50 p-4 rounded-lg shadow-inner">
                 <h2 class="text-xl font-bold text-gray-100 text-center mb-4">Live Agent Control</h2>
                 
-                <div class="mb-4 p-3 border border-gray-700 rounded-lg">
+                 <div class="mb-4 p-3 border border-gray-700 rounded-lg">
                     <label class="text-sm font-medium text-gray-300">ONNX Inference Agent</label>
                      <div class="flex gap-2 mt-2">
-                        <input id="modelFileInput" type="file" accept=".onnx" class="flex-grow px-3 py-1.5 text-sm text-gray-400 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        <button id="loadModelBtn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors btn-disabled" disabled>Load File</button>
+                        <select id="modelSelect" class="w-full px-3 py-2 text-gray-200 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></select>
                     </div>
-                     <button id="inferenceBtn" class="w-full mt-2 px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors btn-disabled" disabled>
-                        Run Inference Agent
-                    </button>
+                    <div id="modelFileInputContainer" class="hidden flex gap-2 mt-2">
+                        <input id="modelFileInput" type="file" accept=".onnx" class="flex-grow px-3 py-1.5 text-sm text-gray-400 bg-gray-700 border border-gray-600 rounded-lg">
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        <button id="loadModelBtn" class="w-full px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 btn-disabled" disabled>Load Model</button>
+                    </div>
+                     <button id="inferenceBtn" class="w-full mt-2 px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 btn-disabled" disabled>Run Agent</button>
                 </div>
                 
                 <div class="mb-4 p-3 border border-gray-700 rounded-lg">
                     <label class="text-sm font-medium text-gray-300">Random Agent</label>
-                    <button id="randomBtn" class="w-full mt-2 px-6 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors btn-disabled" disabled>
-                        Run Random Agent
-                    </button>
+                    <button id="randomBtn" class="w-full mt-2 px-6 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 btn-disabled" disabled>Run Random Agent</button>
                 </div>
 
-                <div class="bg-gray-900 rounded-lg p-3 text-left flex-grow h-64 min-h-[200px]">
-                    <div id="trainingLog" class="h-full overflow-y-auto text-sm font-mono text-gray-300">
-                        <p class="text-gray-500">Log will appear here...</p>
-                    </div>
+                <div class="p-3 border border-gray-700 rounded-lg text-sm mb-4">
+                     <h3 class="font-semibold text-gray-300 mb-2 text-center">Agent Output</h3>
+                     <div class="space-y-2">
+                         <div><label class="text-xs text-gray-400">Last Action:</label><div id="lastActionDisplay" class="font-mono text-fuchsia-400 bg-gray-900 p-2 rounded">N/A</div></div>
+                         <div><label class="text-xs text-gray-400">Output Vector:</label><div id="outputVectorDisplay" class="font-mono text-fuchsia-400 bg-gray-900 p-2 rounded break-all">N/A</div></div>
+                     </div>
                 </div>
-                 <div class="text-center mt-4 text-gray-400 text-sm">
-                    <strong>Score:</strong> <span id="totalRewardDisplay" class="font-mono bg-gray-700 text-gray-300 px-2 py-1 rounded">0</span>
+
+                <div class="bg-gray-900 rounded-lg p-3 text-left flex-grow h-48 min-h-[150px]">
+                    <div id="trainingLog" class="h-full overflow-y-auto text-sm font-mono text-gray-300"><p class="text-gray-500">Log will appear here...</p></div>
                 </div>
+                 <div class="text-center mt-4 text-gray-400 text-sm"><strong>Score:</strong> <span id="totalRewardDisplay" class="font-mono bg-gray-700 text-gray-300 px-2 py-1 rounded">0</span></div>
                 <div class="mt-4 grid grid-cols-2 gap-4">
                     <div>
-                        <label for="speedSlider" class="text-sm text-gray-400">Step Delay (<span id="speedValue">50</span>ms)</label>
-                        <input id="speedSlider" type="range" min="0" max="500" value="50" step="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <label for="speedSlider" class="text-sm text-gray-400">Step Delay (<span id="speedValue">0</span>ms)</label>
+                        <input id="speedSlider" type="range" min="0" max="500" value="0" step="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
                     </div>
                     <div>
-                        <label for="frameSkipSlider" class="text-sm text-gray-400">Frame Skip (<span id="frameSkipValue">0</span>) <small class="text-gray-500">(Max = No Render)</small></label>
+                        <label for="frameSkipSlider" class="text-sm text-gray-400">Frame Skip (<span id="frameSkipValue">0</span>)</label>
                         <input id="frameSkipSlider" type="range" min="0" max="50" value="0" step="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
                     </div>
                 </div>
@@ -158,59 +137,35 @@
 
     <script>
         // --- STATE & CONFIG ---
-        let sessionId = null;
-        let isRunningInference = false;
-        let isRunningRandom = false;
-        let actionSpaceInfo = null;
-        let totalReward = 0;
-        let stepsTaken = 0;
-        let highScores = {};
-        let onnxSession = null;
-        let lastObservation = null;
+        let sessionId = null, isRunningInference = false, isRunningRandom = false, actionSpaceInfo = null;
+        let totalReward = 0, stepsTaken = 0, highScores = {}, onnxSession = null, lastObservation = null;
         const apiUrl = 'https://jtaal.pythonanywhere.com/gym';
+        const PREDEFINED_MODELS = [
+            { name: "CartPole DQN", url: "models/rl/cartpole_dqn.onnx" }, { name: "CartPole SAC Actor", url: "models/rl/sac_cartpole_actor.onnx" },
+            { name: "LunarLander DQN", url: "models/rl/lunarlander_dqn.onnx" },
+        ];
+        // --- UPDATED ACTION MAP ---
+        const ACTION_MAP = {
+            'CartPole-v1': { 0: 'Push cart to the left', 1: 'Push cart to the right' },
+            'Acrobot-v1': { 0: 'Torque -1', 1: 'Torque 0', 2: 'Torque +1' },
+            'MountainCar-v0': { 0: 'Push left', 1: 'No push', 2: 'Push right' },
+            'LunarLander-v3': { 0: 'Do nothing', 1: 'Fire left engine', 2: 'Fire main engine', 3: 'Fire right engine' },
+            'CliffWalking-v1': { 0: 'Move up', 1: 'Move right', 2: 'Move down', 3: 'Move left' },
+            'FrozenLake-v1': { 0: 'LEFT', 1: 'DOWN', 2: 'RIGHT', 3: 'UP' },
+            'Taxi-v3': { 0: 'Move south (S)', 1: 'Move north (N)', 2: 'Move east (E)', 3: 'Move west (W)', 4: 'Pickup', 5: 'Dropoff' },
+            'Blackjack-v1': { 0: 'Stick', 1: 'Hit' }
+        };
 
         // --- DOM ELEMENTS ---
-        const resetBtn = document.getElementById('resetBtn');
-        const inferenceBtn = document.getElementById('inferenceBtn');
-        const randomBtn = document.getElementById('randomBtn');
-        const envIdSelect = document.getElementById('envIdSelect');
-        const customEnvIdInput = document.getElementById('customEnvIdInput');
-        const frameDisplay = document.getElementById('frameDisplay');
-        const sessionIdDisplay = document.getElementById('sessionIdDisplay');
-        const rewardDisplay = document.getElementById('rewardDisplay');
-        const statusDisplay = document.getElementById('statusDisplay');
-        const totalRewardDisplay = document.getElementById('totalRewardDisplay');
-        const timeDisplay = document.getElementById('timeDisplay');
-        const highScoreDisplay = document.getElementById('highScoreDisplay');
-        const highScoreFlag = document.getElementById('highScoreFlag');
-        const errorMessage = document.getElementById('errorMessage');
-        const trainingLog = document.getElementById('trainingLog');
-        const actionButtons = document.getElementById('actionButtons');
-        const mujocoWarning = document.getElementById('mujocoWarning');
-        const speedSlider = document.getElementById('speedSlider');
-        const speedValue = document.getElementById('speedValue');
-        const frameSkipSlider = document.getElementById('frameSkipSlider');
-        const frameSkipValue = document.getElementById('frameSkipValue');
-        const modelFileInput = document.getElementById('modelFileInput');
-        const loadModelBtn = document.getElementById('loadModelBtn');
+        const resetBtn = document.getElementById('resetBtn'), inferenceBtn = document.getElementById('inferenceBtn'), randomBtn = document.getElementById('randomBtn'), envIdSelect = document.getElementById('envIdSelect'), customEnvIdInput = document.getElementById('customEnvIdInput'), sessionIdDisplay = document.getElementById('sessionIdDisplay'), rewardDisplay = document.getElementById('rewardDisplay'), statusDisplay = document.getElementById('statusDisplay'), totalRewardDisplay = document.getElementById('totalRewardDisplay'), timeDisplay = document.getElementById('timeDisplay'), highScoreDisplay = document.getElementById('highScoreDisplay'), highScoreFlag = document.getElementById('highScoreFlag'), errorMessage = document.getElementById('errorMessage'), trainingLog = document.getElementById('trainingLog'), actionButtons = document.getElementById('actionButtons'), speedSlider = document.getElementById('speedSlider'), speedValue = document.getElementById('speedValue'), frameSkipSlider = document.getElementById('frameSkipSlider'), frameSkipValue = document.getElementById('frameSkipValue'), modelSelect = document.getElementById('modelSelect'), modelFileInputContainer = document.getElementById('modelFileInputContainer'), modelFileInput = document.getElementById('modelFileInput'), loadModelBtn = document.getElementById('loadModelBtn'), lastActionDisplay = document.getElementById('lastActionDisplay'), outputVectorDisplay = document.getElementById('outputVectorDisplay'), rendererContainer = document.getElementById('rendererContainer');
 
         // --- EVENT LISTENERS ---
-        resetBtn.addEventListener('click', () => resetEnv(true));
-        inferenceBtn.addEventListener('click', toggleInference);
-        randomBtn.addEventListener('click', toggleRandom);
-        loadModelBtn.addEventListener('click', loadOnnxModel);
-        
+        resetBtn.addEventListener('click', () => resetEnv(true)); inferenceBtn.addEventListener('click', toggleInference); randomBtn.addEventListener('click', toggleRandom); loadModelBtn.addEventListener('click', loadOnnxModel);
         envIdSelect.addEventListener('change', () => {
-            const selectedOption = envIdSelect.options[envIdSelect.selectedIndex];
-            const isCustom = envIdSelect.value === 'custom';
-            const isMujoco = selectedOption.parentElement.label === 'MuJoCo';
-            customEnvIdInput.classList.toggle('hidden', !isCustom);
-            if (isCustom) customEnvIdInput.focus();
-            mujocoWarning.classList.toggle('hidden', !isMujoco);
-            updateHighScoreDisplay();
+            const isCustom = envIdSelect.value === 'custom'; customEnvIdInput.classList.toggle('hidden', !isCustom); if (isCustom) customEnvIdInput.focus(); updateHighScoreDisplay();
         });
-        speedSlider.addEventListener('input', () => { speedValue.textContent = speedSlider.value; });
-        frameSkipSlider.addEventListener('input', () => { frameSkipValue.textContent = frameSkipSlider.value; });
+        speedSlider.addEventListener('input', () => { speedValue.textContent = speedSlider.value; }); frameSkipSlider.addEventListener('input', () => { frameSkipValue.textContent = frameSkipSlider.value; });
+        modelSelect.addEventListener('change', () => { modelFileInputContainer.classList.toggle('hidden', modelSelect.value !== 'upload'); });
 
         // --- HIGH SCORE & UI FUNCTIONS ---
         function loadHighScores() {
@@ -224,7 +179,7 @@
         }
         
         function getCurrentEnvId() {
-            return (envIdSelect.value === 'custom') ? customEnvIdInput.value : envIdSelect.value;
+            return (envIdSelect.value === 'custom') ? customEnvIdInput.value.trim() : envIdSelect.value;
         }
 
         function updateHighScoreDisplay() {
@@ -255,6 +210,7 @@
         function setActionButtonsState(spaceInfo) {
             actionButtons.innerHTML = '';
             const modelLoaded = !!onnxSession;
+            const envId = getCurrentEnvId();
             
             if (!spaceInfo) {
                 inferenceBtn.disabled = true; inferenceBtn.classList.add('btn-disabled');
@@ -270,7 +226,8 @@
             if (spaceInfo.type === 'Discrete') {
                 for (let i = 0; i < spaceInfo.n; i++) {
                     const btn = document.createElement('button');
-                    btn.textContent = `Action ${i}`;
+                    const actionMap = ACTION_MAP[envId];
+                    btn.textContent = (actionMap && actionMap[i]) ? actionMap[i] : `Action ${i}`;
                     btn.onclick = () => stepEnv(i);
                     btn.className = 'action-btn px-6 py-2 bg-gray-600 text-white font-bold rounded-lg shadow-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors';
                     actionButtons.appendChild(btn);
@@ -320,47 +277,56 @@
             trainingLog.appendChild(p);
             trainingLog.scrollTop = trainingLog.scrollHeight;
         }
+        
+        function populateModelSelector() {
+            modelSelect.innerHTML = ''; // Clear existing
+            PREDEFINED_MODELS.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.url;
+                option.textContent = model.name;
+                modelSelect.appendChild(option);
+            });
+            const uploadOption = document.createElement('option');
+            uploadOption.value = 'upload';
+            uploadOption.textContent = 'Upload Custom File...';
+            modelSelect.appendChild(uploadOption);
+        }
 
         // --- ONNX & CLIENT-SIDE INFERENCE ---
-        function loadOnnxModel() {
-            const modelFile = modelFileInput.files[0];
-            if (!modelFile) {
-                errorMessage.textContent = 'Please select an ONNX model file.';
-                return;
-            }
+        async function loadOnnxModel() {
+            const selectedOption = modelSelect.value;
             loadModelBtn.disabled = true;
             loadModelBtn.textContent = 'Loading...';
             inferenceBtn.disabled = true;
             inferenceBtn.classList.add('btn-disabled');
-            logMessage(`Loading ONNX model from local file: ${modelFile.name}`, 'text-purple-400');
 
-            const reader = new FileReader();
-
-            reader.onload = async function(e) {
-                try {
-                    const arrayBuffer = e.target.result;
-                    const session = await ort.InferenceSession.create(arrayBuffer, { executionProviders: ['wasm'] });
-                    onnxSession = session;
-                    logMessage('ONNX model loaded successfully into browser.', 'text-green-400');
-                    if (sessionId) { // Only enable if an environment is active
-                        inferenceBtn.disabled = false;
-                        inferenceBtn.classList.remove('btn-disabled');
+            try {
+                let session;
+                if (selectedOption === 'upload') {
+                    const modelFile = modelFileInput.files[0];
+                    if (!modelFile) {
+                        throw new Error('Please select an ONNX model file to upload.');
                     }
-                } catch (error) {
-                    handleApiError(error);
-                } finally {
-                    loadModelBtn.disabled = false;
-                    loadModelBtn.textContent = 'Load File';
+                    logMessage(`Loading ONNX model from local file: ${modelFile.name}`, 'text-purple-400');
+                    const arrayBuffer = await modelFile.arrayBuffer();
+                    session = await ort.InferenceSession.create(arrayBuffer, { executionProviders: ['wasm'] });
+                } else {
+                    logMessage(`Loading ONNX model from URL: ${selectedOption}`, 'text-purple-400');
+                    session = await ort.InferenceSession.create(selectedOption, { executionProviders: ['wasm'] });
                 }
-            };
 
-            reader.onerror = function() {
-                handleApiError(new Error('Failed to read the model file.'));
+                onnxSession = session;
+                logMessage('ONNX model loaded successfully into browser.', 'text-green-400');
+                if (sessionId) { // Only enable if an environment is active
+                    inferenceBtn.disabled = false;
+                    inferenceBtn.classList.remove('btn-disabled');
+                }
+            } catch (error) {
+                handleApiError(error);
+            } finally {
                 loadModelBtn.disabled = false;
-                loadModelBtn.textContent = 'Load File';
-            };
-
-            reader.readAsArrayBuffer(modelFile);
+                loadModelBtn.textContent = 'Load Model';
+            }
         }
 
         async function inferenceStep(renderFrame = true) {
@@ -369,7 +335,9 @@
                 return null;
             }
             try {
-                const obsTensor = new ort.Tensor('float32', new Float32Array(lastObservation), [1, lastObservation.length]);
+                const observationArray = Array.isArray(lastObservation) ? lastObservation : [lastObservation];
+                const obsTensor = new ort.Tensor('float32', new Float32Array(observationArray), [1, observationArray.length]);
+                
                 const inputName = onnxSession.inputNames[0];
                 const feeds = { [inputName]: obsTensor };
                 const results = await onnxSession.run(feeds);
@@ -378,11 +346,13 @@
                 
                 let action;
                 if (actionSpaceInfo.type === 'Discrete') {
-                    // Find the index of the maximum value (argmax)
                     action = outputData.indexOf(Math.max(...outputData));
-                } else { // 'Box' (Continuous)
+                } else {
                     action = Array.from(outputData);
                 }
+
+                lastActionDisplay.textContent = Array.isArray(action) ? `[${action.map(a => a.toFixed(3)).join(', ')}]` : `Action ${action}`;
+                outputVectorDisplay.textContent = `[${Array.from(outputData).map(v => v.toFixed(3)).join(', ')}]`;
                 
                 return await stepEnv(action, renderFrame);
             } catch (error) {
@@ -409,32 +379,26 @@
             if ((isRunningInference || isRunningRandom) && isManualReset) return;
             setLoadingState(true);
             setActionButtonsState(null);
-            sessionId = null;
-            totalReward = 0;
-            stepsTaken = 0;
-            lastObservation = null;
-            totalRewardDisplay.textContent = '0';
-            timeDisplay.textContent = '0';
+            sessionId = null; totalReward = 0; stepsTaken = 0; lastObservation = null;
+            totalRewardDisplay.textContent = '0'; timeDisplay.textContent = '0';
+            lastActionDisplay.textContent = 'N/A'; outputVectorDisplay.textContent = 'N/A';
             updateHighScoreDisplay();
-
-            if (isManualReset) {
-                trainingLog.innerHTML = '';
-                 if (onnxSession) {
-                    inferenceBtn.disabled = false;
-                    inferenceBtn.classList.remove('btn-disabled');
-                } else {
-                    inferenceBtn.disabled = true;
-                    inferenceBtn.classList.add('btn-disabled');
-                }
-            }
+            if (isManualReset) { trainingLog.innerHTML = ''; }
 
             try {
                 const envId = getCurrentEnvId();
                 if (!envId) throw new Error("Please select or enter an environment name.");
                 logMessage(`Resetting environment: ${envId}`, 'text-yellow-400');
+                
+                rendererContainer.innerHTML = '<img id="frameDisplay" src="https://placehold.co/600x400/1f2937/d1d5db?text=Environment+View" alt="Gymnasium Environment Frame" class="rounded-md w-full max-w-xl mx-auto">';
+
                 const data = await apiCall({ action: 'reset', env_id: envId });
                 sessionId = data.session_id;
-                lastObservation = data.observation; // CRITICAL: Store initial observation
+                lastObservation = data.observation;
+                
+                if (data.frame) {
+                    document.getElementById('frameDisplay').src = data.frame;
+                }
 
                 sessionIdDisplay.textContent = sessionId.substring(0, 8) + '...';
                 statusDisplay.textContent = 'Ready';
@@ -443,8 +407,7 @@
                 const infoData = await apiCall({ action: 'get_info', session_id: sessionId });
                 actionSpaceInfo = infoData.action_space;
                 setActionButtonsState(actionSpaceInfo);
-
-                frameDisplay.src = data.frame; // Use the frame from the reset call
+                
                 logMessage('Environment ready.', 'text-green-400');
                 return true;
             } catch (error) {
@@ -456,13 +419,16 @@
         }
         
         function updateUIWithStepData(data) {
-            if (data.frame) frameDisplay.src = data.frame;
+            const frameDisplay = document.getElementById('frameDisplay');
+            if (data.frame && frameDisplay) {
+                frameDisplay.src = data.frame;
+            }
             rewardDisplay.textContent = data.reward.toFixed(4);
             totalReward += data.reward;
             stepsTaken += 1;
             totalRewardDisplay.textContent = totalReward.toFixed(4);
             timeDisplay.textContent = stepsTaken;
-            lastObservation = data.observation; // CRITICAL: Update observation after each step
+            lastObservation = data.observation;
 
             if (data.terminated || data.truncated) {
                 const reason = data.terminated ? 'Terminated' : 'Truncated';
@@ -477,47 +443,47 @@
         }
         
         async function stepEnv(stepAction, renderFrame = true) {
-             if (!sessionId) {
-                errorMessage.textContent = 'No active session. Please start an environment first.'; return null;
-            }
+             if (!sessionId) { errorMessage.textContent = 'No active session. Please start an environment first.'; return null; }
             errorMessage.textContent = '';
             try {
                 const data = await apiCall({ action: 'step', session_id: sessionId, step_action: stepAction, render_frame: renderFrame });
                 updateUIWithStepData(data);
                 return data;
-            } catch (error) {
-                handleApiError(error); return null;
-            }
+            } catch (error) { handleApiError(error); return null; }
         }
         
         function handleApiError(error) {
             let message = `Error: ${error.message}`;
+            if (error.message.includes("'list' object has no attribute 'astype'")) {
+                message = "Backend Error: The server received a list for a continuous action. Update your Python API's 'step' action to convert the incoming list to a NumPy array, e.g., `action_np = np.array(step_action, dtype=np.float32)` before passing it to `env.step(action_np)`.";
+                logMessage("Hint: This is a server-side error. See the red message below.", "text-red-400");
+            } else if (error.message.includes("MuJoCo is not installed")) {
+                message = "Backend Environment Error: The server is missing MuJoCo. Please install it on your server by running `pip install \"gymnasium[mujoco]\"`.";
+                logMessage("Hint: This is a server-side installation issue.", "text-red-400");
+            }
             errorMessage.textContent = message; console.error('API/Logic error:', error);
             sessionIdDisplay.textContent = 'N/A'; statusDisplay.textContent = 'Error';
-            frameDisplay.src = 'https://placehold.co/600x400/7f1d1d/fecaca?text=Error';
+            const frameDisplay = document.getElementById('frameDisplay');
+            if(frameDisplay) frameDisplay.src = 'https://placehold.co/600x400/7f1d1d/fecaca?text=Error';
             if(isRunningInference) toggleInference();
             if(isRunningRandom) toggleRandom();
         }
         
         function getRandomAction() {
             if (!actionSpaceInfo) return 0;
-            if (actionSpaceInfo.type === 'Discrete') {
-                return Math.floor(Math.random() * actionSpaceInfo.n);
-            }
-            if (actionSpaceInfo.type === 'Box') {
-                return actionSpaceInfo.low.map((low, i) => Math.random() * (actionSpaceInfo.high[i] - low) + low);
-            }
+            if (actionSpaceInfo.type === 'Discrete') { return Math.floor(Math.random() * actionSpaceInfo.n); }
+            if (actionSpaceInfo.type === 'Box') { return actionSpaceInfo.low.map((low, i) => Math.random() * (actionSpaceInfo.high[i] - low) + low); }
             return 0;
         }
 
         // --- AGENT LOOPS ---
         function toggleInference() {
             isRunningInference = !isRunningInference;
-            inferenceBtn.textContent = isRunningInference ? 'Stop Agent' : 'Run Inference Agent';
+            inferenceBtn.textContent = isRunningInference ? 'Stop Agent' : 'Run Agent';
             inferenceBtn.classList.toggle('bg-red-600', isRunningInference);
             inferenceBtn.classList.toggle('hover:bg-red-700', isRunningInference);
             randomBtn.disabled = isRunningInference; loadModelBtn.disabled = isRunningInference;
-            modelFileInput.disabled = isRunningInference; resetBtn.disabled = isRunningInference;
+            modelSelect.disabled = isRunningInference; modelFileInput.disabled = isRunningInference; resetBtn.disabled = isRunningInference;
             if (isRunningInference) {
                 trainingLog.innerHTML = ''; logMessage('Starting inference agent...'); runLoop(inferenceStep);
             } else { logMessage('Inference stopped by user.', 'text-red-400'); }
@@ -529,10 +495,15 @@
             randomBtn.classList.toggle('bg-red-600', isRunningRandom);
             randomBtn.classList.toggle('hover:bg-red-700', isRunningRandom);
             inferenceBtn.disabled = isRunningRandom; loadModelBtn.disabled = isRunningRandom;
-            modelFileInput.disabled = isRunningRandom; resetBtn.disabled = isRunningRandom;
+            modelSelect.disabled = isRunningRandom; modelFileInput.disabled = isRunningRandom; resetBtn.disabled = isRunningRandom;
             if (isRunningRandom) {
                 trainingLog.innerHTML = ''; logMessage('Starting random agent...');
-                const randomStep = (render) => stepEnv(getRandomAction(), render);
+                const randomStep = (render) => {
+                    const action = getRandomAction();
+                    lastActionDisplay.textContent = Array.isArray(action) ? `[${action.map(a => a.toFixed(3)).join(', ')}]` : `Action ${action}`;
+                    outputVectorDisplay.textContent = 'N/A (Random Action)';
+                    return stepEnv(action, render);
+                }
                 runLoop(randomStep);
             } else { logMessage('Random agent stopped by user.', 'text-red-400'); }
         }
@@ -543,26 +514,18 @@
 
             if (!sessionId) {
                 const success = await resetEnv();
-                if (!success) {
-                    if (isRunningInference) toggleInference();
-                    if (isRunningRandom) toggleRandom();
-                    return;
-                }
+                if (!success) { if (isRunningInference) toggleInference(); if (isRunningRandom) toggleRandom(); return; }
                 setTimeout(() => runLoop(stepFunction), 100); return;
             }
             const frameSkip = parseInt(frameSkipSlider.value, 10);
-            const maxFrameSkip = parseInt(frameSkipSlider.max, 10);
             
             for (let i = 0; i < frameSkip; i++) {
                 if (!isRunning() || !sessionId) return;
                 const result = await stepFunction(false);
-                if (!result) { 
-                    if (isRunningInference) toggleInference(); if (isRunningRandom) toggleRandom();
-                    return;
-                }
+                if (!result) { if (isRunningInference) toggleInference(); if (isRunningRandom) toggleRandom(); return; }
             }
             if (!isRunning() || !sessionId) return;
-            const result = await stepFunction(frameSkip < maxFrameSkip);
+            const result = await stepFunction(true); // Always render the last frame of a batch
             if (result) {
                 setTimeout(() => runLoop(stepFunction), parseInt(speedSlider.value, 10));
             } else { if (isRunningInference) toggleInference(); if (isRunningRandom) toggleRandom(); }
@@ -572,6 +535,7 @@
         window.onload = () => {
             loadHighScores();
             updateHighScoreDisplay();
+            populateModelSelector();
             setActionButtonsState(null);
         };
     </script>
