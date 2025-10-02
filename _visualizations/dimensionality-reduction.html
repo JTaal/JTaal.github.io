@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-g">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dimensionality Reduction Explorer</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -76,7 +76,7 @@
     <div id="container"></div>
 
     <div id="loader" class="hidden">
-        <div class="spinner"></div>
+        <div id="spinner" class="spinner"></div>
         <p id="loader-message">Running algorithm...</p>
         <div class="w-full bg-gray-700 rounded-full h-2.5 mt-4">
             <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
@@ -84,7 +84,7 @@
         <p id="progress-text" class="text-sm text-gray-400 mt-2"></p>
     </div>
 
-    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-center w-full max-w-3xl">
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-center w-full max-w-3xl px-4">
         <h1 class="text-xl font-bold text-gray-100" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.7);">Dimensionality Reduction Explorer</h1>
         <p class="text-sm text-gray-400">Visualizing high-dimensional data in 3D & 2D</p>
     </div>
@@ -97,18 +97,25 @@
         <h3 class="text-lg font-bold mb-3 text-gray-100 border-b border-gray-700 pb-2">Algorithm Settings</h3>
         
         <div id="tsne-settings" class="space-y-4">
-              <div>
-                    <label for="perplexity" class="block text-sm font-medium text-gray-300">Perplexity: <span id="perplexityValue">30</span></label>
-                    <input id="perplexity" type="range" min="2" max="42" step="1" value="30" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-              </div>
-              <div>
-                    <label for="epsilon" class="block text-sm font-medium text-gray-300">Learning Rate (&epsilon;): <span id="epsilonValue">10</span></label>
-                    <input id="epsilon" type="range" min="1" max="50" step="1" value="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-              </div>
+                 <div>
+                        <label for="perplexity" class="block text-sm font-medium text-gray-300">Perplexity: <span id="perplexityValue">30</span></label>
+                        <input id="perplexity" type="range" min="2" max="50" step="1" value="30" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                 </div>
+                 <div>
+                        <label for="learningRate" class="block text-sm font-medium text-gray-300">Learning Rate: <span id="learningRateValue">10</span></label>
+                        <input id="learningRate" type="range" min="1" max="200" step="1" value="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+                 </div>
         </div>
         
         <div id="umap-settings" class="space-y-4 hidden">
-             <!-- UMAP settings remain here -->
+             <div>
+                <label for="nNeighbors" class="block text-sm font-medium text-gray-300">N Neighbors: <span id="nNeighborsValue">15</span></label>
+                <input id="nNeighbors" type="range" min="2" max="100" step="1" value="15" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+            </div>
+            <div>
+                <label for="minDist" class="block text-sm font-medium text-gray-300">Min Distance: <span id="minDistValue">0.10</span></label>
+                <input id="minDist" type="range" min="0" max="1" step="0.01" value="0.1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+            </div>
         </div>
 
         <div id="pca-settings" class="hidden">
@@ -125,16 +132,15 @@
                 <button id="show-pca-projection-btn" class="w-full text-center px-4 py-2 rounded-md text-sm font-medium viz-btn transition-colors hover:bg-gray-600">Animate Projection</button>
             </div>
              <div id="tsne-viz-settings" class="space-y-3 mt-4 hidden">
-                   <label class="flex items-center justify-between text-sm text-gray-300">
-                       <span>Show Neighbors</span>
-                       <div class="relative">
-                           <input type="checkbox" id="show-tsne-neighbors-toggle" class="sr-only peer">
-                           <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                       </div>
-                   </label>
+                    <label class="flex items-center justify-between text-sm text-gray-300">
+                        <span>Show Neighbors</span>
+                        <div class="relative">
+                            <input type="checkbox" id="show-tsne-neighbors-toggle" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </div>
+                    </label>
             </div>
         </div>
-
 
         <h3 class="text-lg font-bold mb-3 mt-6 text-gray-100 border-b border-gray-700 pb-2">Display Settings</h3>
          <div class="space-y-4 mt-4">
@@ -149,7 +155,7 @@
                 <label for="pointSize" class="block text-sm font-medium text-gray-300">Point/Image Size: <span id="pointSizeValue">1.0</span></label>
                 <input id="pointSize" type="range" min="0.1" max="5" step="0.1" value="1.0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
             </div>
-              <div>
+             <div>
                 <label for="animationSpeed" class="block text-sm font-medium text-gray-300">Animation Speed: <span id="animationSpeedValue">1000</span>ms</label>
                 <input id="animationSpeed" type="range" min="100" max="3000" step="100" value="1000" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
             </div>
@@ -164,17 +170,178 @@
         </div>
     </div>
     
-    <div id="ui-panel" class="absolute bottom-4 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-2xl max-w-5xl w-full">
-        <div class="flex items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-                  <div>
-                      <label for="dataset" class="block text-xs font-medium text-gray-400 mb-1">Dataset</label>
-                      <select id="dataset" class="rounded-md px-3 py-2 text-white text-sm">
-                          <option value="blobs">Gaussian Blobs</option>
-                          <option value="swiss-roll">Swiss Roll</option>
-                          <option value="s-curve">S-Curve</option>
-                          <option value="two-spirals">Two Spirals</option>
-                          <option value="sphere">Sphere</option>
+    <div id="ui-panel" class="absolute bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-5xl p-2 md:p-4 rounded-lg shadow-2xl">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="w-full md:w-auto flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                 <div class="w-full sm:w-auto">
+                     <label for="dataset" class="block text-xs font-medium text-gray-400 mb-1">Dataset</label>
+                     <select id="dataset" class="w-full rounded-md px-3 py-2 text-white text-sm">
+                         <option value="blobs">Gaussian Blobs</option>
+                         <option value="swiss-roll">Swiss Roll</option>
+                         <option value="s-curve">S-Curve</option>
+                         <option value="two-spirals">Two Spirals</option>
+                         <option value="sphere">Sphere</option>
+                         <option value="torus">Torus</option>
+                         <option value="linked-rings">Linked Rings</option>
+                         <option value="mnist-digits">MNIST Digits</option>
+                     </select>
+                 </div>
+                 <div class="w-full sm:w-auto">
+                     <span class="block text-xs font-medium text-gray-400 mb-1">Projection</span>
+                     <div id="algorithm-selector" class="flex gap-1 flex-wrap justify-center">
+                         <button data-algo="original" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors active">Original</button>
+                         <button data-algo="pca" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">PCA</button>
+                         <button data-algo="tsne" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">t-SNE</button>
+                         <button data-algo="umap" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">UMAP</button>
+                     </div>
+                 </div>
+            </div>
+            
+            <button id="run-btn" class="w-full md:w-auto my-2 md:my-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 text-base">Run Reduction</button>
+
+            <div class="w-full md:w-auto flex items-center justify-center">
+                 <div>
+                     <span class="block text-xs font-medium text-gray-400 mb-1 text-center md:text-right">Dimensions</span>
+                     <div id="dimension-selector" class="flex gap-1 justify-center md:justify-end">
+                         <button data-dim="3" class="dim-btn control-btn px-4 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors active">3D</button>
+                         <button data-dim="2" class="dim-btn control-btn px-4 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">2D</button>
+                     </div>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries loaded synchronously before the main script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://www.lactame.com/lib/ml/6.0.0/ml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tsne-js@1.0.3/build/tsne.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/umap-js@1.3.3/lib/umap-js.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.umd.min.js"></script>
+
+    <script>
+        // --- Global State & Refs ---
+        let scene, camera, renderer, controls, pointsObject = null, spritesGroup = null, pcaEigenvectorsGroup = null, neighborLinesGroup = null, axesLabelsGroup = null;
+        let highDimData = [], pointColors = [], pointImageData = [], nearestNeighbors = [];
+        let reducedData3D = [], reducedData2D = [];
+        let originalData3D = [], originalData2D = [];
+        let pcaModel = null;
+        const dataCache = {};
+        
+        let state = {
+            dataset: 'blobs',
+            algorithm: 'original',
+            targetDim: 3,
+            pointSize: 1.0,
+            animationSpeed: 1000,
+            tsne: { perplexity: 30, learningRate: 10 },
+            umap: { nNeighbors: 15, minDist: 0.1 },
+            viz: { 
+                showTsneNeighbors: false, 
+                displayMode: 'points',
+                labelColor: '#9ca3af',
+                labelScale: 1.0
+            }
+        };
+
+        const loader = document.getElementById('loader');
+        const loaderMessage = document.getElementById('loader-message');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const runBtn = document.getElementById('run-btn');
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        // --- Initialization ---
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111827);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 2000);
+            camera.position.set(0, 15, 45); // Pushed camera back a bit for labels
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+            const grid = new THREE.GridHelper(500, 100, 0x4b5563, 0x374151);
+            grid.position.y = -0.5;
+            scene.add(grid);
+
+            pcaEigenvectorsGroup = new THREE.Group();
+            scene.add(pcaEigenvectorsGroup);
+            neighborLinesGroup = new THREE.Group();
+            scene.add(neighborLinesGroup);
+            spritesGroup = new THREE.Group();
+            scene.add(spritesGroup);
+            axesLabelsGroup = new THREE.Group();
+            scene.add(axesLabelsGroup);
+
+            setupEventListeners();
+            updateAlgorithmUI();
+            runReduction();
+            animate();
+        }
+
+        // --- Data Generation & Processing ---
+        async function generateData() {
+            const n = 1500;
+            highDimData = []; pointColors = []; pointImageData = [];
+            const colors = [
+                new THREE.Color(0x1f77b4), new THREE.Color(0xff7f0e), new THREE.Color(0x2ca02c), new THREE.Color(0xd62728),
+                new THREE.Color(0x9467bd), new THREE.Color(0x8c564b), new THREE.Color(0xe377c2), new THREE.Color(0x7f7f7f),
+                new THREE.Color(0xbcbd22), new THREE.Color(0x17becf)
+            ];
+
+            if (dataCache[state.dataset]) {
+                const cached = dataCache[state.dataset];
+                highDimData = cached.highDimData;
+                pointColors = cached.pointColors;
+                pointImageData = cached.pointImageData;
+                computeOriginalProjection();
+                return;
+            }
+
+            if (state.dataset === 'mnist-digits') {
+                updateProgressUI(0, 1, "Fetching MNIST data...");
+                try {
+                    const data = await fetch('https://raw.githubusercontent.com/hsu-ai-course/hsu-ai-course.github.io/master/static/data/mnist_1000.json').then(res => res.json());
+                    const samples = data.slice(0, 1000); // Limit samples for performance
+                    for (const sample of samples) {
+                        const label = sample[0];
+                        const pixels = sample.slice(1).map(p => p / 255.0); // Normalize pixels
+                        highDimData.push(pixels);
+                        pointColors.push(colors[label].r, colors[label].g, colors[label].b);
+                        pointImageData.push(pixels);
+                    }
+                } catch(e) {
+                    console.error("Could not load MNIST data. Please check network connection and file availability.", e);
+                    loaderMessage.textContent = 'Error: MNIST data failed to load.';
+                    await new Promise(r => setTimeout(r, 3000));
+                    state.dataset = 'blobs';
+                    document.getElementById('dataset').value = 'blobs';
+                    await generateData();
+                }
+            } else {
+                let nPoints = 1500;
+                if (state.dataset === 'blobs') {
+                    const dims = 10;
+                    const centers = [[1,1,1,1,1,1,1,1,1,1], [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1], [1,1,1,1,-1,-1,-1,-1,-1,-1], [-1,-1,-1,-1,1,1,1,1,1,1]];
+                    for (let i = 0; i < nPoints; i++) {
+                        const c_idx = i % centers.length;
+                        const point = Array.from({length: dims}, (_, j) => centers[c_idx][j] + (Math.random() - 0.5) * 2.5);
+                        highDimData.push(point);
+                        pointColors.push(colors[c_idx].r, colors[c_idx].g, colors[c_idx].b);
+                    }
+                } else if (state.dataset === 'swiss-roll') {
+                     for (let i = 0; i < nPoints; i++) {
+                        const t = 1.5 + 4 * Math.PI * (i / nPoints);
+                        highDimData.push([t * Math.cos(t), 20 * Math.random(), t * Math.sin(t), Math.random()*10, Math.random()*10]);
+                        const color = new THREE.Color().sn value="sphere">Sphere</option>
                           <option value="torus">Torus</option>
                           <option value="linked-rings">Linked Rings</option>
                           <option value="mnist-digits">MNIST Digits</option>
