@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-g">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dimensionality Reduction Explorer</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -97,14 +97,14 @@
         <h3 class="text-lg font-bold mb-3 text-gray-100 border-b border-gray-700 pb-2">Algorithm Settings</h3>
         
         <div id="tsne-settings" class="space-y-4">
-                 <div>
-                        <label for="perplexity" class="block text-sm font-medium text-gray-300">Perplexity: <span id="perplexityValue">30</span></label>
-                        <input id="perplexity" type="range" min="2" max="50" step="1" value="30" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                 </div>
-                 <div>
-                        <label for="learningRate" class="block text-sm font-medium text-gray-300">Learning Rate: <span id="learningRateValue">10</span></label>
-                        <input id="learningRate" type="range" min="1" max="200" step="1" value="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-                 </div>
+              <div>
+                    <label for="perplexity" class="block text-sm font-medium text-gray-300">Perplexity: <span id="perplexityValue">30</span></label>
+                    <input id="perplexity" type="range" min="2" max="42" step="1" value="30" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+              </div>
+              <div>
+                    <label for="epsilon" class="block text-sm font-medium text-gray-300">Learning Rate (&epsilon;): <span id="epsilonValue">10</span></label>
+                    <input id="epsilon" type="range" min="1" max="50" step="1" value="10" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
+              </div>
         </div>
         
         <div id="umap-settings" class="space-y-4 hidden">
@@ -132,13 +132,13 @@
                 <button id="show-pca-projection-btn" class="w-full text-center px-4 py-2 rounded-md text-sm font-medium viz-btn transition-colors hover:bg-gray-600">Animate Projection</button>
             </div>
              <div id="tsne-viz-settings" class="space-y-3 mt-4 hidden">
-                    <label class="flex items-center justify-between text-sm text-gray-300">
-                        <span>Show Neighbors</span>
-                        <div class="relative">
-                            <input type="checkbox" id="show-tsne-neighbors-toggle" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </div>
-                    </label>
+                   <label class="flex items-center justify-between text-sm text-gray-300">
+                       <span>Show Neighbors</span>
+                       <div class="relative">
+                           <input type="checkbox" id="show-tsne-neighbors-toggle" class="sr-only peer">
+                           <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                       </div>
+                   </label>
             </div>
         </div>
 
@@ -155,17 +155,9 @@
                 <label for="pointSize" class="block text-sm font-medium text-gray-300">Point/Image Size: <span id="pointSizeValue">1.0</span></label>
                 <input id="pointSize" type="range" min="0.1" max="5" step="0.1" value="1.0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
             </div>
-             <div>
+              <div>
                 <label for="animationSpeed" class="block text-sm font-medium text-gray-300">Animation Speed: <span id="animationSpeedValue">1000</span>ms</label>
                 <input id="animationSpeed" type="range" min="100" max="3000" step="100" value="1000" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
-            </div>
-             <div>
-                <label for="labelColor" class="block text-sm font-medium text-gray-300">Label Color</label>
-                <input id="labelColor" type="color" value="#9ca3af" class="w-full h-8 mt-1 p-1 bg-gray-700 border border-gray-600 rounded-md cursor-pointer">
-            </div>
-             <div>
-                <label for="labelScale" class="block text-sm font-medium text-gray-300">Label Scale: <span id="labelScaleValue">1.0</span></label>
-                <input id="labelScale" type="range" min="0.5" max="2.5" step="0.1" value="1.0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider">
             </div>
         </div>
     </div>
@@ -173,40 +165,40 @@
     <div id="ui-panel" class="absolute bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-5xl p-2 md:p-4 rounded-lg shadow-2xl">
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="w-full md:w-auto flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
-                 <div class="w-full sm:w-auto">
-                     <label for="dataset" class="block text-xs font-medium text-gray-400 mb-1">Dataset</label>
-                     <select id="dataset" class="w-full rounded-md px-3 py-2 text-white text-sm">
-                         <option value="blobs">Gaussian Blobs</option>
-                         <option value="swiss-roll">Swiss Roll</option>
-                         <option value="s-curve">S-Curve</option>
-                         <option value="two-spirals">Two Spirals</option>
-                         <option value="sphere">Sphere</option>
-                         <option value="torus">Torus</option>
-                         <option value="linked-rings">Linked Rings</option>
-                         <option value="mnist-digits">MNIST Digits</option>
-                     </select>
-                 </div>
-                 <div class="w-full sm:w-auto">
-                     <span class="block text-xs font-medium text-gray-400 mb-1">Projection</span>
-                     <div id="algorithm-selector" class="flex gap-1 flex-wrap justify-center">
-                         <button data-algo="original" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors active">Original</button>
-                         <button data-algo="pca" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">PCA</button>
-                         <button data-algo="tsne" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">t-SNE</button>
-                         <button data-algo="umap" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">UMAP</button>
-                     </div>
-                 </div>
+                  <div class="w-full sm:w-auto">
+                      <label for="dataset" class="block text-xs font-medium text-gray-400 mb-1">Dataset</label>
+                      <select id="dataset" class="w-full rounded-md px-3 py-2 text-white text-sm">
+                          <option value="blobs">Gaussian Blobs</option>
+                          <option value="swiss-roll">Swiss Roll</option>
+                          <option value="s-curve">S-Curve</option>
+                          <option value="two-spirals">Two Spirals</option>
+                          <option value="sphere">Sphere</option>
+                          <option value="torus">Torus</option>
+                          <option value="linked-rings">Linked Rings</option>
+                          <option value="mnist-digits">MNIST Digits</option>
+                      </select>
+                  </div>
+                  <div class="w-full sm:w-auto">
+                      <span class="block text-xs font-medium text-gray-400 mb-1">Projection</span>
+                      <div id="algorithm-selector" class="flex gap-1 flex-wrap justify-center">
+                          <button data-algo="original" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors active">Original</button>
+                          <button data-algo="pca" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">PCA</button>
+                          <button data-algo="tsne" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">t-SNE</button>
+                          <button data-algo="umap" class="algo-btn control-btn px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">UMAP</button>
+                      </div>
+                  </div>
             </div>
             
             <button id="run-btn" class="w-full md:w-auto my-2 md:my-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 text-base">Run Reduction</button>
 
             <div class="w-full md:w-auto flex items-center justify-center">
-                 <div>
-                     <span class="block text-xs font-medium text-gray-400 mb-1 text-center md:text-right">Dimensions</span>
-                     <div id="dimension-selector" class="flex gap-1 justify-center md:justify-end">
-                         <button data-dim="3" class="dim-btn control-btn px-4 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors active">3D</button>
-                         <button data-dim="2" class="dim-btn control-btn px-4 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">2D</button>
-                     </div>
-                 </div>
+                  <div>
+                      <span class="block text-xs font-medium text-gray-400 mb-1 text-center md:text-right">Dimensions</span>
+                      <div id="dimension-selector" class="flex gap-1 justify-center md:justify-end">
+                          <button data-dim="3" class="dim-btn control-btn px-4 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors active">3D</button>
+                          <button data-dim="2" class="dim-btn control-btn px-4 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-600 transition-colors">2D</button>
+                      </div>
+                  </div>
             </div>
         </div>
     </div>
@@ -215,7 +207,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://www.lactame.com/lib/ml/6.0.0/ml.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tsne-js@1.0.3/build/tsne.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.14.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tsne@0.1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/umap-js@1.3.3/lib/umap-js.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.umd.min.js"></script>
 
@@ -234,14 +227,9 @@
             targetDim: 3,
             pointSize: 1.0,
             animationSpeed: 1000,
-            tsne: { perplexity: 30, learningRate: 10 },
+            tsne: { perplexity: 30, epsilon: 10 },
             umap: { nNeighbors: 15, minDist: 0.1 },
-            viz: { 
-                showTsneNeighbors: false, 
-                displayMode: 'points',
-                labelColor: '#9ca3af',
-                labelScale: 1.0
-            }
+            viz: { showTsneNeighbors: false, displayMode: 'points' }
         };
 
         const loader = document.getElementById('loader');
@@ -308,6 +296,7 @@
 
             if (state.dataset === 'mnist-digits') {
                 updateProgressUI(0, 1, "Fetching MNIST data...");
+                // Using a smaller, pre-parsed JSON file for simplicity and speed.
                 try {
                     const data = await fetch('https://raw.githubusercontent.com/hsu-ai-course/hsu-ai-course.github.io/master/static/data/mnist_1000.json').then(res => res.json());
                     const samples = data.slice(0, 1000); // Limit samples for performance
@@ -322,6 +311,7 @@
                     console.error("Could not load MNIST data. Please check network connection and file availability.", e);
                     loaderMessage.textContent = 'Error: MNIST data failed to load.';
                     await new Promise(r => setTimeout(r, 3000));
+                    // fallback to blobs
                     state.dataset = 'blobs';
                     document.getElementById('dataset').value = 'blobs';
                     await generateData();
@@ -400,7 +390,7 @@
                         }
                           highDimData.push([x,y,z,...Array.from({length: 4}, Math.random)]);
                           pointColors.push(color.r, color.g, color.b);
-                       }
+                     }
                 }
             }
             if (state.dataset !== 'mnist-digits') {
@@ -470,53 +460,40 @@
             updateProgressUI(1, 1, "Finished PCA.");
             visualizePcaComponents();
         }
-        
+
+
         async function runTsneWithProgress() {
-            const nIter = 500;
-
-            // Phase 1: 3D embedding
-            const tsne3D = new tsnejs.tSNE({
-                dim: 3,
+            const dataTensor = tf.tensor2d(highDimData);
+            const tsneOpt = tsne.tsne(dataTensor, {
                 perplexity: state.tsne.perplexity,
-                epsilon: state.tsne.learningRate, // tsne-js calls learning rate 'epsilon'
+                learningRate: state.tsne.epsilon * 50, 
             });
-            tsne3D.initDataRaw(highDimData);
 
-            for (let i = 0; i < nIter; i++) {
-                tsne3D.step();
-                updateProgressUI(i + 1, nIter, "Phase 1/2: Running 3D t-SNE...");
-                if (state.targetDim === 3) {
-                    let emb = tsne3D.getSolution();
-                    normalizeAndScale(emb, 25);
-                    updateVisualizationGeometry(emb);
-                }
-                await new Promise(r => setTimeout(r, 0)); // Yield to main thread for rendering
+            const knnIterations = tsneOpt.knnIterations();
+            for(let i = 0; i < knnIterations; ++i){
+                await tsneOpt.iterateKnn();
+                updateProgressUI(i, knnIterations, "Phase 1/2: t-SNE (k-NN)");
+                await new Promise(r => setTimeout(r, 0));
             }
-            reducedData3D = tsne3D.getSolution();
-            
-            // Phase 2: 2D embedding
-            const tsne2D = new tsnejs.tSNE({
-                dim: 2,
-                perplexity: state.tsne.perplexity,
-                epsilon: state.tsne.learningRate,
-            });
-            tsne2D.initDataRaw(highDimData);
 
-            for (let i = 0; i < nIter; i++) {
-                tsne2D.step();
-                updateProgressUI(i + 1, nIter, "Phase 2/2: Running 2D t-SNE...");
-                 if (state.targetDim === 2) {
-                    let emb = tsne2D.getSolution();
-                    normalizeAndScale(emb, 25);
-                    updateVisualizationGeometry(emb);
+            const tsneIterations = 500;
+            const updateFrequency = 5;
+            for(let i = 0; i < tsneIterations; ++i){
+                await tsneOpt.iterate();
+                if (i % updateFrequency === 0) {
+                    const solution = await tsneOpt.coordsArray();
+                    const currentEmbedding = (state.targetDim === 3) ? solution.map(p => [p[0], p[1], 0]) : solution;
+                    normalizeAndScale(currentEmbedding, 25);
+                    updateVisualizationGeometry(currentEmbedding);
                 }
-                await new Promise(r => setTimeout(r, 0)); // Yield to main thread for rendering
+                updateProgressUI(i, tsneIterations, "Phase 2/2: t-SNE (Embedding)");
             }
-            reducedData2D = tsne2D.getSolution();
 
-            updateProgressUI(nIter, nIter, "t-SNE complete.");
+            const finalSolution2D = await tsneOpt.coordsArray();
+            reducedData2D = finalSolution2D;
+            reducedData3D = finalSolution2D.map(p => [p[0], p[1], 0]);
+            dataTensor.dispose();
         }
-
 
         async function runUmapWithProgress() {
             const umap3D = new UMAP({ ...state.umap, nComponents: 3 });
@@ -631,6 +608,7 @@
                      }
                     pointsObject.geometry.attributes.position.array.set(tempArray);
                     pointsObject.geometry.attributes.position.needsUpdate = true;
+                    // also update sprites
                     if (spritesGroup && spritesGroup.children.length > 0) {
                         for (let i = 0; i < highDimData.length; i++) {
                             const originalPoint = new THREE.Vector3().fromArray(originalData3D[i]);
@@ -652,6 +630,7 @@
             
             TWEEN.removeAll();
             
+            // Animate points
             if (pointsObject) {
                 const initialPos = pointsObject.geometry.attributes.position.array.slice();
                 const targetPos = new Float32Array(initialPos.length);
@@ -668,6 +647,7 @@
                     }).start();
             }
 
+            // Animate Sprites
             if (spritesGroup && spritesGroup.children.length > 0) {
                 spritesGroup.children.forEach((sprite, i) => {
                     const targetPos = { 
@@ -738,70 +718,62 @@
             while(axesLabelsGroup.children.length > 0){
                 const child = axesLabelsGroup.children[0];
                 axesLabelsGroup.remove(child);
-                if(child.material && child.material.map) child.material.map.dispose();
                 if (child.geometry) child.geometry.dispose();
                 if (child.material) child.material.dispose();
             }
 
-            const fontSize = 24 * state.viz.labelScale;
+            let labels = [];
+            let colors = {};
+            const axisLength = 30;
+            const labelOffset = 4;
+            const defaultLabelColor = '#9ca3af'; // gray-400
+            const axisColors = { x: 0xdc2626, y: 0x16a34a, z: 0x2563eb }; // red-600, green-600, blue-600
+            
+            switch(state.algorithm) {
+                case 'pca': 
+                    labels = ['Principal Component 1', 'Principal Component 2', 'Principal Component 3']; 
+                    break;
+                case 'tsne': 
+                    labels = ['t-SNE Dimension 1', 't-SNE Dimension 2', 't-SNE Dimension 3']; 
+                    break;
+                case 'umap': 
+                    labels = ['UMAP Dimension 1', 'UMAP Dimension 2', 'UMAP Dimension 3']; 
+                    break;
+                case 'original': 
+                    labels = ['X', 'Y', 'Z']; 
+                    colors = { 
+                        x: `#${new THREE.Color(axisColors.x).getHexString()}`, 
+                        y: `#${new THREE.Color(axisColors.y).getHexString()}`, 
+                        z: `#${new THREE.Color(axisColors.z).getHexString()}`
+                    };
+                    break;
+            }
 
-            if (state.algorithm === 'pca' && pcaModel) {
-                const components = pcaModel.getEigenvectors().to2DArray().slice(0,3);
-                const scale = 30;
-                const labelOffset = 5;
 
-                components.forEach((vec, i) => {
-                    if (state.targetDim === 2 && i === 2) return;
-                     const endPoint = new THREE.Vector3(vec[0] || 0, vec[1] || 0, vec[2] || 0).multiplyScalar(scale);
-                    const labelPosition = endPoint.clone().normalize().multiplyScalar(scale + labelOffset);
-                    const labelText = `PC ${i + 1}`;
-                    const label = createLabel(labelText, labelPosition, state.viz.labelColor, fontSize);
-                    axesLabelsGroup.add(label);
-                });
+            // X Axis
+            const xMat = new THREE.LineBasicMaterial({ color: axisColors.x });
+            const xGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(axisLength, 0, 0)]);
+            const xAxis = new THREE.Line(xGeom, xMat);
+            axesLabelsGroup.add(xAxis);
+            const xLabel = createLabel(labels[0], new THREE.Vector3(axisLength + labelOffset, 0, 0), colors.x || defaultLabelColor, 24);
+            axesLabelsGroup.add(xLabel);
 
-            } else {
-                let labels = [];
-                let colors = {};
-                const axisLength = 30;
-                const labelOffset = 4;
-                const axisColors = { x: 0xdc2626, y: 0x16a34a, z: 0x2563eb };
-                
-                switch(state.algorithm) {
-                    case 'tsne': 
-                        labels = ['t-SNE 1', 't-SNE 2', 't-SNE 3']; 
-                        break;
-                    case 'umap': 
-                        labels = ['UMAP 1', 'UMAP 2', 'UMAP 3']; 
-                        break;
-                    case 'original': 
-                        labels = ['X', 'Y', 'Z']; 
-                        colors = { 
-                            x: `#${new THREE.Color(axisColors.x).getHexString()}`, 
-                            y: `#${new THREE.Color(axisColors.y).getHexString()}`, 
-                            z: `#${new THREE.Color(axisColors.z).getHexString()}`
-                        };
-                        break;
-                }
+            // Y Axis
+            const yMat = new THREE.LineBasicMaterial({ color: axisColors.y });
+            const yGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0, axisLength, 0)]);
+            const yAxis = new THREE.Line(yGeom, yMat);
+            axesLabelsGroup.add(yAxis);
+            const yLabel = createLabel(labels[1], new THREE.Vector3(0, axisLength + labelOffset - 2, 0), colors.y || defaultLabelColor, 24);
+            axesLabelsGroup.add(yLabel);
 
-                // X Axis
-                const xMat = new THREE.LineBasicMaterial({ color: axisColors.x });
-                const xGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(axisLength, 0, 0)]);
-                axesLabelsGroup.add(new THREE.Line(xGeom, xMat));
-                axesLabelsGroup.add(createLabel(labels[0], new THREE.Vector3(axisLength + labelOffset, 0, 0), colors.x || state.viz.labelColor, fontSize));
-
-                // Y Axis
-                const yMat = new THREE.LineBasicMaterial({ color: axisColors.y });
-                const yGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0, axisLength, 0)]);
-                axesLabelsGroup.add(new THREE.Line(yGeom, yMat));
-                axesLabelsGroup.add(createLabel(labels[1], new THREE.Vector3(0, axisLength + labelOffset - 2, 0), colors.y || state.viz.labelColor, fontSize));
-
-                // Z Axis
-                if (state.targetDim === 3) {
-                    const zMat = new THREE.LineBasicMaterial({ color: axisColors.z });
-                    const zGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0, 0, axisLength)]);
-                    axesLabelsGroup.add(new THREE.Line(zGeom, zMat));
-                    axesLabelsGroup.add(createLabel(labels[2], new THREE.Vector3(0, 0, axisLength + labelOffset), colors.z || state.viz.labelColor, fontSize));
-                }
+            // Z Axis
+            if (state.targetDim === 3) {
+                const zMat = new THREE.LineBasicMaterial({ color: axisColors.z });
+                const zGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0, 0, axisLength)]);
+                const zAxis = new THREE.Line(zGeom, zMat);
+                axesLabelsGroup.add(zAxis);
+                const zLabel = createLabel(labels[2], new THREE.Vector3(0, 0, axisLength + labelOffset), colors.z || defaultLabelColor, 24);
+                axesLabelsGroup.add(zLabel);
             }
         }
 
@@ -818,7 +790,7 @@
             document.getElementById('dataset').addEventListener('change', (e) => {
                 state.dataset = e.target.value;
                 updateAlgorithmUI();
-                runReduction();
+                runReduction(); // Load new dataset immediately
             });
             
             document.getElementById('settings-btn').addEventListener('click', () => document.getElementById('settings-panel').classList.toggle('hidden'));
@@ -833,6 +805,7 @@
                     if(state.algorithm !== 'tsne' && state.algorithm !== 'umap') {
                         animateToTargetDimension();
                     } else {
+                        // For iterative algorithms, require a re-run
                         runBtn.click();
                     }
                 });
@@ -855,19 +828,13 @@
 
             document.getElementById('show-pca-projection-btn').addEventListener('click', animatePcaProjection);
             
-            document.getElementById('labelColor').addEventListener('input', (e) => {
-                state.viz.labelColor = e.target.value;
-                updateAxesLabels();
-            });
-
             const sliders = {
                 'perplexity': { valueEl: 'perplexityValue', obj: 'tsne', key: 'perplexity' },
-                'learningRate': { valueEl: 'learningRateValue', obj: 'tsne', key: 'learningRate' },
+                'epsilon': { valueEl: 'epsilonValue', obj: 'tsne', key: 'epsilon' },
                 'nNeighbors': { valueEl: 'nNeighborsValue', obj: 'umap', key: 'nNeighbors' },
                 'minDist': { valueEl: 'minDistValue', obj: 'umap', key: 'minDist', fixed: 2 },
                 'pointSize': { valueEl: 'pointSizeValue', key: 'pointSize', fixed: 1 },
-                'animationSpeed': { valueEl: 'animationSpeedValue', key: 'animationSpeed' },
-                'labelScale': { valueEl: 'labelScaleValue', obj: 'viz', key: 'labelScale', fixed: 1 }
+                'animationSpeed': { valueEl: 'animationSpeedValue', key: 'animationSpeed' }
             };
 
             Object.entries(sliders).forEach(([id, config]) => {
@@ -886,9 +853,6 @@
                             spritesGroup.children.forEach(sprite => sprite.scale.set(scale, scale, scale));
                         }
                     }
-                    if (id === 'labelScale') {
-                        updateAxesLabels();
-                    }
                 });
             });
         }
@@ -905,7 +869,7 @@
                 displayModeContainer.classList.remove('hidden');
             } else {
                 displayModeContainer.classList.add('hidden');
-                state.viz.displayMode = 'points';
+                state.viz.displayMode = 'points'; // Reset to points if not an image dataset
                 document.getElementById('displayMode').value = 'points';
             }
             toggleDisplayMode();
@@ -913,8 +877,10 @@
             pcaEigenvectorsGroup.visible = state.algorithm === 'pca';
         }
         
+        // Start the application after the whole page has loaded
         window.addEventListener('load', init);
 
     </script>
 </body>
 </html>
+
