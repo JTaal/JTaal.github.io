@@ -163,6 +163,11 @@
   thumbnail: /assets/images/morphological-image-operations.png
   visualization_url: /visualizations/morphological-image-operations.html
 
+- title: Mujoco
+  author: Jasper Taal
+  thumbnail: /assets/images/mujoco.png
+  visualization_url: /visualizations/mujoco.html
+
 - title: Multi Objective Evolutionary Algorithm
   author: Jasper Taal
   thumbnail: /assets/images/multi-objective-evolutionary-algorithm.png
