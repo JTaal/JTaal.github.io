@@ -88,11 +88,6 @@
   thumbnail: /assets/images/evolutionary-algorithms.png
   visualization_url: /visualizations/evolutionary-algorithms.html
 
-- title: Evolutionary Algorithms Copy
-  author: Jasper Taal
-  thumbnail: /assets/images/evolutionary-algorithms copy.png
-  visualization_url: /visualizations/evolutionary-algorithms copy.html
-
 - title: Fourier Series
   author: Jasper Taal
   thumbnail: /assets/images/fourier-series.png
