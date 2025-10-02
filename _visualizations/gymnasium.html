@@ -141,8 +141,8 @@
         let totalReward = 0, stepsTaken = 0, highScores = {}, onnxSession = null, lastObservation = null;
         const apiUrl = 'https://jtaal.pythonanywhere.com/gym';
         const PREDEFINED_MODELS = [
-            { name: "CartPole DQN", url: "models/rl/cartpole_dqn.onnx" }, { name: "CartPole SAC Actor", url: "models/rl/sac_cartpole_actor.onnx" },
-            { name: "LunarLander DQN", url: "models/rl/lunarlander_dqn.onnx" },
+            { name: "CartPole DQN", url: "../models/rl/cartpole_dqn.onnx" }, { name: "CartPole SAC Actor", url: "../models/rl/sac_cartpole_actor.onnx" },
+            { name: "LunarLander DQN", url: "../models/rl/lunarlander_dqn.onnx" },
         ];
         // --- UPDATED ACTION MAP ---
         const ACTION_MAP = {
