@@ -1,9 +1,8 @@
 import os
 import random
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from collections import namedtuple
-import copy
 
 import gymnasium as gym
 import numpy as np
@@ -75,11 +74,11 @@ class ReplayBuffer:
         next_obs = self.next_observations[batch_inds]
         
         # Convert to PyTorch tensors and move to the correct device
-        obs_tensor = torch.as_tensor(obs, device=self.device, dtype=torch.float32)
+        obs_tensor = torch.as_tensor(obs, device=self.device)
         actions_tensor = torch.as_tensor(actions, device=self.device)
         rewards_tensor = torch.as_tensor(rewards, device=self.device).flatten()
         dones_tensor = torch.as_tensor(dones, device=self.device).flatten()
-        next_obs_tensor = torch.as_tensor(next_obs, device=self.device, dtype=torch.float32)
+        next_obs_tensor = torch.as_tensor(next_obs, device=self.device)
         
         return ReplayBufferSamples(
             observations=obs_tensor,
@@ -94,7 +93,7 @@ class ReplayBuffer:
 
 @dataclass
 class Args:
-    exp_name: str = "sac_discrete_benchmark"
+    exp_name: str = os.path.basename(__file__)[: -len(".py")]
     """the name of this experiment"""
     seed: int = 1
     """seed of the experiment"""
@@ -112,11 +111,11 @@ class Args:
     """whether to capture videos of the agent performances (check out `videos` folder)"""
 
     # Algorithm specific arguments
-    env_id: str = "CartPole-v1" # This will be overridden in the loop
+    env_id: str = "CartPole-v1"
     """the id of the environment"""
     total_timesteps: int = 25000
     """total timesteps of the experiments"""
-    buffer_size: int = int(1e5)
+    buffer_size: int = int(1e4)
     """the replay memory buffer size"""
     gamma: float = 0.99
     """the discount factor gamma"""
@@ -130,7 +129,7 @@ class Args:
     """the learning rate of the policy network optimizer"""
     q_lr: float = 1e-3
     """the learning rate of the Q network network optimizer"""
-    update_frequency: int = 4
+    update_frequency: int = 1
     """the frequency of training updates"""
     target_network_frequency: int = 500
     """the frequency of updates for the target networks"""
@@ -143,7 +142,7 @@ class Args:
 
 
 def make_env(env_id, seed, idx, capture_video, run_name):
-    """Environment creation function."""
+    """Simplified environment creation for non-Atari envs."""
     def thunk():
         if capture_video and idx == 0:
             env = gym.make(env_id, render_mode="rgb_array")
@@ -151,9 +150,6 @@ def make_env(env_id, seed, idx, capture_video, run_name):
         else:
             env = gym.make(env_id)
         env = gym.wrappers.RecordEpisodeStatistics(env)
-        # This wrapper flattens the observation space, making it compatible with our MLP network.
-        # It's crucial for environments with complex or discrete observation spaces.
-        env = gym.wrappers.FlattenObservation(env)
         env.action_space.seed(seed)
         return env
 
@@ -167,12 +163,12 @@ def layer_init(layer, bias_const=0.0):
 
 
 # ALGO LOGIC: initialize agent here:
+# MLP architecture for vector-based observations
 class SoftQNetwork(nn.Module):
     def __init__(self, envs):
         super().__init__()
-        obs_shape = np.array(envs.single_observation_space.shape).prod()
         self.net = nn.Sequential(
-            layer_init(nn.Linear(obs_shape, 256)),
+            layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
             nn.ReLU(),
             layer_init(nn.Linear(256, 256)),
             nn.ReLU(),
@@ -186,9 +182,8 @@ class SoftQNetwork(nn.Module):
 class Actor(nn.Module):
     def __init__(self, envs):
         super().__init__()
-        obs_shape = np.array(envs.single_observation_space.shape).prod()
         self.net = nn.Sequential(
-            layer_init(nn.Linear(obs_shape, 256)),
+            layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
             nn.ReLU(),
             layer_init(nn.Linear(256, 256)),
             nn.ReLU(),
@@ -202,12 +197,14 @@ class Actor(nn.Module):
         logits = self(x)
         policy_dist = Categorical(logits=logits)
         action = policy_dist.sample()
+        # Action probabilities for calculating the adapted soft-Q loss
         action_probs = policy_dist.probs
         log_prob = F.log_softmax(logits, dim=1)
         return action, log_prob, action_probs
 
-def train_env(args: Args):
-    """Trains a model for a single environment."""
+
+if __name__ == "__main__":
+    args = tyro.cli(Args)
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
     if args.track:
         import wandb
@@ -220,7 +217,6 @@ def train_env(args: Args):
             name=run_name,
             monitor_gym=True,
             save_code=True,
-            reinit=True, # Allow re-initializing for each environment in the loop
         )
     writer = SummaryWriter(f"runs/{run_name}")
     writer.add_text(
@@ -238,7 +234,7 @@ def train_env(args: Args):
 
     # env setup
     envs = gym.vector.SyncVectorEnv([make_env(args.env_id, args.seed, 0, args.capture_video, run_name)])
-    assert isinstance(envs.single_action_space, gym.spaces.Discrete), f"only discrete action space is supported for {args.env_id}"
+    assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     actor = Actor(envs).to(device)
     qf1 = SoftQNetwork(envs).to(device)
@@ -247,9 +243,11 @@ def train_env(args: Args):
     qf2_target = SoftQNetwork(envs).to(device)
     qf1_target.load_state_dict(qf1.state_dict())
     qf2_target.load_state_dict(qf2.state_dict())
+    # TRY NOT TO MODIFY: eps=1e-4 increases numerical stability
     q_optimizer = optim.Adam(list(qf1.parameters()) + list(qf2.parameters()), lr=args.q_lr, eps=1e-4)
     actor_optimizer = optim.Adam(list(actor.parameters()), lr=args.policy_lr, eps=1e-4)
 
+    # Automatic entropy tuning
     if args.autotune:
         target_entropy = -args.target_entropy_scale * torch.log(1 / torch.tensor(envs.single_action_space.n))
         log_alpha = torch.zeros(1, requires_grad=True, device=device)
@@ -258,88 +256,131 @@ def train_env(args: Args):
     else:
         alpha = args.alpha
 
-    rb = ReplayBuffer(args.buffer_size, envs.single_observation_space, envs.single_action_space, device)
+    rb = ReplayBuffer(
+        args.buffer_size,
+        envs.single_observation_space,
+        envs.single_action_space,
+        device,
+        handle_timeout_termination=True,
+    )
     start_time = time.time()
 
+    # TRY NOT TO MODIFY: start the game
     obs, _ = envs.reset(seed=args.seed)
     for global_step in range(args.total_timesteps):
+        # ALGO LOGIC: put action logic here
         if global_step < args.learning_starts:
             actions = np.array([envs.single_action_space.sample() for _ in range(envs.num_envs)])
         else:
             actions, _, _ = actor.get_action(torch.Tensor(obs).to(device))
             actions = actions.detach().cpu().numpy()
 
+        # TRY NOT TO MODIFY: execute the game and log data.
         next_obs, rewards, terminations, truncations, infos = envs.step(actions)
 
+        # TRY NOT TO MODIFY: record rewards for plotting purposes
         if "final_info" in infos:
             for info in infos["final_info"]:
-                print(f"[{args.env_id}] global_step={global_step}, episodic_return={info['episode']['r']}")
+                print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
                 writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
                 writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
                 break
 
+        # TRY NOT TO MODIFY: save data to reply buffer; handle `final_observation`
         real_next_obs = next_obs.copy()
         for idx, trunc in enumerate(truncations):
             if trunc:
                 real_next_obs[idx] = infos["final_observation"][idx]
         rb.add(obs, real_next_obs, actions, rewards, terminations, infos)
+
+        # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
         obs = next_obs
 
-        if global_step > args.learning_starts and global_step % args.update_frequency == 0:
-            data = rb.sample(args.batch_size)
-            with torch.no_grad():
-                _, next_state_log_pi, next_state_action_probs = actor.get_action(data.next_observations)
-                qf1_next_target = qf1_target(data.next_observations)
-                qf2_next_target = qf2_target(data.next_observations)
-                min_qf_next_target = next_state_action_probs * (torch.min(qf1_next_target, qf2_next_target) - alpha * next_state_log_pi)
-                min_qf_next_target = min_qf_next_target.sum(dim=1)
-                next_q_value = data.rewards.flatten() + (1 - data.dones.flatten()) * args.gamma * min_qf_next_target
+        # ALGO LOGIC: training.
+        if global_step > args.learning_starts:
+            if global_step % args.update_frequency == 0:
+                data = rb.sample(args.batch_size)
+                # CRITIC training
+                with torch.no_grad():
+                    _, next_state_log_pi, next_state_action_probs = actor.get_action(data.next_observations)
+                    qf1_next_target = qf1_target(data.next_observations)
+                    qf2_next_target = qf2_target(data.next_observations)
+                    # we can use the action probabilities instead of MC sampling to estimate the expectation
+                    min_qf_next_target = next_state_action_probs * (
+                        torch.min(qf1_next_target, qf2_next_target) - alpha * next_state_log_pi
+                    )
+                    # adapt Q-target for discrete Q-function
+                    min_qf_next_target = min_qf_next_target.sum(dim=1)
+                    next_q_value = data.rewards.flatten() + (1 - data.dones.flatten()) * args.gamma * (min_qf_next_target)
 
-            qf1_a_values = qf1(data.observations).gather(1, data.actions.long().unsqueeze(1)).view(-1)
-            qf2_a_values = qf2(data.observations).gather(1, data.actions.long().unsqueeze(1)).view(-1)
-            qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
-            qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
-            qf_loss = qf1_loss + qf2_loss
-
-            q_optimizer.zero_grad()
-            qf_loss.backward()
-            q_optimizer.step()
-
-            _, log_pi, action_probs = actor.get_action(data.observations)
-            with torch.no_grad():
+                # use Q-values only for the taken actions
                 qf1_values = qf1(data.observations)
                 qf2_values = qf2(data.observations)
-                min_qf_values = torch.min(qf1_values, qf2_values)
-            actor_loss = (action_probs * ((alpha * log_pi) - min_qf_values)).mean()
+                qf1_a_values = qf1_values.gather(1, data.actions.long().unsqueeze(1)).view(-1)
+                qf2_a_values = qf2_values.gather(1, data.actions.long().unsqueeze(1)).view(-1)
+                qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
+                qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
+                qf_loss = qf1_loss + qf2_loss
 
-            actor_optimizer.zero_grad()
-            actor_loss.backward()
-            actor_optimizer.step()
+                q_optimizer.zero_grad()
+                qf_loss.backward()
+                q_optimizer.step()
 
-            if args.autotune:
-                alpha_loss = (action_probs.detach() * (-log_alpha.exp() * (log_pi + target_entropy).detach())).mean()
-                a_optimizer.zero_grad()
-                alpha_loss.backward()
-                a_optimizer.step()
-                alpha = log_alpha.exp().item()
+                # ACTOR training
+                _, log_pi, action_probs = actor.get_action(data.observations)
+                with torch.no_grad():
+                    qf1_values = qf1(data.observations)
+                    qf2_values = qf2(data.observations)
+                    min_qf_values = torch.min(qf1_values, qf2_values)
+                # no need for reparameterization, the expectation can be calculated for discrete actions
+                actor_loss = (action_probs * ((alpha * log_pi) - min_qf_values)).mean()
 
+                actor_optimizer.zero_grad()
+                actor_loss.backward()
+                actor_optimizer.step()
+
+                if args.autotune:
+                    # reuse action probabilities for temperature loss
+                    alpha_loss = (action_probs.detach() * (-log_alpha.exp() * (log_pi + target_entropy).detach())).mean()
+
+                    a_optimizer.zero_grad()
+                    alpha_loss.backward()
+                    a_optimizer.step()
+                    alpha = log_alpha.exp().item()
+
+            # update the target networks
             if global_step % args.target_network_frequency == 0:
                 for param, target_param in zip(qf1.parameters(), qf1_target.parameters()):
                     target_param.data.copy_(args.tau * param.data + (1 - args.tau) * target_param.data)
                 for param, target_param in zip(qf2.parameters(), qf2_target.parameters()):
                     target_param.data.copy_(args.tau * param.data + (1 - args.tau) * target_param.data)
-    
+
+            if global_step % 100 == 0:
+                writer.add_scalar("losses/qf1_values", qf1_a_values.mean().item(), global_step)
+                writer.add_scalar("losses/qf2_values", qf2_a_values.mean().item(), global_step)
+                writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
+                writer.add_scalar("losses/qf2_loss", qf2_loss.item(), global_step)
+                writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, global_step)
+                writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
+                writer.add_scalar("losses/alpha", alpha, global_step)
+                print("SPS:", int(global_step / (time.time() - start_time)))
+                writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
+                if args.autotune:
+                    writer.add_scalar("losses/alpha_loss", alpha_loss.item(), global_step)
+
     # --- ONNX EXPORT ---
-    model_dir = "models/rl"
-    sanitized_env_id = args.env_id.replace("-", "_")
-    model_name = f"sac_{sanitized_env_id}_actor.onnx"
-    model_path = os.path.join(model_dir, model_name)
-    os.makedirs(model_dir, exist_ok=True)
+    # After training, export the actor model to ONNX format.
+    model_path = f"runs/{run_name}/sac_cartpole_actor.onnx"
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
     
+    # Set the model to evaluation mode
     actor.eval()
+    
+    # Create a dummy input with the correct shape
     dummy_input = torch.randn(1, *envs.single_observation_space.shape, device=device)
     
-    print(f"\nExporting model for {args.env_id} to {model_path}...")
+    print(f"\nExporting model to {model_path}...")
     torch.onnx.export(
         actor,
         dummy_input,
@@ -349,52 +390,7 @@ def train_env(args: Args):
         output_names=["logits"],
         opset_version=11,
     )
-    print(f"Model for {args.env_id} exported successfully! ✅")
+    print("Model exported successfully! ✅")
     
     envs.close()
     writer.close()
-    if args.track:
-        wandb.finish()
-
-
-if __name__ == "__main__":
-    # Parse initial arguments from command line
-    base_args = tyro.cli(Args)
-
-    # Define the list of environments to train on
-    env_ids_to_train = [
-        # --- Toy Text ---
-        "Blackjack-v1",
-        "CliffWalking-v0",  # Note: v0 is the current version in Gymnasium
-        "FrozenLake-v1",
-        "Taxi-v3",
-        # --- Classic Control ---
-        "CartPole-v1",
-        "MountainCar-v0",
-        "Acrobot-v1",
-        # --- Box2D ---
-        "LunarLander-v2",   # Note: v2 is the current stable version in Gymnasium
-    ]
-
-    # Loop through each environment and run the training
-    for env_id in env_ids_to_train:
-        print(f"\n{'='*20} Starting Training for: {env_id} {'='*20}")
-        
-        # Create a deep copy of the base arguments to avoid modification across runs
-        args = copy.deepcopy(base_args)
-        args.env_id = env_id
-
-        # --- Optional: Customize hyperparameters per environment ---
-        # Some environments are harder and may require more training time
-        if env_id in ["Acrobot-v1", "LunarLander-v2"]:
-            args.total_timesteps = 100000
-        elif env_id == "Taxi-v3":
-            args.total_timesteps = 150000
-            args.learning_starts = 5000
-        else:
-            args.total_timesteps = 25000 # Reset to default for simpler envs
-
-        # Run the training and export process for the current environment
-        train_env(args)
-
-    print(f"\n{'='*20} All training complete! {'='*20}")

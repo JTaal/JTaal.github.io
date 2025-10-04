@@ -1,20 +1,22 @@
-{% comment %}
-  This snippet loops through the data in _data/visualizations.yml
-  and generates a responsive grid of link preview cards.
-{% endcomment %}
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-  {% for item in site.data.visualizations %}
-    <a href="{{ item.visualization_url | relative_url }}" class="block bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden group">
-      <div class="w-full h-40 bg-gray-100 overflow-hidden">
-        <img src="{{ item.thumbnail | relative_url }}" alt="Thumbnail for {{ item.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-      </div>
-      <div class="p-4">
-        <h3 class="font-semibold text-gray-800 truncate">{{ item.title }}</h3>
-        <div class="flex items-center mt-2 text-sm text-gray-500">
-          <img src="{{ '/assets/images/logo.png' | relative_url }}" alt="Favicon" class="w-4 h-4 mr-2 rounded-full">
-          <span>{{ item.author }}</span>
-        </div>
-      </div>
-    </a>
-  {% endfor %}
-</div>
+<!-- Basic Metadata -->
+<!-- <title>{{ include.title }} | {{ site.title }}</title> -->
+<meta name="description" content="{{ include.description | default: site.description }}">
+
+<!-- Favicon -->
+<link rel="icon" href="{{ '/assets/images/logo.png' | relative_url }}" type="image/png">
+<link rel="shortcut icon" href="{{ '/favicon.ico' | relative_url }}" type="image/x-icon">
+
+<!-- Open Graph (Facebook, etc.) -->
+<meta property="og:title" content="{{ include.title }}" />
+<meta property="og:description" content="{{ include.description | default: site.description }}" />
+<meta property="og:image" content="{{ site.url }}{{ include.thumbnail }}" />
+<!-- This now uses the `full_url` you provide -->
+<meta property="og:url" content="{{ include.full_url }}" />
+<meta property="og:site_name" content="{{ site.title }}" />
+<meta property="og:type" content="website" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{ include.title }}" />
+<meta name="twitter:description" content="{{ include.description | default: site.description }}" />
+<meta name="twitter:image" content="{{ site.url }}{{ include.thumbnail }}" />

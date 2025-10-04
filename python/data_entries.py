@@ -7,6 +7,9 @@ visualizations_dir = Path("_visualizations")
 posts_file = Path("_data/posts.yml")
 projects_file = Path("_data/projects.yml")
 
+
+
+
 # --- Step 1: Process posts ---
 posts = []
 
@@ -48,7 +51,7 @@ for md_file in posts_dir.glob("*.md"):
             "thumbnail": thumbnail,
             "post_url": post_url,
             "visualization_url": visualization_url,
-            "description": description
+            "description": description,
         }
         posts.append(post_entry)
 
@@ -73,6 +76,7 @@ for f in visualizations_dir.glob("*.html"):
         "author": "Jasper Taal",
         "thumbnail": f"/assets/images/{f.stem}.png",
         "visualization_url": f"/visualizations/{f.name}",
+        "full_url": f"https://jtaal.github.io/visualizations/{f.name}",
     }
     projects.append(project)
 

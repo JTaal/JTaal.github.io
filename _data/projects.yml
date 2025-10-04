@@ -2,289 +2,347 @@
   author: Jasper Taal
   thumbnail: /assets/images/3D-basis-vectors.png
   visualization_url: /visualizations/3D-basis-vectors.html
+  full_url: https://jtaal.github.io/visualizations/3D-basis-vectors.html
 
 - title: Blackhole
   author: Jasper Taal
   thumbnail: /assets/images/blackhole.png
   visualization_url: /visualizations/blackhole.html
+  full_url: https://jtaal.github.io/visualizations/blackhole.html
 
 - title: Cellular Automata Tumor
   author: Jasper Taal
   thumbnail: /assets/images/cellular-automata-tumor.png
   visualization_url: /visualizations/cellular-automata-tumor.html
+  full_url: https://jtaal.github.io/visualizations/cellular-automata-tumor.html
 
 - title: Chaos Relativity
   author: Jasper Taal
   thumbnail: /assets/images/chaos-relativity.png
   visualization_url: /visualizations/chaos-relativity.html
+  full_url: https://jtaal.github.io/visualizations/chaos-relativity.html
 
 - title: Chirp
   author: Jasper Taal
   thumbnail: /assets/images/chirp.png
   visualization_url: /visualizations/chirp.html
+  full_url: https://jtaal.github.io/visualizations/chirp.html
 
 - title: Clustering
   author: Jasper Taal
   thumbnail: /assets/images/clustering.png
   visualization_url: /visualizations/clustering.html
+  full_url: https://jtaal.github.io/visualizations/clustering.html
 
 - title: Complex Numbers
   author: Jasper Taal
   thumbnail: /assets/images/complex-numbers.png
   visualization_url: /visualizations/complex-numbers.html
+  full_url: https://jtaal.github.io/visualizations/complex-numbers.html
 
 - title: Convolutional Filter
   author: Jasper Taal
   thumbnail: /assets/images/convolutional-filter.png
   visualization_url: /visualizations/convolutional-filter.html
+  full_url: https://jtaal.github.io/visualizations/convolutional-filter.html
 
 - title: Convolutional Neural Network
   author: Jasper Taal
   thumbnail: /assets/images/convolutional-neural-network.png
   visualization_url: /visualizations/convolutional-neural-network.html
+  full_url: https://jtaal.github.io/visualizations/convolutional-neural-network.html
 
 - title: Deconvolution
   author: Jasper Taal
   thumbnail: /assets/images/deconvolution.png
   visualization_url: /visualizations/deconvolution.html
+  full_url: https://jtaal.github.io/visualizations/deconvolution.html
 
 - title: Deep Q Network Breakout
   author: Jasper Taal
   thumbnail: /assets/images/deep-q-network-breakout.png
   visualization_url: /visualizations/deep-q-network-breakout.html
+  full_url: https://jtaal.github.io/visualizations/deep-q-network-breakout.html
 
 - title: Diffusion Modeling
   author: Jasper Taal
   thumbnail: /assets/images/diffusion-modeling.png
   visualization_url: /visualizations/diffusion-modeling.html
+  full_url: https://jtaal.github.io/visualizations/diffusion-modeling.html
 
 - title: Dilution Calculator
   author: Jasper Taal
   thumbnail: /assets/images/dilution-calculator.png
   visualization_url: /visualizations/dilution-calculator.html
+  full_url: https://jtaal.github.io/visualizations/dilution-calculator.html
 
 - title: Dimensionality Reduction
   author: Jasper Taal
   thumbnail: /assets/images/dimensionality-reduction.png
   visualization_url: /visualizations/dimensionality-reduction.html
+  full_url: https://jtaal.github.io/visualizations/dimensionality-reduction.html
 
 - title: Dna Helix
   author: Jasper Taal
   thumbnail: /assets/images/DNA-helix.png
   visualization_url: /visualizations/DNA-helix.html
+  full_url: https://jtaal.github.io/visualizations/DNA-helix.html
 
 - title: Double Pendulum Map
   author: Jasper Taal
   thumbnail: /assets/images/double-pendulum-map.png
   visualization_url: /visualizations/double-pendulum-map.html
+  full_url: https://jtaal.github.io/visualizations/double-pendulum-map.html
 
 - title: Entropy
   author: Jasper Taal
   thumbnail: /assets/images/entropy.png
   visualization_url: /visualizations/entropy.html
+  full_url: https://jtaal.github.io/visualizations/entropy.html
 
 - title: Evolutionary Algorithms
   author: Jasper Taal
   thumbnail: /assets/images/evolutionary-algorithms.png
   visualization_url: /visualizations/evolutionary-algorithms.html
+  full_url: https://jtaal.github.io/visualizations/evolutionary-algorithms.html
 
 - title: Fourier Series
   author: Jasper Taal
   thumbnail: /assets/images/fourier-series.png
   visualization_url: /visualizations/fourier-series.html
+  full_url: https://jtaal.github.io/visualizations/fourier-series.html
 
 - title: Gymnasium
   author: Jasper Taal
   thumbnail: /assets/images/gymnasium.png
   visualization_url: /visualizations/gymnasium.html
+  full_url: https://jtaal.github.io/visualizations/gymnasium.html
 
 - title: Image Fourier Transform
   author: Jasper Taal
   thumbnail: /assets/images/image-fourier-transform.png
   visualization_url: /visualizations/image-fourier-transform.html
+  full_url: https://jtaal.github.io/visualizations/image-fourier-transform.html
 
 - title: Kernel Convolution
   author: Jasper Taal
   thumbnail: /assets/images/kernel-convolution.png
   visualization_url: /visualizations/kernel-convolution.html
+  full_url: https://jtaal.github.io/visualizations/kernel-convolution.html
 
 - title: Lagrange Multiplier
   author: Jasper Taal
   thumbnail: /assets/images/lagrange-multiplier.png
   visualization_url: /visualizations/lagrange-multiplier.html
+  full_url: https://jtaal.github.io/visualizations/lagrange-multiplier.html
 
 - title: Lattice Boltzmann Method
   author: Jasper Taal
   thumbnail: /assets/images/lattice-boltzmann-method.png
   visualization_url: /visualizations/lattice-boltzmann-method.html
+  full_url: https://jtaal.github.io/visualizations/lattice-boltzmann-method.html
 
 - title: Linear Regression
   author: Jasper Taal
   thumbnail: /assets/images/linear-regression.png
   visualization_url: /visualizations/linear-regression.html
+  full_url: https://jtaal.github.io/visualizations/linear-regression.html
 
 - title: Machine Learning Optimizers
   author: Jasper Taal
   thumbnail: /assets/images/machine-learning-optimizers.png
   visualization_url: /visualizations/machine-learning-optimizers.html
+  full_url: https://jtaal.github.io/visualizations/machine-learning-optimizers.html
 
 - title: Mandelbulb
   author: Jasper Taal
   thumbnail: /assets/images/mandelbulb.png
   visualization_url: /visualizations/mandelbulb.html
+  full_url: https://jtaal.github.io/visualizations/mandelbulb.html
 
 - title: Mandlebrot Julia Analysis
   author: Jasper Taal
   thumbnail: /assets/images/mandlebrot-julia-analysis.png
   visualization_url: /visualizations/mandlebrot-julia-analysis.html
+  full_url: https://jtaal.github.io/visualizations/mandlebrot-julia-analysis.html
 
 - title: Markov Chain
   author: Jasper Taal
   thumbnail: /assets/images/markov-chain.png
   visualization_url: /visualizations/markov-chain.html
+  full_url: https://jtaal.github.io/visualizations/markov-chain.html
 
 - title: Matrix Eigenvectors
   author: Jasper Taal
   thumbnail: /assets/images/matrix-eigenvectors.png
   visualization_url: /visualizations/matrix-eigenvectors.html
+  full_url: https://jtaal.github.io/visualizations/matrix-eigenvectors.html
 
 - title: Minkowski Spacetime
   author: Jasper Taal
   thumbnail: /assets/images/minkowski-spacetime.png
   visualization_url: /visualizations/minkowski-spacetime.html
+  full_url: https://jtaal.github.io/visualizations/minkowski-spacetime.html
 
 - title: Molecular Biology
   author: Jasper Taal
   thumbnail: /assets/images/molecular-biology.png
   visualization_url: /visualizations/molecular-biology.html
+  full_url: https://jtaal.github.io/visualizations/molecular-biology.html
 
 - title: Morphological Image Operations
   author: Jasper Taal
   thumbnail: /assets/images/morphological-image-operations.png
   visualization_url: /visualizations/morphological-image-operations.html
+  full_url: https://jtaal.github.io/visualizations/morphological-image-operations.html
 
 - title: Mujoco
   author: Jasper Taal
   thumbnail: /assets/images/mujoco.png
   visualization_url: /visualizations/mujoco.html
+  full_url: https://jtaal.github.io/visualizations/mujoco.html
 
 - title: Multi Objective Evolutionary Algorithm
   author: Jasper Taal
   thumbnail: /assets/images/multi-objective-evolutionary-algorithm.png
   visualization_url: /visualizations/multi-objective-evolutionary-algorithm.html
+  full_url: https://jtaal.github.io/visualizations/multi-objective-evolutionary-algorithm.html
 
 - title: Multivariate Gaussian
   author: Jasper Taal
   thumbnail: /assets/images/multivariate-gaussian.png
   visualization_url: /visualizations/multivariate-gaussian.html
+  full_url: https://jtaal.github.io/visualizations/multivariate-gaussian.html
 
 - title: Neural Networks
   author: Jasper Taal
   thumbnail: /assets/images/neural-networks.png
   visualization_url: /visualizations/neural-networks.html
+  full_url: https://jtaal.github.io/visualizations/neural-networks.html
 
 - title: Neuron Stimulation
   author: Jasper Taal
   thumbnail: /assets/images/neuron-stimulation.png
   visualization_url: /visualizations/neuron-stimulation.html
+  full_url: https://jtaal.github.io/visualizations/neuron-stimulation.html
 
 - title: Pareto Front
   author: Jasper Taal
   thumbnail: /assets/images/pareto-front.png
   visualization_url: /visualizations/pareto-front.html
+  full_url: https://jtaal.github.io/visualizations/pareto-front.html
 
 - title: Pipe Harmonics
   author: Jasper Taal
   thumbnail: /assets/images/pipe-harmonics.png
   visualization_url: /visualizations/pipe-harmonics.html
+  full_url: https://jtaal.github.io/visualizations/pipe-harmonics.html
 
 - title: Python Ide
   author: Jasper Taal
   thumbnail: /assets/images/python-IDE.png
   visualization_url: /visualizations/python-IDE.html
+  full_url: https://jtaal.github.io/visualizations/python-IDE.html
 
 - title: Q Learning
   author: Jasper Taal
   thumbnail: /assets/images/q-learning.png
   visualization_url: /visualizations/q-learning.html
+  full_url: https://jtaal.github.io/visualizations/q-learning.html
 
 - title: Quantum
   author: Jasper Taal
   thumbnail: /assets/images/quantum.png
   visualization_url: /visualizations/quantum.html
+  full_url: https://jtaal.github.io/visualizations/quantum.html
 
 - title: Quaternions
   author: Jasper Taal
   thumbnail: /assets/images/quaternions.png
   visualization_url: /visualizations/quaternions.html
+  full_url: https://jtaal.github.io/visualizations/quaternions.html
 
 - title: Regularisation
   author: Jasper Taal
   thumbnail: /assets/images/regularisation.png
   visualization_url: /visualizations/regularisation.html
+  full_url: https://jtaal.github.io/visualizations/regularisation.html
 
 - title: Reinforcement Learning
   author: Jasper Taal
   thumbnail: /assets/images/reinforcement-learning.png
   visualization_url: /visualizations/reinforcement-learning.html
+  full_url: https://jtaal.github.io/visualizations/reinforcement-learning.html
 
 - title: Reinforcement Learning Pong
   author: Jasper Taal
   thumbnail: /assets/images/reinforcement-learning-pong.png
   visualization_url: /visualizations/reinforcement-learning-pong.html
+  full_url: https://jtaal.github.io/visualizations/reinforcement-learning-pong.html
 
 - title: Riemann Zeta
   author: Jasper Taal
   thumbnail: /assets/images/riemann-zeta.png
   visualization_url: /visualizations/riemann-zeta.html
+  full_url: https://jtaal.github.io/visualizations/riemann-zeta.html
 
 - title: Rotary Positional Embedding
   author: Jasper Taal
   thumbnail: /assets/images/rotary-positional-embedding.png
   visualization_url: /visualizations/rotary-positional-embedding.html
+  full_url: https://jtaal.github.io/visualizations/rotary-positional-embedding.html
 
 - title: Schrödinger Equation
   author: Jasper Taal
   thumbnail: /assets/images/schrödinger-equation.png
   visualization_url: /visualizations/schrödinger-equation.html
+  full_url: https://jtaal.github.io/visualizations/schrödinger-equation.html
 
 - title: Sorting Algorithms
   author: Jasper Taal
   thumbnail: /assets/images/sorting-algorithms.png
   visualization_url: /visualizations/sorting-algorithms.html
+  full_url: https://jtaal.github.io/visualizations/sorting-algorithms.html
 
 - title: Support Vector Machine
   author: Jasper Taal
   thumbnail: /assets/images/support-vector-machine.png
   visualization_url: /visualizations/support-vector-machine.html
+  full_url: https://jtaal.github.io/visualizations/support-vector-machine.html
 
 - title: Tailor Series
   author: Jasper Taal
   thumbnail: /assets/images/tailor-series.png
   visualization_url: /visualizations/tailor-series.html
+  full_url: https://jtaal.github.io/visualizations/tailor-series.html
 
 - title: Tomography
   author: Jasper Taal
   thumbnail: /assets/images/tomography.png
   visualization_url: /visualizations/tomography.html
+  full_url: https://jtaal.github.io/visualizations/tomography.html
 
 - title: Turing Patterns
   author: Jasper Taal
   thumbnail: /assets/images/turing-patterns.png
   visualization_url: /visualizations/turing-patterns.html
+  full_url: https://jtaal.github.io/visualizations/turing-patterns.html
 
 - title: Variational Auto Encoder
   author: Jasper Taal
   thumbnail: /assets/images/variational-auto-encoder.png
   visualization_url: /visualizations/variational-auto-encoder.html
+  full_url: https://jtaal.github.io/visualizations/variational-auto-encoder.html
 
 - title: Vector Field
   author: Jasper Taal
   thumbnail: /assets/images/vector-field.png
   visualization_url: /visualizations/vector-field.html
+  full_url: https://jtaal.github.io/visualizations/vector-field.html
 
 - title: Voronoi Cell Division
   author: Jasper Taal
   thumbnail: /assets/images/voronoi-cell-division.png
   visualization_url: /visualizations/voronoi-cell-division.html
+  full_url: https://jtaal.github.io/visualizations/voronoi-cell-division.html
 
