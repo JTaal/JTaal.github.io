@@ -408,3 +408,20 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<meta name="theme-color" content="#0a0a0f">
+
+<meta property="og:title" content="Jasper Taal | Visualizations & Projects">
+<meta property="og:description" content="Our sky tells the story of infinite possibility.">
+<meta property="og:image" content="https://JTaal.github.io/assets/images/gif/diffraction_pattern_parachute_2560p_side_view_transparant_cropped.gif">
+<meta property="og:url" content="https://JTaal.github.io/">
+<meta property="og:type" content="website">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Jasper Taal | Visualizations & Projects">
+<meta name="twitter:description" content="Our sky tells the story of infinite possibility.">
+<meta name="twitter:image" content="https://JTaal.github.io/assets/images/gif/diffraction_pattern_parachute_2560p_side_view_transparant_cropped.gif">
