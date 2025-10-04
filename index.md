@@ -50,7 +50,7 @@ body {
     height: 60px;
     margin-bottom: 20px;
     /* background-image: url("https://JTaal.github.io/assets/images/logo/logo.jpg"); */
-    background-image: url("https://JTaal.github.io/assets/images/logo/logo.png");
+    background-image: url("https://JTaal.github.io/assets/images/logo/logo.jpg");
     /* background-size: 60%; */
     background-size: contain;
     background-color: white; 
