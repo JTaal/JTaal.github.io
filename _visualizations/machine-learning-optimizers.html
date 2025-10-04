@@ -98,21 +98,7 @@
             .lil-gui.root { bottom: 0; top: auto; left: 0; right: auto; width: 100%; max-height: 45vh; overflow-y: auto; border-radius: 10px 10px 0 0; }
         }
     </style>
-
-    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
-    {%- assign page_title = "Machine Learning Optimizers" -%}
-    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
-    {%- if viz_data -%}
-      {% include social-meta.html
-          title=viz_data.title
-          description=viz_data.description
-          thumbnail=viz_data.thumbnail
-          full_url=viz_data.full_url
-      %}
-    {%- endif -%}
-    {% comment %} --- End Include --- {% endcomment %}
 </head>
-
 <body>
     <h1 id="title">Machine Learning Optimisers</h1>
     <div id="render-container"></div>

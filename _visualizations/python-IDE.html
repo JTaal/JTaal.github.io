@@ -71,21 +71,7 @@
         .status-bar { grid-column: 1 / 3; grid-row: 2; background-color: var(--statusbar-bg); color: white; display: flex; align-items: center; padding: 0 15px; font-size: 12px; z-index: 100; }
         .package-btn.installed { background-color: #315d66 !important; cursor: default !important; color: #a0d9e2; }
     </style>
-
-    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
-    {%- assign page_title = "Python Ide" -%}
-    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
-    {%- if viz_data -%}
-      {% include social-meta.html
-          title=viz_data.title
-          description=viz_data.description
-          thumbnail=viz_data.thumbnail
-          full_url=viz_data.full_url
-      %}
-    {%- endif -%}
-    {% comment %} --- End Include --- {% endcomment %}
 </head>
-
 <body>
     <!-- Drag and Drop Overlay -->
     <div id="drag-overlay" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center text-white text-3xl font-bold z-[9999] border-4 border-dashed border-blue-500">

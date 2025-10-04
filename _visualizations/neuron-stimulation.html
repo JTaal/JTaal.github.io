@@ -105,21 +105,7 @@
         .hidden { display: none !important; }
 
     </style>
-
-    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
-    {%- assign page_title = "Neuron Stimulation" -%}
-    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
-    {%- if viz_data -%}
-      {% include social-meta.html
-          title=viz_data.title
-          description=viz_data.description
-          thumbnail=viz_data.thumbnail
-          full_url=viz_data.full_url
-      %}
-    {%- endif -%}
-    {% comment %} --- End Include --- {% endcomment %}
 </head>
-
 <body class="p-2 sm:p-4">
     <div class="max-w-screen-2xl mx-auto">
         <header class="ui-panel p-4 mb-4 text-center">

@@ -63,21 +63,7 @@
             background: linear-gradient(to bottom, #4b5563, transparent);
         }
     </style>
-
-    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
-    {%- assign page_title = "3D Basis Vectors" -%}
-    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
-    {%- if viz_data -%}
-      {% include social-meta.html
-          title=viz_data.title
-          description=viz_data.description
-          thumbnail=viz_data.thumbnail
-          full_url=viz_data.full_url
-      %}
-    {%- endif -%}
-    {% comment %} --- End Include --- {% endcomment %}
 </head>
-
 <body class="bg-black text-white">
 
     <header class="bg-gray-900/50 p-4 shadow-lg z-10 backdrop-blur-sm">

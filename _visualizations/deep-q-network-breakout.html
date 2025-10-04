@@ -103,21 +103,7 @@
            color: #e5e7eb;
         }
     </style>
-
-    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
-    {%- assign page_title = "Deep Q Network Breakout" -%}
-    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
-    {%- if viz_data -%}
-      {% include social-meta.html
-          title=viz_data.title
-          description=viz_data.description
-          thumbnail=viz_data.thumbnail
-          full_url=viz_data.full_url
-      %}
-    {%- endif -%}
-    {% comment %} --- End Include --- {% endcomment %}
 </head>
-
 <body>
     <h1>DQN learns Atari Breakout</h1>
     <div id="main-container">

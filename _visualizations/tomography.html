@@ -259,21 +259,7 @@
             input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
         }
     </style>
-
-    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
-    {%- assign page_title = "Tomography" -%}
-    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
-    {%- if viz_data -%}
-      {% include social-meta.html
-          title=viz_data.title
-          description=viz_data.description
-          thumbnail=viz_data.thumbnail
-          full_url=viz_data.full_url
-      %}
-    {%- endif -%}
-    {% comment %} --- End Include --- {% endcomment %}
 </head>
-
 <body>
     <div id="loading-overlay" class="hidden fixed inset-0 bg-gray-950 bg-opacity-80 flex flex-col items-center justify-center z-50 transition-opacity duration-300 ease-in-out">
         <div class="loader rounded-full h-32 w-32 mb-4"></div>
