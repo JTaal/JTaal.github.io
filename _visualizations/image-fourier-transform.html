@@ -136,6 +136,52 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        @media (max-width: 768px) {
+            body { 
+                overflow-y: auto; 
+                height: auto;
+            }
+            header { 
+                padding: 0.75rem 1rem; 
+            }
+            header h1 { 
+                font-size: 1rem; 
+                text-align: center; 
+                width: 100%;
+            }
+            main {
+                margin-top: 5rem;
+                margin-bottom: 12rem; /* Provide space for controls */
+                padding: 0.5rem;
+                gap: 1.5rem;
+                width: 100%;
+            }
+            .canvas-container, #output-container {
+                width: 90vw;
+                height: 90vw;
+                max-width: 300px;
+                max-height: 300px;
+            }
+            #info-panel, #frequency-panel {
+                left: 10px;
+                right: 10px;
+                top: 70px;
+                max-width: none;
+                width: auto;
+            }
+            #frequency-panel.expanded, #info-panel.expanded {
+                max-height: calc(100vh - 90px);
+            }
+            #controls-panel {
+                padding: 0.75rem;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+            .action-button, #controls-panel .flex {
+                flex-grow: 1;
+            }
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen">
@@ -189,7 +235,7 @@
         </div>
         <div class="flex flex-col items-center gap-4">
             <h2 class="text-lg font-semibold text-gray-300">Output (Frequency Domain)</h2>
-            <div id="output-container" class="canvas-container shadow-2xl flex items-center justify-center w-[256px] h-[256px]">
+            <div id="output-container" class="canvas-container shadow-2xl flex items-center justify-center">
                 <canvas id="output-canvas" width="256" height="256"></canvas>
                 <div id="loader" class="loader hidden"></div>
             </div>
@@ -355,15 +401,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Drawing Logic ---
-    function getMousePos(canvas, evt) {
+    function getEventPos(canvas, evt) {
         const rect = canvas.getBoundingClientRect();
+        const isTouchEvent = evt.touches && evt.touches.length > 0;
+        const clientX = isTouchEvent ? evt.touches[0].clientX : evt.clientX;
+        const clientY = isTouchEvent ? evt.touches[0].clientY : evt.clientY;
         return {
-            x: evt.clientX - rect.left,
-            y: evt.clientY - rect.top
+            x: clientX - rect.left,
+            y: clientY - rect.top
         };
     }
 
     function startDrawing(e) {
+        if (e.touches) e.preventDefault(); // prevent scrolling
         isDrawing = true;
         draw(e);
     }
@@ -376,10 +426,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function draw(e) {
         if (!isDrawing) return;
-        const pos = getMousePos(inputCanvas, e);
+        if (e.touches) e.preventDefault();
+        const pos = getEventPos(inputCanvas, e);
+
+        // Scale the coordinates from CSS pixels to canvas pixels
+        const rect = inputCanvas.getBoundingClientRect();
+        const scaleX = inputCanvas.width / rect.width;
+        const scaleY = inputCanvas.height / rect.height;
+
+        const canvasX = pos.x * scaleX;
+        const canvasY = pos.y * scaleY;
+        
         inputCtx.fillStyle = 'white';
         inputCtx.beginPath();
-        inputCtx.arc(pos.x, pos.y, brushSize / 2, 0, Math.PI * 2);
+        inputCtx.arc(canvasX, canvasY, brushSize / 2, 0, Math.PI * 2);
         inputCtx.fill();
     }
     
@@ -396,6 +456,12 @@ document.addEventListener('DOMContentLoaded', () => {
     inputCanvas.addEventListener('mouseup', stopDrawing);
     inputCanvas.addEventListener('mouseout', stopDrawing);
     inputCanvas.addEventListener('mousemove', draw);
+
+    // Add touch event listeners for mobile
+    inputCanvas.addEventListener('touchstart', startDrawing);
+    inputCanvas.addEventListener('touchend', stopDrawing);
+    inputCanvas.addEventListener('touchcancel', stopDrawing);
+    inputCanvas.addEventListener('touchmove', draw);
     
     document.getElementById('brush-size').addEventListener('input', (e) => {
         brushSize = e.target.value;
@@ -488,5 +554,6 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
 
 
