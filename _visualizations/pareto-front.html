@@ -130,7 +130,21 @@
             .control-group { width: 100%; }
         }
     </style>
+
+    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
+    {%- assign page_title = "Pareto Front" -%}
+    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
+    {%- if viz_data -%}
+      {% include social-meta.html
+          title=viz_data.title
+          description=viz_data.description
+          thumbnail=viz_data.thumbnail
+          full_url=viz_data.full_url
+      %}
+    {%- endif -%}
+    {% comment %} --- End Include --- {% endcomment %}
 </head>
+
 <body>
     <header>
         <h1 class="text-xl font-bold">Interactive Data Explorer</h1>

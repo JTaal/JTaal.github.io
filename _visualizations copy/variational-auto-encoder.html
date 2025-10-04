@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Convolutional VAE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh; 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        .formula-placeholder {
+            font-family: 'monospace', serif;
+            background-color: #1f2937;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            color: #d1d5db;
+            border: 1px solid #374151;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        
+        .menu-button, .preset-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .menu-button:hover, .preset-button:hover, .toggle-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .preset-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        select {
+            background-color: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            color: white;
+            padding: 0.25rem 0.5rem;
+        }
+        .hidden { display: none !important; }
+        canvas { display: block; }
+
+        #settings-button, #fullscreen-button {
+            position: absolute;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #settings-button {
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+        }
+        #fullscreen-button {
+            bottom: 120px;
+            right: 20px;
+            z-index: 11;
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            padding-right: 2rem; 
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+        #close-settings {
+            font-size: 2.5rem;
+            line-height: 1;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">3D Convolutional VAE</h1>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">Convolutional VAE</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300">
+                This shows a Variational Autoencoder using <b>Convolutional Neural Networks (CNNs)</b> to process 3D data.
+                <br><br>
+                The <b>Encoder</b> uses convolutional layers to extract features. After the final layer, these features are <b>'flattened'</b> into a single vector. This high-dimensional vector is then dramatically compressed into the few dimensions of the <b>Latent Space</b>.
+                <br><br>
+                The <b>Decoder</b> reverses the process, reconstructing the shape from this compact latent representation.
+             </p>
+             <div id="info-placeholder" class="formula-placeholder">
+Input → CONV/POOL → Flatten → Latent → DECONV/UPSAMPLE → Output
+             </div>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel"></div>
+   
+    <button id="fullscreen-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+   
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+   
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-200">Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div class="space-y-6">
+             <h4 class="text-lg font-bold text-gray-300 text-left w-full">Input Shape</h4>
+             <div id="shape-presets-settings" class="grid grid-cols-2 gap-2"></div>
+             <hr class="border-gray-600">
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Network Architecture</h4>
+            <div class="control-group text-left w-full">
+                <label for="layer-pairs-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Layer Pairs:</span>
+                    <span id="layer-pairs-value">2</span>
+                </label>
+                <input id="layer-pairs-slider" type="range" min="1" max="3" step="1" value="2" class="w-full">
+            </div>
+            <div class="control-group text-left w-full">
+                <label for="filter-count-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Base Filters:</span>
+                    <span id="filter-count-value">4</span>
+                </label>
+                <input id="filter-count-slider" type="range" min="4" max="16" step="4" value="4" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="layer-spacing-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Layer Spacing:</span>
+                    <span id="layer-spacing-value">1.0x</span>
+                </label>
+                <input id="layer-spacing-slider" type="range" min="0.5" max="2.5" step="0.1" value="1.0" class="w-full">
+            </div>
+             <div class="control-group text-left w-full">
+                <label for="animation-speed-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Animation Speed:</span>
+                    <span id="animation-speed-value">1.0x</span>
+                </label>
+                <input id="animation-speed-slider" type="range" min="0.2" max="3" step="0.1" value="1.0" class="w-full">
+            </div>
+
+            <hr class="border-gray-600">
+            <h4 class="text-lg font-bold text-gray-300 text-left w-full">Graphics</h4>
+            <div class="control-group text-left w-full">
+                <label for="graphics-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                    <span>Quality:</span>
+                    <span id="graphics-quality-value">High</span>
+                </label>
+                <input id="graphics-slider" type="range" min="0.5" max="2" step="0.1" value="1.5" class="w-full">
+                 <div class="text-xs text-gray-500 w-full flex justify-between mt-1">
+                     <span>Low</span>
+                     <span>Native</span>
+                     <span>High</span>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+    import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler.js';
+
+    let scene, camera, renderer, controls, clock;
+    let activeSceneObjects = new THREE.Group();
+    let isAnimating = false;
+
+    let inputMesh, outputMesh, latentViz, latentIndicator, pipelineGroup, indicatorLabel, flattenViz, connectingLines;
+    let mainTitles = [];
+    let latentVector = [0.0, 0.0, 0.0]; 
+    const shapePresets = {
+        'Sphere':   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], 'Cube':       [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        'Spiky':    [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0], 'Torus':      [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],
+        'Twisted':  [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0], 'Tapered':    [0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+        'Bent':     [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0], 'Wavy':       [0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
+        'Sheared':  [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], 'Pinched':    [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],
+        'Inflated': [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0], 'Flattened':  [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0],
+        'Stretched':[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0], 'Dented':     [0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
+        'Ringed':   [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0], 'Bubbled':    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    };
+    let currentShape = 'Sphere';
+    const allLayers = [];
+    let networkConfig = { layerPairs: 2, baseFilters: 4, animationSpeed: 1.0, layerSpacing: 1.0 };
+    const latentProperties = {
+        none: 'None', cubeness: 'Cubeness', spikiness: 'Spikiness', hollowness: 'Hollowness', 
+        twist: 'Twist', taper: 'Taper', bend: 'Bend', wave: 'Wave', shear: 'Shear', 
+        pinch: 'Pinch', inflate: 'Inflate', flatten: 'Flatten', stretch: 'Stretch', 
+        dents: 'Dents', rings: 'Rings', bubbles: 'Bubbles'
+    };
+    let latentDimensionMap = { x: 'cubeness', y: 'spikiness', z: 'hollowness' };
+    let baseGeo, morphMat;
+    const NUM_MORPH_TARGETS = 15;
+
+    function init() {
+        clock = new THREE.Clock(); scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000); camera.position.set(0, 5, 25);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setPixelRatio(window.devicePixelRatio); renderer.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(renderer.domElement);
+        controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.target.set(0, 2, 0);
+        scene.add(new THREE.AmbientLight(0xcccccc)); const light1 = new THREE.DirectionalLight(0xffffff, 0.7); light1.position.set(10, 10, 10); scene.add(light1);
+        scene.add(activeSceneObjects);
+        initVaeVisualizer(); setupControls(); setupInfoPanel(); setupSettingsPanel(); setupFullscreen();
+        window.addEventListener('resize', onWindowResize, false); renderer.setAnimationLoop(animate);
+    }
+    
+    function initVaeVisualizer() {
+        const DETAIL = 32, RADIUS = 2;
+        baseGeo = new THREE.SphereGeometry(RADIUS, DETAIL, DETAIL);
+        const tempVec = new THREE.Vector3(), q = new THREE.Quaternion();
+        const posAttr = baseGeo.attributes.position;
+        const morphPositions = []; for(let i=0; i < NUM_MORPH_TARGETS; i++) morphPositions.push(new Float32Array(posAttr.count * 3));
+        const boxSampler = new MeshSurfaceSampler(new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3))).build();
+
+        for (let i = 0; i < posAttr.count; i++) {
+            tempVec.fromBufferAttribute(posAttr, i); const originalVec = tempVec.clone();
+            const sx = posAttr.getX(i), sy = posAttr.getY(i), sz = posAttr.getZ(i);
+            const theta = Math.atan2(sx, sz), phi = Math.acos(sy / RADIUS);
+            
+            const p = new THREE.Vector3(); boxSampler.sample(p); morphPositions[0].set([p.x, p.y, p.z], i * 3);
+            const spike = 1.0 + (Math.sin(sy * 5) * Math.cos(sx * 5)) * 0.3; tempVec.copy(originalVec).setLength(RADIUS * spike); morphPositions[1].set([tempVec.x, tempVec.y, tempVec.z], i * 3);
+            const R = 1.5, r = 0.75; const tx = (R + r * Math.cos(phi * 2)) * Math.sin(theta), ty = r * Math.sin(phi * 2), tz = (R + r * Math.cos(phi * 2)) * Math.cos(theta); morphPositions[2].set([tx, ty, tz], i * 3);
+            const twistAngle = sy * 1.5; q.setFromAxisAngle(new THREE.Vector3(0,1,0), twistAngle); tempVec.copy(originalVec).applyQuaternion(q); morphPositions[3].set([tempVec.x, tempVec.y, tempVec.z], i * 3);
+            const taperScale = 1.0 - (sy + RADIUS) / (2 * RADIUS) * 0.9; tempVec.copy(originalVec); tempVec.x *= taperScale; tempVec.z *= taperScale; morphPositions[4].set([tempVec.x, tempVec.y, tempVec.z], i * 3);
+            const bendAngle = (sy / RADIUS) * Math.PI / 2; q.setFromAxisAngle(new THREE.Vector3(1,0,0), bendAngle); tempVec.copy(originalVec).applyQuaternion(q); morphPositions[5].set([tempVec.x, tempVec.y, tempVec.z], i * 3);
+            const wave = 1.0 + Math.sin(phi * 10) * Math.cos(theta * 10) * 0.1; tempVec.copy(originalVec).setLength(RADIUS * wave); morphPositions[6].set([tempVec.x, tempVec.y, tempVec.z], i * 3);
+            tempVec.copy(originalVec); tempVec.x += sy*0.5; morphPositions[7].set([tempVec.x, tempVec.y, tempVec.z], i*3);
+            const pinchScale = 1.0 - Math.pow(1.0 - Math.abs(sy/RADIUS), 2) * 0.8; tempVec.copy(originalVec); tempVec.x *= pinchScale; tempVec.z *= pinchScale; morphPositions[8].set([tempVec.x, tempVec.y, tempVec.z], i*3);
+            tempVec.copy(originalVec).setLength(RADIUS * 1.25); morphPositions[9].set([tempVec.x, tempVec.y, tempVec.z], i*3);
+            tempVec.copy(originalVec); tempVec.y *= 0.2; morphPositions[10].set([tempVec.x, tempVec.y, tempVec.z], i*3);
+            tempVec.copy(originalVec); tempVec.y *= 1.8; morphPositions[11].set([tempVec.x, tempVec.y, tempVec.z], i*3);
+            const dent = 1.0 - Math.pow(Math.sin(phi*8) * Math.cos(theta*8), 2) * 0.2; tempVec.copy(originalVec).setLength(RADIUS * dent); morphPositions[12].set([tempVec.x, tempVec.y, tempVec.z], i*3);
+            const ring = 1.0 + Math.sin(sy*10) * 0.1; tempVec.copy(originalVec).setLength(RADIUS * ring); morphPositions[13].set([tempVec.x, tempVec.y, tempVec.z], i*3);
+            const bubble = 1.0 + Math.pow(Math.sin(phi*6) * Math.cos(theta*6), 2) * 0.2; tempVec.copy(originalVec).setLength(RADIUS * bubble); morphPositions[14].set([tempVec.x, tempVec.y, tempVec.z], i*3);
+        }
+        
+        baseGeo.morphAttributes.position = morphPositions.map(p => new THREE.BufferAttribute(p, 3));
+        
+        morphMat = new THREE.MeshStandardMaterial({ color: 0x818cf8, metalness: 0.1, roughness: 0.3, morphTargets: true });
+        inputMesh = new THREE.Mesh(baseGeo, morphMat);
+        outputMesh = new THREE.Mesh(baseGeo.clone(), morphMat);
+        outputMesh.morphTargetInfluences = new Array(NUM_MORPH_TARGETS).fill(0);
+        activeSceneObjects.add(inputMesh, outputMesh);
+
+        pipelineGroup = new THREE.Group(); activeSceneObjects.add(pipelineGroup);
+        
+        latentIndicator = new THREE.Group();
+        const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), new THREE.MeshBasicMaterial({ color: 0xfbbf24 }));
+        indicatorLabel = createText("", new THREE.Vector3(0, 0.4, 0), 28);
+        latentIndicator.add(sphere, indicatorLabel);
+
+        buildNetworkArchitecture(); 
+
+        latentViz = new THREE.Group(); latentViz.position.set(0, 2, 0); pipelineGroup.add(latentViz);
+        
+        updateLatentSpaceVisuals();
+        updateFromLatentVector();
+    }
+
+    function createText(text, pos, size = 40) { const c = document.createElement('canvas'); const ctx = c.getContext('2d'); c.width = 512; ctx.font = `Bold ${size}px Inter`; ctx.fillStyle = "rgba(230, 230, 230, 0.9)"; ctx.textAlign = 'center'; ctx.fillText(text, c.width/2, 50); const tex = new THREE.CanvasTexture(c); const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true })); s.scale.set(c.width/100, c.height/100, 1.0); s.position.copy(pos); return s; }
+    function createConvLayer(config) {
+        const { w, h, d, x, y, z, label, type } = config;
+        const g = new THREE.Group(); g.position.set(x, y, z); const rg = new THREE.Group(); rg.rotation.y = Math.PI / 2; g.add(rg);
+        const ds = 0.2; const vg = new THREE.BoxGeometry(w, h, d * ds); const vm = new THREE.MeshStandardMaterial({ color: type === 'conv' ? 0x4f46e5 : 0xbe185d, transparent: true, opacity: 0.15 });
+        const vmesh = new THREE.Mesh(vg, vm); const eg = new THREE.EdgesGeometry(vg); const line = new THREE.LineSegments(eg, new THREE.LineBasicMaterial({ color: type === 'conv' ? 0x818cf8 : 0xf472b6, transparent: true, opacity: 0.5 }));
+        const fs = Math.min(w, h) * 0.4; const fg = new THREE.BoxGeometry(fs, fs, (d * ds) + 0.01);
+        const fm = new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0x92400e, metalness: 0.2, roughness: 0.4 }); const fmesh = new THREE.Mesh(fg, fm); fmesh.visible = (type === 'conv' || type === 'up');
+        rg.add(vmesh, line, fmesh); g.add(createText(`${label}`, new THREE.Vector3(0, -Math.max(w,h)/2-0.7,0), 24)); g.add(createText(`${w}x${h}x${d}`, new THREE.Vector3(0, Math.max(w,h)/2+0.7,0), 24));
+        g.userData.filter = fmesh; g.userData.line = line; pipelineGroup.add(g); allLayers.push(g); return g;
+    }
+
+    function buildNetworkArchitecture() {
+        while(allLayers.length > 0) { const l = allLayers.pop(); l.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { if(Array.isArray(o.material)) o.material.forEach(m=>m.dispose()); else o.material.dispose(); } }); pipelineGroup.remove(l); }
+        mainTitles.forEach(t => pipelineGroup.remove(t)); mainTitles = [];
+        if (flattenViz) { pipelineGroup.remove(flattenViz); flattenViz = null; }
+        if (connectingLines) { pipelineGroup.remove(connectingLines); connectingLines = null; }
+
+        const { layerPairs, baseFilters, layerSpacing } = networkConfig;
+        
+        const encoderConfigs = [], decoderConfigs = []; let totalEncoderComplexity = 0, totalDecoderComplexity = 0; let currentDim = 4.0, currentFilters = baseFilters;
+        for (let i = 0; i < layerPairs; i++) {
+            const c = { w: currentDim, h: currentDim, d: currentFilters, label: `CONV ${i+1}`, type: 'conv' }; c.complexity = c.w*c.h*c.d; encoderConfigs.push(c); totalEncoderComplexity += c.complexity;
+            currentDim /= 2;
+            const p = { w: currentDim, h: currentDim, d: currentFilters, label: `POOL ${i+1}`, type: 'pool' }; p.complexity = p.w*p.h*p.d; encoderConfigs.push(p); totalEncoderComplexity += p.complexity;
+            if (i < layerPairs -1) currentFilters *= 2;
+        }
+        for (let i = 0; i < layerPairs; i++) {
+            const u = { w: currentDim, h: currentDim, d: currentFilters, label: `UPSAMPLE ${i+1}`, type: 'up' }; u.complexity = u.w*u.h*u.d; decoderConfigs.push(u); totalDecoderComplexity += u.complexity;
+            currentDim *= 2; if (i < layerPairs -1) currentFilters /= 2;
+            const c = { w: currentDim, h: currentDim, d: (i === layerPairs-1) ? 1 : currentFilters, label: `CONV ${layerPairs+i+1}`, type: 'conv'}; c.complexity = c.w*c.h*c.d; decoderConfigs.push(c); totalDecoderComplexity += c.complexity;
+        }
+
+        const SPAN = (5 + (layerPairs*2.0) + (baseFilters*1.5)) * layerSpacing;
+        const FLATTEN_SPACE = 4.0; const LATENT_PADDING = 3.5, IO_PADDING = 4.0;
+        const encoderEnd = -LATENT_PADDING - FLATTEN_SPACE/2, encoderStart = encoderEnd - SPAN;
+        const decoderStart = LATENT_PADDING + FLATTEN_SPACE/2, decoderEnd = decoderStart + SPAN;
+        const inputX = encoderStart - IO_PADDING, outputX = decoderEnd + IO_PADDING;
+        inputMesh.position.x = inputX; outputMesh.position.x = outputX;
+
+        mainTitles = [ createText("INPUT", new THREE.Vector3(inputX, 5.5, 0)), createText("ENCODER", new THREE.Vector3((encoderStart + encoderEnd) / 2, 5.5, 0)), createText("LATENT SPACE", new THREE.Vector3(0, 5.5, 0)), createText("DECODER", new THREE.Vector3((decoderStart + decoderEnd) / 2, 5.5, 0)), createText("OUTPUT", new THREE.Vector3(outputX, 5.5, 0)) ];
+        mainTitles.forEach(t => pipelineGroup.add(t));
+        
+        let currentX = encoderStart;
+        for (const config of encoderConfigs) { const ls = (config.complexity / totalEncoderComplexity) * SPAN; config.x = currentX + ls/2; config.y=2; config.z=0; createConvLayer(config); currentX += ls; }
+        currentX = decoderStart;
+        for (const config of decoderConfigs) { const ls = (config.complexity / totalDecoderComplexity) * SPAN; config.x = currentX + ls/2; config.y=2; config.z=0; createConvLayer(config); currentX += ls; }
+
+        flattenViz = new THREE.Group();
+        const lastEncoderLayer = allLayers.filter(l => l.position.x < 0).sort((a,b) => b.position.x - a.position.x)[0];
+        const flattenStartPos = new THREE.Vector3(lastEncoderLayer.position.x + 2.5, 2, 0);
+        flattenViz.position.copy(flattenStartPos);
+        pipelineGroup.add(flattenViz);
+        mainTitles.push(createText("FLATTEN", new THREE.Vector3(flattenStartPos.x, 5.5, 0)));
+
+        const lineMat = new THREE.LineBasicMaterial({color: 0x6b7280, transparent: true, opacity: 0.5});
+        const points = [lastEncoderLayer.position, flattenStartPos, latentIndicator.position];
+        const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+        connectingLines = new THREE.Line(lineGeo, lineMat);
+        pipelineGroup.add(connectingLines);
+    }
+    
+    function createLatentMesh(baseGeo, morphMat, influences) {
+        const mesh = new THREE.Mesh(baseGeo, morphMat); if (mesh.morphTargetInfluences) { for(let i=0; i < influences.length; i++) mesh.morphTargetInfluences[i] = influences[i]; }
+        mesh.scale.set(0.2, 0.2, 0.2); mesh.rotation.x = Math.PI / 6; mesh.rotation.y = Math.PI / 4; return mesh;
+    }
+
+    function updateLatentSpaceVisuals() {
+        while(latentViz.children.length > 0) { const c = latentViz.children[0]; latentViz.remove(c); c.traverse(o => { if(o.isMesh){ if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); } }); }
+        const gs = 4, gd = 2, gc = 0x444444; const gXZ = new THREE.GridHelper(gs, gd, gc, gc); latentViz.add(gXZ);
+        const gXY = new THREE.GridHelper(gs, gd, gc, gc); gXY.rotation.x = Math.PI / 2; latentViz.add(gXY); const gYZ = new THREE.GridHelper(gs, gd, gc, gc); gYZ.rotation.z = Math.PI / 2; latentViz.add(gYZ);
+        const corners = [ [0,0,0], [1,0,0], [0,1,0], [0,0,1], [1,1,0], [1,0,1], [0,1,1], [1,1,1] ];
+        corners.forEach(corner => {
+            const [x,y,z] = corner; const map = { cubeness: 0, spikiness: 1, hollowness: 2, twist: 3, taper: 4, bend: 5, wave: 6, shear: 7, pinch: 8, inflate: 9, flatten: 10, stretch: 11, dents: 12, rings: 13, bubbles: 14 };
+            let influences = new Array(NUM_MORPH_TARGETS).fill(0);
+            if(latentDimensionMap.x !== 'none') influences[map[latentDimensionMap.x]] = x; if(latentDimensionMap.y !== 'none') influences[map[latentDimensionMap.y]] = y; if(latentDimensionMap.z !== 'none') influences[map[latentDimensionMap.z]] = z;
+            const mesh = createLatentMesh(baseGeo.clone(), morphMat.clone(), influences);
+            mesh.position.set((x-0.5)*4, (y-0.5)*4, (z-0.5)*4); latentViz.add(mesh);
+        });
+        latentViz.add(latentIndicator);
+    }
+
+    function updateFromLatentVector() {
+        if (!outputMesh || !outputMesh.morphTargetInfluences) return;
+        let influences = new Array(NUM_MORPH_TARGETS).fill(0);
+        const map = { cubeness:0, spikiness:1, hollowness:2, twist:3, taper:4, bend:5, wave:6, shear:7, pinch:8, inflate:9, flatten:10, stretch:11, dents:12, rings:13, bubbles:14 };
+        if (latentDimensionMap.x !== 'none') influences[map[latentDimensionMap.x]] += latentVector[0];
+        if (latentDimensionMap.y !== 'none') influences[map[latentDimensionMap.y]] += latentVector[1];
+        if (latentDimensionMap.z !== 'none') influences[map[latentDimensionMap.z]] += latentVector[2];
+        for(let i=0; i<influences.length; i++) influences[i] = Math.min(1.0, influences[i]);
+        outputMesh.morphTargetInfluences = influences; inputMesh.morphTargetInfluences = influences;
+        latentIndicator.position.set( (latentVector[0] - 0.5) * 4, (latentVector[1] - 0.5) * 4, (latentVector[2] - 0.5) * 4 );
+        const canvas = indicatorLabel.material.map.image, context = canvas.getContext('2d');
+        context.clearRect(0,0,canvas.width, canvas.height);
+        context.fillText(`X:${latentVector[0].toFixed(2)}`, canvas.width / 2, 50); context.fillText(`Y:${latentVector[1].toFixed(2)}`, canvas.width / 2, 90); context.fillText(`Z:${latentVector[2].toFixed(2)}`, canvas.width / 2, 130);
+        indicatorLabel.material.map.needsUpdate = true;
+    }
+
+    function runAnimationCycle() {
+        if (isAnimating) return; isAnimating = true;
+        const dataPacket = new THREE.Mesh( new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xaaaaaa }) );
+        scene.add(dataPacket);
+        const encoderChildren = allLayers.filter(l => l.position.x < -3).sort((a,b) => a.position.x - b.position.x);
+        const decoderChildren = allLayers.filter(l => l.position.x > 3).sort((a,b) => a.position.x - b.position.x);
+        const allWaypoints = [ inputMesh, ...encoderChildren, flattenViz, latentIndicator, ...decoderChildren, outputMesh ];
+        const chainHead = new Tween({}); let currentTween = chainHead; let duration = 500 / networkConfig.animationSpeed;
+        for(let i = 0; i < allWaypoints.length - 1; i++) {
+            const startNode = allWaypoints[i], endNode = allWaypoints[i+1]; const startPos = new THREE.Vector3(), endPos = new THREE.Vector3();
+            startNode.getWorldPosition(startPos); endNode.getWorldPosition(endPos);
+            const tween = new Tween(dataPacket.position).to(endPos, duration).easing(TWEEN.Easing.Sinusoidal.InOut)
+                .onStart(() => { if (startNode.userData && startNode.userData.filter) animateFilter(startNode); });
+            if (i === 0) dataPacket.position.copy(startPos); currentTween.chain(tween); currentTween = tween;
+        }
+        currentTween.onComplete(() => { isAnimating = false; scene.remove(dataPacket); }); chainHead.start();
+    }
+
+    function animateFilter(layer) {
+        const filter = layer.userData.filter; const line = layer.userData.line; if (!filter) return;
+        const startColor = { r: line.material.color.r, g: line.material.color.g, b: line.material.color.b };
+        new Tween(startColor).to({ r: 1, g: 1, b: 1}, 250 / networkConfig.animationSpeed).onUpdate(() => line.material.color.setRGB(startColor.r, startColor.g, startColor.b)).yoyo(true).repeat(1).start();
+        const w = filter.geometry.parameters.width / 2, h = filter.geometry.parameters.height / 2; filter.position.set(-w, h, 0);
+        new Tween(filter.position).to({ x: w, y: -h }, 500 / networkConfig.animationSpeed).easing(TWEEN.Easing.Linear.None).start();
+    }
+
+    function setupControls() {
+        const controlsDiv = document.getElementById('controls-panel');
+        controlsDiv.innerHTML = `<div id="latent-controls" class="flex gap-4 flex-wrap justify-center"></div><button id="run-btn" class="toggle-button active">Run Autoencoder</button>`;
+        const latentControls = document.getElementById('latent-controls');
+        ['x', 'y', 'z'].forEach((axis, i) => {
+            const group = document.createElement('div'); group.className = 'control-group w-32';
+            const selectLabel = document.createElement('label'); selectLabel.className = 'text-sm font-medium'; selectLabel.textContent = `Dimension ${axis.toUpperCase()}:`;
+            const select = document.createElement('select'); select.id = `latent-${axis}-select`;
+            for(const key in latentProperties) { const option = document.createElement('option'); option.value = key; option.textContent = latentProperties[key]; if (key === latentDimensionMap[axis]) option.selected = true; select.appendChild(option); }
+            const sliderLabel = document.createElement('label'); sliderLabel.htmlFor = `latent-${axis}-slider`; sliderLabel.className = 'text-sm font-medium w-full flex justify-between';
+            sliderLabel.innerHTML = `<span>${latentProperties[latentDimensionMap[axis]]}:</span><span id="latent-${axis}-value">0.0</span>`;
+            const slider = document.createElement('input'); slider.type = 'range'; slider.id = `latent-${axis}-slider`; slider.min = 0; slider.max = 1; slider.step = 0.01; slider.value = 0; slider.className = 'w-full';
+            group.append(selectLabel, select, sliderLabel, slider); latentControls.appendChild(group);
+
+            select.addEventListener('change', (e) => { latentDimensionMap[axis] = e.target.value; sliderLabel.children[0].textContent = `${latentProperties[e.target.value]}:`; updateLatentSpaceVisuals(); updateFromLatentVector(); });
+            slider.addEventListener('input', (e) => { latentVector[i] = parseFloat(e.target.value); document.getElementById(`latent-${axis}-value`).textContent = latentVector[i].toFixed(2); updateFromLatentVector(); });
+        });
+        document.getElementById('run-btn').addEventListener('click', runAnimationCycle);
+    }
+    
+    function setupInfoPanel() { document.getElementById('info-panel').addEventListener('click', (e) => { e.currentTarget.classList.toggle('expanded'); }); }
+    function setupFullscreen() { const btn = document.getElementById('fullscreen-button'); if (!document.fullscreenEnabled) { btn.style.display = 'none'; return; } btn.addEventListener('click', () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }); }
+   
+    function setupSettingsPanel() {
+        const settingsPanel = document.getElementById('settings-panel'), settingsButton = document.getElementById('settings-button'), closeSettingsButton = document.getElementById('close-settings');
+        const graphicsSlider = document.getElementById('graphics-slider'), graphicsQualityValue = document.getElementById('graphics-quality-value');
+        const layerPairsSlider = document.getElementById('layer-pairs-slider'), layerPairsValue = document.getElementById('layer-pairs-value');
+        const filterCountSlider = document.getElementById('filter-count-slider'), filterCountValue = document.getElementById('filter-count-value');
+        const animationSpeedSlider = document.getElementById('animation-speed-slider'), animationSpeedValue = document.getElementById('animation-speed-value');
+        const layerSpacingSlider = document.getElementById('layer-spacing-slider'), layerSpacingValue = document.getElementById('layer-spacing-value');
+        const presetsContainer = document.getElementById('shape-presets-settings');
+
+        function toggleSettingsPanel() { const isOpen = settingsPanel.classList.contains('open'); if (isOpen) { settingsPanel.classList.remove('open'); } else { settingsPanel.classList.remove('hidden'); requestAnimationFrame(() => { settingsPanel.classList.add('open'); }); } }
+        settingsButton.addEventListener('click', toggleSettingsPanel); closeSettingsButton.addEventListener('click', toggleSettingsPanel);
+        settingsPanel.addEventListener('transitionend', () => { if (!settingsPanel.classList.contains('open')) { settingsPanel.classList.add('hidden'); } });
+        graphicsSlider.addEventListener('input', (e) => { const quality = parseFloat(e.target.value); renderer.setPixelRatio(quality); if (quality < 0.8) graphicsQualityValue.textContent = "Low"; else if (quality < 1.2) graphicsQualityValue.textContent = "Medium"; else graphicsQualityValue.textContent = "High"; });
+        layerPairsSlider.addEventListener('input', (e) => { layerPairsValue.textContent = e.target.value; }); layerPairsSlider.addEventListener('change', (e) => { networkConfig.layerPairs = parseInt(e.target.value, 10); buildNetworkArchitecture(); });
+        filterCountSlider.addEventListener('input', (e) => { filterCountValue.textContent = e.target.value; }); filterCountSlider.addEventListener('change', (e) => { networkConfig.baseFilters = parseInt(e.target.value, 10); buildNetworkArchitecture(); });
+        layerSpacingSlider.addEventListener('input', (e) => { networkConfig.layerSpacing = parseFloat(e.target.value); layerSpacingValue.textContent = `${networkConfig.layerSpacing.toFixed(1)}x`; });
+        layerSpacingSlider.addEventListener('change', () => { buildNetworkArchitecture(); });
+        animationSpeedSlider.addEventListener('input', (e) => { networkConfig.animationSpeed = parseFloat(e.target.value); animationSpeedValue.textContent = `${networkConfig.animationSpeed.toFixed(1)}x`; });
+        
+        Object.keys(shapePresets).forEach(name => {
+            const btn = document.createElement('button'); btn.className = 'toggle-button w-full'; if (name === currentShape) btn.classList.add('active');
+            btn.textContent = name;
+            btn.onclick = () => {
+                currentShape = name; document.querySelectorAll('#shape-presets-settings .toggle-button').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+                const presetVec = shapePresets[name]; latentVector = [0,0,0]; 
+                const map = { cubeness:0, spikiness:1, hollowness:2, twist:3, taper:4, bend:5, wave:6, shear:7, pinch:8, inflate:9, flatten:10, stretch:11, dents:12, rings:13, bubbles:14 };
+                ['x','y','z'].forEach((axis, i) => {
+                    const prop = latentDimensionMap[axis];
+                    if (prop !== 'none') { latentVector[i] = presetVec[map[prop]]; } else { latentVector[i] = 0;}
+                    document.getElementById(`latent-${axis}-slider`).value = latentVector[i]; document.getElementById(`latent-${axis}-value`).textContent = latentVector[i].toFixed(2);
+                });
+                updateFromLatentVector();
+            };
+            presetsContainer.appendChild(btn);
+        });
+    }
+
+    function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+    const TWEEN = {
+        _tweens: [], getAll: function() { return this._tweens; }, removeAll: function() { this._tweens = []; }, add: function(t) { this._tweens.push(t); },
+        remove: function(t) { var i = this._tweens.indexOf(t); if (i !== -1) { this._tweens.splice(i, 1); } },
+        update: function(t, p) { if (this._tweens.length === 0) return false; var i = 0; t = t !== undefined ? t : (typeof window !== 'undefined' && window.performance !== undefined ? window.performance.now() : Date.now()); while (i < this._tweens.length) { if (this._tweens[i].update(t) || p) { i++; } else { this._tweens.splice(i, 1); } } return true; }
+    };
+    function Tween(o, g) { this._object = o; this._valuesStart = {}; this._valuesEnd = {}; this._valuesStartRepeat = {}; this._duration = 1000; this._repeat = 0; this._yoyo = false; this._isPlaying = false; this._reversed = false; this._delayTime = 0; this._startTime = null; this._easingFunction = TWEEN.Easing.Linear.None; this._interpolationFunction = TWEEN.Interpolation.Linear; this._chainedTweens = []; this._onStartCallback = null; this._onStartCallbackFired = false; this._onUpdateCallback = null; this._onCompleteCallback = null; this._onStopCallback = null; this.parent = g || TWEEN; };
+    Tween.prototype = {
+        to: function(p, d) { this._valuesEnd = p; if (d !== undefined) { this._duration = d; } return this; },
+        start: function(t) {
+            this.parent.add(this); this._isPlaying = true; this._onStartCallbackFired = false; this._startTime = t !== undefined ? t : (typeof window !== 'undefined' && window.performance !== undefined ? window.performance.now() : Date.now()); this._startTime += this._delayTime;
+            for (var p in this._valuesEnd) { if (this._valuesEnd[p] instanceof Array) { if (this._valuesEnd[p].length === 0) continue; this._valuesEnd[p] = [this._object[p]].concat(this._valuesEnd[p]); } if (this._object[p] === undefined) continue; this._valuesStart[p] = this._object[p]; if ((this._valuesStart[p] instanceof Array) === false) { this._valuesStart[p] *= 1.0; } this._valuesStartRepeat[p] = this._valuesStart[p] || 0; } return this;
+        },
+        update: function(t) {
+            var p, e, v; if (t < this._startTime) return true; if (this._onStartCallbackFired === false) { if (this._onStartCallback !== null) { this._onStartCallback.call(this._object); } this._onStartCallbackFired = true; }
+            e = (t - this._startTime) / this._duration; e = e > 1 ? 1 : e; v = this._easingFunction(e);
+            for (p in this._valuesEnd) {
+                if (this._valuesStart[p] === undefined) continue; var s = this._valuesStart[p] || 0, end = this._valuesEnd[p];
+                if (end instanceof Array) { this._object[p] = this._interpolationFunction(end, v); } else { if (typeof(end) === 'string') { if (end.charAt(0) === '+' || end.charAt(0) === '-') { end = s + parseFloat(end); } else { end = parseFloat(end); } } if (typeof(end) === 'number') { this._object[p] = s + (end - s) * v; } }
+            }
+            if (this._onUpdateCallback !== null) { this._onUpdateCallback.call(this._object, v); }
+            if (e === 1) {
+                if (this._repeat > 0) {
+                    if (isFinite(this._repeat)) { this._repeat--; } for (p in this._valuesStartRepeat) { if (typeof(this._valuesEnd[p]) === 'string') { this._valuesStartRepeat[p] = this._valuesStartRepeat[p] + parseFloat(this._valuesEnd[p]); } if (this._yoyo) { var tmp = this._valuesStartRepeat[p]; this._valuesStartRepeat[p] = this._valuesEnd[p]; this._valuesEnd[p] = tmp; } this._valuesStart[p] = this._valuesStartRepeat[p]; }
+                    if (this._yoyo) { this._reversed = !this._reversed; } this._startTime = t + this._delayTime; return true;
+                } else { if (this._onCompleteCallback !== null) { this._onCompleteCallback.call(this._object); } for (var i = 0, n = this._chainedTweens.length; i < n; i++) { this._chainedTweens[i].start(this._startTime + this._duration); } return false; }
+            } return true;
+        },
+        easing: function(e) { this._easingFunction = e; return this; }, chain: function() { this._chainedTweens = arguments; return this; },
+        onStart: function(c) { this._onStartCallback = c; return this; }, onUpdate: function(c) { this._onUpdateCallback = c; return this; },
+        onComplete: function(c) { this._onCompleteCallback = c; return this; }, yoyo: function(y) { this._yoyo = y; return this; }, repeat: function(r) { this._repeat = r; return this; },
+    };
+    TWEEN.Easing = { Linear: { None: function(k) { return k; } }, Sinusoidal: { InOut: function(k) { return -0.5 * (Math.cos(Math.PI * k) - 1); } } };
+    TWEEN.Interpolation = { Linear: function(v, k) { return v[0]; } };
+
+    function animate() { 
+        TWEEN.update(); controls.update(); 
+        if (latentViz) { latentViz.children.forEach(c => { if (c.isMesh && c !== latentIndicator.children[0]) c.quaternion.copy(camera.quaternion); if(c === latentIndicator) c.children[1].quaternion.copy(camera.quaternion); }); }
+        renderer.render(scene, camera); 
+    }
+    init();
+</script>
+</body>
+</html>
+

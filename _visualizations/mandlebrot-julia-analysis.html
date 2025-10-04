@@ -124,7 +124,21 @@ date: 2025-08-27
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
+    {%- assign page_title = "Mandlebrot Julia Analysis" -%}
+    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
+    {%- if viz_data -%}
+      {% include social-meta.html
+          title=viz_data.title
+          description=viz_data.description
+          thumbnail=viz_data.thumbnail
+          full_url=viz_data.full_url
+      %}
+    {%- endif -%}
+    {% comment %} --- End Include --- {% endcomment %}
 </head>
+
 <body>
     <div id="mandelbrot-container">
         <canvas id="mandelbrotCanvas"></canvas>

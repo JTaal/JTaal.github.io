@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Objective Evolutionary Algorithm Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712;
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 65px; /* Positioned below header */
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 0;
+            border-left: 0;
+            border-right: 0;
+            border-top: 0;
+            max-height: 48px; /* Collapsed height */
+            cursor: pointer;
+            overflow: hidden;
+            padding: 0.5rem 1.5rem;
+        }
+        #info-panel.expanded {
+            max-height: 50vh; 
+            overflow-y: auto;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        #info-content { transition: opacity 0.3s ease-in-out; }
+        #info-panel:not(.expanded) #info-content {
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+        }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.4s ease-in-out;
+        }
+        #controls-panel.collapsed {
+            transform: translateY(calc(100% - 40px));
+        }
+        #controls-toggle {
+            width: 100%;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        #controls-toggle svg {
+            transition: transform 0.3s ease-in-out;
+        }
+        #controls-panel.collapsed #controls-toggle svg {
+            transform: rotate(180deg);
+        }
+        #controls-content {
+            padding: 0.5rem 2rem 1.5rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            width: 100%;
+            max-height: 25vh;
+            overflow-y: auto;
+        }
+        #controls-content::-webkit-scrollbar { width: 8px; }
+        #controls-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        #controls-content::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 4px; }
+        #controls-content::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+        
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        .control-button, .toggle-button, select {
+            background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .control-button:hover, .toggle-button:hover, select:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .control-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .hidden { display: none !important; }
+        .metric-display {
+            background-color: #1f2937;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #374151;
+        }
+        #fullscreen-button, #settings-button {
+            position: absolute;
+            z-index: 11;
+            width: 44px;
+            height: 44px;
+            padding: 10px;
+            border-radius: 50%;
+        }
+        #fullscreen-button { bottom: 20px; right: 20px; }
+        #settings-button { top: 80px; right: 20px; }
+        
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            z-index: 12;
+            padding: 1rem;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+        #settings-panel::-webkit-scrollbar { width: 8px; }
+        #settings-panel::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        #settings-panel::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 4px; }
+        
+        @media (max-width: 768px) {
+            .control-group { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Multi-Objective Evolutionary Algorithm Suite</h1>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">About MOEAs</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-4 text-gray-300">
+             <div>
+                <h3 class="font-bold text-indigo-400">Algorithm: <span id="algorithm-name-display">NSGA-II</span></h3>
+                <p id="algorithm-description-display"></p>
+             </div>
+            <div>
+                <h3 class="font-bold text-indigo-400">The Pareto Front</h3>
+                <p>The optimal set of trade-off solutions is the <strong>Pareto Front</strong>.</p>
+            </div>
+            <div>
+                <h3 class="font-bold text-indigo-400">Performance Metrics</h3>
+                <div class="mt-2 space-y-2">
+                    <div class="metric-display"><strong>Hypervolume:</strong> <span id="hypervolume-value">0.000</span></div>
+                    <div class="metric-display"><strong>Avg. Crowding Distance:</strong> <span id="crowding-distance-value">0.000</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <div id="settings-panel" class="ui-panel">
+         <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold">Settings</h3>
+            <button id="close-settings" class="text-2xl font-bold">&times;</button>
+        </div>
+        <div class="space-y-6">
+            <div class="control-group text-left">
+                <label for="algorithm-select" class="text-sm font-medium self-start">Algorithm</label>
+                <select id="algorithm-select" class="w-full">
+                    <option value="nsga2">NSGA-II</option>
+                    <option value="nsga1">NSGA</option>
+                    <option value="nsga3">NSGA-III</option>
+                </select>
+            </div>
+            <div class="control-group text-left">
+                <label class="text-sm font-medium self-start">Goal</label>
+                <button id="optimization-mode-toggle" class="toggle-button w-full">Minimize</button>
+            </div>
+            <div class="control-group text-left">
+                <label class="text-sm font-medium self-start">Visualization</label>
+                <div id="viz-toggle-group" class="flex rounded-md bg-gray-700">
+                    <button data-viz="none" class="toggle-button active">None</button>
+                    <button data-viz="crowding" class="toggle-button">Crowding</button>
+                    <button data-viz="hypervolume" class="toggle-button">Hypervolume</button>
+                </div>
+            </div>
+            <hr class="border-gray-600">
+            <div id="nsga1-params" class="control-group text-left hidden">
+                 <label for="sharing-slider" class="text-sm font-medium self-start">Sharing Radius: <span id="sharing-value">0.1</span></label>
+                <input type="range" id="sharing-slider" min="0.01" max="0.5" step="0.01" value="0.1">
+            </div>
+             <div id="nsga3-params" class="control-group text-left hidden">
+                <label for="refpoints-slider" class="text-sm font-medium self-start">Ref. Points: <span id="refpoints-value">91</span></label>
+                <input type="range" id="refpoints-slider" min="4" max="15" step="1" value="12">
+            </div>
+            <div class="control-group text-left">
+                <label for="population-slider" class="text-sm font-medium self-start">Population: <span id="population-value">100</span></label>
+                <input type="range" id="population-slider" min="20" max="300" step="4" value="100">
+            </div>
+             <div class="control-group text-left">
+                <label for="crossover-slider" class="text-sm font-medium self-start">Crossover: <span id="crossover-value">0.90</span></label>
+                <input type="range" id="crossover-slider" min="0.1" max="1.0" step="0.05" value="0.9">
+            </div>
+            <div class="control-group text-left">
+                <label for="mutation-slider" class="text-sm font-medium self-start">Mutation: <span id="mutation-value">0.10</span></label>
+                <input type="range" id="mutation-slider" min="0.01" max="0.5" step="0.01" value="0.1">
+            </div>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel">
+        <div id="controls-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+        </div>
+        <div id="controls-content">
+            <div class="flex items-center gap-4">
+                <button id="start-btn" class="control-button active">Start</button>
+                <button id="pause-btn" class="control-button">Pause</button>
+                <button id="reset-btn" class="control-button">Reset</button>
+            </div>
+            <div class="text-lg">Generation: <span id="generation-counter">0</span></div>
+        </div>
+    </div>
+    
+    <button id="settings-button" class="control-button" title="Settings">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    <button id="fullscreen-button" class="control-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    let scene, camera, renderer, controls;
+    let populationGroup, minFrontMesh, maxFrontMesh, metricsGroup;
+    let isRunning = false, generation = 0, population = [];
+    let activeAlgorithm = 'nsga2', optimizationMode = 'minimize', visualizationMode = 'none';
+    let populationSize = 100, numVariables = 10, numObjectives = 3;
+    let sigmaShare = 0.1, refPointDivisions = 12, referencePoints = [];
+    let crossoverProbability = 0.9, mutationProbability = 0.1;
+
+    const algorithmDetails = {
+        nsga2: { name: "NSGA-II", description: "A fast, elitist algorithm using non-dominated sorting and crowding distance to find a diverse set of Pareto-optimal solutions." },
+        nsga1: { name: "NSGA", description: "The original algorithm. It uses non-dominated sorting but lacks elitism and employs a fitness sharing mechanism for diversity, which can be computationally intensive." },
+        nsga3: { name: "NSGA-III", description: "An extension for many-objective problems. It replaces crowding distance with a reference-point-based selection to maintain diversity in high-dimensional spaces." }
+    };
+
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        dirLight.position.set(5, 5, 5);
+        scene.add(dirLight);
+        scene.add(new THREE.AxesHelper(3.1));
+        populationGroup = new THREE.Group();
+        metricsGroup = new THREE.Group();
+        scene.add(populationGroup);
+        scene.add(metricsGroup);
+        createParetoFrontMeshes();
+        setupUI();
+        resetAlgorithm();
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.setAnimationLoop(animate);
+    }
+
+    function evaluate(individual) {
+        const objectives = [];
+        const g = individual.slice(numObjectives - 1).reduce((sum, x_i) => sum + Math.pow(x_i - 0.5, 2), 0);
+        for (let i = 0; i < numObjectives; i++) {
+            let obj = (1 + g);
+            for (let j = 0; j < numObjectives - 1 - i; j++) obj *= Math.cos(individual[j] * Math.PI / 2);
+            if (i > 0) obj *= Math.sin(individual[numObjectives - 1 - i] * Math.PI / 2);
+            objectives.push(obj);
+        }
+        return objectives;
+    }
+
+    function dominates(ind1, ind2) {
+        let betterInOne = false;
+        const op = optimizationMode === 'minimize' ? (a, b) => a < b : (a, b) => a > b;
+        const opWorse = optimizationMode === 'minimize' ? (a, b) => a > b : (a, b) => a < b;
+        for (let i = 0; i < numObjectives; i++) {
+            if (opWorse(ind1.objectives[i], ind2.objectives[i])) return false;
+            if (op(ind1.objectives[i], ind2.objectives[i])) betterInOne = true;
+        }
+        return betterInOne;
+    }
+
+    function calculateCrowdingDistance(front) {
+        if (front.length <= 2) { front.forEach(p => p.crowdingDistance = Infinity); return; }
+        front.forEach(p => p.crowdingDistance = 0);
+        for (let m = 0; m < numObjectives; m++) {
+            front.sort((a, b) => a.objectives[m] - b.objectives[m]);
+            const minObj = front[0].objectives[m], maxObj = front[front.length - 1].objectives[m];
+            if (maxObj === minObj) continue;
+            front[0].crowdingDistance = Infinity;
+            front[front.length - 1].crowdingDistance = Infinity;
+            for (let i = 1; i < front.length - 1; i++) {
+                front[i].crowdingDistance += (front[i + 1].objectives[m] - front[i - 1].objectives[m]) / (maxObj - minObj);
+            }
+        }
+    }
+    
+    function calculateFitnessSharing(front) {
+        front.forEach(p => {
+            let nicheCount = 1;
+            front.forEach(q => {
+                if (p === q) return;
+                const dist = Math.sqrt(p.objectives.reduce((sum, val, i) => sum + Math.pow(val - q.objectives[i], 2), 0));
+                if (dist < sigmaShare) nicheCount += 1 - (dist / sigmaShare);
+            });
+            p.sharedFitness = p.rank + (1 / nicheCount);
+        });
+    }
+
+    function generateReferencePoints(divisions) {
+        referencePoints = [];
+        function generate(index, left, point) {
+            if (index === numObjectives - 1) {
+                point[index] = left;
+                referencePoints.push([...point].map(v => v / divisions));
+                return;
+            }
+            for (let i = 0; i <= left; i++) {
+                point[index] = i;
+                generate(index + 1, left - i, point);
+            }
+        }
+        generate(0, divisions, new Array(numObjectives).fill(0));
+    }
+
+    function nonDominatedSort(pop) {
+        const fronts = [[]];
+        pop.forEach(p => {
+            p.dominationCount = 0;
+            p.dominatedSolutions = [];
+            p.rank = -1;
+            pop.forEach(q => {
+                if (p === q) return;
+                if (dominates(p, q)) p.dominatedSolutions.push(q);
+                else if (dominates(q, p)) p.dominationCount++;
+            });
+            if (p.dominationCount === 0) p.rank = 0;
+        });
+        pop.forEach(p => { if(p.rank === 0) fronts[0].push(p); });
+
+        let i = 0;
+        while (fronts[i] && fronts[i].length > 0) {
+            if (activeAlgorithm !== 'nsga1') calculateCrowdingDistance(fronts[i]);
+            if (activeAlgorithm === 'nsga1') calculateFitnessSharing(fronts[i]);
+            
+            const nextFront = [];
+            fronts[i].forEach(p => p.dominatedSolutions.forEach(q => {
+                q.dominationCount--;
+                if (q.dominationCount === 0) { q.rank = i + 1; nextFront.push(q); }
+            }));
+            i++;
+            if (nextFront.length > 0) fronts[i] = nextFront;
+        }
+        return fronts;
+    }
+
+    function calculateHypervolume(front, samples = 5000) {
+        if (!front || front.length === 0) return 0;
+        let dominatedCount = 0;
+        const refPoint = optimizationMode === 'minimize' ? [3, 3, 3] : [0, 0, 0];
+        const boundsMin = optimizationMode === 'minimize' ? [0, 0, 0] : refPoint;
+        const boundsMax = optimizationMode === 'minimize' ? refPoint : [3, 3, 3];
+        
+        for (let i = 0; i < samples; i++) {
+            const randomPoint = { objectives: [
+                Math.random() * (boundsMax[0] - boundsMin[0]) + boundsMin[0],
+                Math.random() * (boundsMax[1] - boundsMin[1]) + boundsMin[1],
+                Math.random() * (boundsMax[2] - boundsMin[2]) + boundsMin[2]
+            ]};
+            for (const p of front) { if (dominates(p, randomPoint)) { dominatedCount++; break; } }
+        }
+        return dominatedCount / samples;
+    }
+    
+    function runGeneration() {
+        if (!isRunning) return;
+        if (activeAlgorithm === 'nsga1') runNSGA1Generation();
+        else if (activeAlgorithm === 'nsga2') runNSGA2Generation();
+        else if (activeAlgorithm === 'nsga3') runNSGA3Generation();
+    }
+    
+    function createOffspring(matingPool) {
+        let offspring = [];
+        for (let i = 0; i < populationSize; i += 2) {
+            if (i + 1 >= matingPool.length) continue;
+            const parent1 = matingPool[i], parent2 = matingPool[i+1];
+            if(!parent1 || !parent2) continue;
+            let child1 = { variables: [...parent1.variables] }, child2 = { variables: [...parent2.variables] };
+            if (Math.random() < crossoverProbability) {
+                for (let j = 0; j < numVariables; j++) if (Math.random() < 0.5) [child1.variables[j], child2.variables[j]] = [child2.variables[j], child1.variables[j]];
+            }
+            for (let j = 0; j < numVariables; j++) {
+                if (Math.random() < mutationProbability) child1.variables[j] = Math.random();
+                if (Math.random() < mutationProbability) child2.variables[j] = Math.random();
+            }
+            child1.objectives = evaluate(child1.variables);
+            child2.objectives = evaluate(child2.variables);
+            offspring.push(child1, child2);
+        }
+        return offspring;
+    }
+
+    function runNSGA1Generation() {
+        let matingPool = [];
+        for (let i = 0; i < populationSize; i++) {
+            const i1 = Math.floor(Math.random() * populationSize), i2 = Math.floor(Math.random() * populationSize);
+            const ind1 = population[i1], ind2 = population[i2];
+            if (ind1 && ind2) matingPool.push(ind1.sharedFitness < ind2.sharedFitness ? ind1 : ind2);
+        }
+        const offspring = createOffspring(matingPool);
+        population = offspring;
+        const fronts = nonDominatedSort(population);
+        generation++;
+        updateVisualization(fronts);
+    }
+    
+    function runNSGA2Generation() {
+        let matingPool = [];
+        for (let i = 0; i < populationSize; i++) {
+            const i1 = Math.floor(Math.random() * populationSize), i2 = Math.floor(Math.random() * populationSize);
+            const ind1 = population[i1], ind2 = population[i2];
+            let winner = ind1;
+            if (ind1 && ind2) {
+                 if (ind1.rank < ind2.rank) winner = ind1;
+                 else if (ind2.rank < ind1.rank) winner = ind2;
+                 else if (ind1.crowdingDistance > ind2.crowdingDistance) winner = ind1;
+                 else winner = ind2;
+            }
+            matingPool.push(winner);
+        }
+        const offspring = createOffspring(matingPool);
+        const combined = [...population, ...offspring];
+        const fronts = nonDominatedSort(combined);
+        let nextPopulation = [];
+        let frontIndex = 0;
+        while (fronts[frontIndex] && nextPopulation.length + fronts[frontIndex].length <= populationSize) {
+            nextPopulation.push(...fronts[frontIndex]);
+            frontIndex++;
+        }
+        if (nextPopulation.length < populationSize && fronts[frontIndex]) {
+            const lastFront = fronts[frontIndex];
+            lastFront.sort((a,b) => b.crowdingDistance - a.crowdingDistance);
+            nextPopulation.push(...lastFront.slice(0, populationSize - nextPopulation.length));
+        }
+        population = nextPopulation;
+        generation++;
+        updateVisualization(fronts);
+    }
+
+    function runNSGA3Generation() {
+        let matingPool = [];
+        for (let i = 0; i < populationSize; i++) {
+            const i1 = Math.floor(Math.random() * populationSize), i2 = Math.floor(Math.random() * populationSize);
+            const ind1 = population[i1], ind2 = population[i2];
+            let winner = ind1;
+            if (ind1 && ind2) {
+                 if (ind1.rank < ind2.rank) winner = ind1;
+                 else if (ind2.rank < ind1.rank) winner = ind2;
+                 else if (Math.random() < 0.5) winner = ind1;
+                 else winner = ind2;
+            }
+            matingPool.push(winner);
+        }
+        const offspring = createOffspring(matingPool);
+        const combined = [...population, ...offspring];
+        const fronts = nonDominatedSort(combined);
+        let nextPopulation = [];
+        let frontIndex = 0;
+        while (fronts[frontIndex] && nextPopulation.length + fronts[frontIndex].length < populationSize) {
+            nextPopulation.push(...fronts[frontIndex]);
+            frontIndex++;
+        }
+        if (fronts[frontIndex] && nextPopulation.length < populationSize) {
+            const lastFront = fronts[frontIndex];
+            const toAdd = populationSize - nextPopulation.length;
+            const chosen = nsga3Niching(lastFront, toAdd);
+            nextPopulation.push(...chosen);
+        }
+        population = nextPopulation;
+        generation++;
+        updateVisualization(fronts);
+    }
+
+    function nsga3Niching(front, k) {
+        if (front.length <= k) return front;
+        front.sort((a,b) => b.crowdingDistance - a.crowdingDistance); // Fallback to crowding distance for simplicity
+        return front.slice(0, k);
+    }
+
+    function resetAlgorithm() {
+        isRunning = false; generation = 0; population = [];
+        for (let i = 0; i < populationSize; i++) {
+            const vars = Array.from({ length: numVariables }, () => Math.random());
+            population.push({ variables: vars, objectives: evaluate(vars) });
+        }
+        if (activeAlgorithm === 'nsga3') generateReferencePoints(refPointDivisions);
+        const fronts = nonDominatedSort(population);
+        if(minFrontMesh && maxFrontMesh){
+            minFrontMesh.visible = (optimizationMode === 'minimize');
+            maxFrontMesh.visible = (optimizationMode === 'maximize');
+        }
+        if(optimizationMode === 'minimize') {
+            controls.target.set(0.5, 0.5, 0.5);
+            camera.position.set(1.5, 1.3, 1.8);
+        } else {
+            controls.target.set(1.5, 1.5, 1.5);
+            camera.position.set(4.5, 3.9, 5.4);
+        }
+        controls.update();
+        updateVisualization(fronts);
+    }
+    
+    function createParetoFrontMeshes() {
+        const sphereGeo = new THREE.SphereGeometry(1, 32, 32, 0, Math.PI / 2, 0, Math.PI / 2);
+        minFrontMesh = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: 0xaaaaaa, wireframe: true, transparent: true, opacity: 0.3 }));
+        minFrontMesh.rotation.y = Math.PI / 2;
+        scene.add(minFrontMesh);
+        const maxGeo = new THREE.SphereGeometry(3, 32, 32, 0, Math.PI / 2, 0, Math.PI / 2);
+        maxFrontMesh = new THREE.Mesh(maxGeo, new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.4 }));
+        maxFrontMesh.rotation.y = Math.PI/2;
+        scene.add(maxFrontMesh);
+    }
+
+    function drawCrowdingDistanceViz(front) {
+        const sorted = [...front].sort((a,b)=>a.objectives[0]-b.objectives[0]);
+        for(let i=0; i<sorted.length-1; i++) {
+            const p1 = sorted[i], p2 = sorted[i+1];
+            const cd = Math.min(p1.crowdingDistance, p2.crowdingDistance);
+            const color = new THREE.Color().setHSL(0.75 - (Math.min(cd, 4.0) * 0.2), 0.9, 0.6);
+            const material = new THREE.LineBasicMaterial({ color: color });
+            const points = [new THREE.Vector3(...p1.objectives), new THREE.Vector3(...p2.objectives)];
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material);
+            metricsGroup.add(line);
+        }
+    }
+
+    function drawHypervolumeViz(front) {
+        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+        const minMaterial = new THREE.MeshBasicMaterial({ color: 0x8A2BE2, transparent: true, opacity: 0.05 });
+        const maxMaterial = new THREE.MeshBasicMaterial({ color: 0x00BFFF, transparent: true, opacity: 0.05 });
+
+        if (optimizationMode === 'minimize') {
+            const refPoint = new THREE.Vector3(3,3,3);
+             front.forEach(p => {
+                const pos = new THREE.Vector3(...p.objectives);
+                const size = refPoint.clone().sub(pos);
+                if (size.x > 0 && size.y > 0 && size.z > 0) {
+                    const box = new THREE.Mesh(boxGeo, minMaterial);
+                    box.scale.copy(size);
+                    box.position.copy(pos).add(size.clone().multiplyScalar(0.5));
+                    metricsGroup.add(box);
+                }
+            });
+        } else {
+            const refPoint = new THREE.Vector3(0,0,0);
+             front.forEach(p => {
+                const pos = new THREE.Vector3(...p.objectives);
+                const size = pos.clone().sub(refPoint);
+                if (size.x > 0 && size.y > 0 && size.z > 0) {
+                    const box = new THREE.Mesh(boxGeo, maxMaterial);
+                    box.scale.copy(size);
+                    box.position.copy(refPoint).add(size.clone().multiplyScalar(0.5));
+                    metricsGroup.add(box);
+                }
+            });
+        }
+    }
+    
+    function updateVisualization(fronts) {
+        while(populationGroup.children.length > 0) populationGroup.remove(populationGroup.children[0]);
+        while(metricsGroup.children.length > 0) metricsGroup.remove(metricsGroup.children[0]);
+
+        const sphereGeo = new THREE.SphereGeometry(1, 12, 12);
+        const frontColors = [0x00ff00, 0xffff00, 0xffa500, 0xff0000];
+        let totalCrowdingDistance = 0, frontSize = 0;
+
+        population.forEach(ind => {
+            if (!ind || !ind.objectives) return;
+            const rank = ind.rank !== undefined ? ind.rank : frontColors.length - 1;
+            const color = frontColors[rank] || frontColors[frontColors.length - 1];
+            const sphere = new THREE.Mesh(sphereGeo, new THREE.MeshLambertMaterial({ color }));
+            sphere.scale.setScalar(0.015 * (optimizationMode === 'maximize' ? 3 : 1));
+            sphere.position.set(...ind.objectives);
+            populationGroup.add(sphere);
+        });
+        
+        const firstFront = (fronts && fronts.length > 0) ? fronts[0] : population.filter(p=>p.rank===0);
+        if (firstFront.length > 0) {
+            firstFront.forEach(p => { if(isFinite(p.crowdingDistance)) { totalCrowdingDistance += p.crowdingDistance; frontSize++; } });
+            if (visualizationMode === 'crowding') drawCrowdingDistanceViz(firstFront);
+            else if (visualizationMode === 'hypervolume') drawHypervolumeViz(firstFront);
+        }
+        
+        document.getElementById('hypervolume-value').textContent = calculateHypervolume(firstFront).toFixed(4);
+        document.getElementById('crowding-distance-value').textContent = (totalCrowdingDistance / Math.max(1, frontSize)).toFixed(4);
+        document.getElementById('generation-counter').textContent = generation;
+    }
+    
+    function setupUI() {
+        document.getElementById('info-panel').addEventListener('click', (e) => { if (e.target.closest('a')) return; e.currentTarget.classList.toggle('expanded'); });
+        document.getElementById('controls-toggle').addEventListener('click', () => document.getElementById('controls-panel').classList.toggle('collapsed'));
+        
+        const settingsPanel = document.getElementById('settings-panel');
+        document.getElementById('settings-button').addEventListener('click', () => settingsPanel.classList.toggle('open'));
+        document.getElementById('close-settings').addEventListener('click', () => settingsPanel.classList.remove('open'));
+
+        const startBtn = document.getElementById('start-btn'), pauseBtn = document.getElementById('pause-btn'), resetBtn = document.getElementById('reset-btn');
+        const modeToggle = document.getElementById('optimization-mode-toggle'), vizToggleGroup = document.getElementById('viz-toggle-group');
+        startBtn.addEventListener('click', () => { isRunning = true; startBtn.classList.add('active'); pauseBtn.classList.remove('active'); });
+        pauseBtn.addEventListener('click', () => { isRunning = false; pauseBtn.classList.add('active'); startBtn.classList.remove('active'); });
+        resetBtn.addEventListener('click', () => { isRunning = false; resetAlgorithm(); startBtn.classList.add('active'); pauseBtn.classList.remove('active'); });
+        
+        document.getElementById('algorithm-select').addEventListener('change', (e) => {
+            activeAlgorithm = e.target.value;
+            const details = algorithmDetails[activeAlgorithm];
+            document.getElementById('algorithm-name-display').textContent = details.name;
+            document.getElementById('algorithm-description-display').textContent = details.description;
+            document.getElementById('nsga1-params').classList.toggle('hidden', activeAlgorithm !== 'nsga1');
+            document.getElementById('nsga3-params').classList.toggle('hidden', activeAlgorithm !== 'nsga3');
+            resetAlgorithm();
+        });
+
+        modeToggle.addEventListener('click', () => {
+            optimizationMode = optimizationMode === 'minimize' ? 'maximize' : 'minimize';
+            modeToggle.textContent = optimizationMode.charAt(0).toUpperCase() + optimizationMode.slice(1);
+            modeToggle.classList.toggle('active', optimizationMode === 'maximize');
+            resetAlgorithm();
+        });
+        
+        vizToggleGroup.addEventListener('click', (e) => {
+            if (e.target.matches('.toggle-button')) {
+                visualizationMode = e.target.dataset.viz;
+                vizToggleGroup.querySelectorAll('.toggle-button').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                updateVisualization(nonDominatedSort(population));
+            }
+        });
+
+        document.getElementById('sharing-slider').addEventListener('input', e => { sigmaShare = parseFloat(e.target.value); document.getElementById('sharing-value').textContent = sigmaShare.toFixed(2); });
+        document.getElementById('refpoints-slider').addEventListener('input', e => {
+            refPointDivisions = parseInt(e.target.value);
+            generateReferencePoints(refPointDivisions);
+            document.getElementById('refpoints-value').textContent = referencePoints.length;
+        });
+        document.getElementById('population-slider').addEventListener('change', (e) => { populationSize = parseInt(e.target.value); resetAlgorithm(); });
+        document.getElementById('population-slider').addEventListener('input', (e) => { document.getElementById('population-value').textContent = e.target.value; });
+        document.getElementById('crossover-slider').addEventListener('input', e => { crossoverProbability = parseFloat(e.target.value); document.getElementById('crossover-value').textContent = crossoverProbability.toFixed(2); });
+        document.getElementById('mutation-slider').addEventListener('input', e => { mutationProbability = parseFloat(e.target.value); document.getElementById('mutation-value').textContent = mutationProbability.toFixed(2); });
+        
+        setupFullscreen();
+        document.getElementById('algorithm-description-display').textContent = algorithmDetails[activeAlgorithm].description;
+    }
+    
+    function setupFullscreen() {
+        const fullscreenButton = document.getElementById('fullscreen-button');
+        const enterIcon = document.getElementById('fullscreen-enter-icon');
+        const exitIcon = document.getElementById('fullscreen-exit-icon');
+        if (!document.fullscreenEnabled) {
+            fullscreenButton.style.display = 'none';
+            return;
+        }
+        fullscreenButton.addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        });
+        document.addEventListener('fullscreenchange', () => {
+            const isFullscreen = !!document.fullscreenElement;
+            enterIcon.classList.toggle('hidden', isFullscreen);
+            exitIcon.classList.toggle('hidden', !isFullscreen);
+        });
+    }
+
+    function onWindowResize() { 
+        camera.aspect = window.innerWidth / window.innerHeight; 
+        camera.updateProjectionMatrix(); 
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+    }
+
+    function animate() { 
+        controls.update();
+        runGeneration();
+        renderer.render(scene, camera); 
+    }
+   
+    init();
+</script>
+</body>
+</html>
+

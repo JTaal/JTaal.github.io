@@ -1,0 +1,111 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>3D DNA Double Helix — Three.js</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    html,body{height:100%;margin:0;background:#111}
+    #app{width:100%;height:100%;display:block}
+    .info{position:absolute;left:10px;top:10px;color:#ddd;font-family:monospace;z-index:2}
+    .credits{position:absolute;right:10px;bottom:10px;color:#bbb;font-family:monospace;font-size:12px}
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<div class="info">Drag to orbit • Scroll to zoom • Double-click to reset</div>
+<div class="credits">Generated with three.js — 3D DNA helix model</div><script type="module">
+import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
+import { OrbitControls } from 'https://unpkg.com/three@0.152.2/examples/jsm/controls/OrbitControls.js';
+
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0b0b);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+camera.position.set(0, 40, 120);
+
+// Renderer
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('app').appendChild(renderer.domElement);
+
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+
+// Lights
+const hemi = new THREE.HemisphereLight(0x8888ff, 0x222222, 0.6); scene.add(hemi);
+const dir = new THREE.DirectionalLight(0xffffff, 0.9); dir.position.set(10,30,20); scene.add(dir);
+scene.add(new THREE.AmbientLight(0x404040,0.6));
+
+// Materials
+const COLORS = {P:0xffa500,O:0xff4500,C:0xaaaaaa,H:0xffffff,N:0x2266ff,A:0x4caf50,T:0xf44336,Cb:0x2196f3,G:0xffeb3b};
+const atomSegments = 28;
+
+function atomMesh(radius,color){
+  return new THREE.Mesh(new THREE.SphereGeometry(radius,atomSegments,atomSegments),
+                        new THREE.MeshStandardMaterial({color,metalness:0.1,roughness:0.45}));
+}
+
+function bondMesh(start,end,radius=0.4){
+  const dir = new THREE.Vector3().subVectors(end,start);
+  const len = dir.length();
+  const geo = new THREE.CylinderGeometry(radius,radius,len,16);
+  const mat = new THREE.MeshStandardMaterial({color:0x888888,metalness:0.2,roughness:0.5});
+  const mesh = new THREE.Mesh(geo,mat);
+  mesh.position.copy(start).add(dir.multiplyScalar(0.5));
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), new THREE.Vector3().subVectors(end,start).normalize());
+  return mesh;
+}
+
+function createNucleotide(base, angle=0, radius=10){
+  const group = new THREE.Group();
+  const sugar = atomMesh(1.2,COLORS.C);
+  const phosphate = atomMesh(1.1,COLORS.P);
+  const baseAtom = atomMesh(1.0,COLORS[base]);
+  sugar.position.set(radius*Math.cos(angle), angle*0.1, radius*Math.sin(angle));
+  phosphate.position.set(radius*Math.cos(angle+0.1), angle*0.1+1, radius*Math.sin(angle+0.1));
+  baseAtom.position.set(radius*Math.cos(angle+0.2), angle*0.1, radius*Math.sin(angle+0.2));
+  group.add(sugar); group.add(phosphate); group.add(baseAtom);
+  group.add(bondMesh(sugar.position, phosphate.position,0.25));
+  group.add(bondMesh(sugar.position, baseAtom.position,0.25));
+  return group;
+}
+
+// Build double helix
+const strand = new THREE.Group();
+const bases = ['A','T','C','G','A','T','C','G','A','T','C','G'];
+const twist = Math.PI/5; // radians per nucleotide
+const rise = 3;
+for(let i=0;i<bases.length;i++){
+  const angle = i*twist;
+  const radius = 10;
+  const nucleotide1 = createNucleotide(bases[i], angle, radius);
+  const nucleotide2 = createNucleotide({'A':'T','T':'A','C':'G','G':'C'}[bases[i]], angle, radius+4);
+  nucleotide2.position.y = i*rise;
+  nucleotide1.position.y = i*rise;
+  strand.add(nucleotide1);
+  strand.add(nucleotide2);
+}
+scene.add(strand);
+
+// Resize handling
+window.addEventListener('resize',()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+// Animate
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
+</script></body>
+</html>

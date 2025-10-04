@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pyodide Web IDE</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Xterm.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    
+    <!-- JSZip for downloading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- Monaco Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs/loader.min.js"></script>
+
+    <!-- Pyodide (loaded in worker) -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+
+    <style>
+        :root {
+            --ide-bg: #1e1e1e;
+            --sidebar-bg: #252526;
+            --activity-bar-bg: #333333;
+            --statusbar-bg: #007acc;
+            --border-color: #3c3c3c;
+            --foreground: #cccccc;
+            --blue-accent: #007acc;
+            --tab-inactive-bg: #2d2d2d;
+            --tab-active-bg: #1e1e1e;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: var(--foreground); background-color: var(--ide-bg); overflow: hidden; }
+        .ide-layout { display: grid; grid-template-columns: 50px auto; grid-template-rows: 1fr 25px; height: 100vh; width: 100vw; }
+        .activity-bar { grid-column: 1; grid-row: 1 / 3; background-color: var(--activity-bar-bg); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 0; z-index: 50; }
+        .activity-bar-top { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .activity-bar svg { width: 28px; height: 28px; cursor: pointer; padding: 4px; border-radius: 4px; }
+        .activity-bar svg.active { background-color: var(--blue-accent); }
+        .main-content { grid-column: 2; grid-row: 1; display: flex; background-color: var(--ide-bg); overflow: hidden; }
+        .side-panel { width: 300px; min-width: 200px; max-width: 80%; height: 100%; background-color: var(--sidebar-bg); display: flex; flex-direction: column; transition: min-width 0.2s, width 0.2s; overflow: auto; flex-shrink: 0; }
+        .side-panel.hidden { width: 0; min-width: 0; padding: 0; border-right: none; overflow: hidden; }
+        #sidebar-resizer { width: 5px; cursor: col-resize; background: var(--border-color); flex-shrink: 0; }
+        .panel-section { padding: 0 10px; border-bottom: 1px solid var(--border-color); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+        .panel-header h3 { font-weight: bold; }
+        .panel-header .actions button { background: none; border: none; color: var(--foreground); cursor: pointer; padding: 2px; border-radius: 3px; }
+        .panel-header .actions button:hover { background-color: #3c3c3c; }
+        #file-explorer { flex-grow: 1; overflow-y: auto; padding-bottom: 10px; min-height: 50px; transition: background-color 0.2s; }
+        #file-explorer.drag-over-root { background-color: #2a2a2d; }
+        #package-installer-container { flex-grow: 1; overflow-y: auto; padding-bottom: 10px; }
+        #file-explorer ul { padding-left: 20px; } /* Indentation for nested items */
+        #file-explorer > ul { padding-left: 0; } /* No indent for root */
+        #file-explorer li { list-style: none; }
+        .file-row { padding: 2px 4px; cursor: pointer; display: flex; align-items: center; gap: 5px; border-radius: 3px; }
+        .file-row:hover, .file-row.active { background-color: #2a2a2d; }
+        .file-row.drag-over { background-color: var(--blue-accent); }
+        .editor-terminal-container { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; }
+        #tab-bar { display: flex; flex-grow: 1; background-color: var(--sidebar-bg); flex-shrink: 1; overflow-x: auto; }
+        .tab { display: flex; align-items: center; padding: 8px 10px; background-color: var(--tab-inactive-bg); border-right: 1px solid var(--border-color); cursor: pointer; font-size: 14px; flex-shrink: 0; }
+        .tab.active { background-color: var(--tab-active-bg); }
+        .tab .close-btn { margin-left: 10px; padding: 2px; border-radius: 3px; }
+        .tab .close-btn:hover { background-color: #3c3c3c; }
+        #editor-container { flex-grow: 1; overflow: hidden; border-bottom: 1px solid var(--border-color); }
+        #script-editor { width: 100%; height: 100%; }
+        #terminal-container { height: 35%; min-height: 50px; padding: 5px; } #terminal { width: 100%; height: 100%; }
+        #resizer { cursor: ns-resize; height: 5px; background: var(--border-color); width: 100%; flex-shrink: 0; }
+        .status-bar { grid-column: 1 / 3; grid-row: 2; background-color: var(--statusbar-bg); color: white; display: flex; align-items: center; padding: 0 15px; font-size: 12px; z-index: 100; }
+        .package-btn.installed { background-color: #315d66 !important; cursor: default !important; color: #a0d9e2; }
+    </style>
+</head>
+<body>
+    <!-- Drag and Drop Overlay -->
+    <div id="drag-overlay" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center text-white text-3xl font-bold z-[9999] border-4 border-dashed border-blue-500">
+        <button id="close-overlay-btn" class="absolute top-4 right-4 text-white text-5xl font-bold cursor-pointer" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">&times;</button>
+        <span>Drop files anywhere to upload</span>
+    </div>
+
+    <div class="ide-layout">
+        <!-- ACTIVITY BAR -->
+        <div class="activity-bar">
+            <div class="activity-bar-top">
+                <svg id="toggle-files-btn" class="active" fill="white" viewBox="0 0 24 24"><title>Toggle Explorer</title><path d="M6,2h6l2,2h6c1.1,0,2,0.9,2,2v12c0,1.1-0.9,2-2,2H6c-1.1,0-2-0.9,2-2V4C4,2.9,4.9,2,6,2z"/></svg>
+                <svg id="run-script-btn" fill="white" viewBox="0 0 24 24"><title>Run Active File</title><path d="M8,5v14l11-7L8,5z"/></svg>
+                <svg id="list-files-btn" fill="white" viewBox="0 0 24 24"><title>List Files in Virtual Environment</title><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+                <svg id="download-project-btn" fill="white" viewBox="0 0 24 24"><title>Download Project as .zip</title><path d="M19,9h-4V3H9v6H5l7,7L19,9z M5,18v2h14v-2H5z"/></svg>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- SIDE PANEL -->
+            <div id="side-panel" class="side-panel">
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h3>EXPLORER</h3>
+                        <div class="actions">
+                            <div id="action-buttons-container">
+                                <button id="upload-files-btn" title="Upload Files">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                        <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                                    </svg>
+                                </button>
+                                <button id="new-file-btn" title="New File">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/></svg>
+                                </button>
+                                <button id="new-folder-btn" title="New Folder">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zM6.172 2h-3.37a1 1 0 0 0-.996.966l.637 7a1 1 0 0 0 .995.934h10.348a1 1 0 0 0 .995.934l.637-7a1 1 0 0 0-.996-.966H9.828a1 1 0 0 1-.707-.293L8.354 2.854A1 1 0 0 0 7.646 2.56H6.172z"/></svg>
+                                </button>
+                            </div>
+                            <div id="creation-input-container" class="hidden flex items-center">
+                                <span id="creation-icon-span" class="mr-1"></span>
+                                <input type="text" id="creation-input" class="bg-gray-700 border-gray-600 border px-1 w-40 text-sm focus:outline-none rounded-sm">
+                           </div>
+                           <input type="file" id="upload-files-input" class="hidden" multiple>
+                        </div>
+                    </div>
+                    <div id="file-explorer"></div>
+                </div>
+                 <div class="panel-section" id="package-installer-container">
+                    <div class="panel-header"><h3>PACKAGES</h3></div>
+                    <p class="text-xs font-bold mt-2 mb-1">Quick Install</p>
+                    <div id="package-buttons" class="flex flex-wrap gap-2 mb-3"></div>
+                    <p class="text-xs font-bold mt-4 mb-1">PyPI Search</p>
+                    <input type="text" id="pypi-search-input" class="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="Search and press Enter...">
+                    <div id="pypi-search-results" class="flex flex-wrap gap-2 mt-2"></div>
+                    <p class="text-xs font-bold mt-4 mb-1">From File</p>
+                    <button id="upload-requirements-btn" class="w-full px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors">Upload requirements.txt</button>
+                    <input type="file" id="requirements-input" class="hidden" accept=".txt">
+                </div>
+            </div>
+            <div id="sidebar-resizer"></div>
+            <!-- EDITOR & TERMINAL -->
+            <div class="editor-terminal-container">
+                <div class="flex justify-between" style="background-color: var(--sidebar-bg); border-bottom: 1px solid var(--border-color);">
+                    <div id="tab-bar"></div>
+                    <div id="tab-bar-actions" class="flex items-center pr-2 flex-shrink-0">
+                        <button id="tab-run-btn" title="Run Active File">
+                            <svg class="w-6 h-6 text-green-500 hover:text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="editor-container"><div id="script-editor"></div></div>
+                <div id="resizer"></div>
+                <div id="terminal-container"><div id="terminal"></div></div>
+            </div>
+        </div>
+        <!-- STATUS BAR -->
+        <div id="status-bar" class="status-bar"><span>Pyodide: Loading environment...</span></div>
+    </div>
+    
+    <script type="module">
+        // --- DATA & STATE ---
+        const initialFileSystem = {
+            "main.py": { type: "file", content: `# Welcome to your Python IDE!\n# Start coding here.` },
+            "list_files.py": { type: "file", content: `import os
+
+print("--- Listing files and directories ---")
+
+# Get current working directory and list its content
+cwd = os.getcwd()
+print(f"\\nCurrent Working Directory: {cwd}")
+print("Contents:")
+try:
+    items = os.listdir(cwd)
+    if not items:
+        print("└── (empty)")
+    else:
+        for item in sorted(items):
+            print(f"└── {item}")
+except OSError as e:
+    print(f"    Could not read directory: {e}")
+
+
+# Specifically check and list the /home/pyodide directory
+home_dir = '/home/pyodide'
+print(f"\\nPyodide Home Directory: {home_dir}")
+print("Contents:")
+if os.path.exists(home_dir) and os.path.isdir(home_dir):
+    try:
+        items = os.listdir(home_dir)
+        if not items:
+            print("└── (empty)")
+        else:
+            for item in sorted(items):
+                print(f"└── {item}")
+    except OSError as e:
+        print(f"    Could not read directory: {e}")
+else:
+    print(f"    Directory does not exist.")
+
+print("\\n--- Listing complete ---")` },
+            "data": { type: "folder", children: { "sample.txt": { type: "file", content: "This is some sample data." } }}
+        };
+        let openFiles = ['main.py'];
+        let activeFile = "main.py";
+        let installedPackages = new Set();
+        let isWorkerReady = false;
+        let isExecuting = false;
+        let monacoEditor;
+        let expandedFolders = new Set(['data']);
+        let creationContext = { path: '', type: 'folder' };
+        let initialLoadComplete = false;
+
+        // --- ICONS ---
+        const icons = {
+            folder: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-blue-400 flex-shrink-0" viewBox="0 0 16 16"><path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zM6.172 2h-3.37a1 1 0 0 0-.996.966l.637 7a1 1 0 0 0 .995.934h10.348a1 1 0 0 0 .995.934l.637-7a1 1 0 0 0-.996-.966H9.828a1 1 0 0 1-.707-.293L8.354 2.854A1 1 0 0 0 7.646 2.56H6.172z"/></svg>`,
+            file: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-gray-400 flex-shrink-0" viewBox="0 0 16 16"><path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/></svg>`,
+            chevronRight: `<svg class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6 4l4 4-4 4z"/></svg>`,
+            chevronDown: `<svg class="flex-shrink-0" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 11L4 7h8l-4 4z"/></svg>`
+        };
+
+        // --- FILE SYSTEM ABSTRACTION LAYER ---
+
+        /**
+         * Low-level class to manage the file system as a JavaScript object.
+         * This class performs the core CRUD operations on the file system structure.
+         */
+        class FileSystemObjectStore {
+            constructor(initialData) {
+                this.fs = JSON.parse(JSON.stringify(initialData)); // Deep copy
+            }
+
+            getNode(path) {
+                if (path === '' || path === null || path === undefined) {
+                    return { type: 'folder', children: this.fs };
+                }
+                const parts = path.split('/');
+                let currentNode = this.fs;
+                for (const part of parts) {
+                    if (!part) continue;
+                    const nextNodeSource = currentNode.children ? currentNode.children : currentNode;
+                    
+                    if (nextNodeSource && typeof nextNodeSource === 'object' && part in nextNodeSource) {
+                        currentNode = nextNodeSource[part];
+                    } else {
+                        return null;
+                    }
+                }
+                return currentNode;
+            }
+
+            getParentAndNode(path) {
+                const parts = path.split('/');
+                const name = parts.pop();
+                const parentPath = parts.join('/');
+                const parent = this.getNode(parentPath);
+                if (!parent || parent.type !== 'folder') {
+                    return { parent: null, node: null, name };
+                }
+                const nodeContainer = parent.children ? parent.children : parent;
+                return { parent: nodeContainer, node: nodeContainer[name] || null, name };
+            }
+
+            writeFile(path, content) {
+                const node = this.getNode(path);
+                if (node && node.type === 'file') {
+                    node.content = content;
+                    return true;
+                }
+                return false;
+            }
+            
+            createNode(parentPath, name, type) {
+                const parentNode = this.getNode(parentPath);
+                if (parentNode && parentNode.type === 'folder') {
+                     const container = parentNode.children || parentNode;
+                     if(container[name]) return false; // Already exists
+                     
+                     container[name] = (type === 'folder')
+                         ? { type: 'folder', children: {} }
+                         : { type: 'file', content: '' };
+                     return true;
+                }
+                return false;
+            }
+
+            deleteNode(path) {
+                const { parent, node, name } = this.getParentAndNode(path);
+                if (parent && node) {
+                    delete parent[name];
+                    return true;
+                }
+                return false;
+            }
+            
+            moveNode(sourcePath, destPath) {
+                const { parent: sourceParent, node: sourceNode, name: sourceName } = this.getParentAndNode(sourcePath);
+                const destNode = this.getNode(destPath);
+
+                if (sourceNode && destNode && destNode.type === 'folder') {
+                    if (!destNode.children) destNode.children = {};
+                    if(destNode.children[sourceName]) return false; // Name conflict
+                    
+                    destNode.children[sourceName] = sourceNode;
+                    delete sourceParent[sourceName];
+                    return true;
+                }
+                return false;
+            }
+
+            renameNode(path, newName) {
+                if (!newName || newName.includes('/')) return false;
+                const { parent, node, name } = this.getParentAndNode(path);
+                if (parent && node && !parent[newName]) {
+                    parent[newName] = node;
+                    delete parent[name];
+                    return true;
+                }
+                return false;
+            }
+
+            getFileSystemAsObject() {
+                return this.fs;
+            }
+        }
+
+
+        /**
+         * High-level API to interact with the file system.
+         * This class handles application logic and uses a storage backend (like FileSystemObjectStore).
+         */
+        class FileSystemManager {
+            constructor(storage) {
+                this.storage = storage;
+            }
+
+            getNode(path) {
+                return this.storage.getNode(path);
+            }
+
+            getFileSystemAsObject() {
+                return this.storage.getFileSystemAsObject();
+            }
+
+            saveFile(path, content) {
+                return this.storage.writeFile(path, content);
+            }
+            
+            createNode(parentPath, name, type) {
+                 if (this.storage.createNode(parentPath, name, type)) {
+                    const newPath = parentPath ? `${parentPath}/${name}` : name;
+                    if (type === 'folder') {
+                        expandedFolders.add(parentPath);
+                    } else {
+                        openFile(newPath);
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            moveNode(sourcePath, destPath) {
+                if (this.storage.moveNode(sourcePath, destPath)) {
+                    const sourceName = sourcePath.split('/').pop();
+                    const newPath = destPath ? `${destPath}/${sourceName}` : sourceName;
+                    
+                    // Update application state
+                    const updatePath = (arr, oldPrefix, newPrefix) => {
+                        return arr.map(p => (p === oldPrefix || p.startsWith(oldPrefix + '/')) ? p.replace(oldPrefix, newPrefix) : p);
+                    };
+            
+                    openFiles = updatePath(openFiles, sourcePath, newPath);
+                    if (activeFile && (activeFile === sourcePath || activeFile.startsWith(sourcePath + '/'))) {
+                        activeFile = activeFile.replace(sourcePath, newPath);
+                    }
+                    
+                    const newExpanded = new Set(updatePath([...expandedFolders], sourcePath, newPath));
+                    expandedFolders = newExpanded;
+
+                    return true;
+                }
+                return false;
+            }
+
+            addUploadedFiles(files, targetPath) {
+                let targetFolder = this.getNode(targetPath);
+                if (!targetFolder || targetFolder.type !== 'folder') return false;
+                
+                targetFolder = targetFolder.children || targetFolder;
+
+                files.forEach(fileData => {
+                    let fileName = fileData.name;
+                    let counter = 1;
+                    while (targetFolder[fileName]) {
+                        const parts = fileData.name.split('.');
+                        const extension = parts.length > 1 ? '.' + parts.pop() : '';
+                        const baseName = parts.join('.');
+                        fileName = `${baseName} (${counter++})${extension}`;
+                    }
+                    targetFolder[fileName] = { type: 'file', content: fileData.content };
+                });
+
+                return true;
+            }
+        }
+
+        const fsStore = new FileSystemObjectStore(initialFileSystem);
+        const fsManager = new FileSystemManager(fsStore);
+
+
+        // --- WEB WORKER ---
+        const worker = new Worker(URL.createObjectURL(new Blob([`
+            importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js");
+            let pyodide;
+            async function setupPyodide(){ 
+                pyodide = await loadPyodide(); 
+                pyodide.setStdout({ batched: (str) => self.postMessage({ type: 'stdout', data: str }) }); 
+                pyodide.setStderr({ batched: (str) => self.postMessage({ type: 'stderr', data: str }) }); 
+                await pyodide.loadPackage("micropip"); 
+                pyodide.runPython(\`
+                    import micropip
+                    import os, sys
+                    async def install(package): 
+                        await micropip.install(package)
+                        return f"Successfully installed {package}"
+                    
+                    def run_script_code(path, code):
+                        full_path = os.path.abspath(path)
+                        script_dir = os.path.dirname(full_path)
+                        original_cwd = os.getcwd()
+                        original_sys_path = list(sys.path)
+                        try:
+                            if os.path.isdir(script_dir):
+                                os.chdir(script_dir)
+                        
+                            if script_dir not in sys.path:
+                                sys.path.insert(0, script_dir)
+                            
+                            script_globals = {
+                                "__name__": "__main__",
+                                "__file__": full_path,
+                            }
+                            exec(code, script_globals)
+                        finally:
+                            os.chdir(original_cwd)
+                            sys.path[:] = original_sys_path
+                \`); 
+                self.postMessage({ type: 'ready' }); 
+            }
+            const pyodideReadyPromise = setupPyodide();
+            const syncFSToPyodide = (fs) => {
+                const rootDir = '/home/pyodide';
+                try { pyodide.FS.mkdirTree(rootDir); } catch(e){}
+
+                function _walk(relativePath, node) {
+                    for (const [name, child] of Object.entries(node)) {
+                        const currentRelativePath = relativePath ? \`\${relativePath}/\${name}\` : name;
+                        const fullPyodidePath = \`\${rootDir}/\${currentRelativePath}\`;
+
+                        if (child.type === 'folder') {
+                            try { pyodide.FS.mkdirTree(fullPyodidePath); } catch(e){}
+                            if (child.children) {
+                               _walk(currentRelativePath, child.children);
+                            }
+                        } else {
+                            const options = (typeof child.content === 'string') ? { encoding: 'utf8' } : {};
+                            pyodide.FS.writeFile(fullPyodidePath, child.content, options);
+                        }
+                    }
+                }
+                _walk('', fs);
+            };
+            self.onmessage = async (event) => { 
+                await pyodideReadyPromise; 
+                let success = true;
+                const { type, payload } = event.data; 
+                try { 
+                    switch(type) { 
+                        case 'syncFS':
+                            const syncDir = '/home/pyodide';
+                            try {
+                                // Ensure directory exists
+                                try { pyodide.FS.stat(syncDir); } catch (e) { pyodide.FS.mkdirTree(syncDir); }
+
+                                const entries = pyodide.FS.readdir(syncDir);
+                                for (const entry of entries) {
+                                    if (entry !== '.' && entry !== '..') {
+                                        const fullPath = \`\${syncDir}/\${entry}\`;
+                                        try {
+                                            const stats = pyodide.FS.stat(fullPath);
+                                            if (pyodide.FS.isDir(stats.mode)) {
+                                                pyodide.FS.rmdirTree(fullPath);
+                                            } else {
+                                                pyodide.FS.unlink(fullPath);
+                                            }
+                                        } catch (e) { /* Ignore deletion errors */ }
+                                    }
+                                }
+                            } catch (e) {
+                                self.postMessage({ type: 'stderr', data: \`FS Sync Error: \${e.message}\` });
+                            }
+                            syncFSToPyodide(payload);
+                            break; 
+                        case 'pip':
+                            const result = await pyodide.globals.get('install')(payload);
+                            self.postMessage({ type: 'stdout', data: result });
+                            break; 
+                        case 'script': 
+                            const { path, code } = payload;
+                            pyodide.globals.get('run_script_code')(path, code); 
+                            break; 
+                        case 'terminal': 
+                            const resultEval = await pyodide.runPythonAsync(payload); 
+                            if (resultEval !== undefined) { 
+                                const reprResult = pyodide.globals.get('repr')(resultEval); 
+                                self.postMessage({ type: 'stdout', data: reprResult }); 
+                            } 
+                            break; 
+                    } 
+                } catch (err) { 
+                    success = false; 
+                    self.postMessage({ type: 'stderr', data: err.toString() }); 
+                } finally { 
+                    self.postMessage({ type: 'complete', commandType: type, packageName: payload, success: success }); 
+                } 
+            };
+        `], { type: 'application/javascript' })));
+
+        // --- UI & DOM ---
+        const fileExplorerDiv = document.getElementById('file-explorer');
+        const statusBar = document.getElementById('status-bar').querySelector('span');
+        const tabBar = document.getElementById('tab-bar');
+        const prompt = '\r\n\x1b[1;32m>>> \x1b[0m';
+        let currentCommand = '';
+        
+        // --- MONACO EDITOR ---
+        require.config({
+            paths: {
+                'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs',
+                'stackframe': 'https://cdnjs.cloudflare.com/ajax/libs/stackframe/1.2.0/stackframe.min',
+                'error-stack-parser': 'https://cdnjs.cloudflare.com/ajax/libs/error-stack-parser/2.0.6/error-stack-parser.min'
+            }
+        });
+        window.MonacoEnvironment = { getWorkerUrl: () => `data:text/javascript;charset=utf-8,${encodeURIComponent(`self.MonacoEnvironment={baseUrl:'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/'};importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/vs/base/worker/workerMain.js');`)}` };
+        
+        require(["vs/editor/editor.main"], () => {
+            monacoEditor = monaco.editor.create(document.getElementById('script-editor'), { theme: 'vs-dark', automaticLayout: true, minimap: { enabled: false } });
+            openFile(activeFile);
+            // monacoEditor.onDidChangeModelContent(saveCurrentFile);
+        });
+
+        // --- UI RENDERING ---
+        function renderTabs() {
+            tabBar.innerHTML = '';
+            openFiles.forEach(path => {
+                const tab = document.createElement('div');
+                tab.className = 'tab' + (path === activeFile ? ' active' : '');
+                const fileName = path.split('/').pop();
+                tab.innerHTML = `<span>${fileName}</span><span class="close-btn">×</span>`;
+                tab.addEventListener('click', () => openFile(path));
+                tab.querySelector('.close-btn').addEventListener('click', (e) => { e.stopPropagation(); closeFile(path); });
+                tabBar.appendChild(tab);
+            });
+        }
+
+        function renderFileExplorer() {
+            fileExplorerDiv.innerHTML = '';
+            const tree = document.createElement('ul');
+            fileExplorerDiv.appendChild(tree);
+            createTree(fsManager.getFileSystemAsObject(), '', tree);
+        }
+        
+        // --- FILE & FOLDER LOGIC ---
+        function createTree(node, path, element) {
+            const children = node.children ? node.children : node;
+            const entries = Object.entries(children).sort(([aName, a], [bName, b]) => (a.type !== b.type) ? (a.type === 'folder' ? -1 : 1) : aName.localeCompare(bName));
+            
+            entries.forEach(([name, child]) => {
+                const currentPath = path ? `${path}/${name}` : name;
+                const li = document.createElement('li');
+                li.dataset.path = currentPath;
+                
+                const row = document.createElement('div');
+                row.className = 'file-row';
+                row.draggable = true;
+                row.addEventListener('dragstart', (e) => { e.stopPropagation(); handleDragStart(e, currentPath); });
+                row.addEventListener('dragover', handleDragOver);
+                row.addEventListener('dragleave', handleDragLeave);
+                li.addEventListener('drop', (e) => { e.stopPropagation(); handleDrop(e, currentPath); });
+
+                if (child.type === 'folder') {
+                    const isExpanded = expandedFolders.has(currentPath);
+                    row.innerHTML = `${isExpanded ? icons.chevronDown : icons.chevronRight}${icons.folder}<span class="truncate">${name}</span>`;
+                    row.addEventListener('click', (e) => { 
+                        e.stopPropagation(); 
+                        creationContext = { path: currentPath, type: 'folder' };
+                        expandedFolders.has(currentPath) ? expandedFolders.delete(currentPath) : expandedFolders.add(currentPath); 
+                        renderFileExplorer(); 
+                    });
+                    li.appendChild(row);
+
+                    if (isExpanded) { 
+                        const ul = document.createElement('ul'); 
+                        li.appendChild(ul); 
+                        createTree(child.children, currentPath, ul); 
+                    }
+                } else {
+                    row.innerHTML = `<span class="w-4 inline-block"></span>${icons.file}<span class="truncate">${name}</span>`;
+                    if (currentPath === activeFile) {
+                        row.classList.add('active');
+                    }
+                    row.addEventListener('click', (e) => { 
+                        e.stopPropagation(); 
+                        creationContext = { path: currentPath, type: 'file' };
+                        openFile(currentPath); 
+                    });
+                    li.appendChild(row);
+                }
+                element.appendChild(li);
+            });
+        }
+
+        function saveCurrentFile() {
+            if (!activeFile || !monacoEditor || !initialLoadComplete) return;
+            const newContent = monacoEditor.getValue();
+            if (fsManager.saveFile(activeFile, newContent)) {
+               worker.postMessage({ type: 'syncFS', payload: fsManager.getFileSystemAsObject() });
+            }
+        }
+
+        function openFile(path) {
+            const node = fsManager.getNode(path);
+            if (!path || !node || node.type !== 'file') return;
+            
+            saveCurrentFile(); 
+            activeFile = path;
+            if (!openFiles.includes(path)) {
+                openFiles.push(path);
+            }
+            
+            if (monacoEditor) {
+                let contentToDisplay = node.content;
+                let isBinary = false;
+                if (node.content instanceof Uint8Array) {
+                    isBinary = true;
+                    contentToDisplay = `// Binary File: ${path}\n// Size: ${node.content.length} bytes\n// This file cannot be edited.`;
+                }
+
+                if (monacoEditor.getValue() !== contentToDisplay) {
+                    monacoEditor.setValue(contentToDisplay);
+                }
+                monacoEditor.updateOptions({ readOnly: isBinary });
+
+                const model = monacoEditor.getModel();
+                if (model) {
+                    let language = 'plaintext';
+                    if (!isBinary) {
+                        if (path.endsWith('.py')) language = 'python';
+                        else if (path.endsWith('.js')) language = 'javascript';
+                        else if (path.endsWith('.html')) language = 'html';
+                        else if (path.endsWith('.css')) language = 'css';
+                    }
+                    monaco.editor.setModelLanguage(model, language);
+                }
+            }
+            renderFileExplorer();
+            renderTabs();
+        }
+
+        function closeFile(path) {
+            const index = openFiles.indexOf(path);
+            if (index > -1) {
+                openFiles.splice(index, 1);
+            }
+
+            if (activeFile === path) {
+                activeFile = openFiles[index] || openFiles[index - 1] || null;
+                if (activeFile) {
+                    openFile(activeFile); 
+                } else {
+                    if (monacoEditor) {
+                        monacoEditor.setValue('');
+                    }
+                    renderFileExplorer();
+                }
+            }
+            renderTabs();
+        }
+
+        function showCreationInput(type) {
+            const actionButtonsContainer = document.getElementById('action-buttons-container');
+            const creationContainer = document.getElementById('creation-input-container');
+            const creationInput = document.getElementById('creation-input');
+            const creationIconSpan = document.getElementById('creation-icon-span');
+            
+            actionButtonsContainer.classList.add('hidden');
+            creationContainer.classList.remove('hidden');
+            creationIconSpan.innerHTML = type === 'folder' ? icons.folder : icons.file;
+            creationInput.value = '';
+            creationInput.focus();
+            
+            const cleanup = () => {
+                creationContainer.classList.add('hidden');
+                actionButtonsContainer.classList.remove('hidden');
+                creationInput.removeEventListener('blur', commit);
+                creationInput.removeEventListener('keydown', handleKey);
+            };
+
+            const commit = () => {
+                const name = creationInput.value.trim();
+                if (!name) { cleanup(); return; }
+
+                let parentPath = '';
+                const contextNode = fsManager.getNode(creationContext.path);
+                if (contextNode.type === 'folder') {
+                    parentPath = creationContext.path;
+                } else {
+                    parentPath = creationContext.path.substring(0, creationContext.path.lastIndexOf('/'));
+                }
+                
+                if (fsManager.createNode(parentPath, name, type)) {
+                    worker.postMessage({ type: 'syncFS', payload: fsManager.getFileSystemAsObject() });
+                    renderFileExplorer();
+                }
+                cleanup();
+            };
+
+            const handleKey = (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); commit(); } 
+                else if (e.key === 'Escape') { cleanup(); }
+            };
+
+            creationInput.addEventListener('blur', commit, { once: true });
+            creationInput.addEventListener('keydown', handleKey);
+        }
+        
+        // --- FILE SYSTEM DRAG & DROP & UPLOAD ---
+        function handleDragStart(e, path) { e.dataTransfer.setData('text/plain', path); e.dataTransfer.effectAllowed = 'move'; }
+        function handleDragOver(e) { e.preventDefault(); e.target.closest('.file-row')?.classList.add('drag-over'); }
+        function handleDragLeave(e) { e.target.closest('.file-row')?.classList.remove('drag-over'); }
+        
+        function handleDrop(e, dropOntoPath) {
+            e.preventDefault();
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            
+            let destinationPath = dropOntoPath;
+            let dropTargetNode = fsManager.getNode(dropOntoPath);
+            if (dropTargetNode && dropTargetNode.type === 'file') {
+                const parts = dropOntoPath.split('/');
+                parts.pop();
+                destinationPath = parts.join('/');
+            }
+
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                uploadFiles(e.dataTransfer.files, destinationPath);
+                return;
+            }
+
+            const sourcePath = e.dataTransfer.getData('text/plain');
+            if (!sourcePath || sourcePath === destinationPath || (destinationPath && destinationPath.startsWith(sourcePath + '/'))) return;
+            
+            if (fsManager.moveNode(sourcePath, destinationPath)) {
+                worker.postMessage({ type: 'syncFS', payload: fsManager.getFileSystemAsObject() });
+                renderFileExplorer();
+                renderTabs();
+            }
+        }
+
+        async function uploadFiles(files, targetPath) {
+            const fileReadPromises = Array.from(files).map(file => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const content = e.target.result; 
+                        const uint8array = new Uint8Array(content);
+                        
+                        let fileContent;
+                        try {
+                            fileContent = new TextDecoder("utf-8", { fatal: true }).decode(uint8array);
+                        } catch (error) {
+                            fileContent = uint8array;
+                        }
+
+                        resolve({ name: file.name, content: fileContent });
+                    };
+                    reader.onerror = (e) => reject(new Error(`Error reading file ${file.name}`));
+                    reader.readAsArrayBuffer(file);
+                });
+            });
+
+            try {
+                const results = await Promise.all(fileReadPromises);
+                
+                if(fsManager.addUploadedFiles(results, targetPath)) {
+                    worker.postMessage({ type: 'syncFS', payload: fsManager.getFileSystemAsObject() });
+                    renderFileExplorer();
+                    statusBar.textContent = `${files.length} file(s) uploaded.`;
+                    setTimeout(() => { if (!isExecuting) statusBar.textContent = "Pyodide: Ready"; }, 2000);
+                } else {
+                    term.write(`\r\n\x1b[1;31mError: Invalid upload location "${targetPath || '/'}".\x1b[0m`);
+                }
+
+            } catch (error) {
+                term.write(`\r\n\x1b[1;31m${error.message}\x1b[0m`);
+            }
+        }
+
+        async function downloadProjectAsZip() {
+            statusBar.textContent = "Zipping project...";
+            saveCurrentFile();
+            const zip = new JSZip();
+            function addFilesToZip(node, currentZipFolder) {
+                 const children = node.children ? node.children : node;
+                for (const [name, child] of Object.entries(children)) {
+                    if (child.type === 'file') {
+                        currentZipFolder.file(name, child.content);
+                    } else if (child.type === 'folder') {
+                        addFilesToZip(child, currentZipFolder.folder(name));
+                    }
+                }
+            }
+            addFilesToZip(fsManager.getFileSystemAsObject(), zip);
+            const content = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(content);
+            link.download = "pyodide-project.zip";
+            link.click();
+            URL.revokeObjectURL(link.href);
+            statusBar.textContent = "Pyodide: Ready";
+        }
+        
+        function runScript(path) {
+            if (isExecuting || !isWorkerReady) return;
+            saveCurrentFile();
+            const node = fsManager.getNode(path);
+             if (node && node.type === 'file') {
+                if (node.content instanceof Uint8Array) {
+                    term.write(`\r\n\x1b[1;31mError: Cannot execute binary file: ${path}\x1b[0m`);
+                    term.write(prompt);
+                    return;
+                }
+                isExecuting = true;
+                setInputsDisabled(true);
+                statusBar.textContent = `Running ${path}...`;
+                term.write(`\r\n\x1b[1;33m--- Running ${path} ---\x1b[0m`);
+                worker.postMessage({ type: 'syncFS', payload: fsManager.getFileSystemAsObject() });
+                 // We need to wait for the sync to complete, this is a simplified approach
+                 // A more robust solution would use acknowledgements from the worker
+                 setTimeout(() => {
+                     worker.postMessage({ type: 'script', payload: { path: path, code: node.content } });
+                 }, 100);
+            }
+        }
+
+        // --- GLOBAL EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => { 
+            renderFileExplorer(); 
+            renderTabs();
+            const initialSyncHandler = (e) => {
+                if(e.data.type === 'ready') {
+                    worker.postMessage({ type: 'syncFS', payload: fsManager.getFileSystemAsObject() });
+                    isWorkerReady = true; 
+                    setInputsDisabled(false); 
+                    statusBar.textContent = "Pyodide: Ready"; 
+                    worker.onmessage = workerMessageHandler;
+                }
+            };
+            worker.onmessage = initialSyncHandler;
+        });
+
+        const workerMessageHandler = (e) => {
+            const { type, data, commandType, packageName, success } = e.data;
+            switch (type) {
+                case 'stdout':
+                    term.write('\r\n' + String(data).replace(/\n/g, '\r\n'));
+                    break;
+                case 'stderr':
+                    term.write(`\r\n\x1b[1;31m${String(data).replace(/\n/g, '\r\n')}\x1b[0m`);
+                    break;
+                case 'complete':
+                    isExecuting = false;
+                    if (commandType === 'pip' && packageName) {
+                        if (success) {
+                            installedPackages.add(packageName);
+                            updatePackageButton(packageName, {isInstalled: true});
+                        } else {
+                            updatePackageButton(packageName, {isError: true});
+                        }
+                    }
+                    setInputsDisabled(false);
+                    statusBar.textContent = "Pyodide: Ready";
+                    if (!initialLoadComplete && commandType === 'syncFS') {
+                        initialLoadComplete = true;
+                        term.reset();
+                    }
+                    term.write(prompt);
+                    break;
+            }
+        };
+
+        document.getElementById('upload-files-btn').addEventListener('click', () => { creationContext = { path: '', type: 'folder' }; document.getElementById('upload-files-input').click()});
+        document.getElementById('upload-files-input').addEventListener('change', (event) => {
+            if (event.target.files.length > 0) {
+                uploadFiles(event.target.files, ''); // Upload to root
+                event.target.value = ''; 
+            }
+        });
+        document.getElementById('new-file-btn').addEventListener('click', () => showCreationInput('file'));
+        document.getElementById('new-folder-btn').addEventListener('click', () => showCreationInput('folder'));
+        document.getElementById('download-project-btn').addEventListener('click', downloadProjectAsZip);
+        document.getElementById('run-script-btn').addEventListener('click', () => runScript(activeFile));
+        document.getElementById('list-files-btn').addEventListener('click', () => runScript('list_files.py'));
+        document.getElementById('tab-run-btn').addEventListener('click', () => runScript(activeFile));
+        document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveCurrentFile(); statusBar.textContent = `Saved ${activeFile}`; setTimeout(() => { if (!isExecuting) statusBar.textContent = "Pyodide: Ready"; }, 1500); }});
+        
+        fileExplorerDiv.addEventListener('click', (e) => {
+            if(e.target === fileExplorerDiv || e.target.tagName === 'UL'){
+                creationContext = { path: '', type: 'folder' };
+            }
+        });
+        fileExplorerDiv.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+        fileExplorerDiv.addEventListener('dragenter', (e) => { if (e.target === fileExplorerDiv) fileExplorerDiv.classList.add('drag-over-root'); });
+        fileExplorerDiv.addEventListener('dragleave', (e) => { if (e.target === fileExplorerDiv || !fileExplorerDiv.contains(e.relatedTarget)) fileExplorerDiv.classList.remove('drag-over-root'); });
+        fileExplorerDiv.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileExplorerDiv.classList.remove('drag-over-root');
+            if (e.target === fileExplorerDiv) handleDrop(e, '');
+        });
+
+        const dragOverlay = document.getElementById('drag-overlay');
+        document.getElementById('close-overlay-btn').addEventListener('click', () => {
+            dragCounter = 0;
+            dragOverlay.classList.add('hidden');
+        });
+
+        let dragCounter = 0;
+        window.addEventListener('dragenter', (e) => {
+            if (e.dataTransfer.types.includes('Files')) {
+                dragCounter++;
+                dragOverlay.classList.remove('hidden');
+            }
+        });
+        window.addEventListener('dragover', (e) => e.preventDefault());
+        window.addEventListener('dragleave', (e) => {
+            if (e.relatedTarget === null || e.relatedTarget === undefined) {
+                dragCounter--;
+                if (dragCounter <= 0) {
+                    dragOverlay.classList.add('hidden');
+                }
+            }
+        });
+        
+        const resetDragState = () => {
+            dragCounter = 0;
+            dragOverlay.classList.add('hidden');
+        };
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            resetDragState();
+        });
+        window.addEventListener('dragend', (e) => {
+            resetDragState();
+        });
+
+
+        const requirementsInput = document.getElementById('requirements-input');
+        document.getElementById('upload-requirements-btn').addEventListener('click', () => requirementsInput.click());
+        requirementsInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const contents = e.target.result;
+                const packages = contents.split('\n').map(p => p.trim()).filter(p => p && !p.startsWith('#'));
+                term.write(`\r\n\x1b[1;33m--- Installing from requirements.txt ---\x1b[0m`);
+                packages.forEach(pkg => { if (pkg) worker.postMessage({ type: 'pip', payload: pkg }); });
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        });
+
+        const vResizer = document.getElementById('resizer'); const editorContainer = document.getElementById('editor-container'); let isVResizing = false;
+        vResizer.addEventListener('mousedown', () => { isVResizing = true; });
+        const hResizer = document.getElementById('sidebar-resizer'); const sidePanel = document.getElementById('side-panel'); let isHResizing = false;
+        hResizer.addEventListener('mousedown', () => { isHResizing = true; });
+        
+        document.addEventListener('mousemove', (e) => { 
+            if (isVResizing) { const newHeight = e.clientY - editorContainer.getBoundingClientRect().top; editorContainer.style.height = `${newHeight}px`; }
+            if (isHResizing) { const newWidth = e.clientX - sidePanel.getBoundingClientRect().left; sidePanel.style.width = `${newWidth}px`; }
+        }); 
+        document.addEventListener('mouseup', () => { isVResizing = false; isHResizing = false; });
+        document.getElementById('toggle-files-btn').addEventListener('click', () => { document.getElementById('side-panel').classList.toggle('hidden'); });
+
+        const term = new Terminal({ cursorBlink: true, theme: { background: '#1e1e1e', foreground: '#cccccc' }, fontSize: 14 });
+        const fitAddon = new FitAddon.FitAddon(); term.loadAddon(fitAddon); term.open(document.getElementById('terminal')); fitAddon.fit(); window.addEventListener('resize', () => fitAddon.fit());
+        
+        term.onData(e => { 
+            if (isExecuting) return; 
+            if (e === '\r') { 
+                const command = currentCommand.trim();
+                if (command) { 
+                    term.write('\r\n'); 
+                    isExecuting = true; 
+                    setInputsDisabled(true); 
+                    if (command.startsWith('pip install ')) {
+                        const pkg = command.substring(12).trim();
+                        statusBar.textContent = `Installing ${pkg}...`;
+                        updatePackageButton(pkg, {isInstalling: true});
+                        worker.postMessage({ type: 'pip', payload: pkg });
+                    } else {
+                        statusBar.textContent = "Running..."; 
+                        worker.postMessage({ type: 'terminal', payload: command }); 
+                    }
+                } else { term.write(prompt); } 
+                currentCommand = ''; 
+            } else if (e === '\x7F') { 
+                if (currentCommand) { term.write('\b \b'); currentCommand = currentCommand.slice(0, -1); } 
+            } else { currentCommand += e; term.write(e); } 
+        });
+
+        // --- PACKAGE MANAGEMENT UI ---
+        const PRESET_PACKAGES = ["numpy", "pandas", "matplotlib", "scikit-learn", "scipy", "seaborn", "statsmodels", "requests", "cowsay", "pyreadr"];
+        setInputsDisabled(true); const packageButtonsContainer = document.getElementById('package-buttons'); PRESET_PACKAGES.forEach(pkg => packageButtonsContainer.appendChild(createPackageButton(pkg)));
+        document.getElementById('package-installer-container').addEventListener('click', (e) => { if (isExecuting || !isWorkerReady || !e.target.matches('.package-btn')) return; const packageName = e.target.dataset.package; if (e.target.disabled || installedPackages.has(packageName)) return; isExecuting = true; setInputsDisabled(true); statusBar.textContent = `Installing ${packageName}...`; updatePackageButton(packageName, {isInstalling: true}); worker.postMessage({ type: 'pip', payload: packageName }); });
+        document.getElementById('pypi-search-input').addEventListener('keyup', e => e.key === 'Enter' && searchPyPI());
+        function setInputsDisabled(disabled) { document.querySelectorAll('.package-btn, #pypi-search-input, #run-script-btn, #new-file-btn, #new-folder-btn, #upload-files-btn, #upload-requirements-btn, #tab-run-btn').forEach(el => { if (!(el.matches('.package-btn') && installedPackages.has(el.dataset.package))) el.disabled = disabled; }); if (monacoEditor) monacoEditor.updateOptions({ readOnly: disabled }); }
+        function createPackageButton(pkg) { const btn = document.createElement('button'); btn.className = "package-btn px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-md transition-colors"; btn.textContent = pkg; btn.dataset.package = pkg; return btn; }
+        function updatePackageButton(packageName, {isInstalling = false, isInstalled = false, isError = false}) { const btn = document.querySelector(`[data-package="${packageName}"]`); if (!btn) return; if (isInstalling) { btn.textContent = "Installing..."; btn.disabled = true; } else if (isInstalled) { btn.textContent = `${packageName} ✓`; btn.classList.add('installed'); btn.disabled = true; } else if (isError) { btn.textContent = packageName; btn.disabled = false; btn.classList.remove('installed'); } }
+        async function searchPyPI() { const searchInput = document.getElementById('pypi-search-input'); const query = searchInput.value.trim(); if (!query) return; const resultsContainer = document.getElementById('pypi-search-results'); resultsContainer.textContent = 'Searching...'; try { const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://pypi.org/search/?q=${query}`)}`); const html = await response.text(); const doc = new DOMParser().parseFromString(html, 'text/html'); const packages = [...doc.querySelectorAll('.package-snippet__name')].map(el => el.textContent.trim()); resultsContainer.innerHTML = ''; if (packages.length === 0) { resultsContainer.textContent = 'No results.'; return; } packages.slice(0, 10).forEach(pkg => { if (!document.querySelector(`[data-package="${pkg}"]`)) resultsContainer.appendChild(createPackageButton(pkg)); }); } catch (error) { resultsContainer.textContent = 'Search error.'; } }
+    </script>
+</body>
+</html>
+
+
+
+

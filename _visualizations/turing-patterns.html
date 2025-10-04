@@ -289,7 +289,21 @@
             .preset-container { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;}
         }
     </style>
+
+    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
+    {%- assign page_title = "Turing Patterns" -%}
+    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
+    {%- if viz_data -%}
+      {% include social-meta.html
+          title=viz_data.title
+          description=viz_data.description
+          thumbnail=viz_data.thumbnail
+          full_url=viz_data.full_url
+      %}
+    {%- endif -%}
+    {% comment %} --- End Include --- {% endcomment %}
 </head>
+
 <body>
     <header>
         <h1 class="text-2xl font-bold text-gray-200 tracking-wider opacity-90">Reaction-Diffusion 3D</h1>

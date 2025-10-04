@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hodgkin-Huxley Neuron Model Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            border-radius: 12px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            color: #d1d5db;
+        }
+         .control-group label .param-name {
+            font-weight: 500;
+        }
+        .control-group label .param-value {
+            font-family: monospace;
+            background-color: #374151;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #f9fafb;
+        }
+        .sim-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .sim-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .sim-button:disabled {
+            background-color: #374151;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .sim-button.active {
+             background-color: #4f46e5;
+             box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            opacity: 0.8;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover { opacity: 1; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .info-tab {
+             padding: 8px 16px;
+             cursor: pointer;
+             border-bottom: 2px solid transparent;
+             transition: all 0.2s ease-in-out;
+             color: #9ca3af;
+        }
+        .info-tab.active {
+            color: #c7d2fe;
+            border-bottom-color: #6366f1;
+        }
+        .info-content { display: none; }
+        .info-content.active { display: block; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(17, 24, 39, 0.1); }
+        ::-webkit-scrollbar-thumb { background-color: #4f46e5; border-radius: 10px; }
+        .hidden { display: none !important; }
+
+    </style>
+</head>
+<body class="p-2 sm:p-4">
+    <div class="max-w-screen-2xl mx-auto">
+        <header class="ui-panel p-4 mb-4 text-center">
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-200 tracking-wider">Hodgkin-Huxley Simulator</h1>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Left Column: Chart and Live Data -->
+            <div class="lg:col-span-2 ui-panel p-4 flex flex-col min-h-[75vh]">
+                <div id="chart-container" class="relative flex-grow">
+                    <canvas id="membrane-potential-chart"></canvas>
+                </div>
+                <div class="mt-4 border-t border-gray-700 pt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center font-mono">
+                    <div>
+                        <p class="text-sm text-gray-400">Time (ms)</p>
+                        <p id="time-display" class="text-xl font-bold">0.00</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400">Potential (mV)</p>
+                        <p id="vm-display" class="text-xl font-bold text-indigo-400">-65.00</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400">Current (μA/cm²)</p>
+                        <p id="current-display" class="text-xl font-bold text-amber-400">0.00</p>
+                    </div>
+                     <div>
+                        <p class="text-sm text-gray-400">Status</p>
+                        <p id="status-display" class="text-xl font-bold text-green-400">Ready</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Controls and Info -->
+            <div id="controls-panel-container" class="lg:col-span-1 ui-panel p-4 flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
+                <!-- Simulation Controls -->
+                <div class="p-4 bg-gray-900 rounded-lg">
+                    <h3 class="font-bold text-lg mb-3 text-center">Simulation Control</h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="start-button" class="sim-button">Start</button>
+                        <button id="pause-button" class="sim-button" disabled>Pause</button>
+                        <button id="reset-button" class="sim-button">Reset</button>
+                    </div>
+                </div>
+
+                <!-- Stimulus Control -->
+                <div class="p-4 bg-gray-900 rounded-lg">
+                     <h3 class="font-bold text-lg mb-3">Manual Stimulus Current</h3>
+                     <div class="control-group">
+                        <label for="stimulus-current-slider">
+                           <span class="param-name">I<sub class="text-xs">inj</sub></span>
+                           <span class="param-value"><span id="stimulus-current-value">0.00</span> μA/cm²</span>
+                        </label>
+                        <input id="stimulus-current-slider" type="range" min="0" max="50" step="0.1" value="0" class="w-full">
+                    </div>
+                </div>
+
+                <!-- XOR Logic Gate -->
+                <div class="p-4 bg-gray-900 rounded-lg">
+                     <h3 class="font-bold text-lg mb-3">XOR Logic Gate</h3>
+                     <p class="text-xs text-gray-400 mb-3">Simulate the neuron's response as part of an XOR circuit. The neuron fires if one, but not both, inputs are active.</p>
+                     <div class="grid grid-cols-2 gap-2">
+                        <button id="xor-input-a" class="sim-button">Input A: 0</button>
+                        <button id="xor-input-b" class="sim-button">Input B: 0</button>
+                     </div>
+                </div>
+
+                <!-- Parameter Presets -->
+                 <div class="p-4 bg-gray-900 rounded-lg">
+                    <h3 class="font-bold text-lg mb-3">Parameter Presets</h3>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <button data-preset="default" class="sim-button preset-button active">Default</button>
+                        <button data-preset="tonic" class="sim-button preset-button">Tonic Spiking</button>
+                        <button data-preset="phasic" class="sim-button preset-button">Phasic Bursting</button>
+                        <button data-preset="custom" class="sim-button preset-button">Custom</button>
+                    </div>
+                </div>
+
+                <!-- Info/Parameters Tabs -->
+                <div>
+                     <div class="border-b border-gray-700 flex">
+                        <button id="tab-params" class="info-tab active">Parameters</button>
+                        <button id="tab-info" class="info-tab">Model Info</button>
+                    </div>
+                    <div id="content-params" class="info-content active p-4 bg-gray-900 rounded-b-lg space-y-3">
+                        <!-- Content will be generated by JS -->
+                    </div>
+                    <div id="content-info" class="info-content p-4 bg-gray-900 rounded-b-lg space-y-3 text-sm text-gray-300">
+                        <p>The Hodgkin-Huxley model is a mathematical model that describes how action potentials in neurons are initiated and propagated. It is a set of nonlinear differential equations that approximates the electrical characteristics of excitable cells such as neurons and cardiac myocytes.</p>
+                        <p>It consists of four differential equations describing the state of the membrane potential (V) and three gating variables (m, h, n).</p>
+                        <h4 class="font-bold pt-2 text-gray-200">Key Equations:</h4>
+                        <p class="font-mono text-xs bg-gray-800 p-2 rounded">I = C<sub>m</sub> dV/dt + g<sub>K</sub>n⁴(V-E<sub>K</sub>) + g<sub>Na</sub>m³h(V-E<sub>Na</sub>) + g<sub>l</sub>(V-E<sub>l</sub>)</p>
+                        <p>The gating variables are governed by first-order kinetics defined by voltage-dependent rate constants (α and β).</p>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+<script type="module">
+    // --- 2D Chart Setup ---
+    const ctx = document.getElementById('membrane-potential-chart').getContext('2d');
+    const membranePotentialChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Membrane Potential (mV)',
+                data: [],
+                borderColor: '#818cf8',
+                backgroundColor: 'rgba(129, 140, 248, 0.2)',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            scales: {
+                x: {
+                    type: 'linear',
+                    title: { display: true, text: 'Time (ms)', color: '#9ca3af' },
+                    ticks: { color: '#9ca3af' },
+                    grid: { color: 'rgba(75, 85, 99, 0.5)' }
+                },
+                y: {
+                    title: { display: true, text: 'Membrane Potential (mV)', color: '#9ca3af' },
+                    min: -90,
+                    max: 50,
+                    ticks: { color: '#9ca3af' },
+                    grid: { color: 'rgba(75, 85, 99, 0.5)' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            }
+        }
+    });
+    
+    // --- Hodgkin-Huxley Model ---
+    class HodgkinHuxley {
+        constructor() {
+            this.presets = {
+                default: { Cm: 1.0, g_Na: 120.0, g_K: 36.0, g_L: 0.3, E_Na: 50.0, E_K: -77.0, E_L: -54.387, },
+                tonic: { Cm: 1.0, g_Na: 120.0, g_K: 20.0, g_L: 0.3, E_Na: 55.0, E_K: -90.0, E_L: -65.0, },
+                phasic: { Cm: 1.0, g_Na: 100.0, g_K: 10.0, g_L: 0.2, E_Na: 50.0, E_K: -80.0, E_L: -60.0, }
+            };
+            this.params = { ...this.presets.default };
+            this.reset();
+        }
+
+        reset() {
+            this.time = 0;
+            this.V = -65.0;
+            this.n = this.alpha_n(this.V) / (this.alpha_n(this.V) + this.beta_n(this.V));
+            this.m = this.alpha_m(this.V) / (this.alpha_m(this.V) + this.beta_m(this.V));
+            this.h = this.alpha_h(this.V) / (this.alpha_h(this.V) + this.beta_h(this.V));
+            this.I_inj = 0;
+        }
+
+        loadPreset(presetName) {
+            if (this.presets[presetName]) {
+                this.params = { ...this.presets[presetName] };
+                this.reset(); return true;
+            } return false;
+        }
+
+        alpha_n(V) { return 0.01 * (V + 55.0) / (1.0 - Math.exp(-(V + 55.0) / 10.0)); }
+        beta_n(V) { return 0.125 * Math.exp(-(V + 65.0) / 80.0); }
+        alpha_m(V) { return 0.1 * (V + 40.0) / (1.0 - Math.exp(-(V + 40.0) / 10.0)); }
+        beta_m(V) { return 4.0 * Math.exp(-(V + 65.0) / 18.0); }
+        alpha_h(V) { return 0.07 * Math.exp(-(V + 65.0) / 20.0); }
+        beta_h(V) { return 1.0 / (1.0 + Math.exp(-(V + 35.0) / 10.0)); }
+
+        I_Na(V, m, h) { return this.params.g_Na * m ** 3 * h * (V - this.params.E_Na); }
+        I_K(V, n) { return this.params.g_K * n ** 4 * (V - this.params.E_K); }
+        I_L(V) { return this.params.g_L * (V - this.params.E_L); }
+
+        step(dt) {
+            const V = this.V, n = this.n, m = this.m, h = this.h;
+            const dVdt = (this.I_inj - this.I_Na(V, m, h) - this.I_K(V, n) - this.I_L(V)) / this.params.Cm;
+            this.V += dt * dVdt;
+            this.n += dt * (this.alpha_n(V) * (1.0 - n) - this.beta_n(V) * n);
+            this.m += dt * (this.alpha_m(V) * (1.0 - m) - this.beta_m(V) * m);
+            this.h += dt * (this.alpha_h(V) * (1.0 - h) - this.beta_h(V) * h);
+            this.time += dt;
+        }
+    }
+
+    // --- Simulation Logic ---
+    let simState = {
+        isRunning: false, animationFrameId: null, lastFrameTime: 0, dt: 0.025,
+        updateInterval: 10, lastUpdateTime: 0, maxDataPoints: 4000
+    };
+    let xorState = { A: 0, B: 0 };
+    const FIRING_CURRENT = 10.0;
+    const neuron = new HodgkinHuxley();
+
+    function simulationLoop(timestamp) {
+        if (!simState.isRunning) return;
+        const elapsed = timestamp - simState.lastFrameTime;
+        simState.lastFrameTime = timestamp;
+        for (let i = 0; i < Math.min(elapsed, 100); i += simState.dt) {
+            neuron.step(simState.dt);
+        }
+        if (neuron.time - simState.lastUpdateTime >= simState.updateInterval) {
+            updateUI();
+            simState.lastUpdateTime = neuron.time;
+        }
+        simState.animationFrameId = requestAnimationFrame(simulationLoop);
+    }
+
+    function startSimulation() {
+        if (simState.isRunning) return;
+        simState.isRunning = true;
+        simState.lastFrameTime = performance.now();
+        document.getElementById('status-display').textContent = 'Running';
+        document.getElementById('status-display').style.color = '#f59e0b';
+        document.getElementById('start-button').disabled = true;
+        document.getElementById('pause-button').disabled = false;
+        simulationLoop();
+    }
+
+    function pauseSimulation() {
+        if (!simState.isRunning) return;
+        simState.isRunning = false;
+        cancelAnimationFrame(simState.animationFrameId);
+        document.getElementById('status-display').textContent = 'Paused';
+        document.getElementById('status-display').style.color = '#60a5fa';
+        document.getElementById('start-button').disabled = false;
+        document.getElementById('pause-button').disabled = true;
+    }
+
+    function resetSimulation() {
+        pauseSimulation();
+        neuron.reset();
+        membranePotentialChart.data.datasets[0].data = [];
+        membranePotentialChart.update();
+        updateUI();
+        document.getElementById('status-display').textContent = 'Ready';
+        document.getElementById('status-display').style.color = '#34d399';
+    }
+
+    // --- UI Update & Event Listeners ---
+    const timeDisplay = document.getElementById('time-display');
+    const vmDisplay = document.getElementById('vm-display');
+    const currentDisplay = document.getElementById('current-display');
+
+    function updateUI() {
+        timeDisplay.textContent = neuron.time.toFixed(2);
+        vmDisplay.textContent = neuron.V.toFixed(2);
+        currentDisplay.textContent = neuron.I_inj.toFixed(2);
+        
+        const data = membranePotentialChart.data.datasets[0].data;
+        data.push({ x: neuron.time, y: neuron.V });
+        if (data.length > simState.maxDataPoints) data.shift();
+        membranePotentialChart.update('none');
+    }
+
+    function setupControls() {
+        // Sim controls
+        document.getElementById('start-button').addEventListener('click', startSimulation);
+        document.getElementById('pause-button').addEventListener('click', pauseSimulation);
+        document.getElementById('reset-button').addEventListener('click', resetSimulation);
+
+        // Stimulus slider
+        const currentSlider = document.getElementById('stimulus-current-slider');
+        const currentValue = document.getElementById('stimulus-current-value');
+        currentSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            neuron.I_inj = val;
+            currentValue.textContent = val.toFixed(2);
+        });
+
+        // XOR Controls
+        const xorAButton = document.getElementById('xor-input-a');
+        const xorBButton = document.getElementById('xor-input-b');
+        xorAButton.addEventListener('click', () => {
+            xorState.A = 1 - xorState.A; applyXORStimulus();
+        });
+        xorBButton.addEventListener('click', () => {
+            xorState.B = 1 - xorState.B; applyXORStimulus();
+        });
+
+        // Tabs
+        document.querySelectorAll('.info-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.info-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.info-content').forEach(c => c.classList.remove('active'));
+                document.getElementById('content-' + tab.id.split('-')[1]).classList.add('active');
+            });
+        });
+
+        // Presets
+        document.querySelectorAll('.preset-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const preset = e.target.dataset.preset;
+                document.querySelectorAll('.preset-button').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                if (preset !== 'custom') {
+                    neuron.loadPreset(preset);
+                    resetSimulation();
+                    generateParamControls();
+                }
+            })
+        });
+
+        generateParamControls();
+    }
+
+    function applyXORStimulus() {
+        const xorAButton = document.getElementById('xor-input-a');
+        const xorBButton = document.getElementById('xor-input-b');
+        const currentSlider = document.getElementById('stimulus-current-slider');
+        const currentValue = document.getElementById('stimulus-current-value');
+
+        xorAButton.textContent = `Input A: ${xorState.A}`;
+        xorBButton.textContent = `Input B: ${xorState.B}`;
+        xorAButton.classList.toggle('active', xorState.A === 1);
+        xorBButton.classList.toggle('active', xorState.B === 1);
+
+        const shouldFire = xorState.A !== xorState.B;
+        const targetCurrent = shouldFire ? FIRING_CURRENT : 0.0;
+        neuron.I_inj = targetCurrent;
+
+        currentSlider.value = targetCurrent;
+        currentValue.textContent = targetCurrent.toFixed(2);
+    }
+
+    function generateParamControls() {
+        const container = document.getElementById('content-params');
+        container.innerHTML = '';
+        Object.keys(neuron.params).forEach(key => {
+            const min = neuron.params[key] * 0.1;
+            const max = neuron.params[key] * 3.0;
+            const step = (max - min) / 100;
+
+            const div = document.createElement('div');
+            div.className = 'control-group';
+            div.innerHTML = `
+                <label for="${key}-slider">
+                   <span class="param-name">${key}</span>
+                   <span class="param-value"><span id="${key}-value">${neuron.params[key].toFixed(3)}</span></span>
+                </label>
+                <input id="${key}-slider" type="range" min="${min}" max="${max}" step="${step}" value="${neuron.params[key]}" class="w-full">
+            `;
+            container.appendChild(div);
+
+            const slider = document.getElementById(`${key}-slider`);
+            slider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                neuron.params[key] = value;
+                document.getElementById(`${key}-value`).textContent = value.toFixed(3);
+                document.querySelectorAll('.preset-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelector('.preset-button[data-preset="custom"]').classList.add('active');
+            });
+        });
+    }
+
+    // --- Initial Setup ---
+    window.onload = () => {
+        setupControls();
+        resetSimulation();
+    };
+</script>
+</body>
+</html>
+

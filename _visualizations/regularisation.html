@@ -28,7 +28,21 @@
         .btn { background-color: #312e81; border: 1px solid #4338ca; transition: all 0.2s ease-in-out; }
         .btn:hover { background-color: #4338ca; transform: translateY(-1px); }
     </style>
+
+    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
+    {%- assign page_title = "Regularisation" -%}
+    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
+    {%- if viz_data -%}
+      {% include social-meta.html
+          title=viz_data.title
+          description=viz_data.description
+          thumbnail=viz_data.thumbnail
+          full_url=viz_data.full_url
+      %}
+    {%- endif -%}
+    {% comment %} --- End Include --- {% endcomment %}
 </head>
+
 <body class="bg-gray-900 text-gray-200">
 
     <div id="loading-overlay" class="fixed top-0 left-0 w-full h-full bg-gray-900 bg-opacity-70 flex justify-center items-center z-50 opacity-0 transition-opacity duration-300 pointer-events-none">

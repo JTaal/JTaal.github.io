@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Markov Chain Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --panel-bg: rgba(17, 24, 39, 0.9);
+            --border-color: rgba(55, 65, 81, 0.7);
+            --text-light: #e5e7eb;
+            --text-dark: #9ca3af;
+            --primary-accent: #4f46e5;
+            --primary-hover: #4338ca;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712;
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .ui-panel {
+            background-color: var(--panel-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease-in-out;
+        }
+        header {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 20;
+            transition: opacity 0.4s;
+        }
+        main {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow: hidden;
+            position: relative;
+        }
+        #visualization-panel {
+            position: absolute;
+            top: 1.5rem; left: 1.5rem; right: 1.5rem; bottom: 1.5rem;
+            border-radius: 12px;
+            padding: 0;
+            overflow: hidden;
+            transition: all 0.4s;
+        }
+        #visualization-canvas { display: block; width: 100%; height: 100%; }
+        #info-panel {
+            position: absolute; top: 1.5rem; left: 1.5rem;
+            width: 320px; max-width: 90vw;
+            z-index: 10; cursor: pointer; overflow: hidden;
+            max-height: 58px;
+            transition: all 0.4s ease-in-out;
+        }
+        #info-panel.expanded {
+             max-height: calc(100% - 3rem); cursor: default; overflow-y: auto;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        
+        #controls-container {
+            position: absolute; bottom: 1.5rem; left: 50%;
+            transform: translateX(-50%); z-index: 10;
+            display: flex; gap: 1rem; padding: 1rem;
+            max-width: calc(100% - 3rem);
+            width: max-content;
+        }
+
+        .control-button, .preset-button, .shape-button, .toggle-vis-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white; 
+            padding: 8px 12px; /* Adjusted padding */
+            font-size: 0.875rem; /* Set font size */
+            border-radius: 8px; cursor: pointer;
+            transition: all 0.3s; font-weight: 500; white-space: nowrap; flex-shrink: 0;
+            text-align: center;
+        }
+        .control-button:hover, .preset-button:hover, .shape-button:hover, .toggle-vis-button:hover { background-color: var(--primary-hover); transform: translateY(-2px); }
+        .control-button:disabled { background-color: #374151; cursor: not-allowed; transform: none; color: #9ca3af; }
+        .control-button.active, .preset-button.active, .shape-button.active, .toggle-vis-button.active { background-color: var(--primary-accent); box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); }
+        
+        #settings-panel {
+            position: absolute; top: 1.5rem; right: 1.5rem; width: 400px;
+            max-width: 90vw; height: calc(100% - 3rem); z-index: 15;
+            transform: translateX(calc(100% + 2rem));
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow-y: auto;
+        }
+        #settings-panel.open { transform: translateX(0); }
+        textarea {
+            background-color: #1f2937; border: 1px solid #4b5563;
+            border-radius: 6px; color: white; padding: 0.75rem;
+            min-height: 150px; resize: vertical; font-family: monospace;
+        }
+        .stats-table { width: 100%; margin-top: 1rem; border-collapse: collapse; }
+        .stats-table th, .stats-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #374151; }
+        .stats-table th { color: var(--text-dark); font-weight: 500; }
+        
+        .scrollable-menu {
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-accent) transparent;
+        }
+        .scrollable-menu::-webkit-scrollbar { height: 8px; }
+        .scrollable-menu::-webkit-scrollbar-track { background: transparent; }
+        .scrollable-menu::-webkit-scrollbar-thumb {
+            background-color: var(--primary-accent);
+            border-radius: 4px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+        .scrollable-menu::-webkit-scrollbar-thumb:hover { background-color: var(--primary-hover); }
+
+        input[type="range"] {
+             -webkit-appearance: none; appearance: none;
+             height: 4px; background: #4b5563; border-radius: 2px; outline: none; opacity: 0.8; transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 18px; height: 18px; background: #818cf8; cursor: pointer; border-radius: 50%;
+        }
+        input[type="color"] {
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            width: 40px; height: 28px; background-color: transparent; border: none; cursor: pointer;
+        }
+        input[type="color"]::-webkit-color-swatch { border-radius: 6px; border: 1px solid var(--border-color); }
+        input[type="color"]::-moz-color-swatch { border-radius: 6px; border: 1px solid var(--border-color); }
+
+        /* Focus View Styles */
+        body.focus-view-active header,
+        body.focus-view-active #info-panel,
+        body.focus-view-active #controls-container {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        body.focus-view-active main {
+            padding: 0;
+        }
+        body.focus-view-active #visualization-panel {
+            top: 0; left: 0; right: 0; bottom: 0; border-radius: 0;
+        }
+        #toggle-view-button {
+            z-index: 25;
+        }
+        body.focus-view-active #toggle-view-button {
+            position: fixed;
+            top: 1rem;
+            right: 1.5rem;
+        }
+
+        @media (max-width: 768px) { #info-panel { width: calc(100% - 3rem); } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-2xl font-bold text-gray-200 tracking-wider opacity-90">3D Markov Chain Simulator</h1>
+        <div class="flex items-center gap-4">
+            <button id="toggle-view-button" class="control-button" title="Toggle Focus View">
+                <svg id="view-on-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                <svg id="view-off-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+            </button>
+            <button id="settings-button" class="control-button" title="Settings & Presets">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <div id="visualization-panel">
+            <canvas id="visualization-canvas"></canvas>
+        </div>
+        
+        <div id="info-panel" class="ui-panel">
+            <div id="info-header">
+                <h2 class="text-xl font-bold text-indigo-400">Simulation Stats</h2>
+                <div id="toggle-icon" class="text-indigo-400">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+            </div>
+            <div id="info-content" class="pt-4 space-y-4">
+                <div class="flex justify-between text-gray-300">
+                    <span>Current State:</span>
+                    <span id="current-state" class="font-bold">None</span>
+                </div>
+                <div class="flex justify-between text-gray-300">
+                    <span>Total Steps:</span>
+                    <span id="total-steps" class="font-bold">0</span>
+                </div>
+                 <button id="reset-button" class="control-button w-full mt-2" disabled>Reset Simulation</button>
+                <table id="stats-table" class="stats-table">
+                    <thead><tr><th>State</th><th>Visits</th><th>%</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="controls-container" class="ui-panel scrollable-menu">
+             <div class="flex items-center gap-2">
+                <button id="start-pause-button" class="control-button" disabled>Start</button>
+                <button id="step-button" class="control-button" disabled>Step</button>
+             </div>
+             <div class="flex items-center gap-2">
+                <label for="speed-slider" class="text-sm whitespace-nowrap">Speed: <span id="speed-value">1.0</span></label>
+                <input type="range" id="speed-slider" min="0.1" max="10" step="0.1" value="1" class="w-24">
+             </div>
+        </div>
+
+        <div id="settings-panel" class="ui-panel">
+             <div class="flex flex-col h-full">
+                <h2 class="text-xl font-bold text-indigo-400 mb-2 flex-shrink-0">Visibility</h2>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button id="toggle-state-names" class="toggle-vis-button active">Names</button>
+                    <button id="toggle-state-percentages" class="toggle-vis-button active">State %</button>
+                    <button id="toggle-connections" class="toggle-vis-button active">Connections</button>
+                    <button id="toggle-transition-percentages" class="toggle-vis-button active">Transition %</button>
+                </div>
+                 <hr class="border-gray-700 mb-4">
+                 <h2 class="text-xl font-bold text-indigo-400 mb-2 flex-shrink-0">Display Settings</h2>
+                <div class="space-y-4 mb-4">
+                    <div>
+                        <label for="label-size-slider" class="text-sm font-medium self-start w-full flex justify-between">
+                            <span>Label Size:</span>
+                            <span id="label-size-value">0.1</span>
+                        </label>
+                        <input id="label-size-slider" type="range" min="0.1" max="2.0" step="0.1" value="0.1" class="w-full">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm font-medium">Active State Halo</label>
+                        <button id="toggle-halo" class="toggle-vis-button active text-xs py-1 px-3">On</button>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm font-medium">Halo Color</label>
+                        <input type="color" id="halo-color-picker" value="#4f46e5">
+                    </div>
+                </div>
+                <hr class="border-gray-700 mb-4">
+                 <h2 class="text-xl font-bold text-indigo-400 mb-2 flex-shrink-0">State Representation</h2>
+                 <div id="shape-selector" class="grid grid-cols-2 gap-2 mb-4">
+                    <button class="shape-button" data-shape="sphere">Sphere</button>
+                    <button class="shape-button" data-shape="cube">Cube</button>
+                    <button class="shape-button" data-shape="torus">Torus</button>
+                    <button class="shape-button" data-shape="icosahedron">Icosahedron</button>
+                 </div>
+                 <hr class="border-gray-700 mb-4">
+                <div class="flex flex-col flex-grow">
+                    <h2 class="text-xl font-bold text-indigo-400 mb-2 flex-shrink-0">Custom Matrix (JSON)</h2>
+                    <p class="text-sm text-gray-400 mb-3 flex-shrink-0">Define states, a transition matrix, and an initial state.</p>
+                    <textarea id="matrix-input" class="w-full flex-grow"></textarea>
+                    <button id="load-button" class="control-button mt-4 flex-shrink-0">Load / Validate Custom Matrix</button>
+                </div>
+                <hr class="border-gray-700 my-4">
+                <div class="flex-shrink-0">
+                    <h2 class="text-xl font-bold text-indigo-400 mb-2">Load a Preset</h2>
+                    <div id="presets-container" class="grid grid-cols-2 gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+// --- UI ELEMENTS ---
+const matrixInput = document.getElementById('matrix-input');
+const loadButton = document.getElementById('load-button');
+const resetButton = document.getElementById('reset-button');
+const startPauseButton = document.getElementById('start-pause-button');
+const stepButton = document.getElementById('step-button');
+const speedSlider = document.getElementById('speed-slider');
+const speedValue = document.getElementById('speed-value');
+const currentStateDisplay = document.getElementById('current-state');
+const totalStepsDisplay = document.getElementById('total-steps');
+const statsTableBody = document.querySelector('#stats-table tbody');
+const visCanvas = document.getElementById('visualization-canvas');
+const presetsContainer = document.getElementById('presets-container');
+const settingsButton = document.getElementById('settings-button');
+const settingsPanel = document.getElementById('settings-panel');
+const infoPanel = document.getElementById('info-panel');
+const labelSizeSlider = document.getElementById('label-size-slider');
+const labelSizeValue = document.getElementById('label-size-value');
+const shapeSelector = document.getElementById('shape-selector');
+const toggleViewButton = document.getElementById('toggle-view-button');
+const viewOnIcon = document.getElementById('view-on-icon');
+const viewOffIcon = document.getElementById('view-off-icon');
+const toggleStateNamesBtn = document.getElementById('toggle-state-names');
+const toggleStatePercentagesBtn = document.getElementById('toggle-state-percentages');
+const toggleTransitionPercentagesBtn = document.getElementById('toggle-transition-percentages');
+const toggleConnectionsBtn = document.getElementById('toggle-connections');
+const toggleHaloBtn = document.getElementById('toggle-halo');
+const haloColorPicker = document.getElementById('halo-color-picker');
+
+// --- SIMULATION STATE ---
+let simState = {
+    states: [], matrix: {}, initialState: null, currentState: null,
+    visitCounts: {}, totalSteps: 0, isSimulating: false,
+    intervalId: null, speed: 1.0, isValid: false,
+    labelSize: 0.1,
+    nodeShape: 'sphere',
+    showStateNames: true,
+    showStatePercentages: true,
+    showTransitionPercentages: true,
+    showConnections: true,
+    showHalo: true,
+    haloColor: '#4f46e5',
+};
+
+// --- 3D VISUALIZATION STATE ---
+let three = {
+    scene: null, camera: null, renderer: null, controls: null,
+    stateObjects: {}, clock: new THREE.Clock(),
+    transitionLabels: [],
+    transitionMeshes: [],
+    lowVisitColor: new THREE.Color(0x6b7280),
+    highVisitColor: new THREE.Color(0xfacc15),
+};
+
+// --- PRESET DATA ---
+const presets = {
+    weather: {
+      title: "Weather",
+      data: { "states": ["Sunny", "Cloudy", "Rainy"], "matrix": { "Sunny": { "Sunny": 0.6, "Cloudy": 0.3, "Rainy": 0.1 }, "Cloudy": { "Sunny": 0.4, "Cloudy": 0.4, "Rainy": 0.2 }, "Rainy": { "Sunny": 0.2, "Cloudy": 0.5, "Rainy": 0.3 } }, "initialState": "Sunny" }
+    },
+    brandLoyalty: {
+        title: "Brand Loyalty",
+        data: { "states": ["Brand A", "Brand B", "Other"], "matrix": { "Brand A": { "Brand A": 0.8, "Brand B": 0.1, "Other": 0.1 }, "Brand B": { "Brand A": 0.05, "Brand B": 0.85, "Other": 0.1 }, "Other": { "Brand A": 0.2, "Brand B": 0.2, "Other": 0.6 } }, "initialState": "Brand A" }
+    },
+    gamblersRuin: {
+        title: "Gambler's Ruin",
+        data: { "states": ["$0 (Ruin)", "$1", "$2", "$3", "$4 (Win)"], "matrix": { "$0 (Ruin)": { "$0 (Ruin)": 1.0, "$1": 0, "$2": 0, "$3": 0, "$4 (Win)": 0 }, "$1": { "$0 (Ruin)": 0.5, "$1": 0, "$2": 0.5, "$3": 0, "$4 (Win)": 0 }, "$2": { "$0 (Ruin)": 0, "$1": 0.5, "$2": 0, "$3": 0.5, "$4 (Win)": 0 }, "$3": { "$0 (Ruin)": 0, "$1": 0, "$2": 0.5, "$3": 0, "$4 (Win)": 0.5 }, "$4 (Win)": { "$0 (Ruin)": 0, "$1": 0, "$2": 0, "$3": 0, "$4 (Win)": 1.0 } }, "initialState": "$2" }
+    },
+    monopolyJail: {
+        title: "Monopoly Jail",
+        data: { "states": ["In Jail", "1st Roll", "2nd Roll", "3rd Roll (Pay)", "Free"], "matrix": { "In Jail": { "In Jail": 0, "1st Roll": 1, "2nd Roll": 0, "3rd Roll (Pay)": 0, "Free": 0 }, "1st Roll": { "In Jail": 0, "1st Roll": 0, "2nd Roll": 0.9, "3rd Roll (Pay)": 0, "Free": 0.1 }, "2nd Roll": { "In Jail": 0, "1st Roll": 0, "2nd Roll": 0, "3rd Roll (Pay)": 0.9, "Free": 0.1 }, "3rd Roll (Pay)": { "In Jail": 0, "1st Roll": 0, "2nd Roll": 0, "3rd Roll (Pay)": 0, "Free": 1 }, "Free": { "In Jail": 0.05, "1st Roll": 0, "2nd Roll": 0, "3rd Roll (Pay)": 0, "Free": 0.95 } }, "initialState": "Free" }
+    },
+    inventoryLevels: {
+        title: "Inventory Levels",
+        data: { "states": ["Low", "Medium", "High", "Stockout"], "matrix": { "Low": { "Low": 0.2, "Medium": 0.8, "High": 0, "Stockout": 0 }, "Medium": { "Low": 0.3, "Medium": 0.6, "High": 0.1, "Stockout": 0 }, "High": { "Low": 0, "Medium": 0.4, "High": 0.6, "Stockout": 0 }, "Stockout": { "Low": 0, "Medium": 1, "High": 0, "Stockout": 0 } }, "initialState": "Medium" }
+    },
+    socialMediaFeed: {
+        title: "Social Media Feed",
+        data: { "states": ["Video", "Image", "Text", "Ad", "Profile"], "matrix": { "Video": { "Video": 0.6, "Image": 0.2, "Text": 0.1, "Ad": 0.05, "Profile": 0.05 }, "Image": { "Video": 0.3, "Image": 0.5, "Text": 0.1, "Ad": 0.05, "Profile": 0.05 }, "Text": { "Video": 0.2, "Image": 0.3, "Text": 0.3, "Ad": 0.1, "Profile": 0.1 }, "Ad": { "Video": 0.4, "Image": 0.4, "Text": 0.2, "Ad": 0, "Profile": 0 }, "Profile": { "Video": 0.4, "Image": 0.4, "Text": 0.2, "Ad": 0, "Profile": 0 } }, "initialState": "Image" }
+    },
+    simplePageRank: {
+        title: "Simple PageRank",
+        data: { "states": ["A", "B", "C", "D", "E"], "matrix": { "A": { "A": 0, "B": 0.5, "C": 0.5, "D": 0, "E": 0 }, "B": { "A": 0, "B": 0, "C": 1, "D": 0, "E": 0 }, "C": { "A": 1, "B": 0, "C": 0, "D": 0, "E": 0 }, "D": { "A": 0, "B": 0, "C": 1, "D": 0, "E": 0 }, "E": { "A": 0, "B": 0, "C": 0, "D": 1, "E": 0 } }, "initialState": "A" }
+    },
+     nuclearReaction: {
+        title: "Nuclear Reaction",
+        data: {"states": ["Neutron", "Fission", "Scatter", "Capture", "Escape"], "matrix": { "Neutron": { "Neutron": 0, "Fission": 0.7, "Scatter": 0.2, "Capture": 0.05, "Escape": 0.05 }, "Fission": { "Neutron": 1, "Fission": 0, "Scatter": 0, "Capture": 0, "Escape": 0 }, "Scatter": { "Neutron": 1, "Fission": 0, "Scatter": 0, "Capture": 0, "Escape": 0 }, "Capture": { "Neutron": 0, "Fission": 0, "Scatter": 0, "Capture": 1, "Escape": 0 }, "Escape": { "Neutron": 0, "Fission": 0, "Scatter": 0, "Capture": 0, "Escape": 1 } }, "initialState": "Neutron" }
+    },
+    botBehavior: {
+        title: "AI Bot Behavior",
+        data: { "states": ["Patrol", "Search", "Engage", "Retreat"], "matrix": { "Patrol": { "Patrol": 0.8, "Search": 0.2, "Engage": 0, "Retreat": 0 }, "Search": { "Patrol": 0.4, "Search": 0.3, "Engage": 0.3, "Retreat": 0 }, "Engage": { "Patrol": 0.5, "Search": 0, "Engage": 0.4, "Retreat": 0.1 }, "Retreat": { "Patrol": 0, "Search": 0.8, "Engage": 0, "Retreat": 0.2 } }, "initialState": "Patrol" }
+    }
+};
+
+// --- INITIALIZATION ---
+function init() {
+    initThreeJS();
+    setupUI();
+    loadPreset('weather');
+    animate();
+}
+
+function initThreeJS() {
+    three.scene = new THREE.Scene();
+    three.camera = new THREE.PerspectiveCamera(75, visCanvas.clientWidth / visCanvas.clientHeight, 0.1, 1000);
+    three.camera.position.z = 12;
+
+    three.renderer = new THREE.WebGLRenderer({ canvas: visCanvas, antialias: true, alpha: true });
+    three.renderer.setPixelRatio(window.devicePixelRatio);
+    three.renderer.setSize(visCanvas.parentElement.clientWidth, visCanvas.parentElement.clientHeight);
+
+    three.controls = new OrbitControls(three.camera, three.renderer.domElement);
+    three.controls.enableDamping = true;
+
+    three.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 7.5);
+    three.scene.add(dirLight);
+}
+
+// --- CORE LOGIC ---
+function validateAndLoad(data) {
+    try {
+        if (!Array.isArray(data.states) || !data.matrix || !data.initialState) throw new Error("Invalid format.");
+        if (!data.states.includes(data.initialState)) throw new Error("Initial state not found in states array.");
+        
+        for (const fromState of data.states) {
+            if (!data.matrix[fromState]) throw new Error(`Matrix missing definition for: ${fromState}`);
+            const sum = data.states.reduce((acc, toState) => acc + (data.matrix[fromState][toState] || 0), 0);
+            if (Math.abs(sum - 1.0) > 0.01) throw new Error(`Probabilities for ${fromState} do not sum to 1.`);
+        }
+        
+        resetSimulation(data);
+        simState.isValid = true;
+        matrixInput.style.borderColor = '#10B981';
+        draw3DStateDiagram();
+    } catch (e) {
+        simState.isValid = false;
+        matrixInput.style.borderColor = '#EF4444';
+        alert(`Validation Error: ${e.message}`);
+        clear3DScene();
+    } finally {
+        updateControlButtonState();
+    }
+}
+
+function resetSimulation(data = null) {
+    if (simState.intervalId) clearInterval(simState.intervalId);
+    if (data) {
+       simState.states = data.states;
+       simState.matrix = data.matrix;
+       simState.initialState = data.initialState;
+    }
+    simState.currentState = simState.initialState;
+    simState.totalSteps = 0;
+    simState.visitCounts = Object.fromEntries(simState.states.map(s => [s, 0]));
+    if(simState.currentState) simState.visitCounts[simState.currentState]++;
+    simState.isSimulating = false;
+    startPauseButton.textContent = 'Start';
+    startPauseButton.classList.remove('active');
+    updateUI();
+    update3DHighlight();
+    updateStateColors();
+}
+
+function simulationStep() {
+    if (!simState.currentState) return;
+    const transitions = simState.matrix[simState.currentState];
+    const rand = Math.random();
+    let cumulativeProb = 0;
+    for (const state of simState.states) {
+        cumulativeProb += transitions[state] || 0;
+        if (rand < cumulativeProb) {
+            simState.currentState = state;
+            break;
+        }
+    }
+    simState.totalSteps++;
+    simState.visitCounts[simState.currentState]++;
+    updateUI();
+    update3DHighlight();
+    updateStateColors();
+}
+
+// --- UI & EVENT HANDLERS ---
+function setupUI() {
+    settingsButton.addEventListener('click', () => settingsPanel.classList.toggle('open'));
+    infoPanel.addEventListener('click', (e) => {
+        if (!e.target.closest('button, a, table')) {
+             infoPanel.classList.toggle('expanded');
+        }
+    });
+    toggleViewButton.addEventListener('click', () => {
+        document.body.classList.toggle('focus-view-active');
+        const isFocus = document.body.classList.contains('focus-view-active');
+        viewOnIcon.classList.toggle('hidden', isFocus);
+        viewOffIcon.classList.toggle('hidden', !isFocus);
+        if (isFocus && settingsPanel.classList.contains('open')) {
+            settingsPanel.classList.remove('open');
+        }
+        setTimeout(onWindowResize, 400); // Allow transitions to finish
+    });
+    loadButton.addEventListener('click', () => {
+        try {
+            validateAndLoad(JSON.parse(matrixInput.value));
+            document.querySelectorAll('.preset-button').forEach(b => b.classList.remove('active'));
+        } catch (e) { alert("Invalid JSON format."); }
+    });
+    resetButton.addEventListener('click', () => resetSimulation(null));
+    startPauseButton.addEventListener('click', toggleSimulation);
+    stepButton.addEventListener('click', simulationStep);
+    speedSlider.addEventListener('input', (e) => {
+        simState.speed = parseFloat(e.target.value);
+        speedValue.textContent = simState.speed.toFixed(1);
+        if (simState.isSimulating) { toggleSimulation(); toggleSimulation(); }
+    });
+    labelSizeSlider.addEventListener('input', (e) => {
+        simState.labelSize = parseFloat(e.target.value);
+        labelSizeValue.textContent = simState.labelSize.toFixed(1);
+        const allLabels = [...Object.values(three.stateObjects).flatMap(o => [o.label, o.percentageLabel]), ...three.transitionLabels];
+        allLabels.forEach(label => {
+            if (label && label.userData.baseScaleX) {
+                label.scale.set(
+                    label.userData.baseScaleX * simState.labelSize,
+                    label.userData.baseScaleY * simState.labelSize,
+                    1.0
+                );
+            }
+        });
+    });
+    
+    toggleStateNamesBtn.addEventListener('click', () => {
+        simState.showStateNames = !simState.showStateNames;
+        toggleStateNamesBtn.classList.toggle('active', simState.showStateNames);
+        Object.values(three.stateObjects).forEach(o => o.label.visible = simState.showStateNames);
+    });
+     toggleStatePercentagesBtn.addEventListener('click', () => {
+        simState.showStatePercentages = !simState.showStatePercentages;
+        toggleStatePercentagesBtn.classList.toggle('active', simState.showStatePercentages);
+        Object.values(three.stateObjects).forEach(o => o.percentageLabel.visible = simState.showStatePercentages);
+    });
+    toggleTransitionPercentagesBtn.addEventListener('click', () => {
+        simState.showTransitionPercentages = !simState.showTransitionPercentages;
+        toggleTransitionPercentagesBtn.classList.toggle('active', simState.showTransitionPercentages);
+        three.transitionLabels.forEach(l => l.visible = simState.showTransitionPercentages);
+    });
+    toggleConnectionsBtn.addEventListener('click', () => {
+        simState.showConnections = !simState.showConnections;
+        toggleConnectionsBtn.classList.toggle('active', simState.showConnections);
+        three.transitionMeshes.forEach(m => m.visible = simState.showConnections);
+    });
+    haloColorPicker.addEventListener('input', (e) => {
+        simState.haloColor = e.target.value;
+        update3DHighlight();
+    });
+
+    shapeSelector.addEventListener('click', e => {
+        if(e.target.matches('.shape-button')) {
+            simState.nodeShape = e.target.dataset.shape;
+            document.querySelectorAll('.shape-button').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            draw3DStateDiagram();
+        }
+    });
+    document.querySelector(`.shape-button[data-shape="${simState.nodeShape}"]`).classList.add('active');
+    
+    Object.keys(presets).forEach(key => {
+        const button = document.createElement('button');
+        button.id = `preset-${key}`;
+        button.className = 'preset-button';
+        button.textContent = presets[key].title;
+        button.addEventListener('click', () => loadPreset(key));
+        presetsContainer.appendChild(button);
+    });
+
+    window.addEventListener('resize', onWindowResize);
+}
+
+function loadPreset(key) {
+    document.querySelectorAll('.preset-button').forEach(b => b.classList.remove('active'));
+    document.getElementById(`preset-${key}`)?.classList.add('active');
+    
+    const presetData = presets[key].data;
+    matrixInput.value = JSON.stringify(presetData, null, 2);
+    validateAndLoad(presetData);
+}
+
+function toggleSimulation() {
+    if (!simState.isValid) return;
+    simState.isSimulating = !simState.isSimulating;
+    if (simState.isSimulating) {
+        startPauseButton.textContent = 'Pause';
+        startPauseButton.classList.add('active');
+        simState.intervalId = setInterval(simulationStep, 1000 / simState.speed);
+    } else {
+        startPauseButton.textContent = 'Start';
+        startPauseButton.classList.remove('active');
+        clearInterval(simState.intervalId);
+    }
+}
+
+function updateUI() {
+    currentStateDisplay.textContent = simState.currentState || 'None';
+    totalStepsDisplay.textContent = simState.totalSteps;
+    statsTableBody.innerHTML = simState.states.map(state => {
+        const count = simState.visitCounts[state];
+        const percentage = simState.totalSteps > 0 ? ((count / simState.totalSteps) * 100).toFixed(1) : '0.0';
+        return `<tr><td>${state}</td><td>${count}</td><td>${percentage}%</td></tr>`;
+    }).join('');
+    update3DPercentages();
+}
+
+function updateControlButtonState() {
+    const disabled = !simState.isValid;
+    [resetButton, startPauseButton, stepButton].forEach(b => b.disabled = disabled);
+}
+
+function onWindowResize() {
+    if (!three.renderer) return;
+    const { clientWidth, clientHeight } = visCanvas.parentElement;
+    three.camera.aspect = clientWidth / clientHeight;
+    three.camera.updateProjectionMatrix();
+    three.renderer.setSize(clientWidth, clientHeight);
+}
+
+// --- 3D VISUALIZATION ---
+function clear3DScene() {
+    while(three.scene.children.length > 0){ 
+        const obj = three.scene.children[0];
+        three.scene.remove(obj);
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+            if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+            else obj.material.dispose();
+        }
+    }
+    three.stateObjects = {};
+    three.transitionLabels = [];
+    three.transitionMeshes = [];
+}
+
+function createLabelSprite(text, fontSize = 28, color = 'rgba(255, 255, 255, 0.95)', placeholderText = null) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const textToMeasure = placeholderText || text;
+    context.font = `bold ${fontSize}px Inter, sans-serif`;
+    canvas.width = context.measureText(textToMeasure).width + (fontSize); // Increased padding
+    canvas.height = fontSize + (fontSize / 2);
+    context.font = `bold ${fontSize}px Inter, sans-serif`;
+    context.fillStyle = color;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+    const texture = new THREE.CanvasTexture(canvas);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, sizeAttenuation: false }));
+    
+    const baseScaleX = 0.01 * canvas.width;
+    const baseScaleY = 0.01 * canvas.height;
+    sprite.userData.baseScaleX = baseScaleX;
+    sprite.userData.baseScaleY = baseScaleY;
+
+    sprite.scale.set(baseScaleX * simState.labelSize, baseScaleY * simState.labelSize, 1.0);
+    return sprite;
+}
+
+function getNodeGeometry() {
+    switch(simState.nodeShape) {
+        case 'cube': return new THREE.BoxGeometry(1.5, 1.5, 1.5);
+        case 'torus': return new THREE.TorusGeometry(0.75, 0.3, 16, 100);
+        case 'icosahedron': return new THREE.IcosahedronGeometry(1, 0);
+        case 'sphere':
+        default:
+            return new THREE.SphereGeometry(1, 32, 32);
+    }
+}
+
+function draw3DStateDiagram() {
+    clear3DScene();
+    const { states, matrix } = simState;
+    if (states.length === 0) return;
+
+    const radius = states.length > 1 ? Math.max(4, states.length * 1.0) : 0;
+    const positions = {};
+
+    states.forEach((state, i) => {
+        const angle = (i / states.length) * 2 * Math.PI;
+        positions[state] = new THREE.Vector3(radius * Math.cos(angle), radius * Math.sin(angle), 0);
+    });
+
+    states.forEach(state => {
+        const group = new THREE.Group();
+        group.position.copy(positions[state]);
+        const material = new THREE.MeshStandardMaterial({ color: three.lowVisitColor, metalness: 0.2, roughness: 0.8 });
+        const geometry = getNodeGeometry();
+        const mesh = new THREE.Mesh(geometry, material);
+        const label = createLabelSprite(state);
+        label.position.set(0, 1.3, 0);
+        label.visible = simState.showStateNames;
+
+        const percentageLabel = createLabelSprite("0.0%", 24, 'rgba(209, 213, 219, 0.9)', "100.0%");
+        percentageLabel.position.set(0, -1.3, 0);
+        percentageLabel.visible = simState.showStatePercentages;
+
+        group.add(mesh);
+        group.add(label);
+        group.add(percentageLabel);
+        three.scene.add(group);
+        three.stateObjects[state] = { group, mesh, label, percentageLabel, material };
+    });
+
+    states.forEach(fromState => {
+        states.forEach(toState => {
+            const probability = matrix[fromState][toState];
+            if (probability > 0) {
+                const p1 = positions[fromState], p2 = positions[toState];
+                const percentage = (probability * 100).toFixed(0) + '%';
+                let label;
+                let connectionMesh;
+                
+                if (fromState === toState) {
+                    const torus = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.05, 16, 50), new THREE.MeshBasicMaterial({ color: 0x818cf8 }));
+                    torus.position.copy(p1).add(new THREE.Vector3(0, 0, -0.1));
+                    torus.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), new THREE.Vector3(1,-1,0).normalize());
+                    connectionMesh = torus;
+                    label = createLabelSprite(percentage, 22);
+                    label.position.copy(p1).add(new THREE.Vector3(1.5, 1.5, 0));
+
+                } else {
+                    const dir = new THREE.Vector3().subVectors(p2, p1);
+                    const length = dir.length() - 1;
+                    dir.normalize();
+                    const origin = p1.clone().add(dir.clone());
+                    connectionMesh = new THREE.ArrowHelper(dir, origin, length, 0x818cf8, 0.5, 0.3);
+                    label = createLabelSprite(percentage, 22);
+                    const midpoint = new THREE.Vector3().copy(p1).lerp(p2, 0.5);
+                    const offsetDirection = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 0, 1)).normalize();
+                    midpoint.add(offsetDirection.multiplyScalar(0.5));
+                    label.position.copy(midpoint);
+                }
+                connectionMesh.visible = simState.showConnections;
+                three.scene.add(connectionMesh);
+                three.transitionMeshes.push(connectionMesh);
+
+                label.visible = simState.showTransitionPercentages;
+                three.scene.add(label);
+                three.transitionLabels.push(label);
+            }
+        });
+    });
+    updateUI(); // To set initial percentages
+    update3DHighlight();
+}
+
+function updateStateColors() {
+    const counts = Object.values(simState.visitCounts);
+    const maxVisits = Math.max(...counts);
+    if (maxVisits <= 1) {
+        for (const state in three.stateObjects) {
+             three.stateObjects[state].material.color.copy(three.lowVisitColor);
+        }
+        return;
+    };
+
+    for (const state in three.stateObjects) {
+        const stateData = three.stateObjects[state];
+        const normalizedVisits = (simState.visitCounts[state] - 1) / (maxVisits - 1);
+        stateData.material.color.copy(three.lowVisitColor).lerp(three.highVisitColor, normalizedVisits);
+    }
+}
+
+function update3DHighlight() {
+    for (const state in three.stateObjects) {
+        three.stateObjects[state].material.emissive.setHex(0x000000);
+    }
+    if (simState.showHalo && simState.currentState && three.stateObjects[simState.currentState]) {
+        three.stateObjects[simState.currentState].material.emissive.setHex(new THREE.Color(simState.haloColor).getHex());
+    }
+}
+
+function update3DPercentages() {
+    if (!simState.isValid) return;
+    for (const state in three.stateObjects) {
+        const label = three.stateObjects[state].percentageLabel;
+        if(label) {
+            const count = simState.visitCounts[state];
+            const percentageText = simState.totalSteps > 0 ? ((count / simState.totalSteps) * 100).toFixed(1) + '%' : (state === simState.initialState ? '100.0%' : '0.0%');
+            const texture = label.material.map;
+            const context = texture.image.getContext('2d');
+            context.clearRect(0,0, context.canvas.width, context.canvas.height);
+            context.fillText(percentageText, context.canvas.width / 2, context.canvas.height / 2);
+            texture.needsUpdate = true;
+        }
+    }
+}
+
+// --- ANIMATION LOOP ---
+function animate() {
+    requestAnimationFrame(animate);
+    if (!three.renderer) return;
+    three.controls.update();
+    const allLabels = [
+        ...Object.values(three.stateObjects).flatMap(o => [o.label, o.percentageLabel]), 
+        ...three.transitionLabels
+    ];
+    allLabels.forEach(label => {
+        if(label) label.quaternion.copy(three.camera.quaternion);
+    });
+    three.renderer.render(three.scene, three.camera);
+}
+
+// --- START ---
+init();
+
+</script>
+</body>
+</html>
+

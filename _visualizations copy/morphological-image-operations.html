@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morphological Image Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: calc(100vh - 180px); 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        
+        #controls-panel {
+            position: relative;
+            z-index: 10;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            background-color: rgba(17, 24, 39, 0.85);
+            border-top: 1px solid rgba(55, 65, 81, 0.7);
+            backdrop-filter: blur(8px);
+        }
+        header {
+            position: relative;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+
+        .action-button, .kernel-shape-btn {
+            background-color: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .action-button:hover:not(:disabled), .kernel-shape-btn:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .action-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .action-button.primary, .kernel-shape-btn.active {
+             background-color: #4f46e5;
+             box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+      
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 150px;
+        }
+        .hidden { display: none !important; }
+
+        #canvas-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            overflow: auto;
+            position: relative;
+        }
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            background-color: #1f2937;
+            object-fit: contain;
+        }
+        #placeholder-text {
+            color: #6b7280;
+            text-align: center;
+        }
+        #kernel-preview-canvas {
+            border: 1px solid #4b5563;
+            background-color: #111827;
+        }
+
+        @media (max-width: 768px) {
+             #info-panel { 
+                top: 70px; left: 10px; right: 10px; 
+                max-width: none; width: auto; 
+                max-height: 52px;
+            }
+            #controls-panel { padding: 0.75rem; gap: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">Morphological Image Operations</h1>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">About The Operations</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div class="pt-4 space-y-4 text-gray-300">
+            <p>Morphological operations are techniques used in image processing that modify the geometry of features in an image. This app demonstrates the two fundamental operations: Erosion and Dilation.</p>
+            <div>
+                <h3 class="font-bold text-lg text-indigo-400">Erosion & Dilation</h3>
+                <p><strong>Erosion</strong> "erodes" or shrinks the boundaries of bright regions. It is useful for removing small bright noise spots. <strong>Dilation</strong> "dilates" or expands the boundaries of bright regions. It can be used to fill small holes and connect disjoint objects.</p>
+            </div>
+             <div>
+                <h3 class="font-bold text-lg text-indigo-400">Kernel</h3>
+                <p>The operation is performed by a <strong>Kernel</strong> (or Structuring Element) which is a small matrix of pixels. You can choose the shape and size of the kernel, which changes its effect. A larger kernel results in a more pronounced operation.</p>
+            </div>
+        </div>
+    </div>
+    
+    <main id="canvas-container">
+        <div id="placeholder-text" class="text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-4 text-gray-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            <h2 class="text-2xl font-bold">Upload an Image</h2>
+            <p>Click the "Upload Image" button below to begin.</p>
+        </div>
+        <canvas id="main-canvas" class="hidden"></canvas>
+    </main>
+
+    <div id="controls-panel">
+        <div class="control-group">
+            <label for="image-upload-btn" class="action-button primary">Upload Image</label>
+            <input type="file" id="image-upload" accept="image/*" class="hidden">
+        </div>
+        <div class="control-group">
+            <label for="kernel-slider" class="text-sm font-medium self-center w-full flex justify-between">
+                <span>Kernel Size:</span>
+                <span id="kernel-value">1</span>
+            </label>
+            <input id="kernel-slider" type="range" min="1" max="15" step="1" value="1" class="w-full">
+        </div>
+        <div class="control-group">
+            <label class="text-sm font-medium w-full text-center">Kernel Shape</label>
+            <div id="kernel-shape-selector" class="flex gap-2">
+                 <button class="kernel-shape-btn text-xs px-3 py-2 active" data-shape="square">Square</button>
+                 <button class="kernel-shape-btn text-xs px-3 py-2" data-shape="circle">Circle</button>
+                 <button class="kernel-shape-btn text-xs px-3 py-2" data-shape="cross">Cross</button>
+            </div>
+        </div>
+         <div class="control-group">
+            <label class="text-sm font-medium w-full text-center">Kernel Preview</label>
+            <canvas id="kernel-preview-canvas" width="80" height="80"></canvas>
+        </div>
+        <div class="flex flex-col gap-2">
+            <button id="erode-btn" class="action-button" disabled>Apply Erosion</button>
+            <button id="dilate-btn" class="action-button" disabled>Apply Dilation</button>
+        </div>
+         <div class="flex flex-col gap-2">
+            <button id="reset-btn" class="action-button" disabled>Reset Image</button>
+            <a id="download-btn" class="action-button opacity-50 cursor-not-allowed" disabled>Download Image</a>
+        </div>
+    </div>
+
+<script>
+    // --- DOM Elements ---
+    const canvas = document.getElementById('main-canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const imageUploadInput = document.getElementById('image-upload');
+    const imageUploadBtn = document.querySelector('label[for="image-upload-btn"]');
+    const kernelSlider = document.getElementById('kernel-slider');
+    const kernelValueSpan = document.getElementById('kernel-value');
+    const erodeBtn = document.getElementById('erode-btn');
+    const dilateBtn = document.getElementById('dilate-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const infoPanel = document.getElementById('info-panel');
+    const placeholder = document.getElementById('placeholder-text');
+    const kernelShapeSelector = document.getElementById('kernel-shape-selector');
+    const kernelPreviewCanvas = document.getElementById('kernel-preview-canvas');
+    const kernelPreviewCtx = kernelPreviewCanvas.getContext('2d');
+
+    // --- App State ---
+    let originalImageData = null;
+    let currentImageData = null;
+    let isProcessing = false;
+    let currentKernelShape = 'square';
+
+    // --- UI Setup ---
+    function setupUI() {
+        imageUploadBtn.addEventListener('click', () => imageUploadInput.click());
+        imageUploadInput.addEventListener('change', handleImageUpload);
+        
+        kernelSlider.addEventListener('input', (e) => {
+            kernelValueSpan.textContent = e.target.value;
+            drawKernel();
+        });
+
+        kernelShapeSelector.addEventListener('click', (e) => {
+            if (e.target.matches('.kernel-shape-btn')) {
+                kernelShapeSelector.querySelector('.active').classList.remove('active');
+                e.target.classList.add('active');
+                currentKernelShape = e.target.dataset.shape;
+                drawKernel();
+            }
+        });
+
+        erodeBtn.addEventListener('click', () => applyOperation('erosion'));
+        dilateBtn.addEventListener('click', () => applyOperation('dilation'));
+        resetBtn.addEventListener('click', handleReset);
+        downloadBtn.addEventListener('click', handleDownload);
+
+        infoPanel.addEventListener('click', (e) => {
+            if (e.target.closest('a')) return;
+            infoPanel.classList.toggle('expanded');
+        });
+        
+        drawKernel(); // Initial draw
+    }
+
+    function toggleControls(enabled) {
+        erodeBtn.disabled = !enabled || isProcessing;
+        dilateBtn.disabled = !enabled || isProcessing;
+        resetBtn.disabled = !enabled || isProcessing;
+        
+        if (enabled && originalImageData) {
+            downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            downloadBtn.removeAttribute('disabled');
+        } else {
+            downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            downloadBtn.setAttribute('disabled', 'true');
+        }
+    }
+
+    // --- Image Handling ---
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                placeholder.classList.add('hidden');
+                canvas.classList.remove('hidden');
+
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                currentImageData = originalImageData;
+                
+                toggleControls(true);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    function handleReset() {
+        if (!originalImageData) return;
+        currentImageData = originalImageData;
+        ctx.putImageData(originalImageData, 0, 0);
+    }
+
+    function handleDownload(e) {
+        if (!originalImageData || downloadBtn.hasAttribute('disabled')) {
+            e.preventDefault();
+            return;
+        }
+        downloadBtn.href = canvas.toDataURL('image/png');
+        downloadBtn.download = 'processed-image.png';
+    }
+
+    // --- Kernel Visualization ---
+    function drawKernel() {
+        const radius = parseInt(kernelSlider.value, 10);
+        const diameter = radius * 2 + 1;
+        const canvasSize = kernelPreviewCanvas.width;
+        const cellSize = canvasSize / diameter;
+
+        kernelPreviewCtx.fillStyle = '#111827';
+        kernelPreviewCtx.fillRect(0, 0, canvasSize, canvasSize);
+        kernelPreviewCtx.fillStyle = '#818cf8';
+
+        for (let y = -radius; y <= radius; y++) {
+            for (let x = -radius; x <= radius; x++) {
+                let isInShape = false;
+                switch (currentKernelShape) {
+                    case 'square':
+                        isInShape = true;
+                        break;
+                    case 'circle':
+                        // Use square of distance to avoid sqrt
+                        if (x * x + y * y <= radius * radius) {
+                           isInShape = true;
+                        }
+                        break;
+                    case 'cross':
+                        if (x === 0 || y === 0) {
+                            isInShape = true;
+                        }
+                        break;
+                }
+                
+                if(isInShape) {
+                    const drawX = (x + radius) * cellSize;
+                    const drawY = (y + radius) * cellSize;
+                    kernelPreviewCtx.fillRect(drawX, drawY, cellSize -1, cellSize - 1);
+                }
+            }
+        }
+    }
+
+    // --- Core Morphological Logic ---
+    async function applyOperation(type) {
+        if (!currentImageData || isProcessing) return;
+
+        isProcessing = true;
+        toggleControls(false);
+        const statusText = type === 'erosion' ? 'Eroding...' : 'Dilating...';
+        imageUploadBtn.textContent = statusText;
+
+        setTimeout(() => {
+            const kernelRadius = parseInt(kernelSlider.value, 10);
+            const sourceData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const newImageData = processMorph(sourceData, kernelRadius, type, currentKernelShape);
+            
+            ctx.putImageData(newImageData, 0, 0);
+            currentImageData = newImageData; 
+
+            isProcessing = false;
+            toggleControls(true);
+            imageUploadBtn.textContent = 'Upload Image';
+        }, 10);
+    }
+
+    function processMorph(imageData, kernelRadius, type, kernelShape) {
+        const src = imageData.data;
+        const width = imageData.width;
+        const height = imageData.height;
+        
+        const destData = new Uint8ClampedArray(src.length);
+        const isErosion = type === 'erosion';
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                let r = isErosion ? 255 : 0;
+                let g = isErosion ? 255 : 0;
+                let b = isErosion ? 255 : 0;
+
+                for (let ky = -kernelRadius; ky <= kernelRadius; ky++) {
+                    for (let kx = -kernelRadius; kx <= kernelRadius; kx++) {
+                        
+                        let usePixel = false;
+                        switch (kernelShape) {
+                            case 'square': usePixel = true; break;
+                            case 'circle': usePixel = kx * kx + ky * ky <= kernelRadius * kernelRadius; break;
+                            case 'cross': usePixel = kx === 0 || ky === 0; break;
+                        }
+                        
+                        if (!usePixel) continue;
+
+                        const px = x + kx;
+                        const py = y + ky;
+
+                        if (px >= 0 && px < width && py >= 0 && py < height) {
+                            const i = (py * width + px) * 4;
+                            const currentR = src[i];
+                            const currentG = src[i + 1];
+                            const currentB = src[i + 2];
+
+                            if (isErosion) {
+                                if (currentR < r) r = currentR;
+                                if (currentG < g) g = currentG;
+                                if (currentB < b) b = currentB;
+                            } else { // Dilation
+                                if (currentR > r) r = currentR;
+                                if (currentG > g) g = currentG;
+                                if (currentB > b) b = currentB;
+                            }
+                        }
+                    }
+                }
+
+                const destIndex = (y * width + x) * 4;
+                destData[destIndex] = r;
+                destData[destIndex + 1] = g;
+                destData[destIndex + 2] = b;
+                destData[destIndex + 3] = 255;
+            }
+        }
+        return new ImageData(destData, width, height);
+    }
+
+    // --- Initialize App ---
+    setupUI();
+
+</script>
+</body>
+</html>
+

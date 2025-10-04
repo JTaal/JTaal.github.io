@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Filtering & Kernels Playground</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #e5e7eb;
+        }
+        .canvas-container {
+            border: 2px dashed #374151;
+            background-color: #111827;
+            position: relative;
+        }
+        .canvas-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .kernel-grid {
+            display: grid;
+            gap: 0.5rem;
+            transition: all 0.3s ease-in-out;
+        }
+        .kernel-input {
+            -moz-appearance: textfield;
+            background-color: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            color: white;
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 1rem;
+            width: 45px;
+            height: 45px;
+        }
+        .kernel-input::-webkit-outer-spin-button,
+        .kernel-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .control-button {
+            background-color: #4f46e5;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+        }
+        .control-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .control-button:disabled {
+            background-color: #374151;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .custom-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            padding: 0.5rem 2.5rem 0.5rem 1rem;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+        }
+        #info-panel {
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            border-radius: 12px;
+            transition: all 0.3s ease-in-out;
+            max-height: 58px;
+            overflow: hidden;
+        }
+        #info-panel.expanded {
+            max-height: 500px;
+        }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        .loader {
+            border: 4px solid #374151;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #footer-handle {
+            cursor: pointer;
+        }
+        #footer-handle div {
+            transition: background-color 0.2s ease-in-out;
+        }
+        #footer-handle:hover div {
+            background-color: #9ca3af;
+        }
+        #footer-content {
+            max-height: 500px;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+        }
+        #footer-panel.collapsed #footer-content {
+            max-height: 0;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <header class="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700 p-4 text-center z-10">
+        <h1 class="text-2xl font-bold text-gray-200 tracking-wider">Image Filtering & Kernels Playground</h1>
+    </header>
+
+    <main class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4 overflow-hidden">
+        <div class="flex flex-col gap-2">
+            <h2 class="text-lg font-semibold text-center text-indigo-400">Original Image</h2>
+            <div id="original-container" class="canvas-container flex-grow min-h-0">
+                <canvas id="original-canvas"></canvas>
+            </div>
+        </div>
+        <div class="flex flex-col gap-2">
+            <h2 class="text-lg font-semibold text-center text-indigo-400">Filtered Image</h2>
+            <div id="filtered-container" class="canvas-container flex-grow min-h-0">
+                <canvas id="filtered-canvas"></canvas>
+                <div id="loader" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden">
+                    <div class="loader"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer id="footer-panel" class="bg-gray-900/80 backdrop-blur-sm border-t border-gray-700 z-10">
+        <div id="footer-handle" class="py-2 flex justify-center items-center">
+            <div class="w-10 h-1 bg-gray-600 rounded-full"></div>
+        </div>
+        <div id="footer-content" class="p-4 pt-0">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center flex-wrap gap-6">
+            
+                <div class="flex flex-col items-center gap-2">
+                    <label for="image-upload" class="control-button cursor-pointer">
+                        <span>🖼️ Upload Image</span>
+                    </label>
+                    <input type="file" id="image-upload" class="hidden" accept="image/*">
+                    <p class="text-xs text-gray-500">Or drag & drop an image</p>
+                </div>
+            
+            <div class="w-px bg-gray-700 self-stretch hidden md:block"></div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex flex-col items-center gap-3">
+                    <label for="kernel-size-select" class="font-medium">Kernel Size</label>
+                    <select id="kernel-size-select" class="custom-select">
+                        <option value="3">3x3</option>
+                        <option value="5">5x5</option>
+                        <option value="7">7x7</option>
+                    </select>
+                </div>
+                <div class="flex flex-col items-center gap-3">
+                    <label for="kernel-select" class="font-medium">Preset Kernels</label>
+                    <select id="kernel-select" class="custom-select"></select>
+                </div>
+            </div>
+            
+            <div class="flex flex-col items-center gap-3">
+                <label class="font-medium">Custom Kernel</label>
+                <div id="kernel-grid" class="kernel-grid">
+                    <!-- Kernel inputs will be generated by JS -->
+                </div>
+            </div>
+
+            <div class="w-px bg-gray-700 self-stretch hidden md:block"></div>
+
+            <div class="flex flex-col items-center gap-3">
+                <button id="apply-button" class="control-button text-lg px-8 py-3" disabled>Apply Filter</button>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="auto-apply-checkbox" class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-indigo-600 focus:ring-indigo-500">
+                    <label for="auto-apply-checkbox" class="text-sm text-gray-400">Auto-Apply</label>
+                </div>
+            </div>
+        </div>
+        <div id="info-panel" class="max-w-3xl mx-auto mt-4 p-5 cursor-pointer" onclick="this.classList.toggle('expanded')">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-indigo-400">What is an Image Kernel?</h3>
+                <div id="toggle-icon" class="text-indigo-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+            </div>
+            <div class="pt-4 space-y-3 text-gray-300">
+                <p>An image kernel (or convolution matrix) is a small matrix used for effects like blurring, sharpening, edge detection, and more. It's a fundamental concept in image processing.</p>
+                <p>The algorithm works by centering the kernel on each pixel of the original image. It then multiplies the value of each neighboring pixel by the corresponding value in the kernel. The sum of all these products becomes the new value for the center pixel in the filtered image. This process is repeated for every pixel in the image to create the final result.</p>
+            </div>
+        </div>
+        </div>
+    </footer>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const originalCanvas = document.getElementById('original-canvas');
+        const filteredCanvas = document.getElementById('filtered-canvas');
+        const originalCtx = originalCanvas.getContext('2d', { willReadFrequently: true });
+        const filteredCtx = filteredCanvas.getContext('2d');
+        
+        const imageUpload = document.getElementById('image-upload');
+        const kernelSelect = document.getElementById('kernel-select');
+        const kernelSizeSelect = document.getElementById('kernel-size-select');
+        const kernelGrid = document.getElementById('kernel-grid');
+        const applyButton = document.getElementById('apply-button');
+        const autoApplyCheckbox = document.getElementById('auto-apply-checkbox');
+        const loader = document.getElementById('loader');
+        const footerPanel = document.getElementById('footer-panel');
+        const footerHandle = document.getElementById('footer-handle');
+
+        let originalImageData = null;
+        let isProcessing = false;
+        let kernelSize = 3;
+        let currentImageSrc = '';
+
+        const kernels = {
+            'Identity': [0, 0, 0, 0, 1, 0, 0, 0, 0],
+            'Sharpen': [0, -1, 0, -1, 5, -1, 0, -1, 0],
+            'Box Blur': [1/9, 1/9, 1/9, 1/9, 1/9, 1/9, 1/9, 1/9, 1/9],
+            'Gaussian Blur': [1/16, 2/16, 1/16, 2/16, 4/16, 2/16, 1/16, 2/16, 1/16],
+            'Edge Detect 1': [0, 1, 0, 1, -4, 1, 0, 1, 0],
+            'Edge Detect 2': [-1, -1, -1, -1, 8, -1, -1, -1, -1],
+            'Emboss': [-2, -1, 0, -1, 1, 1, 0, 1, 2],
+        };
+
+        // --- Initialization ---
+        function init() {
+            setupKernelGrid();
+            setupKernelPresets();
+            setupEventListeners();
+            loadDefaultImage();
+            updateKernelInputs(kernels['Identity']);
+        }
+
+        function setupKernelGrid() {
+            kernelGrid.innerHTML = '';
+            kernelGrid.style.gridTemplateColumns = `repeat(${kernelSize}, 1fr)`;
+            
+            const totalInputs = kernelSize * kernelSize;
+            for (let i = 0; i < totalInputs; i++) {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'kernel-input';
+                input.id = `k${i}`;
+                input.step = 0.01;
+                input.value = 0;
+                input.addEventListener('input', () => {
+                    kernelSelect.value = 'Custom';
+                    if (autoApplyCheckbox.checked) triggerFilter();
+                });
+                kernelGrid.appendChild(input);
+            }
+        }
+        
+        function setupKernelPresets() {
+            kernelSelect.innerHTML = Object.keys(kernels).map(name => `<option>${name}</option>`).join('');
+            kernelSelect.innerHTML += '<option value="Custom">Custom</option>';
+        }
+
+        function updateKernelInputs(kernelValues) {
+            const totalInputs = kernelSize * kernelSize;
+            for (let i = 0; i < totalInputs; i++) {
+                const input = document.getElementById(`k${i}`);
+                if (input) {
+                    const value = kernelValues[i] !== undefined ? kernelValues[i] : 0;
+                    input.value = value.toFixed(2);
+                }
+            }
+        }
+        
+        // --- Image Loading ---
+        function loadDefaultImage() {
+            const defaultImageUrl = 'https://placehold.co/600x400/1f2937/d1d5db?text=Upload+an+Image';
+            loadImage(defaultImageUrl);
+        }
+
+        function loadImage(src) {
+            currentImageSrc = src;
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = () => {
+                const container = document.getElementById('original-container');
+                const cw = container.clientWidth;
+                const ch = container.clientHeight;
+                
+                const scale = Math.min(cw / img.width, ch / img.height);
+                const iw = img.width * scale;
+                const ih = img.height * scale;
+                
+                originalCanvas.width = filteredCanvas.width = iw;
+                originalCanvas.height = filteredCanvas.height = ih;
+                
+                originalCtx.drawImage(img, 0, 0, iw, ih);
+                filteredCtx.drawImage(img, 0, 0, iw, ih);
+                originalImageData = originalCtx.getImageData(0, 0, iw, ih);
+                applyButton.disabled = false;
+            };
+            img.onerror = () => {
+                console.error("Failed to load image from URL:", src);
+            }
+            img.src = src;
+        }
+
+        // --- Event Listeners ---
+        function setupEventListeners() {
+            imageUpload.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    loadImage(URL.createObjectURL(e.target.files[0]));
+                }
+            });
+
+            const body = document.body;
+            body.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); body.style.backgroundColor = '#1e293b'; });
+            body.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); body.style.backgroundColor = '#030712'; });
+            body.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                body.style.backgroundColor = '#030712';
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    loadImage(URL.createObjectURL(e.dataTransfer.files[0]));
+                }
+            });
+
+            kernelSelect.addEventListener('change', () => {
+                const kernelName = kernelSelect.value;
+                if (kernels[kernelName]) {
+                    if (kernelSize !== 3) {
+                        kernelSize = 3;
+                        kernelSizeSelect.value = '3';
+                        setupKernelGrid();
+                    }
+                    updateKernelInputs(kernels[kernelName]);
+                    if (autoApplyCheckbox.checked) triggerFilter();
+                }
+            });
+
+            kernelSizeSelect.addEventListener('change', () => {
+                kernelSize = parseInt(kernelSizeSelect.value, 10);
+                setupKernelGrid();
+                
+                const newKernel = new Array(kernelSize * kernelSize).fill(0);
+                const centerIndex = Math.floor((kernelSize * kernelSize) / 2);
+                newKernel[centerIndex] = 1;
+                
+                updateKernelInputs(newKernel);
+                kernelSelect.value = 'Custom';
+                
+                if (autoApplyCheckbox.checked) triggerFilter();
+            });
+
+            applyButton.addEventListener('click', triggerFilter);
+
+            footerHandle.addEventListener('click', () => {
+                footerPanel.classList.toggle('collapsed');
+            });
+
+            footerPanel.addEventListener('transitionend', (e) => {
+                if (e.propertyName === 'max-height') {
+                    resizeCanvases();
+                }
+            });
+        }
+        
+        // --- Core Filtering Logic ---
+        function triggerFilter() {
+            if (!originalImageData || isProcessing) return;
+            isProcessing = true;
+            loader.classList.remove('hidden');
+            applyButton.disabled = true;
+
+            setTimeout(() => {
+                const kernel = [];
+                const totalInputs = kernelSize * kernelSize;
+                for (let i = 0; i < totalInputs; i++) {
+                    kernel.push(parseFloat(document.getElementById(`k${i}`).value) || 0);
+                }
+                const filteredData = applyKernel(originalImageData, kernel, kernelSize);
+                filteredCtx.putImageData(filteredData, 0, 0);
+                
+                loader.classList.add('hidden');
+                applyButton.disabled = false;
+                isProcessing = false;
+            }, 50);
+        }
+
+        function applyKernel(imageData, kernel, currentKernelSize) {
+            const src = imageData.data;
+            const width = imageData.width;
+            const height = imageData.height;
+            const dstData = new Uint8ClampedArray(src.length);
+            const dst = new ImageData(dstData, width, height);
+
+            const halfKernel = Math.floor(currentKernelSize / 2);
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const dstOff = (y * width + x) * 4;
+                    let r = 0, g = 0, b = 0;
+
+                    for (let ky = 0; ky < currentKernelSize; ky++) {
+                        for (let kx = 0; kx < currentKernelSize; kx++) {
+                            const sy = Math.min(height - 1, Math.max(0, y + ky - halfKernel));
+                            const sx = Math.min(width - 1, Math.max(0, x + kx - halfKernel));
+                            
+                            const srcOff = (sy * width + sx) * 4;
+                            const kernelVal = kernel[ky * currentKernelSize + kx];
+
+                            r += src[srcOff] * kernelVal;
+                            g += src[srcOff + 1] * kernelVal;
+                            b += src[srcOff + 2] * kernelVal;
+                        }
+                    }
+                    
+                    dstData[dstOff] = r;
+                    dstData[dstOff + 1] = g;
+                    dstData[dstOff + 2] = b;
+                    dstData[dstOff + 3] = src[dstOff + 3]; // Preserve alpha
+                }
+            }
+            return dst;
+        }
+        
+        function resizeCanvases() {
+            if (currentImageSrc) {
+                // Reloading the image handles the resizing logic based on the new container size
+                loadImage(currentImageSrc);
+            }
+        }
+
+        init();
+    });
+</script>
+</body>
+</html>
+

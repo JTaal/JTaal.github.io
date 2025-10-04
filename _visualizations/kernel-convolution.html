@@ -124,7 +124,21 @@
             opacity: 0;
         }
     </style>
+
+    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
+    {%- assign page_title = "Kernel Convolution" -%}
+    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
+    {%- if viz_data -%}
+      {% include social-meta.html
+          title=viz_data.title
+          description=viz_data.description
+          thumbnail=viz_data.thumbnail
+          full_url=viz_data.full_url
+      %}
+    {%- endif -%}
+    {% comment %} --- End Include --- {% endcomment %}
 </head>
+
 <body class="flex flex-col h-screen overflow-hidden">
 
     <header class="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700 p-4 text-center z-10">

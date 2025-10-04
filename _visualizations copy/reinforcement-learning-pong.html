@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Pong: DQN vs SAC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #030712; /* bg-gray-950 */
+            color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            background-color: #111827;
+            border-radius: 8px;
+            border: 1px solid #374151;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: calc(100vh - 100px); 
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        #menu {
+            display: flex;
+            gap: 10px;
+        }
+        .menu-button, .toggle-button {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        .menu-button:hover, .toggle-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .menu-button.active, .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        #settings-button {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 300px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+        .score {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 4rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.1);
+            z-index: -1;
+        }
+        #player-score { left: 25%; }
+        #ai-score { right: 25%; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">AI Pong</h1>
+    </header>
+
+    <div id="game-container" class="mt-12">
+        <div id="player-score" class="score">0</div>
+        <canvas id="pong-canvas" width="800" height="500"></canvas>
+        <div id="ai-score" class="score">0</div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel">
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-medium">Agent:</span>
+            <button id="btn-dqn" class="menu-button active">DQN</button>
+            <button id="btn-sac" class="menu-button">SAC</button>
+        </div>
+        <button id="start-btn" class="toggle-button">Start Game</button>
+        <button id="reset-btn" class="toggle-button">Reset Game</button>
+        <button id="load-sac-btn" class="toggle-button" disabled>Load Pre-trained SAC</button>
+    </div>
+    
+<script type="module">
+    // --- Basic Neural Network & Matrix Library ---
+    // (A very simplified implementation for this demo)
+
+    class Matrix {
+        constructor(rows, cols) {
+            this.rows = rows;
+            this.cols = cols;
+            this.data = Array(rows).fill(0).map(() => Array(cols).fill(0));
+        }
+
+        static fromArray(arr) {
+            let m = new Matrix(arr.length, 1);
+            for (let i = 0; i < arr.length; i++) {
+                m.data[i][0] = arr[i];
+            }
+            return m;
+        }
+
+        toArray() {
+            let arr = [];
+            for (let i = 0; i < this.rows; i++) {
+                for (let j = 0; j < this.cols; j++) {
+                    arr.push(this.data[i][j]);
+                }
+            }
+            return arr;
+        }
+        
+        randomize() {
+            for (let i = 0; i < this.rows; i++) {
+                for (let j = 0; j < this.cols; j++) {
+                    this.data[i][j] = Math.random() * 2 - 1; // Xavier initialization might be better
+                }
+            }
+        }
+
+        static multiply(a, b) {
+            if (a.cols !== b.rows) {
+                console.error("Matrix dimensions are not compatible for multiplication.");
+                return undefined;
+            }
+            let result = new Matrix(a.rows, b.cols);
+            for (let i = 0; i < result.rows; i++) {
+                for (let j = 0; j < result.cols; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < a.cols; k++) {
+                        sum += a.data[i][k] * b.data[k][j];
+                    }
+                    result.data[i][j] = sum;
+                }
+            }
+            return result;
+        }
+
+        multiply(n) {
+            if (n instanceof Matrix) {
+                 for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        this.data[i][j] *= n.data[i][j];
+                    }
+                }
+            } else {
+                 for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        this.data[i][j] *= n;
+                    }
+                }
+            }
+        }
+        
+        add(n) {
+            if (n instanceof Matrix) {
+                for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        this.data[i][j] += n.data[i][j];
+                    }
+                }
+            } else {
+                for (let i = 0; i < this.rows; i++) {
+                    for (let j = 0; j < this.cols; j++) {
+                        this.data[i][j] += n;
+                    }
+                }
+            }
+        }
+
+        static subtract(a, b) {
+            let result = new Matrix(a.rows, a.cols);
+            for (let i = 0; i < result.rows; i++) {
+                for (let j = 0; j < result.cols; j++) {
+                    result.data[i][j] = a.data[i][j] - b.data[i][j];
+                }
+            }
+            return result;
+        }
+
+        map(fn) {
+             for (let i = 0; i < this.rows; i++) {
+                for (let j = 0; j < this.cols; j++) {
+                    let val = this.data[i][j];
+                    this.data[i][j] = fn(val);
+                }
+            }
+        }
+
+        static map(matrix, fn) {
+            let result = new Matrix(matrix.rows, matrix.cols);
+             for (let i = 0; i < matrix.rows; i++) {
+                for (let j = 0; j < matrix.cols; j++) {
+                    let val = matrix.data[i][j];
+                    result.data[i][j] = fn(val);
+                }
+            }
+            return result;
+        }
+        
+        static transpose(matrix) {
+            let result = new Matrix(matrix.cols, matrix.rows);
+            for (let i = 0; i < matrix.rows; i++) {
+                for (let j = 0; j < matrix.cols; j++) {
+                    result.data[j][i] = matrix.data[i][j];
+                }
+            }
+            return result;
+        }
+    }
+    
+    const activation = {
+        relu: (x) => Math.max(0, x),
+        relu_derivative: (y) => y > 0 ? 1 : 0,
+        tanh: (x) => Math.tanh(x),
+        tanh_derivative: (y) => 1 - y * y,
+    };
+
+    class NeuralNetwork {
+        constructor(inputNodes, hiddenNodes, outputNodes) {
+            this.inputNodes = inputNodes;
+            this.hiddenNodes = hiddenNodes;
+            this.outputNodes = outputNodes;
+
+            this.weights_ih = new Matrix(this.hiddenNodes, this.inputNodes);
+            this.weights_ho = new Matrix(this.outputNodes, this.hiddenNodes);
+            this.weights_ih.randomize();
+            this.weights_ho.randomize();
+
+            this.bias_h = new Matrix(this.hiddenNodes, 1);
+            this.bias_o = new Matrix(this.outputNodes, 1);
+            this.bias_h.randomize();
+            this.bias_o.randomize();
+            
+            this.learningRate = 0.01;
+        }
+
+        predict(input_array) {
+            let inputs = Matrix.fromArray(input_array);
+            let hidden = Matrix.multiply(this.weights_ih, inputs);
+            hidden.add(this.bias_h);
+            hidden.map(activation.relu);
+
+            let output = Matrix.multiply(this.weights_ho, hidden);
+            output.add(this.bias_o);
+            // No activation on final layer for Q-values
+            return output.toArray();
+        }
+        
+        train(input_array, target_array) {
+            // Feedforward pass
+            let inputs = Matrix.fromArray(input_array);
+            let hidden = Matrix.multiply(this.weights_ih, inputs);
+            hidden.add(this.bias_h);
+            hidden.map(activation.relu);
+
+            let outputs = Matrix.multiply(this.weights_ho, hidden);
+            outputs.add(this.bias_o);
+            
+            // Backpropagation
+            let targets = Matrix.fromArray(target_array);
+            let output_errors = Matrix.subtract(targets, outputs);
+
+            // Calculate gradients for weights_ho
+            let gradients = Matrix.map(outputs, x => 1); // derivative of linear activation is 1
+            gradients.multiply(output_errors);
+            gradients.multiply(this.learningRate);
+
+            let hidden_T = Matrix.transpose(hidden);
+            let weights_ho_deltas = Matrix.multiply(gradients, hidden_T);
+
+            this.weights_ho.add(weights_ho_deltas);
+            this.bias_o.add(gradients);
+            
+            // Calculate hidden layer errors
+            let who_T = Matrix.transpose(this.weights_ho);
+            let hidden_errors = Matrix.multiply(who_T, output_errors);
+
+            // Calculate gradients for weights_ih
+            let hidden_gradient = Matrix.map(hidden, activation.relu_derivative);
+            hidden_gradient.multiply(hidden_errors);
+            hidden_gradient.multiply(this.learningRate);
+
+            let inputs_T = Matrix.transpose(inputs);
+            let weights_ih_deltas = Matrix.multiply(hidden_gradient, inputs_T);
+            
+            this.weights_ih.add(weights_ih_deltas);
+            this.bias_h.add(hidden_gradient);
+
+            // Return MSE loss
+            let loss = 0;
+            const errors = output_errors.toArray();
+            for(const e of errors) loss += e*e;
+            return loss / errors.length;
+        }
+
+        copy() {
+            const newNN = new NeuralNetwork(this.inputNodes, this.hiddenNodes, this.outputNodes);
+            newNN.weights_ih.data = JSON.parse(JSON.stringify(this.weights_ih.data));
+            newNN.weights_ho.data = JSON.parse(JSON.stringify(this.weights_ho.data));
+            newNN.bias_h.data = JSON.parse(JSON.stringify(this.bias_h.data));
+            newNN.bias_o.data = JSON.parse(JSON.stringify(this.bias_o.data));
+            return newNN;
+        }
+    }
+
+
+    // --- Pong Game Logic ---
+    class PongGame {
+        constructor(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.width = canvas.width;
+            this.height = canvas.height;
+            this.reset();
+        }
+
+        reset() {
+            this.player = { x: 20, y: this.height / 2 - 40, width: 10, height: 80, score: 0 };
+            this.ai = { x: this.width - 30, y: this.height / 2 - 40, width: 10, height: 80, score: 0 };
+            this.ball = { x: this.width / 2, y: this.height / 2, radius: 8, speed: 6, vx: 5, vy: 5 };
+            document.getElementById('player-score').textContent = this.player.score;
+            document.getElementById('ai-score').textContent = this.ai.score;
+            this.ball.vx = Math.random() > 0.5 ? 5 : -5;
+        }
+
+        update(playerMove, aiMove) {
+            // Move player paddle
+            this.player.y = playerMove - this.player.height / 2;
+            this.player.y = Math.max(0, Math.min(this.height - this.player.height, this.player.y));
+
+            // Move AI paddle
+            if (aiMove === 'UP') this.ai.y -= 5;
+            if (aiMove === 'DOWN') this.ai.y += 5;
+            this.ai.y = Math.max(0, Math.min(this.height - this.ai.height, this.ai.y));
+
+            // Move ball
+            this.ball.x += this.ball.vx;
+            this.ball.y += this.ball.vy;
+            
+            let reward = 0;
+
+            // Wall collisions
+            if (this.ball.y + this.ball.radius > this.height || this.ball.y - this.ball.radius < 0) {
+                this.ball.vy *= -1;
+            }
+
+            // Paddle collisions
+            if (this.collides(this.player, this.ball) || this.collides(this.ai, this.ball)) {
+                this.ball.vx *= -1;
+                 // Add slight angle change on paddle hit
+                let paddle = (this.ball.x < this.width / 2) ? this.player : this.ai;
+                let deltaY = this.ball.y - (paddle.y + paddle.height / 2);
+                this.ball.vy = deltaY * 0.25;
+            }
+
+            // Score
+            if (this.ball.x + this.ball.radius < 0) {
+                this.ai.score++;
+                reward = -10; // AI gets reward
+                this.resetBall();
+            } else if (this.ball.x - this.ball.radius > this.width) {
+                this.player.score++;
+                reward = 10; // AI gets penalty
+                this.resetBall();
+            }
+            
+            document.getElementById('player-score').textContent = this.player.score;
+            document.getElementById('ai-score').textContent = this.ai.score;
+
+            return reward;
+        }
+        
+        collides(paddle, ball) {
+            return ball.x - ball.radius < paddle.x + paddle.width &&
+                   ball.x + ball.radius > paddle.x &&
+                   ball.y - ball.radius < paddle.y + paddle.height &&
+                   ball.y + ball.radius > paddle.y;
+        }
+        
+        resetBall() {
+            this.ball.x = this.width / 2;
+            this.ball.y = this.height / 2;
+            this.ball.vx = -this.ball.vx;
+            this.ball.speed = 6;
+        }
+
+        draw() {
+            this.ctx.clearRect(0, 0, this.width, this.height);
+            this.ctx.fillStyle = '#e5e7eb';
+            // Draw paddles
+            this.ctx.fillRect(this.player.x, this.player.y, this.player.width, this.player.height);
+            this.ctx.fillRect(this.ai.x, this.ai.y, this.ai.width, this.ai.height);
+            // Draw ball
+            this.ctx.beginPath();
+            this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
+            this.ctx.fill();
+            // Draw center line
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.width / 2, 0);
+            this.ctx.lineTo(this.width / 2, this.height);
+            this.ctx.stroke();
+        }
+
+        getState() {
+            return [
+                this.ai.y / this.height,
+                this.ball.x / this.width,
+                this.ball.y / this.height,
+                this.ball.vx / this.ball.speed,
+                this.ball.vy / this.ball.speed,
+                this.player.y / this.height
+            ];
+        }
+    }
+
+    // --- Reinforcement Learning Agents ---
+    
+    class ReplayBuffer {
+        constructor(capacity) {
+            this.capacity = capacity;
+            this.buffer = [];
+            this.position = 0;
+        }
+
+        push(state, action, reward, nextState, done) {
+            if (this.buffer.length < this.capacity) {
+                this.buffer.push(null);
+            }
+            this.buffer[this.position] = { state, action, reward, nextState, done };
+            this.position = (this.position + 1) % this.capacity;
+        }
+
+        sample(batchSize) {
+            const batch = [];
+            for (let i = 0; i < batchSize; i++) {
+                const index = Math.floor(Math.random() * this.buffer.length);
+                batch.push(this.buffer[index]);
+            }
+            return batch;
+        }
+        
+        canSample(batchSize) {
+            return this.buffer.length >= batchSize;
+        }
+    }
+
+    class DQNAgent {
+        constructor(stateSize, actionSize) {
+            this.stateSize = stateSize;
+            this.actionSize = actionSize; // For Pong: 0=UP, 1=DOWN
+            this.replayBuffer = new ReplayBuffer(10000);
+            
+            this.gamma = 0.95; // Discount factor
+            this.epsilon = 1.0; // Exploration rate
+            this.epsilonMin = 0.01;
+            this.epsilonDecay = 0.995;
+            this.learningRate = 0.001;
+
+            this.model = new NeuralNetwork(stateSize, 24, actionSize);
+            this.targetModel = this.model.copy();
+            this.model.learningRate = this.learningRate;
+        }
+
+        updateTargetModel() {
+            this.targetModel = this.model.copy();
+        }
+        
+        act(state) {
+            if (Math.random() <= this.epsilon) {
+                return Math.floor(Math.random() * this.actionSize);
+            }
+            const qValues = this.model.predict(state);
+            return qValues.indexOf(Math.max(...qValues));
+        }
+
+        remember(state, action, reward, nextState, done) {
+            this.replayBuffer.push(state, action, reward, nextState, done);
+        }
+
+        replay(batchSize) {
+            if (!this.replayBuffer.canSample(batchSize)) return 0;
+            const minibatch = this.replayBuffer.sample(batchSize);
+            let totalLoss = 0;
+
+            for (const { state, action, reward, nextState, done } of minibatch) {
+                let target = reward;
+                if (!done) {
+                    const nextQ = this.targetModel.predict(nextState);
+                    target = reward + this.gamma * Math.max(...nextQ);
+                }
+                let target_f = this.model.predict(state);
+                target_f[action] = target;
+                
+                const loss = this.model.train(state, target_f);
+                totalLoss += loss;
+            }
+            
+            if (this.epsilon > this.epsilonMin) {
+                this.epsilon *= this.epsilonDecay;
+            }
+            return totalLoss / batchSize;
+        }
+    }
+    
+    // NOTE: This is a simplified SAC for a discrete action space.
+    // A proper SAC is more complex and typically used for continuous spaces.
+    class SACAgent {
+        constructor(stateSize, actionSize) {
+            this.stateSize = stateSize;
+            this.actionSize = actionSize;
+            this.replayBuffer = new ReplayBuffer(10000);
+            
+            this.gamma = 0.99;
+            this.tau = 0.005; // Target network update rate
+            this.alpha = 0.2; // Entropy temperature
+            this.learningRate = 0.0003;
+
+            // Actor (Policy) Network
+            this.actor = new NeuralNetwork(stateSize, 32, actionSize);
+            this.actor.learningRate = this.learningRate;
+
+            // Critic (Q-Value) Networks
+            this.critic1 = new NeuralNetwork(stateSize, 32, actionSize);
+            this.critic2 = new NeuralNetwork(stateSize, 32, actionSize);
+            this.critic1.learningRate = this.learningRate;
+            this.critic2.learningRate = this.learningRate;
+
+            // Target Critic Networks
+            this.critic1_target = this.critic1.copy();
+            this.critic2_target = this.critic2.copy();
+        }
+        
+        // Soft update for target networks
+        softUpdate(target, source) {
+            for(let i=0; i<target.weights_ih.data.length; i++) for(let j=0; j<target.weights_ih.data[0].length; j++)
+                target.weights_ih.data[i][j] = this.tau * source.weights_ih.data[i][j] + (1 - this.tau) * target.weights_ih.data[i][j];
+            for(let i=0; i<target.weights_ho.data.length; i++) for(let j=0; j<target.weights_ho.data[0].length; j++)
+                target.weights_ho.data[i][j] = this.tau * source.weights_ho.data[i][j] + (1 - this.tau) * target.weights_ho.data[i][j];
+        }
+
+        act(state) {
+            const logits = this.actor.predict(state);
+            const probs = this.softmax(logits);
+            // Sample from the probability distribution
+            const rand = Math.random();
+            let cumulativeProb = 0;
+            for(let i = 0; i < probs.length; i++) {
+                cumulativeProb += probs[i];
+                if(rand < cumulativeProb) return i;
+            }
+            return this.actionSize - 1;
+        }
+        
+        softmax(logits) {
+            const maxLogit = Math.max(...logits);
+            const exps = logits.map(l => Math.exp(l - maxLogit));
+            const sumExps = exps.reduce((a, b) => a + b);
+            return exps.map(e => e / sumExps);
+        }
+
+        remember(state, action, reward, nextState, done) {
+            this.replayBuffer.push(state, action, reward, nextState, done);
+        }
+
+        replay(batchSize) {
+            if (!this.replayBuffer.canSample(batchSize)) return 0;
+            const minibatch = this.replayBuffer.sample(batchSize);
+            let totalLoss = 0;
+
+            for (const { state, action, reward, nextState, done } of minibatch) {
+                 // --- Update Critic ---
+                const next_logits = this.actor.predict(nextState);
+                const next_probs = this.softmax(next_logits);
+                const next_log_probs = next_probs.map(p => Math.log(p + 1e-6));
+                
+                const q1_next = this.critic1_target.predict(nextState);
+                const q2_next = this.critic2_target.predict(nextState);
+                const min_q_next = q1_next.map((q, i) => Math.min(q, q2_next[i]));
+                
+                let next_value = 0;
+                for(let i=0; i<this.actionSize; i++) {
+                    next_value += next_probs[i] * (min_q_next[i] - this.alpha * next_log_probs[i]);
+                }
+
+                const target_q = reward + (1 - done) * this.gamma * next_value;
+
+                let q1_target_f = this.critic1.predict(state);
+                q1_target_f[action] = target_q;
+                const critic1_loss = this.critic1.train(state, q1_target_f);
+                
+                let q2_target_f = this.critic2.predict(state);
+                q2_target_f[action] = target_q;
+                const critic2_loss = this.critic2.train(state, q2_target_f);
+
+                // --- Update Actor ---
+                const logits = this.actor.predict(state);
+                const probs = this.softmax(logits);
+                const log_probs = probs.map(p => Math.log(p + 1e-6));
+
+                const q1_pred = this.critic1.predict(state);
+                const q2_pred = this.critic2.predict(state);
+                const min_q_pred = q1_pred.map((q,i) => Math.min(q, q2_pred[i]));
+
+                let actor_target_value = 0;
+                for(let i=0; i<this.actionSize; i++) {
+                    actor_target_value += probs[i] * (this.alpha * log_probs[i] - min_q_pred[i]);
+                }
+                
+                // This is a simplified gradient step. A real implementation would backprop through Q-network.
+                // We fake it by creating a target for the actor.
+                let actor_targets = logits.slice();
+                actor_targets[action] -= this.learningRate * (this.alpha * log_probs[action] - min_q_pred[action]);
+                const actor_loss = this.actor.train(state, actor_targets);
+
+                totalLoss += (critic1_loss + critic2_loss + actor_loss);
+            }
+
+            this.softUpdate(this.critic1_target, this.critic1);
+            this.softUpdate(this.critic2_target, this.critic2);
+            
+            return totalLoss / batchSize;
+        }
+    }
+
+
+    // --- Main Application ---
+    const canvas = document.getElementById('pong-canvas');
+    const game = new PongGame(canvas);
+    const stateSize = game.getState().length;
+    const actionSize = 2; // UP, DOWN
+
+    let dqnAgent = new DQNAgent(stateSize, actionSize);
+    let sacAgent = new SACAgent(stateSize, actionSize);
+    let activeAgent = dqnAgent;
+
+    let playerY = canvas.height / 2;
+    let isGameRunning = false;
+    let lastAITrainTime = 0;
+    const trainInterval = 100; // ms
+    let updateCounter = 0;
+    const targetUpdateFreq = 10; // updates
+    
+    // --- Pre-trained model placeholder ---
+    // In a real application, you would fetch this JSON from a server or file.
+    const preTrainedSACWeights = {
+        "actor": { "weights_ih": [[0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2]], "weights_ho": [[0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3]], "bias_h": [[0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2]], "bias_o": [[0.1], [-0.2]] },
+        "critic1": { "weights_ih": [[0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3]], "weights_ho": [[0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4]], "bias_h": [[0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3]], "bias_o": [[0.2], [-0.3]] },
+        "critic2": { "weights_ih": [[0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4], [0.5, -0.1, 0.2, -0.3, 0.4, -0.5], [-0.1, 0.2, -0.3, 0.4, -0.5, 0.1], [0.2, -0.3, 0.4, -0.5, 0.1, -0.2], [-0.3, 0.4, -0.5, 0.1, -0.2, 0.3], [0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.5, 0.1, -0.2, 0.3, -0.4, 0.5], [0.1, -0.2, 0.3, -0.4, 0.5, -0.1], [-0.2, 0.3, -0.4, 0.5, -0.1, 0.2], [0.3, -0.4, 0.5, -0.1, 0.2, -0.3], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4]], "weights_ho": [[0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4], [-0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5, -0.1, 0.2, -0.3, 0.4, -0.5, 0.1, -0.2, 0.3, -0.4, 0.5]], "bias_h": [[0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4], [0.5], [-0.1], [0.2], [-0.3], [0.4], [-0.5], [0.1], [-0.2], [0.3], [-0.4]], "bias_o": [[0.3], [-0.4]] }
+    };
+
+
+    function gameLoop(timestamp) {
+        if (isGameRunning) {
+            const state = game.getState();
+            const actionIndex = activeAgent.act(state);
+            const aiAction = actionIndex === 0 ? 'UP' : 'DOWN';
+            
+            const reward = game.update(playerY, aiAction);
+            const nextState = game.getState();
+            const done = reward !== 0;
+
+            if (reward !== 0) { // Only remember terminal states for now to simplify learning
+                activeAgent.remember(state, actionIndex, reward, nextState, done);
+            }
+
+            if (timestamp - lastAITrainTime > trainInterval) {
+                 const loss = activeAgent.replay(16);
+                 lastAITrainTime = timestamp;
+                 updateCounter++;
+            }
+            
+            if (updateCounter >= targetUpdateFreq && activeAgent === dqnAgent) {
+                dqnAgent.updateTargetModel();
+                updateCounter = 0;
+            }
+        }
+        
+        game.draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // --- UI Event Handlers ---
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        playerY = e.clientY - rect.top;
+    });
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+        isGameRunning = !isGameRunning;
+        document.getElementById('start-btn').textContent = isGameRunning ? 'Pause Game' : 'Start Game';
+        document.getElementById('start-btn').classList.toggle('active', isGameRunning);
+    });
+    
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        game.reset();
+        isGameRunning = false;
+        document.getElementById('start-btn').textContent = 'Start Game';
+        document.getElementById('start-btn').classList.remove('active');
+    });
+
+    document.getElementById('btn-dqn').addEventListener('click', () => {
+        activeAgent = dqnAgent;
+        document.getElementById('btn-dqn').classList.add('active');
+        document.getElementById('btn-sac').classList.remove('active');
+        document.getElementById('load-sac-btn').disabled = true;
+        game.reset();
+    });
+
+    document.getElementById('btn-sac').addEventListener('click', () => {
+        activeAgent = sacAgent;
+        document.getElementById('btn-sac').classList.add('active');
+        document.getElementById('btn-dqn').classList.remove('active');
+        document.getElementById('load-sac-btn').disabled = false;
+        game.reset();
+    });
+
+    document.getElementById('load-sac-btn').addEventListener('click', () => {
+        if (activeAgent !== sacAgent) return;
+        
+        // Load actor weights
+        sacAgent.actor.weights_ih.data = preTrainedSACWeights.actor.weights_ih;
+        sacAgent.actor.weights_ho.data = preTrainedSACWeights.actor.weights_ho;
+        sacAgent.actor.bias_h.data = preTrainedSACWeights.actor.bias_h;
+        sacAgent.actor.bias_o.data = preTrainedSACWeights.actor.bias_o;
+
+        // Load critic 1 weights
+        sacAgent.critic1.weights_ih.data = preTrainedSACWeights.critic1.weights_ih;
+        sacAgent.critic1.weights_ho.data = preTrainedSACWeights.critic1.weights_ho;
+        sacAgent.critic1.bias_h.data = preTrainedSACWeights.critic1.bias_h;
+        sacAgent.critic1.bias_o.data = preTrainedSACWeights.critic1.bias_o;
+
+        // Load critic 2 weights
+        sacAgent.critic2.weights_ih.data = preTrainedSACWeights.critic2.weights_ih;
+        sacAgent.critic2.weights_ho.data = preTrainedSACWeights.critic2.weights_ho;
+        sacAgent.critic2.bias_h.data = preTrainedSACWeights.critic2.bias_h;
+        sacAgent.critic2.bias_o.data = preTrainedSACWeights.critic2.bias_o;
+        
+        // Copy to target networks
+        sacAgent.critic1_target = sacAgent.critic1.copy();
+        sacAgent.critic2_target = sacAgent.critic2.copy();
+
+        console.log("Pre-trained SAC model loaded!");
+        const loadBtn = document.getElementById('load-sac-btn');
+        loadBtn.textContent = "Model Loaded";
+        loadBtn.classList.add('active');
+        setTimeout(() => {
+            loadBtn.textContent = "Load Pre-trained SAC";
+            loadBtn.classList.remove('active');
+        }, 2000);
+    });
+    
+    // Start the loop
+    requestAnimationFrame(gameLoop);
+
+</script>
+</body>
+</html>
+

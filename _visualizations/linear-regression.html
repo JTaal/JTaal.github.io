@@ -95,7 +95,21 @@
         #view-controls { display: flex; justify-content: space-around; border-left: 1px solid var(--border-color); padding-left: 20px; gap: 15px; align-items: center;}
         #view-controls label { font-size: 0.8em; }
     </style>
+
+    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
+    {%- assign page_title = "Linear Regression" -%}
+    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
+    {%- if viz_data -%}
+      {% include social-meta.html
+          title=viz_data.title
+          description=viz_data.description
+          thumbnail=viz_data.thumbnail
+          full_url=viz_data.full_url
+      %}
+    {%- endif -%}
+    {% comment %} --- End Include --- {% endcomment %}
 </head>
+
 <body>
     <div id="container"></div>
     <div id="title" class="panel">Linear Regression</div>

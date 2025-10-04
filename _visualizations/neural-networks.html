@@ -56,7 +56,21 @@
         input:checked + .toggle-bg:after { transform: translateX(100%); transform: translateX(calc(1.75rem - 100%)); }
         input:checked + .toggle-bg { background-color: #4f46e5; }
     </style>
+
+    {% comment %} --- Jekyll Social Meta Include --- {% endcomment %}
+    {%- assign page_title = "Neural Networks" -%}
+    {%- assign viz_data = site.data.projects | where: "title", page_title | first -%}
+    {%- if viz_data -%}
+      {% include social-meta.html
+          title=viz_data.title
+          description=viz_data.description
+          thumbnail=viz_data.thumbnail
+          full_url=viz_data.full_url
+      %}
+    {%- endif -%}
+    {% comment %} --- End Include --- {% endcomment %}
 </head>
+
 <body>
     <header>
         <div class="flex items-center gap-4">

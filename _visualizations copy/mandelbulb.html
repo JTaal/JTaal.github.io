@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Mandelbulb Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #000000;
+            color: #e5e7eb;
+        }
+        .ui-panel {
+            position: absolute;
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            border: 1px solid rgba(55, 65, 81, 0.7);
+            transition: all 0.5s ease-in-out;
+            z-index: 10;
+        }
+        #info-panel {
+            top: 80px;
+            left: 20px;
+            max-width: 420px;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 12px;
+            max-height: 58px; /* Collapsed */
+        }
+        #info-panel.expanded {
+            max-height: 90vh;
+            cursor: default;
+            overflow-y: auto;
+            z-index: 11;
+        }
+        #info-header { display: flex; justify-content: space-between; align-items: center; }
+        #toggle-icon { transition: transform 0.3s ease-in-out; }
+        #info-panel.expanded #toggle-icon { transform: rotate(180deg); }
+        #controls-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: rgba(3, 7, 18, 0.5);
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(55, 65, 81, 0.7);
+        }
+        .toggle-button, select {
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        select {
+             -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1em;
+            padding-right: 2.5rem;
+        }
+        .toggle-button:hover, select:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .toggle-button:disabled, select:disabled {
+            background-color: #374151;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .toggle-button.active {
+            background-color: #4f46e5;
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #4b5563;
+            border-radius: 2px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #818cf8;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+         input[type="range"]:disabled::-webkit-slider-thumb {
+            background: #4b5563;
+            cursor: not-allowed;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hidden { display: none !important; }
+        canvas { display: block; }
+
+        #settings-button, #fullscreen-button {
+            position: absolute;
+            background-color: rgba(55, 65, 81, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #settings-button {
+            top: 80px;
+            right: 20px;
+            z-index: 11;
+        }
+        #fullscreen-button {
+            bottom: 20px;
+            right: 20px;
+            z-index: 11;
+        }
+        #settings-button:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px) rotate(45deg);
+        }
+        #fullscreen-button:hover {
+             background-color: #4338ca;
+            transform: translateY(-2px) scale(1.1);
+        }
+        #settings-panel {
+            top: 80px;
+            right: 0;
+            width: 320px;
+            max-width: 90vw;
+            border-radius: 12px 0 0 12px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            z-index: 12;
+        }
+        #settings-panel::-webkit-scrollbar { width: 12px; }
+        #settings-panel::-webkit-scrollbar-track { background: rgba(17, 24, 39, 0.1); }
+        #settings-panel::-webkit-scrollbar-thumb { background-color: #4f46e5; border-radius: 10px; border: 3px solid rgba(17, 24, 39, 0.85); background-clip: padding-box; }
+        #settings-panel::-webkit-scrollbar-thumb:hover { background-color: #6366f1; }
+        #settings-panel.open { transform: translateX(0); }
+        #close-settings { font-size: 2.5rem; line-height: 1; padding: 0; background: none; border: none; cursor: pointer; }
+        input[type="color"] {
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            width: 100%; height: 40px; background-color: transparent; border: none; cursor: pointer;
+        }
+        input[type="color"]::-webkit-color-swatch { border-radius: 8px; border: 1px solid #4b5563; }
+        input[type="color"]::-moz-color-swatch { border-radius: 8px; border: 1px solid #4b5563; }
+        body.fullscreen-active header,
+        body.fullscreen-active #info-panel,
+        body.fullscreen-active #controls-panel { display: none !important; }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 0.875rem;
+            color: #d1d5db;
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; }
+            header h1 { font-size: 1.125rem; }
+            #info-panel { top: 70px; left: 10px; right: 10px; max-width: none; width: auto; }
+            #settings-button { top: 70px; right: 10px; }
+            #fullscreen-button { bottom: 20px; right: 10px; }
+            #settings-panel { top: 70px; width: 280px; max-height: calc(100vh - 80px);}
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="text-xl font-bold text-gray-200 tracking-wider opacity-90">3D Mandelbulb Explorer</h1>
+    </header>
+
+    <div id="info-panel" class="ui-panel">
+        <div id="info-header">
+            <h2 id="info-title" class="text-xl font-bold text-indigo-400">Welcome!</h2>
+            <div id="toggle-icon" class="text-indigo-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+        </div>
+        <div id="info-content" class="pt-4 space-y-3">
+             <p id="info-description" class="text-gray-300"></p>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="ui-panel">
+        <p class="text-gray-300">Use mouse to orbit, scroll to zoom. Open settings for more controls.</p>
+    </div>
+
+    <button id="fullscreen-button" title="Toggle Fullscreen">
+        <svg id="fullscreen-enter-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        <svg id="fullscreen-exit-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+
+    <button id="settings-button" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0 2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+
+    <div id="settings-panel" class="ui-panel hidden">
+        <div class="flex justify-between items-center mb-6 sticky top-0 bg-inherit z-10 py-2">
+            <h3 class="text-xl font-bold text-gray-200">Mandelbulb Settings</h3>
+            <button id="close-settings" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </div>
+        <div id="settings-content" class="space-y-4"></div>
+    </div>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+    varying vec2 vUv;
+    varying vec3 vWorldPosition;
+    void main() {
+        vUv = uv;
+        vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+    varying vec2 vUv;
+    varying vec3 vWorldPosition;
+
+    uniform float u_time;
+    uniform vec3 u_cameraPos;
+    uniform mat4 u_modelMatrix;
+    uniform mat4 u_modelMatrixInverse;
+    uniform bool u_isEnvironmentMode;
+
+    // Mandelbulb Parameters from UI
+    uniform float u_power;
+    uniform int u_iterations;
+    uniform float u_bailout;
+    uniform vec3 u_color;
+    uniform float u_colorFactor;
+    uniform float u_epsilon;
+    uniform float u_specular;
+    uniform float u_ambient;
+    uniform float u_diffuse;
+    uniform float u_shininess;
+    uniform float u_shadowSoftness;
+
+    const int MAX_MARCHING_STEPS = 128;
+    const float MAX_DIST = 100.0;
+
+    // --- Mandelbulb Distance Estimator (DE) ---
+    float mandelbulbDE(vec3 pos) {
+        vec3 z = pos;
+        float dr = 1.0;
+        float r = 0.0;
+        for (int i = 0; i < u_iterations; i++) {
+            r = length(z);
+            if (r > u_bailout) break;
+            float theta = acos(z.z / r);
+            float phi = atan(z.y, z.x);
+            dr = pow(r, u_power - 1.0) * u_power * dr + 1.0;
+            float zr = pow(r, u_power);
+            theta = theta * u_power;
+            phi = phi * u_power;
+            z = zr * vec3(sin(theta) * cos(phi), sin(phi) * sin(theta), cos(theta));
+            z += pos;
+        }
+        return 0.5 * log(r) * r / dr;
+    }
+
+    float sceneDE(vec3 p) {
+        return mandelbulbDE(p);
+    }
+
+    // --- Bounding Box Intersection ---
+    vec2 intersectBox(vec3 ro, vec3 rd, vec3 boxMin, vec3 boxMax) {
+        vec3 t_min = (boxMin - ro) / rd;
+        vec3 t_max = (boxMax - ro) / rd;
+        vec3 t1 = min(t_min, t_max);
+        vec3 t2 = max(t_min, t_max);
+        float t_near = max(max(t1.x, t1.y), t1.z);
+        float t_far = min(min(t2.x, t2.y), t2.z);
+        if (t_near > t_far || t_far < 0.0) return vec2(-1.0);
+        return vec2(t_near, t_far);
+    }
+    
+    // --- Raymarching within Bounding Box ---
+    float rayMarch(vec3 ro, vec3 rd, float t_min, float t_max, out int steps) {
+        float dO = t_min;
+        for(int i = 0; i < MAX_MARCHING_STEPS; i++) {
+            vec3 p = ro + rd * dO;
+            float dS = sceneDE(p);
+            dO += dS;
+            steps = i;
+            if (dO > t_max || abs(dS) < u_epsilon) break;
+        }
+        return dO;
+    }
+    
+    vec3 getNormal(vec3 p) {
+        vec2 e = vec2(u_epsilon, 0.0);
+        return normalize(vec3(
+            sceneDE(p) - sceneDE(p - e.xyy),
+            sceneDE(p) - sceneDE(p - e.yxy),
+            sceneDE(p) - sceneDE(p - e.yyx)
+        ));
+    }
+    
+    float getShadow(vec3 ro, vec3 rd, float k) {
+        float res = 1.0;
+        float t = 0.01;
+        for(int i=0; i<32; i++) {
+            float h = sceneDE(ro + rd * t);
+            if(h < u_epsilon) return 0.0;
+            res = min(res, k * h / t);
+            t += h;
+            if (t > 2.0) break;
+        }
+        return res;
+    }
+
+    void main() {
+        vec3 ro_world = u_cameraPos;
+        vec3 rd_world = normalize(vWorldPosition - ro_world);
+
+        vec3 ro_local = (u_modelMatrixInverse * vec4(ro_world, 1.0)).xyz;
+        vec3 rd_local = (u_modelMatrixInverse * vec4(rd_world, 0.0)).xyz;
+
+        float t_near = 0.0;
+        float t_far = MAX_DIST;
+
+        if (!u_isEnvironmentMode) {
+            vec2 t = intersectBox(ro_local, rd_local, vec3(-0.5), vec3(0.5));
+            if (t.x < 0.0 && t.y < 0.0) discard;
+            t_near = max(0.0, t.x);
+            t_far = t.y;
+        }
+
+        int steps = 0;
+        float dist = rayMarch(ro_local, rd_local, t_near, t_far, steps);
+        
+        float max_march_dist = u_isEnvironmentMode ? MAX_DIST : t_far;
+        if (dist >= max_march_dist) {
+            discard;
+        }
+
+        vec3 p_local = ro_local + rd_local * dist;
+        vec3 normal_local = getNormal(p_local);
+        
+        vec3 p_world = (u_modelMatrix * vec4(p_local, 1.0)).xyz;
+        vec3 normal_world = normalize(mat3(transpose(u_modelMatrixInverse)) * normal_local);
+        vec3 viewDir_world = normalize(ro_world - p_world);
+
+        vec3 lightPos = vec3(4.0 * sin(u_time * 0.1), 2.0, 4.0 * cos(u_time * 0.1));
+        vec3 lightDir = normalize(lightPos - p_world);
+        
+        vec3 shadow_ro_local = (u_modelMatrixInverse * vec4(p_world + normal_world * u_epsilon * 2.0, 1.0)).xyz;
+        vec3 shadow_rd_local = (u_modelMatrixInverse * vec4(lightDir, 0.0)).xyz;
+        float shadow = getShadow(shadow_ro_local, shadow_rd_local, u_shadowSoftness);
+        
+        vec3 materialColor = u_color * u_colorFactor * (float(steps)/float(MAX_MARCHING_STEPS-1));
+
+        vec3 ambient = u_ambient * materialColor;
+        float diff = max(dot(normal_world, lightDir), 0.0);
+        vec3 diffuse = u_diffuse * diff * materialColor * shadow;
+        vec3 halfwayDir = normalize(lightDir + viewDir_world);
+        float spec = pow(max(dot(normal_world, halfwayDir), 0.0), u_shininess);
+        vec3 specular = u_specular * spec * vec3(1.0) * shadow;
+
+        vec3 finalColor = ambient + diffuse + specular;
+        
+        gl_FragColor = vec4(finalColor, 1.0);
+    }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+    import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
+    import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
+
+    let scene, camera, renderer, controls, clock, material, mandelbulbMesh;
+    let playerDolly;
+    
+    // Control state
+    let isFlyModeActive = false;
+    let isTrueSizeMode = false;
+    let isEnvironmentMode = false;
+    const keys = {};
+    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+
+    const uniforms = {
+        u_time: { value: 0.0 },
+        u_cameraPos: { value: new THREE.Vector3() },
+        u_modelMatrix: { value: new THREE.Matrix4() },
+        u_modelMatrixInverse: { value: new THREE.Matrix4() },
+        u_isEnvironmentMode: { value: false },
+        u_power: { value: 8.0 },
+        u_iterations: { value: 16 },
+        u_bailout: { value: 8.0 },
+        u_color: { value: new THREE.Color(0x88ceff) },
+        u_colorFactor: { value: 1.0 },
+        u_epsilon: { value: 0.001 },
+        u_specular: { value: 0.5 },
+        u_ambient: { value: 0.3 },
+        u_diffuse: { value: 0.7 },
+        u_shininess: { value: 32.0 },
+        u_shadowSoftness: { value: 16.0 }
+    };
+
+    const colorSchemes = {
+        '🧊 Icy Blue': { color: '#88ceff' },
+        '🔥 Molten Gold': { color: '#ffac00' },
+        '🌲 Emerald Forest': { color: '#00ff87' },
+        '💜 Amethyst': { color: '#ab6bff' },
+        '❤️ Ruby Red': { color: '#ff3d3d' },
+        ' Monochrome': { color: '#ffffff' },
+        'Custom': { color: '#88ceff' }, // Default/placeholder
+    };
+    
+    const settings = {
+        'Controls': [
+            { id: 'fly_mode', name: 'Fly / Orbit', type: 'toggle' }
+        ],
+        'Display': [
+            { id: 'display_mode', name: 'Mode (Object/Env)', type: 'toggle' }
+        ],
+        'Fractal': [
+            { id: 'power', name: 'Power', type: 'range', min: 1, max: 20, step: 0.1, value: 8.0 },
+            { id: 'iterations', name: 'Iterations', type: 'range', min: 4, max: 64, step: 1, value: 16 },
+            { id: 'bailout', name: 'Bailout', type: 'range', min: 2, max: 16, step: 0.1, value: 8.0 },
+            { id: 'size', name: 'Size', type: 'range', min: 0.5, max: 5, step: 0.1, value: 2.0 },
+            { id: 'true_size', name: 'True Size', type: 'toggle' }
+        ],
+        'Lighting': [
+            { id: 'ambient', name: 'Ambient', type: 'range', min: 0, max: 1, step: 0.01, value: 0.3 },
+            { id: 'diffuse', name: 'Diffuse', type: 'range', min: 0, max: 2, step: 0.01, value: 0.7 },
+            { id: 'specular', name: 'Specular', type: 'range', min: 0, max: 2, step: 0.01, value: 0.5 },
+            { id: 'shininess', name: 'Shininess', type: 'range', min: 2, max: 256, step: 1, value: 32 },
+            { id: 'shadowSoftness', name: 'Shadow Softness', type: 'range', min: 1, max: 64, step: 1, value: 16 },
+        ],
+        'Coloring': [
+            { id: 'color_scheme', name: 'Color Scheme', type: 'select', options: colorSchemes },
+            { id: 'color', name: 'Base Color', type: 'color', value: '#88ceff' },
+            { id: 'colorFactor', name: 'Color Factor', type: 'range', min: 0.1, max: 3, step: 0.1, value: 1.0 }
+        ],
+        'Rendering': [
+            { id: 'epsilon', name: 'Precision (Epsilon)', type: 'range', min: 0.0001, max: 0.005, step: 0.0001, value: 0.001 }
+        ],
+        'VR': [
+            { id: 'vr-button', name: 'VR Mode', type: 'button' }
+        ]
+    };
+
+    function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 3.5);
+
+        playerDolly = new THREE.Group();
+        playerDolly.add(camera);
+        scene.add(playerDolly);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        material = new THREE.ShaderMaterial({
+            uniforms: uniforms,
+            vertexShader: document.getElementById('vertex-shader').textContent,
+            fragmentShader: document.getElementById('fragment-shader').textContent,
+            side: THREE.BackSide
+        });
+        mandelbulbMesh = new THREE.Mesh(geometry, material);
+        const initialSize = settings['Fractal'].find(s => s.id === 'size').value;
+        mandelbulbMesh.scale.set(initialSize, initialSize, initialSize);
+        scene.add(mandelbulbMesh);
+
+        setupInfoPanel();
+        setupSettingsPanel();
+        setupFullscreen();
+        setupVR();
+        setupFlyControls();
+
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.setAnimationLoop(animate);
+        onWindowResize();
+    }
+    
+    function onMouseMove(event) {
+        if (!isFlyModeActive) return;
+        const sensitivity = 0.002;
+        euler.setFromQuaternion(camera.quaternion);
+        euler.y -= event.movementX * sensitivity;
+        euler.x -= event.movementY * sensitivity;
+        euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x));
+        camera.quaternion.setFromEuler(euler);
+    }
+
+    function setupFlyControls() {
+        document.addEventListener('keydown', (e) => keys[e.code] = true);
+        document.addEventListener('keyup', (e) => keys[e.code] = false);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement !== renderer.domElement && isFlyModeActive) {
+                const flyModeButton = document.getElementById('fly_mode');
+                isFlyModeActive = false;
+                flyModeButton.classList.remove('active');
+                flyModeButton.textContent = 'Orbit Mode';
+                document.getElementById('controls-panel').children[0].textContent = "Use mouse to orbit, scroll to zoom.";
+            }
+        });
+    }
+
+    function setupInfoPanel() {
+        document.getElementById('info-title').textContent = "Volumetric Mandelbulb Explorer";
+        document.getElementById('info-description').innerHTML = `
+            <p>A real-time volumetric 3D fractal explorer. Switch between viewing the fractal as an object or an immersive environment. Use the settings panel to change the fractal's parameters and discover new shapes.</p>
+            <p class="font-bold text-indigo-300 mt-2">Fly Mode Controls:</p>
+            <ul class="list-disc list-inside text-sm">
+                <li><b>W/S:</b> Move Forward/Backward</li>
+                <li><b>A/D:</b> Strafe Left/Right</li>
+                <li><b>R/F:</b> Move Up/Down</li>
+                <li><b>Mouse:</b> Look Around</li>
+                <li><b>ESC:</b> Exit Fly Mode</li>
+            </ul>`;
+        document.getElementById('info-panel').addEventListener('click', (e) => e.currentTarget.classList.toggle('expanded'));
+    }
+
+    function setupSettingsPanel() {
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsContent = document.getElementById('settings-content');
+        const settingsButton = document.getElementById('settings-button');
+        const closeSettingsButton = document.getElementById('close-settings');
+
+        Object.keys(settings).forEach(category => {
+            const header = document.createElement('h4');
+            header.className = 'text-lg font-bold text-indigo-300 text-left w-full pt-2';
+            header.textContent = category;
+            settingsContent.appendChild(header);
+
+            settings[category].forEach(setting => {
+                const group = document.createElement('div');
+                group.className = 'control-group text-left w-full space-y-2';
+                
+                if (setting.type === 'button') {
+                     const button = document.createElement('button');
+                    button.id = setting.id;
+                    button.className = 'toggle-button w-full flex items-center justify-center gap-2';
+                    button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12.3C2 7.8 5.8 4 10.3 4s8.3 3.8 8.3 8.3-3.5 8.3-8.3 8.3S2 16.8 2 12.3z"/><path d="M12.3 4a8.3 8.3 0 0 1 8.3 8.3 8.3 8.3 0 0 1-8.3 8.3"/></svg><span>Enter VR</span>`;
+                    group.appendChild(button);
+                } else if (setting.type === 'toggle') {
+                    const button = document.createElement('button');
+                    button.id = setting.id;
+                    button.className = 'toggle-button w-full';
+                    button.textContent = 'Off';
+                     if (setting.id === 'fly_mode') button.textContent = 'Orbit Mode';
+                     if (setting.id === 'display_mode') button.textContent = 'Object Mode';
+                    
+                    button.addEventListener('click', () => {
+                        button.classList.toggle('active');
+                        if (setting.id === 'fly_mode') {
+                            isFlyModeActive = !isFlyModeActive;
+                            button.textContent = isFlyModeActive ? 'Fly Mode' : 'Orbit Mode';
+                            if (isFlyModeActive) {
+                                renderer.domElement.requestPointerLock();
+                                document.getElementById('controls-panel').children[0].textContent = "W/S/A/D to move, R/F to ascend/descend. ESC to exit.";
+                            } else {
+                                document.exitPointerLock();
+                                document.getElementById('controls-panel').children[0].textContent = "Use mouse to orbit, scroll to zoom.";
+                            }
+                        } else if (setting.id === 'true_size') {
+                            isTrueSizeMode = !isTrueSizeMode;
+                            button.textContent = isTrueSizeMode ? 'On' : 'Off';
+                            document.getElementById('size').disabled = isTrueSizeMode;
+                        } else if (setting.id === 'display_mode') {
+                            isEnvironmentMode = !isEnvironmentMode;
+                            uniforms.u_isEnvironmentMode.value = isEnvironmentMode;
+                            button.textContent = isEnvironmentMode ? 'Environment' : 'Object';
+                            
+                            const sizeSlider = document.getElementById('size');
+                            const trueSizeToggle = document.getElementById('true_size');
+                            sizeSlider.disabled = isEnvironmentMode;
+                            trueSizeToggle.disabled = isEnvironmentMode;
+                        }
+                    });
+                    
+                    const label = document.createElement('label');
+                    label.className = 'slider-label';
+                    label.innerHTML = `<span>${setting.name}</span>`;
+                    group.appendChild(label);
+                    group.appendChild(button);
+
+                } else if (setting.type === 'select') {
+                    const label = document.createElement('label');
+                    label.className = 'slider-label';
+                    label.textContent = setting.name;
+
+                    const select = document.createElement('select');
+                    select.id = setting.id;
+                    select.className = "w-full";
+
+                    for (const name in setting.options) {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        select.appendChild(option);
+                    }
+                    
+                    select.addEventListener('input', (e) => {
+                        const selectedScheme = colorSchemes[e.target.value];
+                        if(selectedScheme) {
+                            uniforms.u_color.value.set(selectedScheme.color);
+                            document.getElementById('color').value = selectedScheme.color;
+                        }
+                    });
+
+                    group.appendChild(label);
+                    group.appendChild(select);
+                }
+                
+                else {
+                    const label = document.createElement('label');
+                    label.className = 'slider-label';
+                    label.innerHTML = `<span>${setting.name}</span><span id="${setting.id}-value">${setting.value}</span>`;
+                    
+                    const input = document.createElement('input');
+                    input.type = setting.type;
+                    input.id = setting.id;
+                    input.value = setting.value;
+                    if (setting.type === 'range') {
+                        input.min = setting.min;
+                        input.max = setting.max;
+                        input.step = setting.step;
+                    }
+                    input.className = 'w-full';
+                    
+                    input.addEventListener('input', (e) => {
+                        const valueSpan = document.getElementById(`${setting.id}-value`);
+                        let value = e.target.value;
+                        if (setting.type === 'range') {
+                            const floatVal = parseFloat(value);
+                            valueSpan.textContent = (setting.step < 0.01) ? floatVal.toFixed(4) : floatVal.toFixed(2);
+                            if (setting.id === 'size') {
+                                if (mandelbulbMesh && !isTrueSizeMode) mandelbulbMesh.scale.set(floatVal, floatVal, floatVal);
+                            } else {
+                                uniforms[`u_${setting.id}`].value = floatVal;
+                            }
+                        } else if (setting.type === 'color') {
+                            valueSpan.textContent = value;
+                            uniforms[`u_${setting.id}`].value.set(value);
+                            // Set dropdown to custom when color picker is used
+                            document.getElementById('color_scheme').value = 'Custom';
+                        }
+                    });
+                    
+                    group.appendChild(label);
+                    group.appendChild(input);
+                }
+                settingsContent.appendChild(group);
+            });
+        });
+
+        function toggleSettingsPanel() {
+            if (settingsPanel.classList.contains('open')) settingsPanel.classList.remove('open');
+            else { settingsPanel.classList.remove('hidden'); requestAnimationFrame(() => settingsPanel.classList.add('open')); }
+        }
+        settingsButton.addEventListener('click', toggleSettingsPanel);
+        closeSettingsButton.addEventListener('click', () => settingsPanel.classList.remove('open'));
+        settingsPanel.addEventListener('transitionend', (e) => {
+            if (e.propertyName === 'transform' && !settingsPanel.classList.contains('open')) {
+                settingsPanel.classList.add('hidden');
+            }
+        });
+    }
+
+    function setupVR() {
+        renderer.xr.enabled = true;
+        const vrButton = document.getElementById('vr-button');
+        if ('xr' in navigator) {
+            navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                if(vrButton) vrButton.disabled = !supported;
+                if (supported) {
+                     vrButton.addEventListener('click', () => {
+                        const session = renderer.xr.getSession();
+                        if (session) session.end();
+                        else navigator.xr.requestSession('immersive-vr').then((session) => renderer.xr.setSession(session));
+                    });
+                    renderer.xr.addEventListener('sessionstart', () => {
+                        playerDolly.position.copy(camera.position);
+                        camera.position.set(0, 0, 0);
+                        controls.enabled = false;
+                        vrButton.querySelector('span').textContent = 'Exit VR';
+                        vrButton.classList.add('active');
+                    });
+                    renderer.xr.addEventListener('sessionend', () => {
+                        camera.position.copy(playerDolly.position);
+                        playerDolly.position.set(0,0,0);
+                        controls.enabled = true;
+                        vrButton.querySelector('span').textContent = 'Enter VR';
+                        vrButton.classList.remove('active');
+                    });
+                }
+            });
+        }
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    function updateFlyControls(delta) {
+        const speed = 3.0 * delta;
+        const moveVector = new THREE.Vector3();
+        if (keys['KeyW'] || keys['ArrowUp']) moveVector.z -= 1;
+        if (keys['KeyS'] || keys['ArrowDown']) moveVector.z += 1;
+        if (keys['KeyA'] || keys['ArrowLeft']) moveVector.x -= 1;
+        if (keys['KeyD'] || keys['ArrowRight']) moveVector.x += 1;
+        
+        if (moveVector.lengthSq() > 0) {
+            moveVector.normalize().applyQuaternion(camera.quaternion);
+            camera.position.addScaledVector(moveVector, speed);
+        }
+
+        if (keys['KeyR'] || keys['PageUp']) camera.position.y += speed;
+        if (keys['KeyF'] || keys['PageDown']) camera.position.y -= speed;
+    }
+
+    function animate() {
+        const delta = clock.getDelta();
+        
+        if (isFlyModeActive) {
+            updateFlyControls(delta);
+            controls.enabled = false;
+        } else {
+            controls.enabled = true;
+            controls.update();
+        }
+        
+        if (isEnvironmentMode) {
+            mandelbulbMesh.scale.set(500, 500, 500); // Set to a large "skybox" size
+        } else {
+            if (isTrueSizeMode) {
+                mandelbulbMesh.scale.set(4, 4, 4);
+            } else {
+                const size = document.getElementById('size').value;
+                mandelbulbMesh.scale.set(size, size, size);
+            }
+        }
+
+        uniforms.u_time.value += delta;
+        
+        camera.getWorldPosition(uniforms.u_cameraPos.value);
+        
+        mandelbulbMesh.updateMatrixWorld();
+        uniforms.u_modelMatrix.value.copy(mandelbulbMesh.matrixWorld);
+        uniforms.u_modelMatrixInverse.value.copy(mandelbulbMesh.matrixWorld).invert();
+
+        renderer.render(scene, camera);
+    }
+    
+    function setupFullscreen() {
+        const fullscreenButton = document.getElementById('fullscreen-button');
+        const enterIcon = document.getElementById('fullscreen-enter-icon');
+        const exitIcon = document.getElementById('fullscreen-exit-icon');
+        if (!document.fullscreenEnabled) { fullscreenButton.style.display = 'none'; return; }
+        fullscreenButton.addEventListener('click', () => {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        });
+        document.addEventListener('fullscreenchange', () => {
+            const isFullscreen = !!document.fullscreenElement;
+            enterIcon.classList.toggle('hidden', isFullscreen);
+            exitIcon.classList.toggle('hidden', !isFullscreen);
+            document.body.classList.toggle('fullscreen-active', isFullscreen);
+            setTimeout(onWindowResize, 100);
+        });
+    }
+
+    init();
+
+</script>
+</body>
+</html>
+
